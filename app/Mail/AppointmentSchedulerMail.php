@@ -19,7 +19,8 @@ class AppointmentSchedulerMail extends Mailable
 
     public function build()
     {
-        return $this->subject('Appointment Invitation - Respond Required')
+        return $this->from(config('mail.from.address'), $this->sender->name)
+            ->subject('Appointment Invitation - Response Required')
             ->view('web.appointment_scheduler_mail')
             ->with([
                 'appointment' => $this->appointment,
