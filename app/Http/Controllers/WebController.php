@@ -7236,8 +7236,21 @@ public function showFeedbackPopup()
                 'modules.*' => 'in:'.implode(',', $allowedModules),
                 'frequency' => 'required|in:daily,weekly,monthly,quarterly',
                 'delivery_mode' => 'required|in:attachment,link',
-                'emails' => ['nullable', 'string', 'max:1000', 'regex:/^\s*[^,\s]+@[^,\s]+(\s*,\s*[^,\s]+@[^,\s]+){0,4}\s*$/']
+                'emails' => ['required', 'string', 'max:1000', 'regex:/^\s*[^,\s]+@[^,\s]+(\s*,\s*[^,\s]+@[^,\s]+){0,4}\s*$/']
             ]);
+
+            $emails = array_values(array_filter(array_map('trim', explode(',', (string) $request->emails))));
+            $subscriberEmail = trim((string) optional($user)->email);
+
+            if ($subscriberEmail !== '') {
+                $emails = array_values(array_filter($emails, function ($email) use ($subscriberEmail) {
+                    return strcasecmp($email, $subscriberEmail) !== 0;
+                }));
+                array_unshift($emails, $subscriberEmail);
+            }
+
+            $emails = array_slice(array_values(array_unique($emails, SORT_STRING)), 0, 5);
+            $normalizedEmails = implode(', ', $emails);
 
             $setting = ReportSetting::updateOrCreate(
                 ['user_id' => Auth::id()],
@@ -7245,7 +7258,7 @@ public function showFeedbackPopup()
                     'modules' => $request->modules,
                     'frequency' => $request->frequency,
                     'delivery_mode' => $request->delivery_mode,
-                    'emails' => $request->emails
+                    'emails' => $normalizedEmails
                 ]
             );
 

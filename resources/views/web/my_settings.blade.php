@@ -373,7 +373,8 @@
 
                             <div class="col-6">
                                 @php
-                                    $selectedModules = [];
+                                    $selectedModules = old('modules', optional($reportSetting)->modules ?? []);
+                                    $reportDefaultEmail = trim((string) (optional($reportSetting)->emails ?? $user->email ?? ''));
                                 @endphp
                                 @foreach ($reportModules as $moduleKey => $moduleLabel)
                                     <div class="form-check">
@@ -393,9 +394,9 @@
 
                             <div class="col-6">
                                 <select name="frequency" class="form-control form-select">
-                                    @php
-                                        $selectedFrequency = 'daily';
-                                    @endphp
+                                @php
+                                    $selectedFrequency = old('frequency', optional($reportSetting)->frequency ?? 'daily');
+                                @endphp
                                     <option value="daily" {{ $selectedFrequency == 'daily' ? 'selected' : '' }}>Daily</option>
                                     <option value="weekly" {{ $selectedFrequency == 'weekly' ? 'selected' : '' }}>Weekly</option>
                                     <option value="monthly" {{ $selectedFrequency == 'monthly' ? 'selected' : '' }}>Monthly</option>
@@ -412,7 +413,7 @@
 
                             <div class="col-6">
                                 @php
-                                    $selectedDeliveryMode = 'attachment';
+                                    $selectedDeliveryMode = old('delivery_mode', optional($reportSetting)->delivery_mode ?? 'attachment');
                                 @endphp
                                 <select name="delivery_mode" class="form-control form-select">
                                     <option value="attachment" {{ $selectedDeliveryMode == 'attachment' ? 'selected' : '' }}>Reports as PDF in Email Attachment</option>
@@ -429,7 +430,7 @@
 
                             <div class="col-6">
                                 <textarea name="emails" class="form-control"
-                                    placeholder="Enter upto 5 emails separated by comma"></textarea>
+                                    placeholder="Enter upto 5 emails separated by comma">{{ old('emails', $reportDefaultEmail) }}</textarea>
                                 <small class="text-muted">Example: test1@gmail.com, test2@gmail.com</small>
                             </div>
                         </div>
@@ -602,6 +603,22 @@
                 .prop('disabled', true)
                 .text('Submitting...');
 
+            const emailField = $('#reports-settings-form textarea[name="emails"]');
+            const emails = $.trim(emailField.val());
+
+            if (!emails) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Please enter at least one recipient email.'
+                });
+
+                $saveReportsButton
+                    .prop('disabled', false)
+                    .text(defaultButtonText);
+                return;
+            }
+
             let formData = $('#reports-settings-form').serialize();
 
             $.ajax({
@@ -616,9 +633,6 @@
                         title: 'Success',
                         text: response.message
                     });
-
-                    $('#reports-settings-form')[0].reset();
-
                 },
 
                 error:function(xhr){
