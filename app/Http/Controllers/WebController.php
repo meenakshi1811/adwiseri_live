@@ -7236,10 +7236,37 @@ public function showFeedbackPopup()
                 'modules.*' => 'in:'.implode(',', $allowedModules),
                 'frequency' => 'required|in:daily,weekly,monthly,quarterly',
                 'delivery_mode' => 'required|in:attachment,link',
-                'emails' => ['required', 'string', 'max:1000', 'regex:/^\s*[^,\s]+@[^,\s]+(\s*,\s*[^,\s]+@[^,\s]+){0,4}\s*$/']
+                'emails' => ['required', 'string', 'max:1000']
             ]);
 
-            $emails = array_values(array_filter(array_map('trim', explode(',', (string) $request->emails))));
+            $emails = array_values(array_filter(preg_split('/\s*[,;\r\n]+\s*/', (string) $request->emails)));
+            $emails = array_slice(array_values(array_unique(array_map('trim', $emails), SORT_STRING)), 0, 5);
+
+            if (count($emails) === 0) {
+                return response()->json([
+                    'message' => 'The given data was invalid.',
+                    'errors' => [
+                        'emails' => ['Please enter at least one recipient email.']
+                    ]
+                ], 422);
+            }
+
+            $invalidEmails = [];
+            foreach ($emails as $email) {
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $invalidEmails[] = $email;
+                }
+            }
+
+            if (!empty($invalidEmails)) {
+                return response()->json([
+                    'message' => 'The given data was invalid.',
+                    'errors' => [
+                        'emails' => ['Please enter valid email addresses separated by commas, semicolons, or new lines.']
+                    ]
+                ], 422);
+            }
+
             $subscriberEmail = trim((string) optional($user)->email);
 
             if ($subscriberEmail !== '') {
