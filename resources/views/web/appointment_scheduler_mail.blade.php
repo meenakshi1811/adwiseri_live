@@ -20,18 +20,32 @@
             Please confirm the proposed meeting using one of the options below.
         </p>
 
-        <p style="margin:25px 0;">
-            <a href="{{ $appointment->accept_url }}" style="background:#28a745;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;margin-right:20px;display:inline-block;">
-                Accept Appointment
-            </a>
-            <a href="{{ $appointment->decline_url }}" style="background:#dc3545;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;margin-left:20px;display:inline-block;">
-                Decline Appointment
-            </a>
+        <p style="margin:20px 0 10px;">
+            <strong>Appointment Date:</strong>
+            {{ !empty($appointment->appointment_date) ? \Carbon\Carbon::parse($appointment->appointment_date)->format('F j, Y') : 'N/A' }}
+        </p>
+        <p style="margin:10px 0;">
+            <strong>Appointment Time:</strong>
+            {{ !empty($appointment->appointment_time) ? \Carbon\Carbon::parse($appointment->appointment_time)->format('h:i A') : 'N/A' }}
+        </p>
+        <p style="margin:10px 0 25px;">
+            <strong>Meeting Purpose:</strong> {{ !empty($appointment->remarks) ? $appointment->remarks : 'N/A' }}
         </p>
 
-        @if(!empty($appointment->remarks))
-            <p><strong>Meeting purpose:</strong> {{ $appointment->remarks }}</p>
-        @endif
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:25px 0;">
+            <tr>
+                <td style="padding-right:14px;">
+                    <a href="{{ $appointment->accept_url }}" style="background:#28a745;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block;">
+                        Accept Appointment
+                    </a>
+                </td>
+                <td style="padding-left:14px;">
+                    <a href="{{ $appointment->decline_url }}" style="background:#dc3545;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block;">
+                        Decline Appointment
+                    </a>
+                </td>
+            </tr>
+        </table>
 
         <p>
             Once you respond, the sender will see your decision in their appointment records.
