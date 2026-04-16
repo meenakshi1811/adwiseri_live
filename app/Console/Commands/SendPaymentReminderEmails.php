@@ -71,8 +71,8 @@ class SendPaymentReminderEmails extends Command
                     'payment_link' => $paymentLink,
                 ];
 
-                $mail = Mail::to("nanta1811@gmail.com");
-                // $mail = Mail::to($row->client_email);
+                // $mail = Mail::to("nanta1811@gmail.com");
+                $mail = Mail::to($row->client_email);
                 if ($setting->email_to === 'client_bcc_subscriber' && !empty($subscriber->email)) {
                     $mail->bcc($subscriber->email);
                 }
