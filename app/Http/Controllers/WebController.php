@@ -7239,8 +7239,12 @@ public function showFeedbackPopup()
                 'emails' => ['required', 'string', 'max:1000']
             ]);
 
-            $emails = array_values(array_filter(preg_split('/\s*[,;\r\n]+\s*/', (string) $request->emails)));
-            $emails = array_slice(array_values(array_unique(array_map('trim', $emails), SORT_STRING)), 0, 5);
+            $rawEmails = trim((string) $request->emails);
+            $normalizedInput = str_replace(["\r\n", "\r", "\n", ";"], ',', $rawEmails);
+            $emails = array_values(array_filter(array_map('trim', explode(',', $normalizedInput)), function ($email) {
+                return $email !== '';
+            }));
+            $emails = array_slice(array_values(array_unique($emails, SORT_STRING)), 0, 5);
 
             if (count($emails) === 0) {
                 return response()->json([
