@@ -118,16 +118,34 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
                             <div class="modal-body text-center">
 
-                                <p>Scan this QR to create a new lead</p>
+                                <p>Scan this QR code to fill the Enquiry Form.</p>
 
                                <img 
+                                id="enquiryQrImage"
                                 src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={{ urlencode($qrUrl) }}"
                                 alt="QR Code"
                                 />
 
-                                <!-- <p class="mt-2 small text-muted">
-                                {{ $qrUrl }}
-                                </p> -->
+                                <p class="mt-2 small text-muted">{{ $qrUrl }}</p>
+
+                                <div class="d-flex justify-content-center gap-2 mt-3">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="shareEnquiryQr('{{ $qrUrl }}')">
+                                        <i class="fa-solid fa-share-nodes"></i> Share
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="printEnquiryQr()">
+                                        <i class="fa-solid fa-print"></i> Print A4
+                                    </button>
+                                </div>
+
+                                <div id="printableEnquiryQr" style="display:none;">
+                                    <div style="width:210mm; min-height:297mm; padding:20mm; text-align:center; font-family:Arial, sans-serif;">
+                                        <h2 style="margin-bottom:8px;">{{ $user->organization ?? $user->name }}</h2>
+                                        <p style="margin-bottom:20px;">Enquiry Form Access</p>
+                                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={{ urlencode($qrUrl) }}" alt="Enquiry QR Code" style="max-width:350px;">
+                                        <p style="margin-top:25px; font-size:18px;">Scan this QR code to fill the Enquiry Form</p>
+                                        <p style="margin-top:10px; color:#666;">{{ $qrUrl }}</p>
+                                    </div>
+                                </div>
 
                             </div>
 
@@ -824,6 +842,34 @@ window.onclick = function (event) {
             });
 
         });
+
+        function shareEnquiryQr(qrUrl) {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Enquiry Form QR',
+                    text: 'Scan this QR code to fill the Enquiry Form',
+                    url: qrUrl
+                }).catch(() => {});
+                return;
+            }
+
+            window.location.href = 'mailto:?subject=' + encodeURIComponent('Enquiry Form QR Link') +
+                '&body=' + encodeURIComponent('Please use this link to access the enquiry form: ' + qrUrl);
+        }
+
+        function printEnquiryQr() {
+            const printContent = document.getElementById('printableEnquiryQr').innerHTML;
+            const printWindow = window.open('', '', 'height=900,width=900');
+            printWindow.document.write('<html><head><title>Enquiry QR Code</title></head><body>');
+            printWindow.document.write(printContent);
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(function() {
+                printWindow.print();
+                printWindow.close();
+            }, 300);
+        }
 </script>
 
 @if(session()->has('deleted'))
