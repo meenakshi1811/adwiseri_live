@@ -16,6 +16,26 @@ use App\Models\EnquiryFundingSource;
 
 class VisaEnquiryController extends Controller
 {
+    private function normalizeCountryPreferences($countryPreferences): array
+    {
+        if (!is_array($countryPreferences)) {
+            return [null, null, null];
+        }
+
+        $normalizedPreferences = collect($countryPreferences)
+            ->map(fn ($country) => trim((string) $country))
+            ->filter()
+            ->unique()
+            ->values()
+            ->take(3)
+            ->all();
+
+        return [
+            $normalizedPreferences[0] ?? null,
+            $normalizedPreferences[1] ?? null,
+            $normalizedPreferences[2] ?? null,
+        ];
+    }
 
     public function store(Request $request)
     {
@@ -23,6 +43,7 @@ class VisaEnquiryController extends Controller
         DB::beginTransaction();
 
         try{
+            [$countryPref1, $countryPref2, $countryPref3] = $this->normalizeCountryPreferences($request->country_pref);
 
             $enquiryData = [
                 'subscriber_id' => $request->subscriber_id,
@@ -33,9 +54,9 @@ class VisaEnquiryController extends Controller
                 'marital_status' => $request->marital_status,
                 'address' => $request->address,
 
-                'country_pref_1' => $request->country_pref[0] ?? null,
-                'country_pref_2' => $request->country_pref[1] ?? null,
-                'country_pref_3' => $request->country_pref[2] ?? null,
+                'country_pref_1' => $countryPref1,
+                'country_pref_2' => $countryPref2,
+                'country_pref_3' => $countryPref3,
 
                 'visa_category' => $request->visa_category,
 
