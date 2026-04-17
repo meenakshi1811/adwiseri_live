@@ -134,7 +134,7 @@ Yes
 <i class="fa-solid fa-eye text-info btn p-1 " style="font-size:14px"></i>
 </a>
 
-<a href="{{ url('edit-enquiry/'.$enquiry->id) }}" title="Edit">
+<a href="{{ route('visa_enquiries.edit', $enquiry->id) }}" title="Edit">
 <i class="fa-solid fa-pen-to-square text-primary btn p-1" style="font-size:14px"></i>
 </a>
 
@@ -160,6 +160,11 @@ Yes
 
 @endif
 
+<p class="mt-3 mb-0 text-muted small">
+<strong>Status Guide:</strong> <span class="badge bg-warning text-dark">Enquiry</span> means a fresh lead.
+After successful conversion, it changes to <span class="badge bg-success">Client</span>.
+</p>
+
 </div>
 </div>
 
@@ -170,6 +175,8 @@ Yes
 $(document).on('click','.convertClient',function(){
 
     var enquiryId = $(this).data('id');
+    var button = $(this);
+    var row = button.closest('tr');
 
     Swal.fire({
         title: 'Are you sure?',
@@ -193,15 +200,24 @@ $(document).on('click','.convertClient',function(){
 
                 success:function(response){
 
+                    if(!response.success){
+                        Swal.fire({
+                            icon:'error',
+                            title:'Error',
+                            text: response.message || 'Unable to convert enquiry.'
+                        });
+                        return;
+                    }
+
+                    button.prop('disabled', true).removeClass('btn-success').addClass('btn-secondary').text('Converted');
+                    row.find('td').eq(9).html('<span class="badge bg-success">Client</span>');
+                    row.find('td').eq(8).html('<span class="badge bg-success">Converted</span>');
+
                     Swal.fire({
                         icon:'success',
                         title:'Success',
-                        text:'Enquiry converted to client successfully!'
+                        text: response.message || 'Enquiry converted to client successfully!'
                     });
-
-                    setTimeout(function(){
-                        location.reload();
-                    },1500);
 
                 },
 
