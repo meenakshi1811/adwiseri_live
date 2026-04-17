@@ -170,86 +170,101 @@ After successful conversion, it changes to <span class="badge bg-success">Client
 
 @endsection
 
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 <script>
+const csrfToken = "{{ csrf_token() }}";
 
-function setConvertedUI(button, row) {
-    row.find('.convert-to-client-cell').html('<span class="badge bg-success">Converted</span>');
-    row.find('.enquiry-status-cell').html('<span class="badge bg-success">Client</span>');
-    button.prop('disabled', true)
-        .addClass('disabled')
-        .attr('aria-disabled', 'true');
+function setButtonState(button, isDisabled, label) {
+    button.disabled = isDisabled;
+    button.textContent = label;
 }
 
-$(document).on('click','.convertClient',function(){
+function setConvertedUI(button, row) {
+    const convertCell = row.querySelector('.convert-to-client-cell');
+    const statusCell = row.querySelector('.enquiry-status-cell');
 
-    var enquiryId = $(this).data('id');
-    var button = $(this);
-    var row = button.closest('tr');
+    if (convertCell) {
+        convertCell.innerHTML = '<span class="badge bg-success">Converted</span>';
+    }
 
-    if (button.prop('disabled')) {
+    if (statusCell) {
+        statusCell.innerHTML = '<span class="badge bg-success">Client</span>';
+    }
+
+    button.disabled = true;
+    button.classList.add('disabled');
+    button.setAttribute('aria-disabled', 'true');
+}
+
+document.addEventListener('click', async function (event) {
+    const button = event.target.closest('.convertClient');
+
+    if (!button) {
         return;
     }
 
-    Swal.fire({
+    if (button.disabled) {
+        return;
+    }
+
+    const enquiryId = button.dataset.id;
+    const row = button.closest('tr');
+
+    const result = await Swal.fire({
         title: 'Are you sure?',
         text: "Do you want to convert this enquiry into client?",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Yes, Convert',
         cancelButtonText: 'Cancel'
-    }).then((result) => {
-
-        if(result.isConfirmed){
-            button.prop('disabled', true).text('Converting...');
-
-            $.ajax({
-
-                url:"{{ url('convert-enquiry-client') }}",
-                type:"POST",
-                data:{
-                    _token:"{{ csrf_token() }}",
-                    enquiry_id:enquiryId
-                },
-
-                success:function(response){
-
-                    if(!response.success){
-                        button.prop('disabled', false).text('Yes');
-                        Swal.fire({
-                            icon:'error',
-                            title:'Error',
-                            text: response.message || 'Unable to convert enquiry.'
-                        });
-                        return;
-                    }
-
-                    setConvertedUI(button, row);
-
-                    Swal.fire({
-                        icon:'success',
-                        title:'Success',
-                        text: response.message || 'Enquiry converted to client successfully!'
-                    });
-
-                },
-
-                error:function(){
-                    button.prop('disabled', false).text('Yes');
-
-                    Swal.fire({
-                        icon:'error',
-                        title:'Error',
-                        text:'Something went wrong!'
-                    });
-
-                }
-
-            });
-
-        }
-
     });
 
+    if (!result.isConfirmed) {
+        return;
+    }
+
+    setButtonState(button, true, 'Converting...');
+
+    try {
+        const response = await fetch("{{ url('convert-enquiry-client') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: JSON.stringify({
+                enquiry_id: enquiryId
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            setButtonState(button, false, 'Yes');
+            await Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: (data && data.message) ? data.message : 'Unable to convert enquiry.'
+            });
+            return;
+        }
+
+        setConvertedUI(button, row);
+
+        await Swal.fire({
+            icon: 'success',
+            title: 'Success',
+            text: data.message || 'Enquiry converted to client successfully!'
+        });
+    } catch (error) {
+        setButtonState(button, false, 'Yes');
+        await Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Something went wrong!'
+        });
+    }
 });
 
 function deleteEnquiry(id){
@@ -264,21 +279,31 @@ function deleteEnquiry(id){
 
         if(result.isConfirmed){
 
-        $.ajax({
-            url:'/visa-enquiries/delete/'+id,
-            type:'DELETE',
-            data:{
-            _token:'{{ csrf_token() }}'
-        },
-            success:function(res){
+        fetch('/visa-enquiries/delete/' + id, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            }
+        })
+        .then(async (response) => {
+            const data = await response.json();
 
-            Swal.fire("Deleted!", res.message, "success")
-            .then(()=>{
-            location.reload();
-            });
-
+            if (!response.ok) {
+                throw new Error((data && data.message) ? data.message : 'Unable to delete enquiry.');
             }
 
+            return data;
+        })
+        .then((res) => {
+            Swal.fire("Deleted!", res.message, "success")
+            .then(()=>{
+                location.reload();
+            });
+        })
+        .catch((error) => {
+            Swal.fire('Error', error.message || 'Something went wrong!', 'error');
         });
 
     }
