@@ -32,7 +32,7 @@ $isEdit = $isEdit ?? false;
 
 <input type="hidden" name="subscriber_id" value="{{ $subscriberId }}">
 
-<h3 class="mb-4 text-center">{{ $isEdit ? 'Edit Visa / Immigration Enquiry' : 'Visa / Immigration Enquiry Form' }}</h3>
+<h3 class="mb-4 text-center">Enquiry Form</h3>
 
 <h5 class="mt-3">1. Personal Details</h5>
 

@@ -62,22 +62,30 @@ Enquries
 
 <td class="text-center">{{ $enquiry->id }}</td>
 
-<td class="text-center convert-to-client-cell">
+<td class="text-center enquiry-client-name-cell">
 {{ $enquiry->full_name }}
 </td>
 
-<td class="text-center enquiry-status-cell">
-{{ $enquiry->country_pref_1 }}
-@if($enquiry->country_pref_2) , {{ $enquiry->country_pref_2 }} @endif
-@if($enquiry->country_pref_3) , {{ $enquiry->country_pref_3 }} @endif
+<td class="text-center">
+@php
+$countryPreferences = collect([
+    $enquiry->country_pref_1,
+    $enquiry->country_pref_2,
+    $enquiry->country_pref_3,
+])->map(fn ($country) => trim((string) $country))
+  ->filter()
+  ->unique()
+  ->values();
+@endphp
+{{ $countryPreferences->isNotEmpty() ? $countryPreferences->implode(', ') : '-' }}
 </td>
 
-<td class="text-center convert-to-client-cell">
+<td class="text-center">
 {{ $enquiry->visa_category }}
 </td>
 
-<td class="text-center enquiry-status-cell">
-{{ $enquiry->contact_no }}
+<td class="text-center">
+{{ $enquiry->contact_no ?: '-' }}
 </td>
 
 <td class="text-center">
@@ -86,15 +94,7 @@ Enquries
 
 <td class="text-center">
 
-@php
-$children = \App\Models\EnquiryChild::where('enquiry_id',$enquiry->id)->count();
-@endphp
-
-@if($children > 0)
-Main + {{ $children }}
-@else
-Single
-@endif
+{{ 1 + (int) ($enquiry->children_count ?? 0) }}
 
 </td>
 
@@ -182,6 +182,11 @@ function setButtonState(button, isDisabled, label) {
 function setConvertedUI(button, row) {
     const convertCell = row.querySelector('.convert-to-client-cell');
     const statusCell = row.querySelector('.enquiry-status-cell');
+    const clientNameCell = row.querySelector('.enquiry-client-name-cell');
+
+    if (clientNameCell) {
+        clientNameCell.classList.remove('convert-to-client-cell');
+    }
 
     if (convertCell) {
         convertCell.innerHTML = '<span class="badge bg-success">Converted</span>';

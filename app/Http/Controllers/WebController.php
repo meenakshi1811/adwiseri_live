@@ -129,6 +129,27 @@ class WebController extends Controller
         }, $dates);
     }
 
+    private function normalizeCountryPreferences($countryPreferences): array
+    {
+        if (!is_array($countryPreferences)) {
+            return [null, null, null];
+        }
+
+        $normalizedPreferences = collect($countryPreferences)
+            ->map(fn ($country) => trim((string) $country))
+            ->filter()
+            ->unique()
+            ->values()
+            ->take(3)
+            ->all();
+
+        return [
+            $normalizedPreferences[0] ?? null,
+            $normalizedPreferences[1] ?? null,
+            $normalizedPreferences[2] ?? null,
+        ];
+    }
+
     private function generateInternalInvoiceId(): string
     {
         $ch = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -6726,7 +6747,8 @@ public function showFeedbackPopup()
 
         if ($user->user_type == "Subscriber") {
 
-            $enquiries = VisaEnquiry::where('subscriber_id',$user->id)
+            $enquiries = VisaEnquiry::withCount('children')
+                        ->where('subscriber_id',$user->id)
                         ->orderBy('created_at','desc')
                         ->get();
 
@@ -6738,7 +6760,8 @@ public function showFeedbackPopup()
                 return redirect()->route('membership')->with('membership_expiry', 'Membership has expired.');
             }
 
-            $enquiries = VisaEnquiry::where('subscriber_id',$subscriber->id)
+            $enquiries = VisaEnquiry::withCount('children')
+                        ->where('subscriber_id',$subscriber->id)
                         ->orderBy('created_at','desc')
                         ->get();
         }
@@ -6817,9 +6840,9 @@ public function showFeedbackPopup()
             $client->dob = $enquiry->dob ?? null;
 
             $client->address = $enquiry->address;
-            $client->country = $enquiry->country_pref_1;
+            $client->country = $enquiry->country_pref_1 ?? $enquiry->country_pref_2 ?? $enquiry->country_pref_3;
             $client->state = $enquiry->state ?? null;
-            $client->city = $enquiry->city ?? null;
+            $client->city = $enquiry->city ?? $enquiry->place ?? null;
             $client->pincode = $enquiry->pincode ?? null;
 
             $client->save();
@@ -6926,6 +6949,8 @@ public function showFeedbackPopup()
         DB::beginTransaction();
 
         try {
+            [$countryPref1, $countryPref2, $countryPref3] = $this->normalizeCountryPreferences($request->country_pref);
+
             $enquiryData = [
                 'full_name' => $request->full_name,
                 'dob' => $this->normalizeDateValue($request->dob),
@@ -6933,9 +6958,9 @@ public function showFeedbackPopup()
                 'contact_no' => $request->contact_no,
                 'marital_status' => $request->marital_status,
                 'address' => $request->address,
-                'country_pref_1' => $request->country_pref[0] ?? null,
-                'country_pref_2' => $request->country_pref[1] ?? null,
-                'country_pref_3' => $request->country_pref[2] ?? null,
+                'country_pref_1' => $countryPref1,
+                'country_pref_2' => $countryPref2,
+                'country_pref_3' => $countryPref3,
                 'visa_category' => $request->visa_category,
                 'qualification' => $request->qualification,
                 'institution' => $request->institution,
