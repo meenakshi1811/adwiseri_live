@@ -126,8 +126,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 alt="QR Code"
                                 />
 
-                                <p class="mt-2 small text-muted">{{ $qrUrl }}</p>
-
                                 <div class="d-flex justify-content-center gap-2 mt-3">
                                     <button type="button" class="btn btn-outline-primary btn-sm" onclick="shareEnquiryQr('{{ $qrUrl }}')">
                                         <i class="fa-solid fa-share-nodes"></i> Share
@@ -135,16 +133,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                     <button type="button" class="btn btn-outline-secondary btn-sm" onclick="printEnquiryQr()">
                                         <i class="fa-solid fa-print"></i> Print A4
                                     </button>
-                                </div>
-
-                                <div id="printableEnquiryQr" style="display:none;">
-                                    <div style="width:210mm; min-height:297mm; padding:20mm; text-align:center; font-family:Arial, sans-serif;">
-                                        <h2 style="margin-bottom:8px;">{{ $user->organization ?? $user->name }}</h2>
-                                        <p style="margin-bottom:20px;">Enquiry Form Access</p>
-                                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={{ urlencode($qrUrl) }}" alt="Enquiry QR Code" style="max-width:350px;">
-                                        <p style="margin-top:25px; font-size:18px;">Scan this QR code to fill the Enquiry Form</p>
-                                        <p style="margin-top:10px; color:#666;">{{ $qrUrl }}</p>
-                                    </div>
                                 </div>
 
                             </div>
@@ -858,17 +846,69 @@ window.onclick = function (event) {
         }
 
         function printEnquiryQr() {
-            const printContent = document.getElementById('printableEnquiryQr').innerHTML;
-            const printWindow = window.open('', '', 'height=900,width=900');
-            printWindow.document.write('<html><head><title>Enquiry QR Code</title></head><body>');
-            printWindow.document.write(printContent);
-            printWindow.document.write('</body></html>');
+            const printWindow = window.open('', '_blank', 'height=1000,width=900');
+
+            if (!printWindow) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Popup Blocked',
+                    text: 'Please allow popups to print the QR code sheet.'
+                });
+                return;
+            }
+
+            const printHtml = `
+                <html>
+                    <head>
+                        <title>Enquiry QR Code</title>
+                        <style>
+                            @page { size: A4; margin: 0; }
+                            body { margin: 0; font-family: Arial, sans-serif; }
+                        </style>
+                    </head>
+                    <body>
+                        <div style="width:210mm; min-height:297mm; padding:20mm; text-align:center; box-sizing:border-box;">
+                            <h2 style="margin-bottom:8px;">{{ $user->organization ?? $user->name }}</h2>
+                            <p style="margin-bottom:20px;">Enquiry Form Access</p>
+                            <img id="printQrImage" src="https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={{ urlencode($qrUrl) }}" alt="Enquiry QR Code" style="max-width:350px;">
+                            <p style="margin-top:25px; font-size:18px;">Scan this QR code to fill the Enquiry Form</p>
+                        </div>
+                    </body>
+                </html>
+            `;
+
+            printWindow.document.open();
+            printWindow.document.write(printHtml);
             printWindow.document.close();
-            printWindow.focus();
-            setTimeout(function() {
-                printWindow.print();
-                printWindow.close();
-            }, 300);
+
+            const waitForImage = () => {
+                const img = printWindow.document.getElementById('printQrImage');
+                if (!img) {
+                    printWindow.focus();
+                    printWindow.print();
+                    printWindow.close();
+                    return;
+                }
+
+                if (img.complete) {
+                    printWindow.focus();
+                    printWindow.print();
+                    printWindow.close();
+                } else {
+                    img.onload = function() {
+                        printWindow.focus();
+                        printWindow.print();
+                        printWindow.close();
+                    };
+                    img.onerror = function() {
+                        printWindow.focus();
+                        printWindow.print();
+                        printWindow.close();
+                    };
+                }
+            };
+
+            setTimeout(waitForImage, 300);
         }
 </script>
 
