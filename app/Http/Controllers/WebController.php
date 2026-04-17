@@ -74,6 +74,12 @@ use Maatwebsite\Excel\Facades\Excel;
 use DataTables;
 /*Newly added models on 2026-03-06 by Meenakshi Nanta*/
 use App\Models\VisaEnquiry;
+use App\Models\EnquiryResidencyHistory;
+use App\Models\EnquiryTravelHistory;
+use App\Models\EnquiryRefusalHistory;
+use App\Models\EnquiryWorkExperience;
+use App\Models\EnquiryChild;
+use App\Models\EnquiryFundingSource;
 use App\Models\ReportSetting;
 use App\Models\PaymentReminderSetting;
 use App\Services\EmailTemplateService;
@@ -6715,6 +6721,13 @@ public function showFeedbackPopup()
                 ]);
             }
 
+            if ((int) $enquiry->status === 1) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This enquiry is already converted to client.'
+                ]);
+            }
+
             /* Determine subscriber */
             if ($user->user_type == "Subscriber") {
                 $subscriber = $user;
@@ -6723,6 +6736,28 @@ public function showFeedbackPopup()
             }
 
             /* Create Client */
+            $existingClient = null;
+            if (!empty($enquiry->email) || !empty($enquiry->contact_no)) {
+                $existingClient = Clients::where('subscriber_id', $subscriber->id)
+                    ->where(function ($query) use ($enquiry) {
+                        if (!empty($enquiry->email)) {
+                            $query->orWhere('email', $enquiry->email);
+                        }
+
+                        if (!empty($enquiry->contact_no)) {
+                            $query->orWhere('phone', $enquiry->contact_no);
+                        }
+                    })
+                    ->first();
+            }
+
+            if ($existingClient) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A client with same email or contact number already exists.'
+                ]);
+            }
+
             $client = new Clients();
             $client->subscriber_id = $subscriber->id;
             $client->user_id = $user->id;
@@ -6805,7 +6840,7 @@ public function showFeedbackPopup()
 
     public function viewEnquiry($id)
     {
-        $enquiry = VisaEnquiry::find($id);
+        $enquiry = VisaEnquiry::with(['residencyHistory','travelHistory','refusalHistory','workExperience','children','fundingSources'])->find($id);
 
         if(!$enquiry){
             return redirect()->back()->with('error','Enquiry not found');
@@ -6813,6 +6848,161 @@ public function showFeedbackPopup()
         $user = $this->check_login();
         $page = "visa-enquiries";
         return view('web.view_enquiries', compact('user','enquiry','page'));
+    }
+
+    public function editEnquiry($id)
+    {
+        $user = $this->check_login();
+
+        $enquiry = VisaEnquiry::with(['residencyHistory','travelHistory','refusalHistory','workExperience','children','fundingSources'])->find($id);
+
+        if (!$enquiry) {
+            return redirect()->route('enquiries')->with('error', 'Enquiry not found');
+        }
+
+        $subscriber = User::find($enquiry->subscriber_id);
+        $defaultPlace = trim(($subscriber->city ?? '').', '.($subscriber->country ?? ''), ', ');
+
+        return view('web.create_lead', [
+            'subscriberId' => $enquiry->subscriber_id,
+            'enquiry' => $enquiry,
+            'isEdit' => true,
+            'defaultPlace' => $defaultPlace
+        ]);
+    }
+
+    public function updateEnquiry(Request $request, $id)
+    {
+        $enquiry = VisaEnquiry::find($id);
+
+        if (!$enquiry) {
+            return redirect()->route('enquiries')->with('error', 'Enquiry not found');
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $enquiry->update([
+                'full_name' => $request->full_name,
+                'dob' => $request->dob,
+                'email' => $request->email,
+                'contact_no' => $request->contact_no,
+                'marital_status' => $request->marital_status,
+                'address' => $request->address,
+                'country_pref_1' => $request->country_pref[0] ?? null,
+                'country_pref_2' => $request->country_pref[1] ?? null,
+                'country_pref_3' => $request->country_pref[2] ?? null,
+                'visa_category' => $request->visa_category,
+                'qualification' => $request->qualification,
+                'institution' => $request->institution,
+                'passing_year' => $request->passing_year,
+                'grade' => $request->grade,
+                'english_test' => $request->english_test,
+                'overall_score' => $request->overall_score,
+                'test_date' => $request->test_date,
+                'spouse_name' => $request->spouse_name,
+                'spouse_email' => $request->spouse_email,
+                'spouse_dob' => $request->spouse_dob,
+                'spouse_contact' => $request->spouse_contact,
+                'form_date' => $request->form_date,
+                'place' => $request->place,
+                'print_name' => $request->print_name,
+                'signature' => $request->signature ?: $enquiry->signature,
+            ]);
+
+            EnquiryResidencyHistory::where('enquiry_id', $enquiry->id)->delete();
+            if ($request->res_country) {
+                foreach ($request->res_country as $key => $country) {
+                    if (empty($country)) {
+                        continue;
+                    }
+                    EnquiryResidencyHistory::create([
+                        'enquiry_id' => $enquiry->id,
+                        'country' => $country,
+                        'duration' => $request->res_duration[$key] ?? null,
+                        'visa_category' => $request->res_visa[$key] ?? null
+                    ]);
+                }
+            }
+
+            EnquiryTravelHistory::where('enquiry_id', $enquiry->id)->delete();
+            if ($request->travel_country) {
+                foreach ($request->travel_country as $key => $country) {
+                    if (empty($country)) {
+                        continue;
+                    }
+                    EnquiryTravelHistory::create([
+                        'enquiry_id' => $enquiry->id,
+                        'country' => $country,
+                        'duration' => $request->travel_duration[$key] ?? null
+                    ]);
+                }
+            }
+
+            EnquiryRefusalHistory::where('enquiry_id', $enquiry->id)->delete();
+            if ($request->refusal_country) {
+                foreach ($request->refusal_country as $key => $country) {
+                    if (empty($country)) {
+                        continue;
+                    }
+                    EnquiryRefusalHistory::create([
+                        'enquiry_id' => $enquiry->id,
+                        'country' => $country,
+                        'refusal_date' => $request->refusal_date[$key] ?? null,
+                        'refusal_reason' => $request->refusal_reason[$key] ?? null
+                    ]);
+                }
+            }
+
+            EnquiryWorkExperience::where('enquiry_id', $enquiry->id)->delete();
+            if ($request->job_title) {
+                foreach ($request->job_title as $key => $job) {
+                    if (empty($job)) {
+                        continue;
+                    }
+                    EnquiryWorkExperience::create([
+                        'enquiry_id' => $enquiry->id,
+                        'job_title' => $job,
+                        'employer' => $request->employer[$key] ?? null,
+                        'work_country' => $request->work_country[$key] ?? null,
+                        'joining_date' => $request->joining_date[$key] ?? null
+                    ]);
+                }
+            }
+
+            EnquiryChild::where('enquiry_id', $enquiry->id)->delete();
+            if ($request->child_name) {
+                foreach ($request->child_name as $key => $child) {
+                    if (empty($child)) {
+                        continue;
+                    }
+                    EnquiryChild::create([
+                        'enquiry_id' => $enquiry->id,
+                        'child_name' => $child,
+                        'child_age' => $request->child_age[$key] ?? null,
+                        'child_gender' => $request->child_gender[$key] ?? null,
+                        'child_dob' => $request->child_dob[$key] ?? null
+                    ]);
+                }
+            }
+
+            EnquiryFundingSource::where('enquiry_id', $enquiry->id)->delete();
+            if ($request->funding) {
+                foreach ($request->funding as $fund) {
+                    EnquiryFundingSource::create([
+                        'enquiry_id' => $enquiry->id,
+                        'funding_source' => $fund
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            return redirect()->route('enquiries')->with('success', 'Enquiry updated successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Something went wrong while updating enquiry.');
+        }
     }
 
     public function storeAppointment(Request $request)
@@ -7325,7 +7515,9 @@ public function showFeedbackPopup()
     public function createLead($id)
     {
         $subscriberId = decrypt($id);
+        $subscriber = User::find($subscriberId);
+        $defaultPlace = trim(($subscriber->city ?? '').', '.($subscriber->country ?? ''), ', ');
 
-        return view('web.create_lead',compact('subscriberId'));
+        return view('web.create_lead',compact('subscriberId','defaultPlace'));
     }
 }

@@ -52,6 +52,9 @@ class VisaEnquiryController extends Controller
                 'spouse_dob' => $request->spouse_dob,
                 'spouse_contact' => $request->spouse_contact,
 
+                'form_date' => $request->form_date,
+                'place' => $request->place,
+                'print_name' => $request->print_name,
                 'signature' => $request->signature,
             ]);
 
