@@ -35,8 +35,10 @@ class VisaEnquiry extends Model
         'spouse_dob',
         'spouse_contact',
         'funding',
+        'form_date',
         'place',
         'sign_name',
+        'print_name',
         'signature'
     ];
 

@@ -86,6 +86,9 @@ Route::delete('/visa-enquiries/delete/{id}', [App\Http\Controllers\WebController
 Route::get('/visa-enquiries/view/{id}', [App\Http\Controllers\WebController::class, 'viewEnquiry'])->name('visa_enquiries.view')->middleware(['auth','check.device']);
 Route::get('/visa-enquiries/edit/{id}', [App\Http\Controllers\WebController::class, 'editEnquiry'])->name('visa_enquiries.edit')->middleware(['auth','check.device']);
 Route::post('/visa-enquiries/update/{id}', [App\Http\Controllers\WebController::class, 'updateEnquiry'])->name('visa_enquiries.update')->middleware(['auth','check.device']);
+/* Backward-compatible enquiry edit/update routes */
+Route::get('/edit-enquiry/{id}', [App\Http\Controllers\WebController::class, 'editEnquiry'])->middleware(['auth','check.device']);
+Route::post('/update-enquiry/{id}', [App\Http\Controllers\WebController::class, 'updateEnquiry'])->middleware(['auth','check.device']);
 Route::post('/save-appointment',[App\Http\Controllers\WebController::class,'storeAppointment'])->name('save_appointment');
 Route::get('/appointment/{appointment}/{action}', [App\Http\Controllers\WebController::class, 'respondToAppointment'])->name('appointment.respond')->middleware('signed');
 Route::post('/save-report-settings',[App\Http\Controllers\WebController::class,'saveReportSettings'])->name('save_report_settings');

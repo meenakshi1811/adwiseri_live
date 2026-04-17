@@ -278,7 +278,7 @@
 
 <div class="col-md-3">
 <label class="field-label">Print Name</label>
-<div class="field-value">{{ $enquiry->print_name }}</div>
+<div class="field-value">{{ $enquiry->print_name ?? $enquiry->sign_name ?? '-' }}</div>
 </div>
 
 <div class="col-md-3">
