@@ -62,21 +62,21 @@ Enquries
 
 <td class="text-center">{{ $enquiry->id }}</td>
 
-<td class="text-center">
+<td class="text-center convert-to-client-cell">
 {{ $enquiry->full_name }}
 </td>
 
-<td class="text-center">
+<td class="text-center enquiry-status-cell">
 {{ $enquiry->country_pref_1 }}
 @if($enquiry->country_pref_2) , {{ $enquiry->country_pref_2 }} @endif
 @if($enquiry->country_pref_3) , {{ $enquiry->country_pref_3 }} @endif
 </td>
 
-<td class="text-center">
+<td class="text-center convert-to-client-cell">
 {{ $enquiry->visa_category }}
 </td>
 
-<td class="text-center">
+<td class="text-center enquiry-status-cell">
 {{ $enquiry->contact_no }}
 </td>
 
@@ -102,7 +102,7 @@ Single
 {{ \Carbon\Carbon::parse($enquiry->created_at)->format('d-m-Y') }}
 </td>
 
-<td class="text-center">
+<td class="text-center convert-to-client-cell">
 
 @if($enquiry->status == 1)
 
@@ -118,7 +118,7 @@ Yes
 
 </td>
 
-<td class="text-center">
+<td class="text-center enquiry-status-cell">
 
 @if($enquiry->status == 1)
 <span class="badge bg-success">Client</span>
@@ -172,11 +172,23 @@ After successful conversion, it changes to <span class="badge bg-success">Client
 
 <script>
 
+function setConvertedUI(button, row) {
+    row.find('.convert-to-client-cell').html('<span class="badge bg-success">Converted</span>');
+    row.find('.enquiry-status-cell').html('<span class="badge bg-success">Client</span>');
+    button.prop('disabled', true)
+        .addClass('disabled')
+        .attr('aria-disabled', 'true');
+}
+
 $(document).on('click','.convertClient',function(){
 
     var enquiryId = $(this).data('id');
     var button = $(this);
     var row = button.closest('tr');
+
+    if (button.prop('disabled')) {
+        return;
+    }
 
     Swal.fire({
         title: 'Are you sure?',
@@ -188,6 +200,7 @@ $(document).on('click','.convertClient',function(){
     }).then((result) => {
 
         if(result.isConfirmed){
+            button.prop('disabled', true).text('Converting...');
 
             $.ajax({
 
@@ -201,6 +214,7 @@ $(document).on('click','.convertClient',function(){
                 success:function(response){
 
                     if(!response.success){
+                        button.prop('disabled', false).text('Yes');
                         Swal.fire({
                             icon:'error',
                             title:'Error',
@@ -209,9 +223,7 @@ $(document).on('click','.convertClient',function(){
                         return;
                     }
 
-                    button.prop('disabled', true).removeClass('btn-success').addClass('btn-secondary').text('Converted');
-                    row.find('td').eq(9).html('<span class="badge bg-success">Client</span>');
-                    row.find('td').eq(8).html('<span class="badge bg-success">Converted</span>');
+                    setConvertedUI(button, row);
 
                     Swal.fire({
                         icon:'success',
@@ -222,6 +234,7 @@ $(document).on('click','.convertClient',function(){
                 },
 
                 error:function(){
+                    button.prop('disabled', false).text('Yes');
 
                     Swal.fire({
                         icon:'error',
