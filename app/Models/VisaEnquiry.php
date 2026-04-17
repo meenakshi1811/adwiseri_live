@@ -37,6 +37,7 @@ class VisaEnquiry extends Model
         'funding',
         'form_date',
         'place',
+        'sign_name',
         'print_name',
         'signature'
     ];

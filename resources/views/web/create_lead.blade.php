@@ -385,7 +385,7 @@ $isEdit = $isEdit ?? false;
 
 <div class="col-md-3">
 <label>Print Name</label>
-<input type="text" name="print_name" id="print_name" class="form-control" value="{{ old('print_name', $enquiry->print_name ?? '') }}">
+<input type="text" name="print_name" id="print_name" class="form-control" value="{{ old('print_name', $enquiry->print_name ?? $enquiry->sign_name ?? '') }}">
 </div>
 <div class="col-md-6">
 <label>Signature</label>

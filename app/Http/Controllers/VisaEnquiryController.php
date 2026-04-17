@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 use App\Models\VisaEnquiry;
 use App\Models\EnquiryResidencyHistory;
@@ -23,7 +24,7 @@ class VisaEnquiryController extends Controller
 
         try{
 
-            $enquiry = VisaEnquiry::create([
+            $enquiryData = [
                 'subscriber_id' => $request->subscriber_id,
                 'full_name' => $request->full_name,
                 'dob' => $request->dob,
@@ -56,7 +57,23 @@ class VisaEnquiryController extends Controller
                 'place' => $request->place,
                 'print_name' => $request->print_name,
                 'signature' => $request->signature,
-            ]);
+            ];
+
+            if (Schema::hasColumn('visa_enquiries', 'form_date')) {
+                $enquiryData['form_date'] = $request->form_date;
+            }
+
+            if (Schema::hasColumn('visa_enquiries', 'place')) {
+                $enquiryData['place'] = $request->place;
+            }
+
+            if (Schema::hasColumn('visa_enquiries', 'print_name')) {
+                $enquiryData['print_name'] = $request->print_name;
+            } elseif (Schema::hasColumn('visa_enquiries', 'sign_name')) {
+                $enquiryData['sign_name'] = $request->print_name;
+            }
+
+            $enquiry = VisaEnquiry::create($enquiryData);
 
 
             /* Residency History */

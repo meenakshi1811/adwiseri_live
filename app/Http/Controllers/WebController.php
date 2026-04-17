@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use DateTime;
 use DateTimeZone;
@@ -6882,7 +6883,7 @@ public function showFeedbackPopup()
         DB::beginTransaction();
 
         try {
-            $enquiry->update([
+            $enquiryData = [
                 'full_name' => $request->full_name,
                 'dob' => $request->dob,
                 'email' => $request->email,
@@ -6904,11 +6905,24 @@ public function showFeedbackPopup()
                 'spouse_email' => $request->spouse_email,
                 'spouse_dob' => $request->spouse_dob,
                 'spouse_contact' => $request->spouse_contact,
-                'form_date' => $request->form_date,
-                'place' => $request->place,
-                'print_name' => $request->print_name,
                 'signature' => $request->signature ?: $enquiry->signature,
-            ]);
+            ];
+
+            if (Schema::hasColumn('visa_enquiries', 'form_date')) {
+                $enquiryData['form_date'] = $request->form_date;
+            }
+
+            if (Schema::hasColumn('visa_enquiries', 'place')) {
+                $enquiryData['place'] = $request->place;
+            }
+
+            if (Schema::hasColumn('visa_enquiries', 'print_name')) {
+                $enquiryData['print_name'] = $request->print_name;
+            } elseif (Schema::hasColumn('visa_enquiries', 'sign_name')) {
+                $enquiryData['sign_name'] = $request->print_name;
+            }
+
+            $enquiry->update($enquiryData);
 
             EnquiryResidencyHistory::where('enquiry_id', $enquiry->id)->delete();
             if ($request->res_country) {
@@ -7001,6 +7015,10 @@ public function showFeedbackPopup()
             return redirect()->route('enquiries')->with('success', 'Enquiry updated successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Enquiry update failed', [
+                'enquiry_id' => $id,
+                'error' => $e->getMessage()
+            ]);
             return redirect()->back()->with('error', 'Something went wrong while updating enquiry.');
         }
     }
