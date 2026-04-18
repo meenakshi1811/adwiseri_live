@@ -81,11 +81,14 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     $encryptedId = encrypt($user->id);
                     $qrUrl = url('/create-new-lead/'.$encryptedId);
                     @endphp
+                    <a href="{{ route('createLead', $encryptedId) }}" class="btn btn-info btn-sm">
+                    Add Enquiry
+                    </a>
                     <a href="javascript:void(0)" 
-                    class="btn btn-info btn-sm" 
+                    class="btn btn-outline-info btn-sm" 
                     data-bs-toggle="modal" 
                     data-bs-target="#qrModal">
-                    Add Enquiry
+                    Get QR Code For Enquiry Form
                     </a>
                       <a
                         @if($client_roles->write_only == 1 or $client_roles->read_write_only == 1)
