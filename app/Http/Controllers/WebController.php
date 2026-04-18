@@ -6944,6 +6944,7 @@ public function showFeedbackPopup()
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'contact_no' => 'required|string|max:25',
+            'country_pref' => 'required|array|min:1',
             'country_pref.0' => 'required|string|max:255',
             'visa_category' => 'required|string|max:255',
         ]);
