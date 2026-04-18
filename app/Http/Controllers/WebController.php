@@ -6940,6 +6940,14 @@ public function showFeedbackPopup()
 
     public function updateEnquiry(Request $request, $id)
     {
+        $request->validate([
+            'full_name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'contact_no' => 'required|string|max:25',
+            'country_pref.0' => 'required|string|max:255',
+            'visa_category' => 'required|string|max:255',
+        ]);
+
         $enquiry = VisaEnquiry::find($id);
 
         if (!$enquiry) {
