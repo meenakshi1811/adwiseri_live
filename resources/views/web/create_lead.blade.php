@@ -54,7 +54,7 @@ $isEdit = $isEdit ?? false;
 </div>
 
 <div class="col-md-6 mb-3">
-<label>Contact Number <span class="text-danger">*</span></label>
+<label>Contact Number *</label>
 <input type="text" name="contact_no" class="form-control" value="{{ old('contact_no', $enquiry->contact_no ?? '') }}" required>
 </div>
 
@@ -82,7 +82,7 @@ $isEdit = $isEdit ?? false;
 <div class="row">
 
 <div class="col-md-4">
-<label>COP (Country of preference) <span class="text-danger">*</span></label>
+<label>COP (Country of preference) *</label>
 <input type="text" name="country_pref[]" class="form-control" placeholder="1st Preference" value="{{ old('country_pref.0', $enquiry->country_pref_1 ?? '') }}" required>
 </div>
 
@@ -95,7 +95,7 @@ $isEdit = $isEdit ?? false;
 </div>
 
 <div class="col-md-6 mt-3">
-<label>Preferred Visa Category <span class="text-danger">*</span></label>
+<label>Preferred Visa Category *</label>
 <select name="visa_category" id="visa_category" class="form-control" required>
 <option value="">Select</option>
 <option value="Visit" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Visit' ? 'selected' : '' }}>Visit</option>
