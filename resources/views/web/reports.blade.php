@@ -7575,7 +7575,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             ],
             ajax: {
-                url: "{{ route('manage_support') }}",
+                url: "{{ route('sub_reports_support_tickets') }}",
                 data: function(d) {
                     // Add additional data here
                     d.startdate = result.startDate;
@@ -8030,7 +8030,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             ],
             ajax: {
-                url: "{{ route('activity_log') }}",
+                url: "{{ route('sub_reports_activity_log') }}",
                 data: function(d) {
                     // Add additional data here
                     d.startdate = result.startDate;
