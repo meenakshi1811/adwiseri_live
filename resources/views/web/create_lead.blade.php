@@ -81,8 +81,10 @@ $isEdit = $isEdit ?? false;
 
 <div class="row">
 
-<div class="col-md-4 mb-3">
+<div class="col-12 mb-3">
 <label>COP (Country of preference) *</label>
+<div class="row g-2 mt-0">
+<div class="col-md-4">
 <select name="country_pref[]" class="form-control form-select" required>
 <option value="">1st Preference</option>
 @foreach($countries as $country)
@@ -91,8 +93,7 @@ $isEdit = $isEdit ?? false;
 </select>
 </div>
 
-<div class="col-md-4 mb-3">
-<label>2nd Preference</label>
+<div class="col-md-4">
 <select name="country_pref[]" class="form-control form-select">
 <option value="">2nd Preference</option>
 @foreach($countries as $country)
@@ -101,14 +102,15 @@ $isEdit = $isEdit ?? false;
 </select>
 </div>
 
-<div class="col-md-4 mb-3">
-<label>3rd Preference</label>
+<div class="col-md-4">
 <select name="country_pref[]" class="form-control form-select">
 <option value="">3rd Preference</option>
 @foreach($countries as $country)
 <option value="{{ $country->country_name }}" {{ old('country_pref.2', $enquiry->country_pref_3 ?? '') == $country->country_name ? 'selected' : '' }}>{{ $country->country_name }}</option>
 @endforeach
 </select>
+</div>
+</div>
 </div>
 
 <div class="col-md-6 mt-3">
