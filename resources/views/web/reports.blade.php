@@ -1409,6 +1409,15 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
     }
 
 
+    function activateReportTab(tabSelector, paneSelector) {
+        $('#myTab .nav-link').removeClass('active').attr('aria-selected', 'false');
+        $('#myTabContent .tab-pane').removeClass('show active');
+
+        $(tabSelector).addClass('active').attr('aria-selected', 'true');
+        $(paneSelector).addClass('show active');
+    }
+
+
 
 
 
@@ -7544,6 +7553,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
     function onClickSupportTickets() {
 
+        activateReportTab('#SupportTickets-tab', '#SupportTickets');
+
         var result = getStartAndEndDate('Support');
         let currentDate = `${result.startDate} - ${result.endDate}`
 
@@ -7997,6 +8008,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
 
     function onClickActivityLogs() {
+
+        activateReportTab('#ActivityLog-tab', '#ActivityLog');
 
         // This arrangement can be altered based on how we want the date's format to appear.
         var result = getStartAndEndDate('Activity');
