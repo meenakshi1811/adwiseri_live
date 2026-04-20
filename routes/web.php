@@ -198,6 +198,8 @@ Route::get('/update_application/{id?}', [App\Http\Controllers\WebController::cla
 Route::get('/view_application/{id?}', [App\Http\Controllers\WebController::class, 'view_application'])->name('view_application')->middleware(['auth','check.device']);
 Route::post('/add_new_application', [App\Http\Controllers\WebController::class, 'add_new_application'])->name('add_new_application');
 Route::get('/sub_reports', [App\Http\Controllers\WebController::class, 'sub_reports'])->name('sub_reports')->middleware(['auth','check.device']);
+Route::get('/sub_reports/support_tickets', [App\Http\Controllers\WebController::class, 'sub_reports_support_tickets'])->name('sub_reports_support_tickets')->middleware(['auth','check.device']);
+Route::get('/sub_reports/activity_log', [App\Http\Controllers\WebController::class, 'sub_reports_activity_log'])->name('sub_reports_activity_log')->middleware(['auth','check.device']);
 Route::get('/sub_analytics', [App\Http\Controllers\WebController::class, 'analytics'])->name('sub_analytics')->middleware(['auth','check.device']);
 
 Route::get('/communications', [App\Http\Controllers\WebController::class, 'communications'])->name('communications')->middleware(['auth','check.device']);

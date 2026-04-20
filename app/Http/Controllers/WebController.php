@@ -5210,6 +5210,89 @@ class WebController extends Controller
         return view('web.reports', compact('user', 'total_apps', 'page', 'applications', 'total_invoices', 'total_paid', 'total_unpaid', 'total_amt', 'paid_total', 'unpaid_total', 'price_plans'));
     }
 
+    public function sub_reports_support_tickets()
+    {
+        $user = $this->check_login();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $this->set_timezone();
+        $subscriberId = ($user->user_type == "Subscriber" || $user->user_type == "admin") ? $user->id : $user->added_by;
+
+        $query = Tickets::query()->orderBy('created_at', 'desc');
+        if ($subscriberId) {
+            $query->where('subscriber_id', $subscriberId);
+        }
+
+        $startDate = $this->normalizeDateValue(request('startdate'));
+        $endDate = $this->normalizeDateValue(request('enddate'));
+        if ($startDate && $endDate) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($startDate)->startOfDay(),
+                Carbon::parse($endDate)->endOfDay()
+            ]);
+        }
+
+        return DataTables::of($query)
+            ->addIndexColumn()
+            ->editColumn('subscriber', function ($row) {
+                return $row->subscriber ? $row->subscriber->name . '(' . $row->subscriber_id . ')' : '';
+            })
+            ->editColumn('client', function ($row) {
+                return $row->client ? $row->client->name . '(' . $row->client_id . ')' : '';
+            })
+            ->editColumn('status', function ($row) {
+                return $row->status;
+            })
+            ->editColumn('issue', function ($row) {
+                $text = htmlspecialchars($row->issue);
+                $words = explode(' ', $text);
+                $truncated = implode(' ', array_slice($words, 0, 25));
+
+                return '<div class="message-tooltip" data-full-text="' . htmlspecialchars($text) . '">
+                            <span class="hover-expand">' . $truncated . '...</span>
+                        </div>';
+            })
+            ->editColumn('created_at', function ($row) {
+                return date("d-m-Y H:i:s", strtotime($row->created_at));
+            })
+            ->rawColumns(['issue'])
+            ->make(true);
+    }
+
+    public function sub_reports_activity_log()
+    {
+        $user = $this->check_login();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $this->set_timezone();
+        $subscriberId = ($user->user_type == "Subscriber" || $user->user_type == "admin") ? $user->id : $user->added_by;
+
+        $query = Activities::query()->orderBy('created_at', 'desc');
+        if ($subscriberId) {
+            $query->where('subscriber_id', $subscriberId);
+        }
+
+        $startDate = $this->normalizeDateValue(request('startdate'));
+        $endDate = $this->normalizeDateValue(request('enddate'));
+        if ($startDate && $endDate) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($startDate)->startOfDay(),
+                Carbon::parse($endDate)->endOfDay()
+            ]);
+        }
+
+        return DataTables::of($query)
+            ->addIndexColumn()
+            ->editColumn('created_at', function ($row) {
+                return date("d-m-Y", strtotime($row->created_at));
+            })
+            ->make(true);
+    }
+
     public function communications()
     {
         $user = $this->check_login();
