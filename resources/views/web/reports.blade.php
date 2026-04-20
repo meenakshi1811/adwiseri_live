@@ -1619,60 +1619,74 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
     });
 
     function getStartAndEndDate(type) {
+        function formatToDdMmYyyy(dateObj) {
+            var day = String(dateObj.getDate()).padStart(2, '0');
+            var month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            var year = dateObj.getFullYear();
+            return day + '-' + month + '-' + year;
+        }
 
+        var pickerSelector = '';
         if (type == 'Subscriber') {
-            var selectedDate = $('#custom_date_picker').val();
+            pickerSelector = '#custom_date_picker';
         } else if (type == 'Client') {
-            var selectedDate = $('#custom_date_picker2').val();
+            pickerSelector = '#custom_date_picker2';
         } else if (type == 'Application') {
-            var selectedDate = $('#custom_date_picker3').val();
+            pickerSelector = '#custom_date_picker3';
         } else if (type == 'User') {
-            var selectedDate = $('#custom_date_picker4').val();
+            pickerSelector = '#custom_date_picker4';
         } else if (type == 'Document') {
-            var selectedDate = $('#custom_date_picker14').val();
+            pickerSelector = '#custom_date_picker14';
         } else if (type == 'Communication') {
-            var selectedDate = $('#custom_date_picker5').val();
+            pickerSelector = '#custom_date_picker5';
         } else if (type == 'Invoice') {
-            var selectedDate = $('#custom_date_picker6').val();
+            pickerSelector = '#custom_date_picker6';
         } else if (type == 'InvoiceAP') {
-            var selectedDate = $('#custom_date_picker66').val();
+            pickerSelector = '#custom_date_picker66';
         } else if (type == 'PaymentAR') {
-            var selectedDate = $('#custom_date_picker7').val();
+            pickerSelector = '#custom_date_picker7';
         } else if (type == 'PaymentAP') {
-            var selectedDate = $('#custom_date_picker71').val();
+            pickerSelector = '#custom_date_picker71';
         } else if (type == 'Referral') {
-            var selectedDate = $('#custom_date_picker8').val();
+            pickerSelector = '#custom_date_picker8';
         } else if (type == 'Wallet') {
-            var selectedDate = $('#custom_date_picker9').val();
+            pickerSelector = '#custom_date_picker9';
         } else if (type == 'Affiliat') {
-            var selectedDate = $('#custom_date_picker12').val();
+            pickerSelector = '#custom_date_picker12';
         } else if (type == 'Support') {
-            var selectedDate = $('#custom_date_picker10').val();
+            pickerSelector = '#custom_date_picker10';
         } else if (type == 'Demo') {
-            var selectedDate = $('#custom_date_picker11').val();
+            pickerSelector = '#custom_date_picker11';
         } else if (type == 'Activity') {
-            var selectedDate = $('#custom_date_picker13').val();
+            pickerSelector = '#custom_date_picker13';
         }
 
+        var $picker = $(pickerSelector);
+        var selectedDate = ($picker.val() || '').trim();
 
-        // Get the selected date value from the date picker
-
-
-        // Ensure the date value is not empty or invalid
-        if (!selectedDate || !selectedDate.includes(" - ")) {
-            console.error("Invalid date format. Ensure the date is in 'DD-MM-YYYY - DD-MM-YYYY' format.");
-            return null;
+        if (selectedDate && selectedDate.includes(" - ")) {
+            var dateParts = selectedDate.split(" - ");
+            return {
+                startDate: dateParts[0].trim(),
+                endDate: dateParts[1].trim()
+            };
         }
 
-        // Split the selected date into start and end date
-        var dateParts = selectedDate.split(" - ");
-        var startDate = dateParts[0].trim(); // Extract and trim the start date
-        var endDate = dateParts[1].trim(); // Extract and trim the end date
+        var rangePicker = $picker.data('daterangepicker');
+        if (rangePicker) {
+            return {
+                startDate: rangePicker.startDate.format('DD-MM-YYYY'),
+                endDate: rangePicker.endDate.format('DD-MM-YYYY')
+            };
+        }
 
-        // Return the result as an object
+        var now = new Date();
+        var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        var monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
         return {
-            startDate,
-            endDate
+            startDate: formatToDdMmYyyy(monthStart),
+            endDate: formatToDdMmYyyy(monthEnd)
         };
     }
 
@@ -7575,7 +7589,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             ],
             ajax: {
-                url: "{{ route('manage_support') }}",
+                url: "{{ route('sub_reports_support_tickets') }}",
                 data: function(d) {
                     // Add additional data here
                     d.startdate = result.startDate;
@@ -8030,7 +8044,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             ],
             ajax: {
-                url: "{{ route('activity_log') }}",
+                url: "{{ route('sub_reports_activity_log') }}",
                 data: function(d) {
                     // Add additional data here
                     d.startdate = result.startDate;
@@ -8403,6 +8417,14 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     }
                 }
             });
+
+        $('#SupportTickets-tab').on('shown.bs.tab', function() {
+            onClickSupportTickets();
+        });
+
+        $('#ActivityLog-tab').on('shown.bs.tab', function() {
+            onClickActivityLogs();
+        });
     })(jQuery);
 
 
