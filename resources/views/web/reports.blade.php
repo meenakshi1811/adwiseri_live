@@ -1101,9 +1101,9 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         <div class="row">
                             <div class="col-6 my-3 d-flex align-items-center">
                                 <label style="width: 180px" for="">Filter By Attribute</label>
-                                <select id="" class="form-select" name=""
+                                <select id="supportFilter" class="form-select" name=""
                                     onchange="onchangeSupportReport(this.value,this.options[this.selectedIndex].text)">
-                                    <option selected>Select Attribute</option>
+                                    <option value="" selected>Select Attribute</option>
                                     <option value="byTicketType">By Ticket Type</option>
                                     <option value="byTime">By Time</option>
                                     <option value="byTimeTaken">By Time Taken</option>
@@ -8380,6 +8380,11 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     }
                 } else if (SupportTickets1 == true) {
                     onClickSupportTickets();
+                    var type = $('#supportFilter').val();
+                    let selectedText = $('#supportFilter').find('option:selected').text();
+                    if (type.trim() !== '') {
+                        onchangeSupportReport(type, selectedText);
+                    }
                 } else if (ActivityLog1 == true) {
                     onClickActivityLogs();
 
