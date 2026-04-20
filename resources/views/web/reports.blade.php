@@ -1101,9 +1101,9 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         <div class="row">
                             <div class="col-6 my-3 d-flex align-items-center">
                                 <label style="width: 180px" for="">Filter By Attribute</label>
-                                <select id="" class="form-select" name=""
+                                <select id="supportFilter" class="form-select" name=""
                                     onchange="onchangeSupportReport(this.value,this.options[this.selectedIndex].text)">
-                                    <option selected>Select Attribute</option>
+                                    <option value="" selected>Select Attribute</option>
                                     <option value="byTicketType">By Ticket Type</option>
                                     <option value="byTime">By Time</option>
                                     <option value="byTimeTaken">By Time Taken</option>
@@ -1406,6 +1406,15 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         Affiliates1 = false;
         demoRequest1 = false;
         clientTable1 = false;
+    }
+
+
+    function activateReportTab(tabSelector, paneSelector) {
+        $('#myTab .nav-link').removeClass('active').attr('aria-selected', 'false');
+        $('#myTabContent .tab-pane').removeClass('show active');
+
+        $(tabSelector).addClass('active').attr('aria-selected', 'true');
+        $(paneSelector).addClass('show active');
     }
 
 
@@ -7544,6 +7553,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
     function onClickSupportTickets() {
 
+        activateReportTab('#SupportTickets-tab', '#SupportTickets');
+
         var result = getStartAndEndDate('Support');
         let currentDate = `${result.startDate} - ${result.endDate}`
 
@@ -7998,6 +8009,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
     function onClickActivityLogs() {
 
+        activateReportTab('#ActivityLog-tab', '#ActivityLog');
+
         // This arrangement can be altered based on how we want the date's format to appear.
         var result = getStartAndEndDate('Activity');
         let currentDate = `${result.startDate} - ${result.endDate}`
@@ -8380,6 +8393,11 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     }
                 } else if (SupportTickets1 == true) {
                     onClickSupportTickets();
+                    var type = $('#supportFilter').val();
+                    let selectedText = $('#supportFilter').find('option:selected').text();
+                    if (type.trim() !== '') {
+                        onchangeSupportReport(type, selectedText);
+                    }
                 } else if (ActivityLog1 == true) {
                     onClickActivityLogs();
 
