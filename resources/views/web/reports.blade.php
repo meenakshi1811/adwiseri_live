@@ -1619,6 +1619,13 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
     });
 
     function getStartAndEndDate(type) {
+        function formatToDdMmYyyy(dateObj) {
+            var day = String(dateObj.getDate()).padStart(2, '0');
+            var month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            var year = dateObj.getFullYear();
+            return day + '-' + month + '-' + year;
+        }
+
         var pickerSelector = '';
         if (type == 'Subscriber') {
             pickerSelector = '#custom_date_picker';
@@ -1673,9 +1680,13 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             };
         }
 
+        var now = new Date();
+        var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        var monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
         return {
-            startDate: moment().startOf('month').format('DD-MM-YYYY'),
-            endDate: moment().endOf('month').format('DD-MM-YYYY')
+            startDate: formatToDdMmYyyy(monthStart),
+            endDate: formatToDdMmYyyy(monthEnd)
         };
     }
 
@@ -8406,6 +8417,14 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     }
                 }
             });
+
+        $('#SupportTickets-tab').on('shown.bs.tab', function() {
+            onClickSupportTickets();
+        });
+
+        $('#ActivityLog-tab').on('shown.bs.tab', function() {
+            onClickActivityLogs();
+        });
     })(jQuery);
 
 
