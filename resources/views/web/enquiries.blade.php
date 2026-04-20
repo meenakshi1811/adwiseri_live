@@ -10,9 +10,39 @@
 <div class="d-flex gap-2">
 @php
 $encryptedId = encrypt($user->id);
+$qrUrl = url('/create-new-lead/'.$encryptedId);
 @endphp
 <a href="{{ route('createLead', $encryptedId) }}" class="btn btn-info btn-sm">Add Enquiry</a>
+<a href="javascript:void(0)" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#qrModal">Get QR Code For Enquiry Form</a>
 </div>
+</div>
+
+
+<div class="modal fade" id="qrModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Scan QR Code</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p>Scan this QR code to fill the Enquiry Form.</p>
+                <img
+                    id="enquiryQrImage"
+                    src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={{ urlencode($qrUrl) }}"
+                    alt="QR Code"
+                />
+                <div class="d-flex justify-content-center gap-2 mt-3">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="shareEnquiryQr('{{ $qrUrl }}')">
+                        <i class="fa-solid fa-share-nodes"></i> Share
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="printEnquiryQr()">
+                        <i class="fa-solid fa-print"></i> Print A4
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="row m-0 pb-2">
@@ -271,6 +301,87 @@ document.addEventListener('click', async function (event) {
         });
     }
 });
+
+
+function shareEnquiryQr(qrUrl) {
+    if (navigator.share) {
+        navigator.share({
+            title: 'Enquiry Form QR',
+            text: 'Scan this QR code to fill the Enquiry Form',
+            url: qrUrl
+        }).catch(() => {});
+        return;
+    }
+
+    window.location.href = 'mailto:?subject=' + encodeURIComponent('Enquiry Form QR Link') +
+        '&body=' + encodeURIComponent('Please use this link to access the enquiry form: ' + qrUrl);
+}
+
+function printEnquiryQr() {
+    const printWindow = window.open('', '_blank', 'height=1000,width=900');
+
+    if (!printWindow) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Popup Blocked',
+            text: 'Please allow popups to print the QR code sheet.'
+        });
+        return;
+    }
+
+    const printHtml = `
+        <html>
+            <head>
+                <title>Enquiry QR Code</title>
+                <style>
+                    @page { size: A4; margin: 0; }
+                    body { margin: 0; font-family: Arial, sans-serif; }
+                </style>
+            </head>
+            <body>
+                <div style="width:210mm; min-height:297mm; padding:20mm; text-align:center; box-sizing:border-box;">
+                    <h2 style="margin-bottom:8px;">{{ $user->organization ?? $user->name }}</h2>
+                    <p style="margin-bottom:20px;">Enquiry Form Access</p>
+                    <img id="printQrImage" src="https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={{ urlencode($qrUrl) }}" alt="Enquiry QR Code" style="max-width:350px;">
+                    <p style="margin-top:25px; font-size:18px;">Scan this QR code to fill the Enquiry Form</p>
+                </div>
+            </body>
+        </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
+
+    const waitForImage = () => {
+        const img = printWindow.document.getElementById('printQrImage');
+        if (!img) {
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+            return;
+        }
+
+        if (img.complete) {
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+        } else {
+            img.onload = function() {
+                printWindow.focus();
+                printWindow.print();
+                printWindow.close();
+            };
+            img.onerror = function() {
+                printWindow.focus();
+                printWindow.print();
+                printWindow.close();
+            };
+        }
+    };
+
+    setTimeout(waitForImage, 300);
+}
 
 function deleteEnquiry(id){
 
