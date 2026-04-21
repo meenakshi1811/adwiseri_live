@@ -27,6 +27,9 @@ class Tickets extends Model
     public function subscriber(){
         return $this->belongsTo(User::class,'subscriber_id');
     }
+    public function client(){
+        return $this->belongsTo(Clients::class,'client_id');
+    }
     public function user(){
         return $this->belongsTo(User::class,'user_id');
     }

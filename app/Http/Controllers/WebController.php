@@ -5220,7 +5220,7 @@ class WebController extends Controller
         $this->set_timezone();
         $subscriberId = ($user->user_type == "Subscriber" || $user->user_type == "admin") ? $user->id : $user->added_by;
 
-        $query = Tickets::query()->orderBy('created_at', 'desc');
+        $query = Tickets::with(['subscriber:id,name', 'client:id,name'])->orderBy('created_at', 'desc');
         if ($subscriberId) {
             $query->where('subscriber_id', $subscriberId);
         }
@@ -5236,22 +5236,24 @@ class WebController extends Controller
 
         return DataTables::of($query)
             ->addIndexColumn()
-            ->editColumn('subscriber', function ($row) {
+            ->addColumn('subscriber', function ($row) {
                 return $row->subscriber ? $row->subscriber->name . '(' . $row->subscriber_id . ')' : '';
             })
-            ->editColumn('client', function ($row) {
+            ->addColumn('client', function ($row) {
                 return $row->client ? $row->client->name . '(' . $row->client_id . ')' : '';
             })
             ->editColumn('status', function ($row) {
                 return $row->status;
             })
             ->editColumn('issue', function ($row) {
-                $text = htmlspecialchars($row->issue);
+                $issue = is_string($row->issue) ? $row->issue : '';
+                $text = htmlspecialchars($issue);
                 $words = explode(' ', $text);
                 $truncated = implode(' ', array_slice($words, 0, 25));
+                $previewText = count($words) > 25 ? $truncated . '...' : $truncated;
 
                 return '<div class="message-tooltip" data-full-text="' . htmlspecialchars($text) . '">
-                            <span class="hover-expand">' . $truncated . '...</span>
+                            <span class="hover-expand">' . $previewText . '</span>
                         </div>';
             })
             ->editColumn('created_at', function ($row) {
@@ -5271,7 +5273,7 @@ class WebController extends Controller
         $this->set_timezone();
         $subscriberId = ($user->user_type == "Subscriber" || $user->user_type == "admin") ? $user->id : $user->added_by;
 
-        $query = Activities::query()->orderBy('created_at', 'desc');
+        $query = Activities::with(['user:id,name'])->orderBy('created_at', 'desc');
         if ($subscriberId) {
             $query->where('subscriber_id', $subscriberId);
         }
@@ -5287,6 +5289,13 @@ class WebController extends Controller
 
         return DataTables::of($query)
             ->addIndexColumn()
+            ->addColumn('user_name', function ($row) {
+                if (!empty($row->user_name)) {
+                    return $row->user_name;
+                }
+
+                return $row->user ? $row->user->name : '';
+            })
             ->editColumn('created_at', function ($row) {
                 return date("d-m-Y", strtotime($row->created_at));
             })
