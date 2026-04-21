@@ -105,7 +105,10 @@
         }
 
         .footer {
-            margin-top: 50px;
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 20px;
             text-align: center;
             font-size: 12px;
             color: #4b5563;
@@ -186,10 +189,12 @@
             <td>Subtotal</td>
             <td class="right">{{ $currency }} {{ number_format($amount, 2) }}</td>
         </tr>
-        <tr>
-            <td>Discount ({{ number_format($discountPercent, 2) }}%)</td>
-            <td class="right">- {{ $currency }} {{ number_format($discountAmount, 2) }}</td>
-        </tr>
+        @if($discountPercent > 0)
+            <tr>
+                <td>Discount ({{ number_format($discountPercent, 2) }}%)</td>
+                <td class="right">- {{ $currency }} {{ number_format($discountAmount, 2) }}</td>
+            </tr>
+        @endif
         <tr>
             <td>Tax ({{ number_format($taxPercent, 2) }}%)</td>
             <td class="right">{{ $currency }} {{ number_format($taxAmount, 2) }}</td>

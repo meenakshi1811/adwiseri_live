@@ -788,7 +788,7 @@ class WebController extends Controller
                 $company,
                 $signupInvoiceAmount,
                 "Manual",
-                "Subscription Signup Fees"
+                "Subscription Fees ({$plan->plan_name})"
             );
         }
 

@@ -261,7 +261,7 @@ class StripeController extends Controller
         $tax = 0;
         $company = User::where('user_type','=','admin')->first();
         $chargedAmount = $service_fee - $discount + $tax;
-        $internalInvoice = $this->createAdminApInvoiceAndPayment($user, $company, $chargedAmount, "Card", "Subscription Fees");
+        $internalInvoice = $this->createAdminApInvoiceAndPayment($user, $company, $chargedAmount, "Card", "Subscription Fees ({$plan->plan_name})");
         $invoice = new Invoices();
         $invoice->user_id = $user->id;
         $invoice->invoice = $this->transaction_id();
@@ -592,7 +592,7 @@ class StripeController extends Controller
         $company = User::where('user_type','=','admin')->first();
 
         $subs = User::find($user->id);
-        $internal_invoice = $this->createAdminApInvoiceAndPayment($subs, $company, (float) $amount, "Card", "Subscription Fees");
+        $internal_invoice = $this->createAdminApInvoiceAndPayment($subs, $company, (float) $amount, "Card", "Subscription Fees ({$plan->plan_name})");
 
         $invoice = new Invoices();
         $invoice->user_id = $user->id;

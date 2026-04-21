@@ -595,7 +595,7 @@ class AdminController extends Controller
             $data->save();
             $company = User::where('user_type', '=', 'admin')->first() ?: $user;
             $subscriptionAmount = (float) ($membership->price_per_year ?? 0);
-            $internalInvoice = $this->createAdminApInvoiceAndPayment($data, $company, $subscriptionAmount, "Manual", "Subscription Signup Fees");
+            $internalInvoice = $this->createAdminApInvoiceAndPayment($data, $company, $subscriptionAmount, "Manual", "Subscription Fees ({$membership->plan_name})");
 
             $role = UserRoles::where('user_id', '=', $data->id)->get();
             if ($role) {
