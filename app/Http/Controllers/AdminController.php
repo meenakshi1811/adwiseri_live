@@ -516,6 +516,7 @@ class AdminController extends Controller
             $data->membership_expiry_date = (new DateTime("now"))->modify("+" .  $membership->validity . " Days");
             $data->organization = $request['organization'];
             $data->designation = $request['designation'];
+            $data->dob = null;
             $data->employee_strength = $request['employee_strength'];
             $data->address_line = $request['address_line'];
             $data->country = $country->country_name;
@@ -573,6 +574,7 @@ class AdminController extends Controller
             $data->referral = get_referral();
             $data->organization = $request['organization'];
             $data->designation = $request['designation'];
+            $data->dob = null;
             $data->employee_strength = $request['employee_strength'];
             $data->address_line = $request['address_line'];
             $data->country = $country->country_name;
