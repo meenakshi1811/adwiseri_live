@@ -113,6 +113,12 @@
             font-size: 12px;
             color: #4b5563;
         }
+
+        .footer-logo {
+            max-height: 26px;
+            max-width: 120px;
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 
@@ -215,7 +221,12 @@
         </tr>
     </table>
 
-    <div class="footer">Thanks for your business !</div>
+    <div class="footer">
+        @if(!empty($logoPath) && file_exists($logoPath))
+            <div><img class="footer-logo" src="{{ $logoPath }}" alt="Logo"></div>
+        @endif
+        <div>Thanks for your business !</div>
+    </div>
 </body>
 
 </html>
