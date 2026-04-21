@@ -136,8 +136,8 @@
         $statusLabel = $statusRaw === 'PartiallyPaid' ? 'Partially Paid' : ($statusRaw === 'UnPaid' ? 'Unpaid' : $statusRaw);
         $customLogoPath = !empty($data->logo_path) ? public_path($data->logo_path) : null;
         $fallbackLogoPaths = [
-            public_path('web_assets/images/Style2.png'),
             public_path('web_assets/images/Style2_blue.png'),
+            public_path('web_assets/images/Style2.png'),
             public_path('web_assets/images/default_logo.png'),
         ];
         $logoPath = null;
