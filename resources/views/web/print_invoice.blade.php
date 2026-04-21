@@ -108,7 +108,10 @@
         }
 
         .footer {
-            margin-top: 50px;
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 20px;
             text-align: center;
             font-size: 12px;
         }
@@ -195,10 +198,12 @@
                     <td>Subtotal</td>
                     <td class="right">{{ number_format($subtotal, 2) }}</td>
                 </tr>
-                <tr>
-                    <td>Discount ({{ number_format((float) $invoice->discount, 2) }}%)</td>
-                    <td class="right">-{{ number_format($discountAmount, 2) }}</td>
-                </tr>
+                @if((float) $invoice->discount > 0)
+                    <tr>
+                        <td>Discount ({{ number_format((float) $invoice->discount, 2) }}%)</td>
+                        <td class="right">-{{ number_format($discountAmount, 2) }}</td>
+                    </tr>
+                @endif
                 <tr>
                     <td>Tax ({{ number_format((float) $invoice->tax, 2) }}%)</td>
                     <td class="right">{{ number_format($taxAmount, 2) }}</td>
