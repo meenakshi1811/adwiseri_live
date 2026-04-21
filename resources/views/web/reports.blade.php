@@ -7564,6 +7564,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         var refferalsTable = $('#SupportTicketsTable1').DataTable({
             processing: true,
             serverSide: true,
+            searching: false,
             destroy: true,
             "lengthMenu": [
                 [10, 20, 50, -1],
@@ -7621,11 +7622,15 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     data: 'subscriber',
-                    name: 'subscriber'
+                    name: 'subscriber',
+                    orderable: false,
+                    searchable: false
                 },
                 {
                     data: 'client',
-                    name: 'client'
+                    name: 'client',
+                    orderable: false,
+                    searchable: false
                 },
                 {
                     data: 'issue',
@@ -8021,6 +8026,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         var refferalsTable = $('#ActivityLogTable1').DataTable({
             processing: true,
             serverSide: true,
+            searching: false,
             destroy: true,
             "lengthMenu": [
                 [10, 20, 50, -1],
@@ -8078,7 +8084,9 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     data: 'user_name',
-                    name: 'user_name'
+                    name: 'user_name',
+                    orderable: false,
+                    searchable: false
                 },
                 {
                     data: 'activity_detail',
