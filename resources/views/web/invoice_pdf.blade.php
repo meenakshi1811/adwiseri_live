@@ -134,7 +134,24 @@
         $currency = $data->currency ?? 'Rs.';
         $statusRaw = (string) ($data->status ?? '-');
         $statusLabel = $statusRaw === 'PartiallyPaid' ? 'Partially Paid' : ($statusRaw === 'UnPaid' ? 'Unpaid' : $statusRaw);
-        $logoPath = !empty($data->logo_path) ? public_path($data->logo_path) : public_path('web_assets/images/Style2.png');
+        $customLogoPath = !empty($data->logo_path) ? public_path($data->logo_path) : null;
+        $fallbackLogoPaths = [
+            public_path('web_assets/images/Style2.png'),
+            public_path('web_assets/images/Style2_blue.png'),
+            public_path('web_assets/images/default_logo.png'),
+        ];
+        $logoPath = null;
+
+        if (!empty($customLogoPath) && file_exists($customLogoPath)) {
+            $logoPath = $customLogoPath;
+        } else {
+            foreach ($fallbackLogoPaths as $fallbackLogoPath) {
+                if (file_exists($fallbackLogoPath)) {
+                    $logoPath = $fallbackLogoPath;
+                    break;
+                }
+            }
+        }
         $planName = trim((string) ($data->plan_name ?? ($data->subscription_type ?? ($data->membership ?? ''))));
         $detailText = trim((string) ($data->detail ?? 'Professional Services'));
 
@@ -150,7 +167,7 @@
     <table class="header">
         <tr>
             <td>
-                @if(!empty($logoPath) && file_exists($logoPath))
+                @if(!empty($logoPath))
                     <img class="logo" src="{{ $logoPath }}" alt="Logo">
                 @endif
                 <div class="company">{{ $data->company_name ?? 'Adwiseri' }}</div>
