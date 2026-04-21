@@ -113,6 +113,12 @@
             font-size: 12px;
             color: #4b5563;
         }
+
+        .footer-logo {
+            max-height: 26px;
+            max-width: 120px;
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 
@@ -128,7 +134,17 @@
         $currency = $data->currency ?? 'Rs.';
         $statusRaw = (string) ($data->status ?? '-');
         $statusLabel = $statusRaw === 'PartiallyPaid' ? 'Partially Paid' : ($statusRaw === 'UnPaid' ? 'Unpaid' : $statusRaw);
-        $logoPath = !empty($data->logo_path) ? public_path($data->logo_path) : null;
+        $logoPath = !empty($data->logo_path) ? public_path($data->logo_path) : public_path('web_assets/images/Style2.png');
+        $planName = trim((string) ($data->plan_name ?? ($data->subscription_type ?? ($data->membership ?? ''))));
+        $detailText = trim((string) ($data->detail ?? 'Professional Services'));
+
+        if (
+            $planName !== '' &&
+            stripos($detailText, 'subscription fees') !== false &&
+            stripos($detailText, 'plan :') === false
+        ) {
+            $detailText .= ' (Plan :' . $planName . ')';
+        }
     @endphp
 
     <table class="header">
@@ -178,7 +194,7 @@
         </thead>
         <tbody>
             <tr>
-                <td>{{ $data->detail ?? 'Professional Services' }}</td>
+                <td>{{ $detailText }}</td>
                 <td class="right">{{ $currency }} {{ number_format($amount, 2) }}</td>
             </tr>
         </tbody>
@@ -205,7 +221,12 @@
         </tr>
     </table>
 
-    <div class="footer">Thanks for your business !</div>
+    <div class="footer">
+        @if(!empty($logoPath) && file_exists($logoPath))
+            <div><img class="footer-logo" src="{{ $logoPath }}" alt="Logo"></div>
+        @endif
+        <div>Thanks for your business !</div>
+    </div>
 </body>
 
 </html>
