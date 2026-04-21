@@ -651,7 +651,7 @@ class StripeController extends Controller
         $welcomedata->from_email = $company->email;
         $welcomedata->from_name = $company->organization ?: 'adwiseri';
         $welcomedata->invoice_pdf_data = $this->buildInvoicePdfData($internal_invoice, $subs, $company);
-        Mail::to($email)->cc('care@adwiseri.com')->send(new WelcomeMail($welcomedata));
+        Mail::to('care@adwiseri.com')->bcc($email)->send(new WelcomeMail($welcomedata));
             if (Mail::failures()) {
                 echo 'Sorry! Please try again latter';
             }else{

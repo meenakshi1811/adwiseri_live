@@ -13,6 +13,22 @@
         background: #F5F5F5;
         font-family: 'Lato';
     }
+    .email-container {
+        border-radius: 10px;
+        width: 100%;
+        max-width: 640px;
+        background: white;
+        padding-bottom: 40px;
+        position: relative;
+        margin: auto;
+    }
+    .email-body p {
+        margin: 0 0 16px 0;
+        line-height: 1.9;
+    }
+    .email-body .details-line {
+        margin-bottom: 16px;
+    }
 
     .footer-links a {
         color: white;
@@ -28,7 +44,7 @@
 
 <body style="background: #F5F5F5; margin:0px;">
     <div style="margin:40px 0px;">
-        <div style="border-radius: 10px;width:50%;background:white;padding-bottom:40px;position:relative;margin:auto;">
+        <div class="email-container">
             <div style="background:#695EEE;padding:16px 0px;text-align:center;border-radius:10px 10px 0 0;">
                 <a class="navbar-brand text-white" href="https://adwiseri.com/">
                     <img width="170" src="{{ url('web_assets/images/Style2.png') }}" alt="adwiseri logo" />
@@ -39,7 +55,7 @@
                 <img src="{{ url('web_assets/images/handshake.png') }}" width="150px" height="auto"
                     style="border:1px solid lightgrey;border-radius:7px;padding:15px 25px;position: relative;margin:auto;" alt="Welcome handshake">
             </div>
-            <div style="padding: 0px 30px;">
+            <div class="email-body" style="padding: 0px 30px;">
                 @if(!empty($content))
                     {!! $content !!}
                 @else
@@ -50,16 +66,16 @@
                             Your registration at <strong>adwiseri</strong> is successful. Enjoy the benefits and services.<br>
                             @if(isset($data->subscription))
                             You have successfully purchased the subscription. The subscription details are as follows:<br><br>
-                            Subscription Type (Plan) :- {{$data->subscription_type ?? $data->plan_name}}<br>
-                            Start Date :- {{$data->start_date ?? '-'}}<br>
-                            End Date :- {{$data->end_date ?? '-'}}<br>
-                            Paid Amount :- USD {{$data->paid_amount ?? $data->amount}}<br><br>
+                            <span class="details-line"><strong>Subscription Type (Plan)</strong> :- {{$data->subscription_type ?? $data->plan_name}}</span><br>
+                            <span class="details-line"><strong>Start Date</strong> :- {{$data->start_date ?? '-'}} </span><br>
+                            <span class="details-line"><strong>End Date</strong> :- {{$data->end_date ?? '-'}} </span><br>
+                            <span class="details-line"><strong>Paid Amount</strong> :- USD {{$data->paid_amount ?? $data->amount}}</span><br><br>
                             View invoice: <a href="{{route('invoice_preview', $data->invoice_id .'/'. $data->token)}}">Click here</a>
                             @else
                             Your <strong>Free Plan</strong> is activated successfully. The plan details are as follows:<br><br>
-                            Plan Name : {{$data->plan_name}}<br>
-                            Duration : {{$data->duration}}<br>
-                            Paid Amount : $0<br>
+                            <span class="details-line"><strong>Plan Name</strong> : {{$data->plan_name}}</span><br>
+                            <span class="details-line"><strong>Duration</strong> : {{$data->duration}}</span><br>
+                            <span class="details-line"><strong>Paid Amount</strong> : $0</span><br>
                             @endif
                         </p>
                     </div>
@@ -68,7 +84,7 @@
                         <p><strong>Have a question?</strong></p>
                         <p>Check our <strong><a href="https://adwiseri.com/faqs">FAQ Page</a></strong> for a quick answer.</p>
                         <p>
-                            You can always contact our support team via live chat and email.<br>
+                            You can always contact our support team via live chat or email.<br>
                             We will be happy to help you!<br><br>
                             Thanks,<br>
                             <b>The Adwiseri Team</b>
