@@ -31,7 +31,7 @@
                         <div class="col-6 p-2 border">
                             {{ $vuser->email }}
                         </div>
-                        @if($vuser->user_type !== 'Subscriber')
+                        @if(strtolower((string) $vuser->user_type) !== 'subscriber')
                             <div class="col-6 p-2 border">
                                 <label style="font-weight:550;">Date of Birth</label>
                             </div>
