@@ -31,12 +31,14 @@
                         <div class="col-6 p-2 border">
                             {{ $vuser->email }}
                         </div>
-                        <div class="col-6 p-2 border">
-                            <label style="font-weight:550;">Date of Birth</label>
-                        </div>
-                        <div class="col-6 p-2 border">
-                            {{ date("d-m-Y", strtotime($vuser->dob)) }}
-                        </div>
+                        @if($vuser->user_type !== 'Subscriber')
+                            <div class="col-6 p-2 border">
+                                <label style="font-weight:550;">Date of Birth</label>
+                            </div>
+                            <div class="col-6 p-2 border">
+                                {{ $vuser->dob ? date("d-m-Y", strtotime($vuser->dob)) : '-' }}
+                            </div>
+                        @endif
                         <div class="col-6 p-2 border">
                             <label style="font-weight:550;">Wallet Credit</label>
                         </div>
