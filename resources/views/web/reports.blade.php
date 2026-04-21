@@ -1410,6 +1410,10 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
 
     function activateReportTab(tabSelector, paneSelector) {
+        if (!$(tabSelector).length || !$(paneSelector).length) {
+            return;
+        }
+
         $('#myTab .nav-link').removeClass('active').attr('aria-selected', 'false');
         $('#myTabContent .tab-pane').removeClass('show active');
 
