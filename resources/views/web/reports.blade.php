@@ -7555,7 +7555,11 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
         activateReportTab('#SupportTickets-tab', '#SupportTickets');
 
-        var result = getStartAndEndDate('Support');
+        var hasSelectedRange = ($('#custom_date_picker10').val() || '').trim() !== '';
+        var result = hasSelectedRange ? getStartAndEndDate('Support') : {
+            startDate: '',
+            endDate: ''
+        };
         let currentDate = `${result.startDate} - ${result.endDate}`
 
         deativeTabs();
@@ -7603,9 +7607,10 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             ajax: {
                 url: "{{ route('sub_reports_support_tickets') }}",
                 data: function(d) {
-                    // Add additional data here
-                    d.startdate = result.startDate;
-                    d.enddate = result.endDate;
+                    if (result.startDate && result.endDate) {
+                        d.startdate = result.startDate;
+                        d.enddate = result.endDate;
+                    }
 
                 }
             },
@@ -7664,7 +7669,11 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             $('#reportSupportTable').DataTable().clear().destroy();
             $('#reportSupportTable').empty(); // Remove existing columns and rows
         }
-        var result = getStartAndEndDate('Support');
+        var hasSelectedRange = ($('#custom_date_picker10').val() || '').trim() !== '';
+        var result = hasSelectedRange ? getStartAndEndDate('Support') : {
+            startDate: '',
+            endDate: ''
+        };
         let currentDate = `${result.startDate} - ${result.endDate}`
         $('#reportSupport').show();
         let dataTableSettings = {
@@ -7707,8 +7716,10 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 url: "{{ route('supportReport') }}",
                 data: function(d) {
                     d.type = type;
-                    d.startdate = result.startDate;
-                    d.enddate = result.endDate;
+                    if (result.startDate && result.endDate) {
+                        d.startdate = result.startDate;
+                        d.enddate = result.endDate;
+                    }
                 }
             },
             order: [
@@ -8017,7 +8028,11 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         activateReportTab('#ActivityLog-tab', '#ActivityLog');
 
         // This arrangement can be altered based on how we want the date's format to appear.
-        var result = getStartAndEndDate('Activity');
+        var hasSelectedRange = ($('#custom_date_picker13').val() || '').trim() !== '';
+        var result = hasSelectedRange ? getStartAndEndDate('Activity') : {
+            startDate: '',
+            endDate: ''
+        };
         let currentDate = `${result.startDate} - ${result.endDate}`
 
         deativeTabs();
@@ -8065,9 +8080,10 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             ajax: {
                 url: "{{ route('sub_reports_activity_log') }}",
                 data: function(d) {
-                    // Add additional data here
-                    d.startdate = result.startDate;
-                    d.enddate = result.endDate;
+                    if (result.startDate && result.endDate) {
+                        d.startdate = result.startDate;
+                        d.enddate = result.endDate;
+                    }
 
                 }
             },
@@ -8114,7 +8130,11 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             $('#reportActivityTable').empty(); // Remove existing columns and rows
         }
 
-        var result = getStartAndEndDate('Activity');
+        var hasSelectedRange = ($('#custom_date_picker13').val() || '').trim() !== '';
+        var result = hasSelectedRange ? getStartAndEndDate('Activity') : {
+            startDate: '',
+            endDate: ''
+        };
         let currentDate = `${result.startDate} - ${result.endDate}`
         $('#reportActivity').show();
 
@@ -8158,8 +8178,10 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 url: "{{ route('activityReport') }}",
                 data: function(d) {
                     d.type = type;
-                    d.startdate = result.startDate;
-                    d.enddate = result.endDate;
+                    if (result.startDate && result.endDate) {
+                        d.startdate = result.startDate;
+                        d.enddate = result.endDate;
+                    }
 
                 }
             },
