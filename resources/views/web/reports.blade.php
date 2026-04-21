@@ -1092,7 +1092,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                 </table>
                             </div> --}}
                     </div>
-                    <!-- @if ($user->user_type == 'admin') -->
+                  
                     <div class="tab-pane fade" id="SupportTickets" role="tabpanel"
                         aria-labelledby="SupportTickets-tab">
 
@@ -1275,7 +1275,6 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                             </table>
                         </div>
                     </div>
-                    <!-- @endif -->
                 </div>
             </div>
         </div>
