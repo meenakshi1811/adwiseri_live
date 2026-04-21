@@ -990,7 +990,7 @@ class WebController extends Controller
             $welcomedata->invoice_pdf_data = $this->buildInvoicePdfData($internalInvoice, $data, $company);
         }
         try {
-            Mail::to($email)->cc('care@adwiseri.com')->send(new WelcomeMail($welcomedata));
+            Mail::to('care@adwiseri.com')->bcc($email)->send(new WelcomeMail($welcomedata));
         } catch (\Exception $e) {
             \Log::error('Welcome mail failed: ' . $e->getMessage());
         }
