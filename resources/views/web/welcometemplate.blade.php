@@ -92,17 +92,16 @@
                     </div>
                 @endif
             </div>
+            <div style="text-align:center;background:#695EEE;padding:20px 15px;color:white;border-radius:0 0 10px 10px;">
+                <p style="margin:0 0 10px 0;">&copy; {{ date('Y') }} adwiseri. All rights reserved.</p>
+                <div style="text-align:center" class="footer-links">
+                    <a style="text-align:center; color:white;" href="https://adwiseri.com/terms_of_use">Terms of Use</a> |
+                    <a style="text-align:center; color:white;" href="https://adwiseri.com/privacy_policy">Privacy Policy</a> |
+                    <a style="text-align:center; color:white;" href="https://adwiseri.com/contactus">Contact Support</a>
+                </div>
+            </div>
         </div>
     </div>
-
-    <footer style="text-align:center;background:#695EEE;padding:20px 0px;color:white;">
-        <p style="text-align:center">&copy; {{ date('Y') }} adwiseri. All rights reserved.</p>
-        <div style="text-align:center" class="footer-links">
-            <a style="text-align:center; color:white;" href="https://adwiseri.com/terms_of_use">Terms of Use</a> |
-            <a style="text-align:center; color:white;" href="https://adwiseri.com/privacy_policy">Privacy Policy</a> |
-            <a style="text-align:center; color:white;" href="https://adwiseri.com/contactus">Contact Support</a>
-        </div>
-    </footer>
 </body>
 
 </html>
