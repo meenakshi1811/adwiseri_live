@@ -17,7 +17,7 @@
                     </a>
                 @endif
             </div>
-            <div style="padding:24px;font-size:14px;line-height:1.7;">
+            <div style="padding:24px;font-size:14px;line-height:1.7;overflow-wrap:anywhere;word-break:break-word;">
                 {!! $content !!}
             </div>
             <div style="text-align:center;background:#695EEE;padding:20px 24px;color:#ffffff;">
