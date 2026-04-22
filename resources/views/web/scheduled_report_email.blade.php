@@ -19,7 +19,7 @@
 
                 <p style="margin:0 0 14px 0;"><strong>Hello {{ $data['recipient_name'] }},</strong></p>
                 <p style="margin:0 0 14px 0;">
-                    Please find your Adwiseri scheduled report for the period
+                    Please find scheduled report(s) attached for the period
                     <strong>{{ $data['start_date'] }} - {{ $data['end_date'] }}</strong>.
                 </p>
 
