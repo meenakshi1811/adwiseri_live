@@ -46,7 +46,7 @@
                             {{ $vuser->wallet }}
                         </div>
                         <div class="col-6 p-2 border">
-                            <label style="font-weight:550;">Referral</label>
+                            <label style="font-weight:550;">SUB-Referral_Code</label>
                         </div>
                         <div class="col-6 p-2 border">
                             {{ $vuser->referral }}
