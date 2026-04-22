@@ -7012,7 +7012,7 @@ public function showFeedbackPopup()
     public function editEnquiry($id)
     {
         $user = $this->check_login();
-        $countries = Countries::where('status', 1)->orderBy('country_name', 'asc')->get();
+        $countries = Countries::orderBy('country_name', 'asc')->get();
 
         $enquiry = VisaEnquiry::with(['residencyHistory','travelHistory','refusalHistory','workExperience','children','fundingSources'])->find($id);
 
@@ -7708,7 +7708,7 @@ public function showFeedbackPopup()
     {
         $subscriberId = decrypt($id);
         $subscriber = User::find($subscriberId);
-        $countries = Countries::where('status', 1)->orderBy('country_name', 'asc')->get();
+        $countries = Countries::orderBy('country_name', 'asc')->get();
         $defaultPlace = trim(($subscriber?->city ?? '').', '.($subscriber?->country ?? ''), ', ');
 
         return view('web.create_lead',compact('subscriberId','defaultPlace','countries'));
