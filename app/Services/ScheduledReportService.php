@@ -84,6 +84,7 @@ class ScheduledReportService
                     'start_date' => $startDate->format('d M Y'),
                     'end_date' => $endDate->format('d M Y'),
                     'download_link' => $downloadLink,
+                    'modules' => (array) $setting->modules,
                 ];
 
                 try {
