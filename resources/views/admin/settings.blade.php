@@ -340,7 +340,7 @@
                         @csrf
                         <input type="hidden" id="emailAudience" name="audience" value="{{ $emailTemplateAudience }}">
                         <div class="row p-1 mb-3 align-items-center">
-                            <div class="col-6"><label>Audience</label></div>
+                            <div class="col-6"><label>Template Audience</label></div>
                             <div class="col-6">
                                 <input type="text" class="form-control" value="{{ $emailTemplateAudience === 'admin' ? 'Admin Mail Templates' : 'Subscriber Mail Templates' }}" readonly>
                             </div>
