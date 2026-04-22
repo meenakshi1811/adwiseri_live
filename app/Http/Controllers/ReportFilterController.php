@@ -3048,19 +3048,19 @@ class ReportFilterController extends Controller
         return DataTables::of($demos)
             ->addIndexColumn()
             ->editColumn('created_at', function ($row) {
-                return Carbon::parse($row->created_at)->format('d-m-Y');
+                return Carbon::parse($row->created_at)->format('d-m-Y H:i:s');
             })
             ->editColumn('served_by', function ($row) {
                 return 'null';
             })
             ->editColumn('service_date', function ($row) {
-                return Carbon::parse($row->updated_at)->format('d-m-Y');
+                return Carbon::parse($row->updated_at)->format('d-m-Y H:i:s');
             })
             ->editColumn('served_by', function ($row) {
                 return  $row->served_by ? $row->user->name : '';
             })
             ->editColumn('status', function ($row) {
-                return ($row->status == 'true') ? 'Served' : (($row->status == 'false') ? 'Not Served' : $row->status);
+                return ($row->status == 'true') ? 'Closed' : (($row->status == 'false') ? 'Open' : $row->status);
             })
 
             ->editColumn('job_title', function ($row) {
@@ -3088,7 +3088,9 @@ class ReportFilterController extends Controller
                 ->get();
 
             return DataTables::of($demorequest)
-
+                ->editColumn('status', function ($row) {
+                    return ($row->status == 'true') ? 'Closed' : (($row->status == 'false') ? 'Open' : $row->status);
+                })
                 ->make(true);
         } elseif (request()->type == "byCountry") {
             $demorequest = DB::table('demo_requests')
