@@ -114,11 +114,6 @@
             color: #4b5563;
         }
 
-        .footer-logo {
-            max-height: 26px;
-            max-width: 120px;
-            margin-bottom: 4px;
-        }
     </style>
 </head>
 
@@ -158,9 +153,9 @@
         if (
             $planName !== '' &&
             stripos($detailText, 'subscription fees') !== false &&
-            stripos($detailText, 'plan :') === false
+            stripos($detailText, ' plan') === false
         ) {
-            $detailText .= ' (Plan :' . $planName . ')';
+            $detailText .= ' (' . $planName . ' Plan)';
         }
     @endphp
 
@@ -170,7 +165,9 @@
                 @if(!empty($logoPath))
                     <img class="logo" src="{{ $logoPath }}" alt="Logo">
                 @endif
-                <div class="company">{{ $data->company_name ?? 'Adwiseri' }}</div>
+                @if(empty($logoPath))
+                    <div class="company">{{ $data->company_name ?? 'Adwiseri' }}</div>
+                @endif
                 <div>{{ $data->display_from_email ?? ($data->from_email ?? '') }}</div>
             </td>
             <td class="title">
@@ -239,9 +236,6 @@
     </table>
 
     <div class="footer">
-        @if(!empty($logoPath) && file_exists($logoPath))
-            <div><img class="footer-logo" src="{{ $logoPath }}" alt="Logo"></div>
-        @endif
         <div>Thanks for your business !</div>
     </div>
 </body>
