@@ -7709,7 +7709,7 @@ public function showFeedbackPopup()
         $subscriberId = decrypt($id);
         $subscriber = User::find($subscriberId);
         $countries = Countries::where('status', 1)->orderBy('country_name', 'asc')->get();
-        $defaultPlace = trim(($subscriber->city ?? '').', '.($subscriber->country ?? ''), ', ');
+        $defaultPlace = trim(($subscriber?->city ?? '').', '.($subscriber?->country ?? ''), ', ');
 
         return view('web.create_lead',compact('subscriberId','defaultPlace','countries'));
     }
