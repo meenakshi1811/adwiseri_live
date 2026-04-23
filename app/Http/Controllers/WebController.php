@@ -150,6 +150,37 @@ class WebController extends Controller
         ];
     }
 
+    private function getSubscriberCountryOptions(int $subscriberId, array $selectedCountries = [])
+    {
+        $selectedCountries = collect($selectedCountries)
+            ->map(fn ($country) => trim((string) $country))
+            ->filter()
+            ->values();
+
+        $subscriberServiceCountries = Applications::where('subscriber_id', $subscriberId)
+            ->select('visa_country')
+            ->whereNotNull('visa_country')
+            ->where('visa_country', '!=', '')
+            ->distinct()
+            ->pluck('visa_country')
+            ->map(fn ($country) => trim((string) $country))
+            ->filter();
+
+        $countryNames = $subscriberServiceCountries
+            ->merge($selectedCountries)
+            ->unique()
+            ->sort()
+            ->values();
+
+        if ($countryNames->isEmpty()) {
+            return Countries::orderBy('country_name', 'asc')->get();
+        }
+
+        return Countries::whereIn('country_name', $countryNames->all())
+            ->orderBy('country_name', 'asc')
+            ->get();
+    }
+
     private function generateInternalInvoiceId(): string
     {
         $ch = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -7012,7 +7043,6 @@ public function showFeedbackPopup()
     public function editEnquiry($id)
     {
         $user = $this->check_login();
-        $countries = Countries::orderBy('country_name', 'asc')->get();
 
         $enquiry = VisaEnquiry::with(['residencyHistory','travelHistory','refusalHistory','workExperience','children','fundingSources'])->find($id);
 
@@ -7022,6 +7052,10 @@ public function showFeedbackPopup()
 
         $subscriber = User::find($enquiry->subscriber_id);
         $defaultPlace = trim(($subscriber->city ?? '').', '.($subscriber->country ?? ''), ', ');
+        $countries = $this->getSubscriberCountryOptions(
+            (int) $enquiry->subscriber_id,
+            [$enquiry->country_pref_1, $enquiry->country_pref_2, $enquiry->country_pref_3]
+        );
 
         return view('web.create_lead', [
             'subscriberId' => $enquiry->subscriber_id,
@@ -7708,7 +7742,7 @@ public function showFeedbackPopup()
     {
         $subscriberId = decrypt($id);
         $subscriber = User::find($subscriberId);
-        $countries = Countries::orderBy('country_name', 'asc')->get();
+        $countries = $this->getSubscriberCountryOptions((int) $subscriberId);
         $defaultPlace = trim(($subscriber?->city ?? '').', '.($subscriber?->country ?? ''), ', ');
 
         return view('web.create_lead',compact('subscriberId','defaultPlace','countries'));
