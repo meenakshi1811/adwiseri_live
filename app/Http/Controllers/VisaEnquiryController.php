@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Carbon\Carbon;
 
 use App\Models\VisaEnquiry;
+use App\Models\Activities;
+use App\Models\User;
 use App\Models\EnquiryResidencyHistory;
 use App\Models\EnquiryTravelHistory;
 use App\Models\EnquiryRefusalHistory;
@@ -45,6 +48,7 @@ class VisaEnquiryController extends Controller
             'contact_no' => 'required|string|max:25',
             'country_pref' => 'required|array|min:1',
             'country_pref.0' => 'required|string|max:255',
+            'country_pref.*' => 'nullable|string|max:255|distinct',
             'visa_category' => 'required|string|max:255',
         ]);
 
@@ -103,6 +107,16 @@ class VisaEnquiryController extends Controller
             }
 
             $enquiry = VisaEnquiry::create($enquiryData);
+
+            $subscriber = User::find($request->subscriber_id);
+            $activity = new Activities();
+            $activity->subscriber_id = $request->subscriber_id;
+            $activity->user_id = $request->subscriber_id;
+            $activity->user_name = $subscriber->name ?? 'Subscriber';
+            $activity->activity_name = "New Enquiry Added";
+            $activity->activity_detail = "New enquiry {$enquiry->full_name} submitted at " . Carbon::now()->format('d M, Y H:i:s');
+            $activity->activity_icon = "user.png";
+            $activity->save();
 
 
             /* Residency History */
