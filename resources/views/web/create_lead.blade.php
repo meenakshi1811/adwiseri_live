@@ -427,6 +427,28 @@ $isEdit = $isEdit ?? false;
 
 </div>
 
+@if(!$isEdit)
+<div class="mt-3">
+    <div class="form-check">
+        <input
+            class="form-check-input"
+            type="checkbox"
+            id="consent_to_store_data"
+            name="consent_to_store_data"
+            value="1"
+            {{ old('consent_to_store_data') ? 'checked' : '' }}
+            required
+        >
+        <label class="form-check-label" for="consent_to_store_data">
+            I consent to Adwiseri storing and processing my submitted personal data, including my signature, for enquiry handling.
+        </label>
+    </div>
+    @error('consent_to_store_data')
+        <div class="text-danger small mt-1">{{ $message }}</div>
+    @enderror
+</div>
+@endif
+
 <!-- CAPTCHA -->
 
 <div class="mt-4">

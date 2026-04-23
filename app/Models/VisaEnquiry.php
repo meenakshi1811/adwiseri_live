@@ -39,7 +39,8 @@ class VisaEnquiry extends Model
         'place',
         'sign_name',
         'print_name',
-        'signature'
+        'signature',
+        'consent_to_store_data'
     ];
 
     public function residencyHistory()
