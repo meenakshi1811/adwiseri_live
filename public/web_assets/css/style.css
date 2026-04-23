@@ -248,12 +248,52 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .item-font-fix{
         font-size: 28px; 
         line-height: 1.5;
+        font-family: 'Lato', sans-serif !important;
+        font-weight: 600;
+        overflow-wrap: break-word;
+        word-break: normal;
+}
+
+.affiliate-copy-wrap {
+    position: absolute;
+    top: 50%;
+    left: 34%;
+    right: 38%;
+    transform: translateY(-50%);
+    color: #fff;
+    text-align: left;
+    width: auto;
+}
+
+.affiliate-copy-text {
+    margin-bottom: 0;
+}
+
+.affiliate-copy-text a {
+    color: #fff;
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+@media (max-width: 991px) {
+    .affiliate-copy-wrap {
+        left: 10%;
+        right: 10%;
+        width: 80%;
+    }
 }
 
 @media(max-width:560px) {
     .item-font-fix{
-        font-size: 12px; 
-        line-height: 1.5;
+        font-size: 15px;
+        line-height: 1.4;
+    }
+
+    .affiliate-copy-wrap {
+        left: 8%;
+        right: 8%;
+        width: 84%;
+        text-align: left;
     }
     .logo-fix{
         width: 100px;
