@@ -7128,6 +7128,10 @@ public function showFeedbackPopup()
                 $enquiryData['sign_name'] = $request->print_name;
             }
 
+            if (Schema::hasColumn('visa_enquiries', 'consent_to_store_data') && $request->has('consent_to_store_data')) {
+                $enquiryData['consent_to_store_data'] = $request->boolean('consent_to_store_data');
+            }
+
             $enquiry->update($enquiryData);
 
             EnquiryResidencyHistory::where('enquiry_id', $enquiry->id)->delete();
