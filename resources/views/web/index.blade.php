@@ -573,21 +573,19 @@
         </div> -->
     </div>
 
-        <div class="collab-box" id="affiliates">
-    <div class="Affiliates-banner" style="position: relative;">
-        <img src="web_assets/images/collbcopy.jpg" alt="Affiliate Background" width="100%" height="auto">
-        
-        
-        <!-- Right-aligned Text -->
-        <div style="position: absolute; top: 44%; left: 35%; color: white; text-align: left;">
-            <p class="item-font-fix" style="">
-                Want to earn extra from referrals?<br>
-                Join our Affiliate Program by clicking 
-                <a href="{{ url('/') }}/Affiliates_Reg" >here</a>
-            </p>
+    <div class="collab-box" id="affiliates">
+        <div class="Affiliates-banner">
+            <img src="web_assets/images/collbcopy.jpg" alt="Affiliate Background" width="100%" height="auto">
+
+            <div class="affiliate-copy-wrap">
+                <p class="item-font-fix affiliate-copy-text">
+                    Want to earn extra from referrals?<br>
+                    Join our Affiliate Program by clicking
+                    <a href="{{ url('/') }}/Affiliates_Reg">here</a>
+                </p>
+            </div>
         </div>
     </div>
-</div>
 
 
         {{-- <div class="container faq-section my-5">
