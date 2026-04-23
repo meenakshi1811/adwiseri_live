@@ -7219,6 +7219,17 @@ public function showFeedbackPopup()
                 }
             }
 
+            $subscriber = User::find($enquiry->subscriber_id);
+            $activityUser = Auth::user();
+            $activity = new Activities();
+            $activity->subscriber_id = $enquiry->subscriber_id;
+            $activity->user_id = $activityUser->id ?? $enquiry->subscriber_id;
+            $activity->user_name = $activityUser->name ?? ($subscriber->name ?? 'Subscriber');
+            $activity->activity_name = "Enquiry Updated";
+            $activity->activity_detail = "Enquiry {$enquiry->full_name} updated at " . now()->format('d M, Y H:i:s');
+            $activity->activity_icon = "user.png";
+            $activity->save();
+
             DB::commit();
 
             return redirect()->route('enquiries')->with('success', 'Enquiry updated successfully.');
