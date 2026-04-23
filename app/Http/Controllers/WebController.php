@@ -157,6 +157,21 @@ class WebController extends Controller
             ->filter()
             ->values();
 
+        $subscriber = User::find($subscriberId);
+        $profileCountryNames = $this->getProfileMappedDestinationCountries($subscriber);
+
+        if ($profileCountryNames->isNotEmpty()) {
+            $countryNames = $profileCountryNames
+                ->merge($selectedCountries)
+                ->unique()
+                ->sort()
+                ->values();
+
+            return Countries::whereIn('country_name', $countryNames->all())
+                ->orderBy('country_name', 'asc')
+                ->get();
+        }
+
         $subscriberServiceCountries = Applications::where('subscriber_id', $subscriberId)
             ->select('visa_country')
             ->whereNotNull('visa_country')
@@ -179,6 +194,45 @@ class WebController extends Controller
         return Countries::whereIn('country_name', $countryNames->all())
             ->orderBy('country_name', 'asc')
             ->get();
+    }
+
+    private function getProfileMappedDestinationCountries(?User $subscriber)
+    {
+        if (!$subscriber) {
+            return collect();
+        }
+
+        $profileText = collect([
+            $subscriber->category ?? null,
+            $subscriber->sub_category ?? null,
+            $subscriber->organization ?? null,
+            $subscriber->designation ?? null,
+        ])->filter()->implode(' ');
+
+        if (trim($profileText) === '') {
+            return collect();
+        }
+
+        $normalizedProfileText = strtolower($profileText);
+
+        $keywordToCountryMap = [
+            'Australia' => ['mara'],
+            'Canada' => ['iccrc', 'cicc', 'rcic'],
+            'United Kingdom' => ['oisc', 'iaa', 'immigration advice authority'],
+        ];
+
+        return collect($keywordToCountryMap)
+            ->filter(function ($keywords) use ($normalizedProfileText) {
+                foreach ($keywords as $keyword) {
+                    if (str_contains($normalizedProfileText, $keyword)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            })
+            ->keys()
+            ->values();
     }
 
     private function generateInternalInvoiceId(): string
@@ -7126,6 +7180,10 @@ public function showFeedbackPopup()
                 $enquiryData['print_name'] = $request->print_name;
             } elseif (Schema::hasColumn('visa_enquiries', 'sign_name')) {
                 $enquiryData['sign_name'] = $request->print_name;
+            }
+
+            if (Schema::hasColumn('visa_enquiries', 'consent_to_store_data') && $request->has('consent_to_store_data')) {
+                $enquiryData['consent_to_store_data'] = $request->boolean('consent_to_store_data');
             }
 
             $enquiry->update($enquiryData);

@@ -50,6 +50,7 @@ class VisaEnquiryController extends Controller
             'country_pref.0' => 'required|string|max:255',
             'country_pref.*' => 'nullable|string|max:255|distinct',
             'visa_category' => 'required|string|max:255',
+            'consent_to_store_data' => 'required|accepted',
         ]);
 
         DB::beginTransaction();
@@ -85,10 +86,6 @@ class VisaEnquiryController extends Controller
                 'spouse_email' => $request->spouse_email,
                 'spouse_dob' => $request->spouse_dob,
                 'spouse_contact' => $request->spouse_contact,
-
-                'form_date' => $request->form_date,
-                'place' => $request->place,
-                'print_name' => $request->print_name,
                 'signature' => $request->signature,
             ];
 
@@ -104,6 +101,10 @@ class VisaEnquiryController extends Controller
                 $enquiryData['print_name'] = $request->print_name;
             } elseif (Schema::hasColumn('visa_enquiries', 'sign_name')) {
                 $enquiryData['sign_name'] = $request->print_name;
+            }
+
+            if (Schema::hasColumn('visa_enquiries', 'consent_to_store_data')) {
+                $enquiryData['consent_to_store_data'] = $request->boolean('consent_to_store_data');
             }
 
             $enquiry = VisaEnquiry::create($enquiryData);
