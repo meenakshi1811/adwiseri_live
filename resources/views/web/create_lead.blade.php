@@ -85,7 +85,7 @@ $isEdit = $isEdit ?? false;
 <label>COP (Country of preference) *</label>
 <div class="row g-2 mt-0">
 <div class="col-md-4">
-<select name="country_pref[]" class="form-control form-select" required>
+<select name="country_pref[]" id="country_pref_1" class="form-control form-select country-pref-select" required>
 <option value="">1st Preference</option>
 @foreach($countries as $country)
 <option value="{{ $country->country_name }}" {{ old('country_pref.0', $enquiry->country_pref_1 ?? '') == $country->country_name ? 'selected' : '' }}>{{ $country->country_name }}</option>
@@ -94,7 +94,7 @@ $isEdit = $isEdit ?? false;
 </div>
 
 <div class="col-md-4">
-<select name="country_pref[]" class="form-control form-select">
+<select name="country_pref[]" id="country_pref_2" class="form-control form-select country-pref-select">
 <option value="">2nd Preference</option>
 @foreach($countries as $country)
 <option value="{{ $country->country_name }}" {{ old('country_pref.1', $enquiry->country_pref_2 ?? '') == $country->country_name ? 'selected' : '' }}>{{ $country->country_name }}</option>
@@ -103,7 +103,7 @@ $isEdit = $isEdit ?? false;
 </div>
 
 <div class="col-md-4">
-<select name="country_pref[]" class="form-control form-select">
+<select name="country_pref[]" id="country_pref_3" class="form-control form-select country-pref-select">
 <option value="">3rd Preference</option>
 @foreach($countries as $country)
 <option value="{{ $country->country_name }}" {{ old('country_pref.2', $enquiry->country_pref_3 ?? '') == $country->country_name ? 'selected' : '' }}>{{ $country->country_name }}</option>
@@ -606,6 +606,59 @@ addRow('#children_rows',
 });
 
 $(document).on('click','.remove',function(){ $(this).closest('.row').remove(); });
+
+const countryPreferenceSelects = $('.country-pref-select');
+const masterCountryOptions = countryPreferenceSelects.first().find('option').map(function(){
+    return {
+        value: ($(this).attr('value') || '').trim(),
+        text: $(this).text(),
+    };
+}).get();
+
+function getBlockedCountriesForIndex(index, selectedValues) {
+    if (index === 0) {
+        return selectedValues.filter((value, selectedIndex) => value && selectedIndex !== 0);
+    }
+
+    if (index === 1) {
+        return selectedValues.filter((value, selectedIndex) => value && selectedIndex !== 1);
+    }
+
+    return selectedValues.filter((value, selectedIndex) => value && selectedIndex !== 2);
+}
+
+function syncCountryPreferenceOptions() {
+    const selectedValues = countryPreferenceSelects.map(function(){
+        return ($(this).val() || '').trim();
+    }).get();
+
+    countryPreferenceSelects.each(function(selectIndex){
+        const select = $(this);
+        const currentValue = (select.val() || '').trim();
+        const blockedCountries = getBlockedCountriesForIndex(selectIndex, selectedValues);
+
+        select.empty();
+
+        masterCountryOptions.forEach(function(option){
+            if (!option.value || option.value === currentValue || !blockedCountries.includes(option.value)) {
+                const optionElement = $('<option></option>')
+                    .attr('value', option.value)
+                    .text(option.text);
+
+                if (option.value === currentValue) {
+                    optionElement.prop('selected', true);
+                }
+
+                select.append(optionElement);
+            }
+        });
+    });
+}
+
+countryPreferenceSelects.on('change', function(){
+    syncCountryPreferenceOptions();
+});
+syncCountryPreferenceOptions();
 
 });
 
