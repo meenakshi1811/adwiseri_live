@@ -608,14 +608,24 @@ addRow('#children_rows',
 $(document).on('click','.remove',function(){ $(this).closest('.row').remove(); });
 
 const countryPreferenceSelects = $('.country-pref-select');
-const countryPreferenceOptions = countryPreferenceSelects.map(function(){
-    return $(this).find('option').map(function(){
-        return {
-            value: $(this).attr('value') ?? '',
-            text: $(this).text(),
-        };
-    }).get();
+const masterCountryOptions = countryPreferenceSelects.first().find('option').map(function(){
+    return {
+        value: ($(this).attr('value') || '').trim(),
+        text: $(this).text(),
+    };
 }).get();
+
+function getBlockedCountriesForIndex(index, selectedValues) {
+    if (index === 0) {
+        return selectedValues.filter((value, selectedIndex) => value && selectedIndex !== 0);
+    }
+
+    if (index === 1) {
+        return selectedValues.filter((value, selectedIndex) => value && selectedIndex !== 1);
+    }
+
+    return selectedValues.filter((value, selectedIndex) => value && selectedIndex !== 2);
+}
 
 function syncCountryPreferenceOptions() {
     const selectedValues = countryPreferenceSelects.map(function(){
@@ -625,35 +635,29 @@ function syncCountryPreferenceOptions() {
     countryPreferenceSelects.each(function(selectIndex){
         const select = $(this);
         const currentValue = (select.val() || '').trim();
-        const rebuiltOptions = countryPreferenceOptions[selectIndex]
-            .filter(function(option){
-                if (!option.value) {
-                    return true;
-                }
-
-                if (option.value === currentValue) {
-                    return true;
-                }
-
-                return !selectedValues.includes(option.value);
-            });
+        const blockedCountries = getBlockedCountriesForIndex(selectIndex, selectedValues);
 
         select.empty();
-        rebuiltOptions.forEach(function(option){
-            const optionElement = $('<option></option>')
-                .attr('value', option.value)
-                .text(option.text);
 
-            if (option.value === currentValue) {
-                optionElement.prop('selected', true);
+        masterCountryOptions.forEach(function(option){
+            if (!option.value || option.value === currentValue || !blockedCountries.includes(option.value)) {
+                const optionElement = $('<option></option>')
+                    .attr('value', option.value)
+                    .text(option.text);
+
+                if (option.value === currentValue) {
+                    optionElement.prop('selected', true);
+                }
+
+                select.append(optionElement);
             }
-
-            select.append(optionElement);
         });
     });
 }
 
-countryPreferenceSelects.on('change', syncCountryPreferenceOptions);
+countryPreferenceSelects.on('change', function(){
+    syncCountryPreferenceOptions();
+});
 syncCountryPreferenceOptions();
 
 });
