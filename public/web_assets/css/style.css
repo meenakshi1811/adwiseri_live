@@ -257,11 +257,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .affiliate-copy-wrap {
     position: absolute;
     top: 50%;
-    left: 35%;
+    left: 34%;
+    right: 38%;
     transform: translateY(-50%);
     color: #fff;
     text-align: left;
-    width: min(52%, 620px);
+    width: auto;
 }
 
 .affiliate-copy-text {
@@ -277,6 +278,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 @media (max-width: 991px) {
     .affiliate-copy-wrap {
         left: 10%;
+        right: 10%;
         width: 80%;
     }
 }
@@ -289,6 +291,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
     .affiliate-copy-wrap {
         left: 8%;
+        right: 8%;
         width: 84%;
         text-align: left;
     }
