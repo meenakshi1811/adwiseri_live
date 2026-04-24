@@ -495,15 +495,6 @@
                             </div>
                         </div>
 
-                        <div class="row p-1 mb-3 align-items-center">
-                            <div class="col-6">
-                                <label>Client Phone (for SMS)</label>
-                            </div>
-                            <div class="col-6">
-                                <input type="text" name="client_phone" id="appointment-client-phone" class="form-control" placeholder="Phone number with country code">
-                            </div>
-                        </div>
-
                         <!-- Description -->
                         <div class="row p-1 mb-3 align-items-center">
                             <div class="col-6">
@@ -546,18 +537,6 @@
                                     <input class="form-check-input" type="radio" name="send_via"
                                         value="email" checked>
                                     <label class="form-check-label">Email</label>
-                                </div>
-
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="send_via"
-                                        value="sms">
-                                    <label class="form-check-label">SMS</label>
-                                </div>
-
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="send_via"
-                                        value="both">
-                                    <label class="form-check-label">Both</label>
                                 </div>
 
                             </div>
@@ -753,7 +732,6 @@
         $('#appointment-client').on('change', function () {
             const selected = $(this).find(':selected');
             $('#appointment-client-email').val(selected.data('email') || '');
-            $('#appointment-client-phone').val(selected.data('phone') || '');
         });
         function deleteapplication(id) {
             Swal.fire({

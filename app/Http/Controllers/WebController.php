@@ -7462,30 +7462,20 @@ public function showFeedbackPopup()
         $request->validate([
             'client_id' => 'required|exists:clients,id',
             'client_email' => 'nullable|email',
-            'client_phone' => 'nullable|string|max:20',
             'appointment_date' => 'required|date',
             'appointment_time' => 'required',
             'remarks' => 'nullable|string|max:500',
-            'send_via' => 'required|in:email,sms,both'
+            'send_via' => 'required|in:email'
         ]);
 
         $user = Auth::user();
         $client = Clients::findOrFail($request->client_id);
 
         $clientEmail = $request->filled('client_email') ? $request->client_email : $client->email;
-        $clientPhone = $request->filled('client_phone') ? $request->client_phone : $client->phone;
-
-        if (in_array($request->send_via, ['email', 'both']) && empty($clientEmail)) {
+        if (empty($clientEmail)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Client email is required for email notifications.'
-            ], 422);
-        }
-
-        if (in_array($request->send_via, ['sms', 'both']) && empty($clientPhone)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Client phone number is required for SMS notifications.'
             ], 422);
         }
 
@@ -7508,18 +7498,11 @@ public function showFeedbackPopup()
         $appointment->setAttribute('accept_url', $responseLinks['accept_url']);
         $appointment->setAttribute('decline_url', $responseLinks['decline_url']);
 
-        if (in_array($request->send_via, ['email', 'both'])) {
-            Mail::to($clientEmail)->send(new AppointmentSchedulerMail($appointment, $client, $user));
-        }
-
-        $smsStatus = ['sent' => false, 'message' => null];
-        if (in_array($request->send_via, ['sms', 'both'])) {
-            $smsStatus = $this->sendAppointmentSms($clientPhone, $client->name, $user->name, $responseLinks['accept_url'], $responseLinks['decline_url'], $request->remarks, $request->appointment_date, $request->appointment_time, $user->timezone ?? config('app.timezone'));
-        }
+        Mail::to($clientEmail)->send(new AppointmentSchedulerMail($appointment, $client, $user));
 
         return response()->json([
             'success' => true,
-            'message' => $smsStatus['message'] ?: 'Appointment invitation sent successfully.',
+            'message' => 'Appointment invitation sent successfully.',
             'calendly_link' => $responseLinks['accept_url'],
         ]);
     }
