@@ -19,8 +19,12 @@
 
                 <p style="margin:0 0 14px 0;"><strong>Hello {{ $data['recipient_name'] }},</strong></p>
                 <p style="margin:0 0 14px 0;">
-                    Please find scheduled report(s) attached for the period
-                    <strong>{{ $data['start_date'] }} - {{ $data['end_date'] }}</strong>.
+                    @if(($data['frequency'] ?? '') === 'daily')
+                        Please find your scheduled report for <strong>{{ $data['start_date'] }}</strong>.
+                    @else
+                        Please find scheduled report(s) attached for the period
+                        <strong>{{ $data['start_date'] }} - {{ $data['end_date'] }}</strong>.
+                    @endif
                 </p>
 
                 @if(!empty($data['modules']) && is_array($data['modules']))
@@ -42,8 +46,8 @@
                 </p>
 
                 <p style="margin:0;">
-                    Regards,<br>
-                    <strong>The Adwiseri Team</strong>
+                    Sincerely,<br>
+                    <strong>Adwiseri</strong>
                 </p>
             </div>
 
