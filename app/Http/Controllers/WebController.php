@@ -158,6 +158,28 @@ class WebController extends Controller
             ->values();
 
         $subscriber = User::find($subscriberId);
+        $subscriberRuleBasedCountries = $this->getRuleBasedSubscriberCountryOptions($subscriber);
+
+        if ($subscriberRuleBasedCountries !== null) {
+            $countryNames = $subscriberRuleBasedCountries
+                ->merge($selectedCountries)
+                ->filter()
+                ->unique()
+                ->values();
+
+            if ($countryNames->isEmpty()) {
+                return Countries::orderBy('country_name', 'asc')->get();
+            }
+
+            return Countries::whereIn('country_name', $countryNames->all())
+                ->get()
+                ->sortBy(function ($country) use ($countryNames) {
+                    $position = $countryNames->search($country->country_name);
+                    return $position === false ? PHP_INT_MAX : $position;
+                })
+                ->values();
+        }
+
         $profileCountryNames = $this->getProfileMappedDestinationCountries($subscriber);
 
         if ($profileCountryNames->isNotEmpty()) {
@@ -194,6 +216,140 @@ class WebController extends Controller
         return Countries::whereIn('country_name', $countryNames->all())
             ->orderBy('country_name', 'asc')
             ->get();
+    }
+
+    private function getRuleBasedSubscriberCountryOptions(?User $subscriber)
+    {
+        if (!$subscriber) {
+            return null;
+        }
+
+        $normalizedCategory = $this->normalizeLookupText((string) ($subscriber->category ?? ''));
+        $normalizedSubCategory = $this->normalizeLookupText((string) ($subscriber->sub_category ?? ''));
+        $fullCategoryText = trim($normalizedCategory . ' ' . $normalizedSubCategory);
+
+        if (!str_contains($fullCategoryText, 'visa')) {
+            return null;
+        }
+
+        $allCountries = Countries::orderBy('country_name', 'asc')->pluck('country_name')->values();
+
+        $allCountriesWithPriorityPr = $this->prependPriorityCountries($allCountries, [
+            'Canada',
+            'Australia',
+            'New Zealand',
+        ]);
+
+        $subCategoryRules = [
+            // Exact/frequent sub-category labels used in subscriber setup.
+            ['keywords' => ['general all countries'], 'countries' => 'all'],
+            ['keywords' => ['usa visas immigration attorney', 'us immigration attorney'], 'countries' => ['United States']],
+            ['keywords' => ['uk oisc immigration solicitor', 'oisc', 'iaa'], 'countries' => ['United Kingdom']],
+            ['keywords' => ['canada iccrc immigration lawyer', 'iccrc', 'cicc', 'rcic'], 'countries' => ['Canada']],
+            ['keywords' => ['australia mara immigration lawyer', 'mara'], 'countries' => ['Australia']],
+            ['keywords' => ['cbi citizenship by investment consultants', 'cbi', 'citizenship by investment'], 'countries' => [
+                'United States',
+                'Portugal',
+                'Turkey',
+                'Grenada',
+                'Dominica',
+                'United Arab Emirates',
+            ]],
+            ['keywords' => ['abroad education consultants only study visas', 'study abroad consultant'], 'countries' => 'all'],
+            ['keywords' => ['mbbs md dentist medical study visa', 'mbbs'], 'countries' => [
+                'China',
+                'Philippines',
+                'Dominica',
+                'Russia',
+                'Georgia',
+            ]],
+            ['keywords' => ['work visa', 'business visa'], 'countries' => 'all'],
+            ['keywords' => ['immigration law firm'], 'countries' => 'all'],
+            ['keywords' => ['pr', 'settlement visa'], 'countries' => $allCountriesWithPriorityPr->all()],
+            ['keywords' => ['other', 'new', 'non listed'], 'countries' => 'all'],
+        ];
+
+        foreach ($subCategoryRules as $rule) {
+            if (!$this->containsAnyKeyword($normalizedSubCategory, $rule['keywords'])) {
+                continue;
+            }
+
+            if ($rule['countries'] === 'all') {
+                return $allCountries;
+            }
+
+            return $this->resolveCountriesByNames($rule['countries']);
+        }
+
+        return $allCountries;
+    }
+
+    private function normalizeLookupText(string $value): string
+    {
+        $value = strtolower(trim($value));
+        $value = str_replace(['/', '-', '(', ')', '.', ',', ':'], ' ', $value);
+        $value = preg_replace('/\s+/', ' ', $value);
+
+        return trim((string) $value);
+    }
+
+    private function containsAnyKeyword(string $text, array $keywords): bool
+    {
+        foreach ($keywords as $keyword) {
+            if (str_contains($text, $this->normalizeLookupText((string) $keyword))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function resolveCountriesByNames(array $countryNames)
+    {
+        $synonyms = [
+            'United States' => ['United States', 'United States of America', 'USA', 'US'],
+            'United Kingdom' => ['United Kingdom', 'UK', 'Great Britain', 'Britain'],
+            'United Arab Emirates' => ['United Arab Emirates', 'UAE'],
+            'Philippines' => ['Philippines', 'Phillipines'],
+        ];
+
+        $allCountries = Countries::orderBy('country_name', 'asc')->pluck('country_name')->values();
+        $resolved = collect();
+
+        foreach ($countryNames as $countryName) {
+            $countryName = trim((string) $countryName);
+            if ($countryName === '') {
+                continue;
+            }
+
+            $variants = $synonyms[$countryName] ?? [$countryName];
+            $foundCountry = $allCountries->first(function ($availableCountry) use ($variants) {
+                foreach ($variants as $variant) {
+                    if (strcasecmp($availableCountry, $variant) === 0) {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+
+            if ($foundCountry) {
+                $resolved->push($foundCountry);
+            }
+        }
+
+        return $resolved->unique()->values();
+    }
+
+    private function prependPriorityCountries($allCountries, array $priorityCountries)
+    {
+        $resolvedPriority = $this->resolveCountriesByNames($priorityCountries);
+
+        return $resolvedPriority
+            ->merge($allCountries->reject(function ($country) use ($resolvedPriority) {
+                return $resolvedPriority->contains($country);
+            }))
+            ->values();
     }
 
     private function getProfileMappedDestinationCountries(?User $subscriber)
