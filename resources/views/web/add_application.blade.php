@@ -53,12 +53,12 @@
                         <label>Visa Country<span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>
                     <div class="col-md-8 p-1">
-                                <input name="visa_country" type="text"
-                                                        class="form-control date @error('visa_country') is-invalid @enderror"
-                                                        id="visa_country"
-                                                        aria-describedby="emailHelp"
-                                                        placeholder="Visa Country"
-                                                        autocomplete="visa_country" readonly />
+                                <select name="visa_country" id="visa_country" class="form-control form-select @error('visa_country') is-invalid @enderror" aria-describedby="emailHelp" required>
+                                    <option value="">Select Visa Country</option>
+                                    @foreach($countries as $country)
+                                    <option {{ ((old('visa_country') ?: $application->visa_country) == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
+                                    @endforeach
+                                </select>
                                 @error('visa_country')
                                     <span class="invalid-feedback" role="alert">
                                         <strong>{{ $message }}</strong>
@@ -222,12 +222,12 @@
                         <label>Visa Country<span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>
                     <div class="col-md-8 p-1">
-                                <input name="visa_country" type="text"
-                                                        class="form-control date @error('visa_country') is-invalid @enderror"
-                                                        id="visa_country"
-                                                        aria-describedby="emailHelp"
-                                                        placeholder="Visa Country"
-                                                        autocomplete="visa_country" readonly />
+                                <select name="visa_country" id="visa_country" class="form-control form-select @error('visa_country') is-invalid @enderror" aria-describedby="emailHelp" required>
+                                    <option value="">Select Visa Country</option>
+                                    @foreach($countries as $country)
+                                    <option {{ (old('visa_country') == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
+                                    @endforeach
+                                </select>
                                 @error('visa_country')
                                     <span class="invalid-feedback" role="alert">
                                         <strong>{{ $message }}</strong>
@@ -351,7 +351,7 @@
         var id = document.getElementById('client').value;
         if(id != ''){
             $.ajax({
-                url: '/fetch_visa_country/' + 65,
+                url: '/fetch_visa_country/' + id,
                 method: 'GET',
                 data: {
                     "_token": "{{ csrf_token() }}",
