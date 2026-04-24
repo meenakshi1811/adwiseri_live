@@ -135,7 +135,7 @@
                             <div class="row p-1 m-0">
                                 <div class="col-6"></div>
                                 <div class="col-6 text-end">
-                                    <button type="button" class="btn btn-primary" id="save-general-settings">Apply/Send</button>
+                                    <button type="button" class="btn btn-primary" id="save-general-settings">Save</button>
                                 </div>
                             </div>
                         </form>
@@ -174,13 +174,13 @@
                             </div>
                             <div class="col-6">
                                 <input type="url"   value="{{  !empty($inv_setting) ? $inv_setting->payment_link : '' }}"
-                                    id="discount" name="payment_link" class="form-control" placeholder="Payment Link" >
+                                    id="payment_link" name="payment_link" class="form-control" placeholder="Payment Link" >
                             </div>
                         </div>
                         <div class="row p-1 m-0">
                             <div class="col-6"></div>
                             <div class="col-6 text-end">
-                                <button type="button" class="btn btn-primary" id="save-invoice-settings">Apply/Send</button>
+                                <button type="button" class="btn btn-primary" id="save-invoice-settings">Save</button>
                             </div>
                         </div>
                     </form>
@@ -215,7 +215,7 @@
                         <div class="row p-1 mb-3 align-items-center">
                             <div class="col-6"></div>
                             <div class="col-6 text-end">
-                                <button type="button" class="btn btn-primary" id="save-add-service">Apply/Send</button>
+                                <button type="button" class="btn btn-primary" id="save-add-service">Save</button>
                             </div>
                         </div>
                     </form>
@@ -1002,10 +1002,11 @@
                             });
                         },
                         error: function (xhr) {
+                            const errorText = xhr?.responseJSON?.message || 'Failed to update invoice settings!';
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Error',
-                                text: 'Failed to update invoice settings!',
+                                text: errorText,
                             });
                         },
                     });
@@ -1027,10 +1028,11 @@
                             $('#serviceTable').DataTable().ajax.reload(null, false);
                         },
                         error: function (xhr) {
+                            const errorText = xhr?.responseJSON?.message || 'Failed to update service settings!';
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Error',
-                                text: 'Failed to update invoice settings!',
+                                text: errorText,
                             });
                         },
                     });

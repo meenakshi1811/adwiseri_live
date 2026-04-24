@@ -79,10 +79,11 @@
                                     </select>
                                 </div>
                             </div>
-                            <!-- Apply/Send Button -->
+                            <!-- Save Button -->
                             <div class="row p-1 m-0">
-                                <div class="col-12 text-end">
-                                    <button type="button" id="save-general-settings"class="btn btn-primary">Apply/Send</button>
+                                <div class="col-6"></div>
+                                <div class="col-6 text-end">
+                                    <button type="button" id="save-general-settings"class="btn btn-primary">Save</button>
                                 </div>
                             </div>
                         </form>
@@ -123,7 +124,7 @@
                                 {{-- <label>Description</label> --}}
                             </div>
                             <div class="col-6 text-end">
-                                <button type="button" class="btn btn-primary" id="save-invoice-settings">Apply/Send</button>
+                                <button type="button" class="btn btn-primary" id="save-invoice-settings">Save</button>
                             </div>
                         </div>
                     </form>
@@ -243,7 +244,7 @@
                                 {{-- <label>Description</label> --}}
                             </div>
                             <div class="col-6 text-end">
-                                <button type="submit" class="btn btn-primary" id="save-offers-settings">Apply/Send</button>
+                                <button type="submit" class="btn btn-primary" id="save-offers-settings">Save</button>
                             </div>
                         </div>
 
@@ -679,10 +680,11 @@
                         });
                     },
                     error: function(xhr) {
+                        const errorText = xhr?.responseJSON?.message || 'Failed to update invoice settings!';
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: 'Failed to update invoice settings!',
+                            text: errorText,
                         });
                     },
                 });
