@@ -50,14 +50,21 @@ class ScheduledReportService
         $subscriberId = (strtolower($user->user_type) === 'subscriber' || strtolower($user->user_type) === 'admin') ? $user->id : $user->added_by;
         $reportData = $this->buildReportData($setting->modules, $subscriberId, $startDate, $endDate, $user);
 
-        $fileName = 'scheduled_report_' . $setting->user_id . '_' . now()->format('Ymd_His') . '.pdf';
+        $storageFileName = 'scheduled_report_' . $setting->user_id . '_' . now()->format('Ymd_His') . '.pdf';
+        $attachmentFileName = 'Adwiseri Scheduled Report ' . ucfirst($setting->frequency) . ' ' . $startDate->format('d M Y');
+
+        if ($setting->frequency !== 'daily') {
+            $attachmentFileName .= ' To ' . $endDate->format('d M Y');
+        }
+
+        $attachmentFileName .= '.pdf';
         $reportDir = storage_path('app/reports');
 
         if (!file_exists($reportDir)) {
             mkdir($reportDir, 0755, true);
         }
 
-        $filePath = $reportDir . '/' . $fileName;
+        $filePath = $reportDir . '/' . $storageFileName;
         $pdf = PDF::loadView('reports.scheduled_report_pdf', [
             'reportData' => $reportData,
             'startDate' => $startDate,
@@ -70,10 +77,14 @@ class ScheduledReportService
         $pdf->save($filePath);
 
         $recipients = $this->extractRecipients($setting->emails, $user->email);
-        $downloadLink = URL::temporarySignedRoute('scheduled_report_download', now()->addDays(7), ['file' => $fileName]);
+        $downloadLink = URL::temporarySignedRoute('scheduled_report_download', now()->addDays(7), ['file' => $storageFileName]);
 
         try {
-            $subject = 'Adwiseri Scheduled Report (' . $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y') . ')';
+            $subject = 'Adwiseri Scheduled Report for ' . $startDate->format('d M Y');
+
+            if ($setting->frequency !== 'daily') {
+                $subject = 'Adwiseri Scheduled Report (' . $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y') . ')';
+            }
             $sentRecipients = [];
             $failedRecipients = [];
 
@@ -83,12 +94,13 @@ class ScheduledReportService
                     'recipient_name' => $user->name ?? 'User',
                     'start_date' => $startDate->format('d M Y'),
                     'end_date' => $endDate->format('d M Y'),
+                    'frequency' => $setting->frequency,
                     'download_link' => $downloadLink,
                     'modules' => (array) $setting->modules,
                 ];
 
                 try {
-                    Mail::to($recipient)->send(new ScheduledReportMail($mailData, $filePath, $fileName));
+                    Mail::to($recipient)->send(new ScheduledReportMail($mailData, $filePath, $attachmentFileName));
                     $sentRecipients[] = $recipient;
                 } catch (\Exception $mailException) {
                     $failedRecipients[] = $recipient;
@@ -109,7 +121,7 @@ class ScheduledReportService
                     'modules_hash' => $modulesHash,
                     'period_start' => $startDate->toDateString(),
                     'period_end' => $endDate->toDateString(),
-                    'file_name' => $fileName,
+                    'file_name' => $storageFileName,
                     'recipients' => json_encode($recipients),
                     'status' => 'sent',
                     'triggered_by' => $trigger,
@@ -120,10 +132,10 @@ class ScheduledReportService
                 $setting->last_sent_at = $log->sent_at;
                 $setting->last_sent_status = empty($failedRecipients) ? 'sent' : 'partial';
                 $setting->last_sent_message = $statusMessage;
-                $setting->last_file_name = $fileName;
+                $setting->last_file_name = $storageFileName;
                 $setting->save();
 
-                return ['status' => empty($failedRecipients) ? 'sent' : 'partial', 'message' => $statusMessage, 'file' => $fileName];
+                return ['status' => empty($failedRecipients) ? 'sent' : 'partial', 'message' => $statusMessage, 'file' => $storageFileName];
             }
 
             $failedMessage = 'Report could not be sent to recipients. Please verify recipient emails and SMTP configuration.';
@@ -136,7 +148,7 @@ class ScheduledReportService
                 'modules_hash' => $modulesHash,
                 'period_start' => $startDate->toDateString(),
                 'period_end' => $endDate->toDateString(),
-                'file_name' => $fileName,
+                'file_name' => $storageFileName,
                 'recipients' => json_encode($recipients),
                 'status' => 'failed',
                 'triggered_by' => $trigger,
@@ -157,7 +169,7 @@ class ScheduledReportService
                 'modules_hash' => $modulesHash,
                 'period_start' => $startDate->toDateString(),
                 'period_end' => $endDate->toDateString(),
-                'file_name' => $fileName,
+                'file_name' => $storageFileName,
                 'recipients' => json_encode($recipients),
                 'status' => 'failed',
                 'triggered_by' => $trigger,
@@ -177,7 +189,7 @@ class ScheduledReportService
         $timezone = $this->resolveTimezone($setting);
         $now = now($timezone);
 
-        if ((int) $now->format('G') !== 8 || (int) $now->format('i') >= 30) {
+        if ((int) $now->format('G') !== 8 || (int) $now->format('i') !== 0) {
             return false;
         }
 
