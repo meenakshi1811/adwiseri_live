@@ -201,7 +201,7 @@
                                 <label>Application Start Date<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="job_open_date" type="text"
+                                <input name="job_open_date" type="date"
                                                     class="form-control date @error('job_open_date') is-invalid @enderror"
                                                     id="job_open_date"
                                                     aria-describedby="emailHelp"
@@ -209,9 +209,6 @@
                                                     placeholder="Application Start Date"
                                                     autocomplete="job_open_date"
                                                     {{-- max={{ date('Y-m-d')}} --}}
-
-                                                   onfocus="(this.type='date')"
-                                                    onblur="(this.type='text')"
                                                       max="{{date('Y-m-d')}}" required/>
                             @error('job_open_date')
                                 <span class="invalid-feedback" role="alert">
@@ -241,15 +238,13 @@
                                 <label>Application End Date</label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="job_completion_date" type="text"
+                                <input name="job_completion_date" type="date"
                         class="form-control date @error('job_completion_date') is-invalid @enderror"
                         id="job_completion_date"
                         aria-describedby="emailHelp"
                         value="{{ old('job_completion_date') ? date('Y-m-d', strtotime(old('job_completion_date'))) : null }}"
                         placeholder="Application End Date"
                         autocomplete="job_completion_date"
-                       onfocus="(this.type='date')"
-                        onblur="(this.type='text')"
                           max="{{date('Y-m-d')}}"
                         {{-- readonly --}}
                         />
