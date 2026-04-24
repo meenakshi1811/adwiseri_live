@@ -255,7 +255,7 @@
                         aria-describedby="emailHelp" value="{{ old('job_open_date') }}"
                         required placeholder="Application Start Date"
                         autocomplete="job_open_date"> --}}
-                        <input name="job_open_date" type="text"
+                        <input name="job_open_date" type="date"
                                                     class="form-control date @error('job_open_date') is-invalid @enderror"
                                                     id="job_open_date"
                                                     aria-describedby="emailHelp"
@@ -264,8 +264,6 @@
                                                     autocomplete="job_open_date"
                                                     {{-- max={{ date('Y-m-d')}} --}}
                                                     required
-                                                   onfocus="(this.type='date')"
-                                                    onblur="(this.type='text')"
                                                       max="{{date('Y-m-d')}}"
                                                       {{-- max="{{ date('Y-m-d', strtotime('+2 years')) }}" --}}
                                                     />
@@ -297,7 +295,7 @@
                         <label>Application End Date</label>
                     </div>
                     <div class="col-md-8 p-1">
-                        <input name="job_completion_date" type="text"
+                        <input name="job_completion_date" type="date"
                         class="form-control date @error('job_completion_date') is-invalid @enderror"
                         id="job_completion_date"
                         aria-describedby="emailHelp"
@@ -305,8 +303,6 @@
 
                         placeholder="Application End Date"
                         autocomplete="job_completion_date"
-                       onfocus="(this.type='date')"
-                        onblur="(this.type='text')"
                           max="{{date('Y-m-d')}}"
                         {{-- readonly --}}
                         />
