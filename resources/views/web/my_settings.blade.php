@@ -74,7 +74,7 @@
                 </li>
                 <li class="nav-item">
                     <button class="nav-link" id="service-tab" data-bs-toggle="tab" href="#service" role="tab"
-                        aria-controls="service" aria-selected="false">Add New Service</button>
+                        aria-controls="service" aria-selected="false">Services</button>
                 </li>
                 <li class="nav-item">
                     <button class="nav-link" id="payment-reminder-tab" data-bs-toggle="tab" href="#payment-reminder" role="tab"
@@ -186,10 +186,10 @@
                     </form>
                 </div>
 
-                <!-- Add New Service Tab -->
+                <!-- Services Tab -->
                 <div class="tab-pane fade" id="service" role="tabpanel" aria-labelledby="service-tab">
                     <div class="row p-1 m-0">
-                        <p class="m-0 p-1" style="font-size:18px;font-weight: 550;">Add New Service</p>
+                        <p class="m-0 p-1" style="font-size:18px;font-weight: 550;">Services</p>
                     </div>
                     <form  id="add-service">
                         <input type="hidden" name="id" value=""  id="serviceId"/>
