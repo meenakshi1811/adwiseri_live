@@ -67,7 +67,7 @@
 
       <!-- Bottom Footer -->
       <div class="text-center mt-3">
-        <p class="mb-0">&copy; {{ date('Y') }} adwiseri.&nbsp;All rights reserved.</p>
+        <p class="mb-0">&copy; 2023-{{ date('Y') }} adwiseri.&nbsp;All rights reserved.</p>
       </div>
     </div>
   </footer>
@@ -76,14 +76,14 @@
 @auth
 
 <footer class="mt-2 last-footer">
-    <p>&copy; {{ date('Y') }}  adwiseri.&nbsp;All rights reserved.</p>
+    <p>&copy; 2023-{{ date('Y') }}  adwiseri.&nbsp;All rights reserved.</p>
   </footer>
   
 @endauth
 
 
 {{-- <footer class="mt-2 last-footer mb-0">
-  <p>&copy; {{ date('Y') }} |  adwiseri &nbsp;&nbsp;|&nbsp;&nbsp;   </p>
+  <p>&copy; 2023-{{ date('Y') }} |  adwiseri &nbsp;&nbsp;|&nbsp;&nbsp;   </p>
 </footer> --}}
 
 <script src="https://code.jquery.com/jquery-3.5.1.js"></script>

@@ -221,7 +221,7 @@ class VisaEnquiryController extends Controller
         }catch(\Exception $e){
 
             DB::rollBack();
-
+            // echo'<pre>';print_r($e->getMessage());exit();
             return redirect()->back()->with('error','Something went wrong. Please try again.');
 
         }
