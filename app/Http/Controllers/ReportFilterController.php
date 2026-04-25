@@ -2663,8 +2663,17 @@ class ReportFilterController extends Controller
 
     public function supportReport()
     {
-        $startDate = Carbon::createFromFormat('d-m-Y', request()->input('startDate'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d-m-Y', request()->input('endDate'))->endOfDay();
+        $startInput = request()->input('startDate', request()->input('startdate'));
+        $endInput = request()->input('endDate', request()->input('enddate'));
+
+        $startDate = null;
+        $endDate = null;
+
+        if (!empty($startInput) && !empty($endInput)) {
+            $startDate = Carbon::parse($startInput)->startOfDay();
+            $endDate = Carbon::parse($endInput)->endOfDay();
+        }
+
         if (request()->type == 'byTicketType') {
             $cd = Tickets::whereIn('support', ['Billing', 'Sales', 'Support'])->select('support')
                 ->selectRaw('COUNT(*) as number_of_tickets')
@@ -2723,8 +2732,11 @@ class ReportFilterController extends Controller
                         COUNT(*) AS total_tickets
                     ")
             )
-                ->whereBetween('created_at', [$startDate,  $endDate])
                 ->groupBy('time_interval');
+
+            if ($startDate && $endDate) {
+                $timeTaken->whereBetween('created_at', [$startDate,  $endDate]);
+            }
 
             return DataTables::of($timeTaken)
                 ->make(true);
@@ -2734,10 +2746,14 @@ class ReportFilterController extends Controller
                 DB::raw('COUNT(id) AS no_of_tickets_solved'),
                 DB::raw('AVG(TIMESTAMPDIFF(SECOND, `created_at`, `updated_at`)) / 3600 AS avg_time_taken_hours')
             )
-                ->whereBetween('created_at', [$startDate,  $endDate])
                 // ->where('status','Closed') // Ensure that only solved tickets are considered
-                ->groupBy('user_id')
-                ->get();
+                ->groupBy('user_id');
+
+            if ($startDate && $endDate) {
+                $cd->whereBetween('created_at', [$startDate,  $endDate]);
+            }
+
+            $cd = $cd->get();
             return DataTables::of($cd)
                 ->addColumn('username', function ($row) {
                     $user = User::find($row->user_id);
