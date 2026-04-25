@@ -19,6 +19,49 @@ use App\Models\EnquiryFundingSource;
 
 class VisaEnquiryController extends Controller
 {
+    private function normalizeDateValue($value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = is_string($value) ? trim($value) : $value;
+
+        if ($value === '') {
+            return null;
+        }
+
+        $formats = ['d-m-Y', 'Y-m-d', 'd/m/Y', 'Y/m/d'];
+
+        foreach ($formats as $format) {
+            try {
+                $date = Carbon::createFromFormat($format, (string) $value);
+                if ($date && $date->format($format) === (string) $value) {
+                    return $date->format('Y-m-d');
+                }
+            } catch (\Exception $exception) {
+                continue;
+            }
+        }
+
+        try {
+            return Carbon::parse((string) $value)->format('Y-m-d');
+        } catch (\Exception $exception) {
+            return null;
+        }
+    }
+
+    private function normalizeDateArray($dates): array
+    {
+        if (!is_array($dates)) {
+            return [];
+        }
+
+        return array_map(function ($date) {
+            return $this->normalizeDateValue($date);
+        }, $dates);
+    }
+
     private function normalizeCountryPreferences($countryPreferences): array
     {
         if (!is_array($countryPreferences)) {
@@ -60,7 +103,7 @@ class VisaEnquiryController extends Controller
             $enquiryData = [
                 'subscriber_id' => $request->subscriber_id,
                 'full_name' => $request->full_name,
-                'dob' => $request->dob,
+                'dob' => $this->normalizeDateValue($request->dob),
                 'email' => $request->email,
                 'contact_no' => $request->contact_no,
                 'marital_status' => $request->marital_status,
@@ -79,21 +122,21 @@ class VisaEnquiryController extends Controller
 
                 'english_test' => $request->english_test,
                 'overall_score' => $request->overall_score,
-                'test_date' => $request->test_date,
+                'test_date' => $this->normalizeDateValue($request->test_date),
 
                 'spouse_name' => $request->spouse_name,
                 'spouse_email' => $request->spouse_email,
-                'spouse_dob' => $request->spouse_dob,
+                'spouse_dob' => $this->normalizeDateValue($request->spouse_dob),
                 'spouse_contact' => $request->spouse_contact,
 
-                'form_date' => $request->form_date,
+                'form_date' => $this->normalizeDateValue($request->form_date),
                 'place' => $request->place,
                 'print_name' => $request->print_name,
                 'signature' => $request->signature,
             ];
 
             if (Schema::hasColumn('visa_enquiries', 'form_date')) {
-                $enquiryData['form_date'] = $request->form_date;
+                $enquiryData['form_date'] = $this->normalizeDateValue($request->form_date);
             }
 
             if (Schema::hasColumn('visa_enquiries', 'place')) {
@@ -151,14 +194,14 @@ class VisaEnquiryController extends Controller
 
 
             /* Visa Refusal */
-
+            $refusalDates = $this->normalizeDateArray($request->refusal_date ?? []);
             if($request->refusal_country){
                 foreach($request->refusal_country as $key=>$country){
 
                     EnquiryRefusalHistory::create([
                         'enquiry_id' => $enquiry->id,
                         'country' => $country,
-                        'refusal_date' => $request->refusal_date[$key] ?? null,
+                        'refusal_date' => $refusalDates[$key] ?? null,
                         'refusal_reason' => $request->refusal_reason[$key] ?? null
                     ]);
 
@@ -167,7 +210,7 @@ class VisaEnquiryController extends Controller
 
 
             /* Work Experience */
-
+            $joiningDates = $this->normalizeDateArray($request->joining_date ?? []);
             if($request->job_title){
                 foreach($request->job_title as $key=>$job){
 
@@ -176,7 +219,7 @@ class VisaEnquiryController extends Controller
                         'job_title' => $job,
                         'employer' => $request->employer[$key] ?? null,
                         'work_country' => $request->work_country[$key] ?? null,
-                        'joining_date' => $request->joining_date[$key] ?? null
+                        'joining_date' => $joiningDates[$key] ?? null
                     ]);
 
                 }
@@ -184,7 +227,7 @@ class VisaEnquiryController extends Controller
 
 
             /* Children */
-
+            $childDobs = $this->normalizeDateArray($request->child_dob ?? []);
             if($request->child_name){
                 foreach($request->child_name as $key=>$child){
 
@@ -193,7 +236,7 @@ class VisaEnquiryController extends Controller
                         'child_name' => $child,
                         'child_age' => $request->child_age[$key] ?? null,
                         'child_gender' => $request->child_gender[$key] ?? null,
-                        'child_dob' => $request->child_dob[$key] ?? null
+                        'child_dob' => $childDobs[$key] ?? null
                     ]);
 
                 }
