@@ -7,14 +7,14 @@
 </head>
 <body style="margin:0;padding:0;background:#F5F5F5;font-family:'Lato',Arial,sans-serif;color:#1f2937;">
     <div style="width:100%;padding:28px 12px;box-sizing:border-box;">
-        <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:10px;border:1px solid #e5e7eb;overflow:hidden;">
+        <div style="max-width:640px;width:100%;margin:0 auto;background:#ffffff;border-radius:10px;border:1px solid #e5e7eb;overflow:hidden;box-sizing:border-box;">
             <div style="background:#695EEE;text-align:center;padding:12px 20px 16px;">
                 <a href="https://adwiseri.com/" style="display:inline-block;">
                     <img width="170" src="{{ url('web_assets/images/Style2.png') }}" alt="Adwiseri" style="max-width:100%;height:auto;display:block;">
                 </a>
             </div>
 
-            <div style="padding:24px 30px;line-height:1.7;">
+            <div style="padding:24px 22px;line-height:1.7;box-sizing:border-box;width:100%;max-width:100%;">
                 <h2 style="text-align:center;margin:0 0 20px 0;">Scheduled Report</h2>
 
                 <p style="margin:0 0 14px 0;"><strong>Hello {{ $data['recipient_name'] }},</strong></p>
