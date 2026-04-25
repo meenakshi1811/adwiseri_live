@@ -7324,21 +7324,25 @@ public function showFeedbackPopup()
                 'signature' => $request->signature ?: $enquiry->signature,
             ];
 
-            if (Schema::hasColumn('visa_enquiries', 'form_date')) {
+            $visaEnquiryColumns = array_flip(
+                $enquiry->getConnection()->getSchemaBuilder()->getColumnListing('visa_enquiries')
+            );
+
+            if (isset($visaEnquiryColumns['form_date'])) {
                 $enquiryData['form_date'] = $this->normalizeDateValue($request->form_date);
             }
 
-            if (Schema::hasColumn('visa_enquiries', 'place')) {
+            if (isset($visaEnquiryColumns['place'])) {
                 $enquiryData['place'] = $request->place;
             }
 
-            if (Schema::hasColumn('visa_enquiries', 'print_name')) {
+            if (isset($visaEnquiryColumns['print_name'])) {
                 $enquiryData['print_name'] = $request->print_name;
-            } elseif (Schema::hasColumn('visa_enquiries', 'sign_name')) {
+            } elseif (isset($visaEnquiryColumns['sign_name'])) {
                 $enquiryData['sign_name'] = $request->print_name;
             }
 
-            if (Schema::hasColumn('visa_enquiries', 'consent_to_store_data') && $request->has('consent_to_store_data')) {
+            if (isset($visaEnquiryColumns['consent_to_store_data']) && $request->has('consent_to_store_data')) {
                 $enquiryData['consent_to_store_data'] = $request->boolean('consent_to_store_data');
             }
 
