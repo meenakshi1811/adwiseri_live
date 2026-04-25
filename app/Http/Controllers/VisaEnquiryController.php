@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 use App\Models\VisaEnquiry;
@@ -49,7 +50,6 @@ class VisaEnquiryController extends Controller
             'country_pref.0' => 'required|string|max:255',
             'country_pref.*' => 'nullable|string|max:255|distinct',
             'visa_category' => 'required|string|max:255',
-            'consent_to_store_data' => 'required|accepted',
         ]);
 
         DB::beginTransaction();
@@ -85,29 +85,25 @@ class VisaEnquiryController extends Controller
                 'spouse_email' => $request->spouse_email,
                 'spouse_dob' => $request->spouse_dob,
                 'spouse_contact' => $request->spouse_contact,
+
+                'form_date' => $request->form_date,
+                'place' => $request->place,
+                'print_name' => $request->print_name,
                 'signature' => $request->signature,
             ];
 
-            $visaEnquiryColumns = array_flip(
-                (new VisaEnquiry())->getConnection()->getSchemaBuilder()->getColumnListing('visa_enquiries')
-            );
-
-            if (isset($visaEnquiryColumns['form_date'])) {
+            if (Schema::hasColumn('visa_enquiries', 'form_date')) {
                 $enquiryData['form_date'] = $request->form_date;
             }
 
-            if (isset($visaEnquiryColumns['place'])) {
+            if (Schema::hasColumn('visa_enquiries', 'place')) {
                 $enquiryData['place'] = $request->place;
             }
 
-            if (isset($visaEnquiryColumns['print_name'])) {
+            if (Schema::hasColumn('visa_enquiries', 'print_name')) {
                 $enquiryData['print_name'] = $request->print_name;
-            } elseif (isset($visaEnquiryColumns['sign_name'])) {
+            } elseif (Schema::hasColumn('visa_enquiries', 'sign_name')) {
                 $enquiryData['sign_name'] = $request->print_name;
-            }
-
-            if (isset($visaEnquiryColumns['consent_to_store_data'])) {
-                $enquiryData['consent_to_store_data'] = $request->boolean('consent_to_store_data');
             }
 
             $enquiry = VisaEnquiry::create($enquiryData);
@@ -224,7 +220,7 @@ class VisaEnquiryController extends Controller
         }catch(\Exception $e){
 
             DB::rollBack();
-            // echo'<pre>';print_r($e->getMessage());exit();
+            echo'<pre>'; print_r($e->getMessage()); echo'</pre>';exit();
             return redirect()->back()->with('error','Something went wrong. Please try again.');
 
         }
