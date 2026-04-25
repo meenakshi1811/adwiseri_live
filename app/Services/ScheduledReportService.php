@@ -15,6 +15,7 @@ use App\Mail\ScheduledReportMail;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use DateTimeZone;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
@@ -246,11 +247,72 @@ class ScheduledReportService
     private function resolveTimezone(ReportSetting $setting): string
     {
         $user = User::find($setting->user_id);
-        $timezone = $user?->timezone ?: config('app.timezone', 'UTC');
+        $timezone = $this->normalizeTimezone($user?->timezone);
 
-        return in_array($timezone, timezone_identifiers_list(), true)
-            ? $timezone
-            : config('app.timezone', 'UTC');
+        if ($timezone !== null) {
+            return $timezone;
+        }
+
+        return $this->normalizeTimezone(config('app.timezone', 'UTC')) ?? 'UTC';
+    }
+
+    private function normalizeTimezone($timezone): ?string
+    {
+        $timezone = is_string($timezone) ? trim($timezone) : '';
+
+        if ($timezone === '') {
+            return null;
+        }
+
+        if ($this->isValidTimezone($timezone)) {
+            return $timezone;
+        }
+
+        if (preg_match('/\((?:GMT|UTC)\s*([+\-]\d{1,2}:?\d{2})\)/i', $timezone, $offsetMatch)) {
+            $normalizedOffset = $this->normalizeOffset($offsetMatch[1]);
+
+            if ($normalizedOffset !== null) {
+                return $normalizedOffset;
+            }
+        }
+
+        if (preg_match('/(Asia\/[A-Za-z_]+|Europe\/[A-Za-z_]+|America\/[A-Za-z_]+|Africa\/[A-Za-z_]+|Australia\/[A-Za-z_]+|Pacific\/[A-Za-z_]+|Atlantic\/[A-Za-z_]+|Indian\/[A-Za-z_]+)/', $timezone, $identifierMatch)) {
+            $identifier = $identifierMatch[1];
+
+            if ($this->isValidTimezone($identifier)) {
+                return $identifier;
+            }
+        }
+
+        if (preg_match('/^(?:GMT|UTC)?\s*([+\-]\d{1,2}:?\d{2})$/i', $timezone, $offsetOnlyMatch)) {
+            return $this->normalizeOffset($offsetOnlyMatch[1]);
+        }
+
+        return null;
+    }
+
+    private function normalizeOffset(string $offset): ?string
+    {
+        $offset = str_replace(' ', '', $offset);
+
+        if (!preg_match('/^([+\-])(\d{1,2}):?(\d{2})$/', $offset, $match)) {
+            return null;
+        }
+
+        $hours = str_pad($match[2], 2, '0', STR_PAD_LEFT);
+        $minutes = $match[3];
+
+        return $match[1] . $hours . ':' . $minutes;
+    }
+
+    private function isValidTimezone(string $timezone): bool
+    {
+        try {
+            new DateTimeZone($timezone);
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 
     private function buildReportData($modules, $subscriberId, $startDate, $endDate, $user)
