@@ -240,11 +240,8 @@
                             </div>
                         </div>
                         <div class="row p-1 m-0">
-                            <div class="col-6">
-                                {{-- <label>Description</label> --}}
-                            </div>
-                            <div class="col-6 text-end">
-                                <button type="submit" class="btn btn-primary" id="save-offers-settings">Save</button>
+                            <div class="col-12 text-start">
+                                <button type="submit" class="btn btn-primary" id="save-offers-settings">Add New Service</button>
                             </div>
                         </div>
 
