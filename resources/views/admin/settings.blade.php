@@ -266,7 +266,7 @@
                                     @endphp
                                     @foreach ($reportModules as $moduleKey => $moduleLabel)
                                         <div class="form-check">
-                                            <input type="checkbox" name="modules[]" value="{{ $moduleKey }}" class="form-check-input"
+                                            <input type="checkbox" name="modules[]" value="{{ $moduleKey }}" class="form-check-input report-module-checkbox"
                                                 {{ in_array($moduleKey, $selectedModules) ? 'checked' : '' }}>
                                             <label class="form-check-label">{{ $moduleLabel }}</label>
                                         </div>
@@ -274,7 +274,7 @@
                                     @error('modules')
                                         <span style="color: red;">{{ $message }}</span>
                                     @enderror
-
+                                    <div class="invalid-feedback d-block" id="reports-modules-error" style="display:none;"></div>
                                 </div>
                     </div>
 
@@ -317,6 +317,7 @@
                         <div class="col-6">
                             <textarea name="emails" class="form-control"
                                 placeholder="Enter upto 5 emails separated by comma">{{ old('emails', $reportDefaultEmail) }}</textarea>
+                            <div class="invalid-feedback" id="reports-emails-error"></div>
                             <small class="text-muted">Example: test1@gmail.com, test2@gmail.com</small>
                         </div>
                     </div>
@@ -415,9 +416,30 @@
     </script>
 
     <script>
+        function clearReportSettingsInlineErrors() {
+            const emailField = $('#reports-settings-form textarea[name="emails"]');
+            emailField.removeClass('is-invalid');
+            $('#reports-emails-error').text('');
+            $('#reports-modules-error').text('').hide();
+        }
+
+        function setReportSettingsInlineError(field, message) {
+            if (field === 'modules') {
+                $('#reports-modules-error').text(message).show();
+                return;
+            }
+
+            if (field === 'emails') {
+                const emailField = $('#reports-settings-form textarea[name="emails"]');
+                emailField.addClass('is-invalid');
+                $('#reports-emails-error').text(message);
+            }
+        }
+
         $('#save-reports-settings').click(function() {
             const $saveReportsButton = $('#save-reports-settings');
             const defaultButtonText = ($saveReportsButton.data('default-text') || $.trim($saveReportsButton.text()) || 'Apply');
+            clearReportSettingsInlineErrors();
 
             $saveReportsButton
                 .data('default-text', defaultButtonText)
@@ -426,14 +448,18 @@
 
             const emailField = $('#reports-settings-form textarea[name="emails"]');
             const emails = $.trim(emailField.val());
+            const selectedModulesCount = $('#reports-settings-form input[name="modules[]"]:checked').length;
+
+            if (!selectedModulesCount) {
+                setReportSettingsInlineError('modules', 'Please select at least one module.');
+                $saveReportsButton
+                    .prop('disabled', false)
+                    .text(defaultButtonText);
+                return;
+            }
 
             if (!emails) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Please enter at least one recipient email.'
-                });
-
+                setReportSettingsInlineError('emails', 'Please enter at least one recipient email.');
                 $saveReportsButton
                     .prop('disabled', false)
                     .text(defaultButtonText);
@@ -465,6 +491,12 @@
                         }
 
                         if (xhr.responseJSON.errors) {
+                            Object.entries(xhr.responseJSON.errors).forEach(function([field, messages]) {
+                                const inlineField = field === 'modules.0' ? 'modules' : field;
+                                if (messages && messages[0]) {
+                                    setReportSettingsInlineError(inlineField, messages[0]);
+                                }
+                            });
                             const firstErrorKey = Object.keys(xhr.responseJSON.errors)[0];
                             if (firstErrorKey && xhr.responseJSON.errors[firstErrorKey][0]) {
                                 message = xhr.responseJSON.errors[firstErrorKey][0];
@@ -472,11 +504,13 @@
                         }
                     }
 
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: message
-                    });
+                    if (xhr.status !== 422) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: message
+                        });
+                    }
                 },
 
                 complete: function() {
