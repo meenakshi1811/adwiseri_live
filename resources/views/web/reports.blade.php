@@ -1105,9 +1105,11 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                     onchange="onchangeSupportReport(this.value,this.options[this.selectedIndex].text)">
                                     <option value="" selected>Select Attribute</option>
                                     <option value="byTicketType">By Ticket Type</option>
-                                    <option value="byTime">By Time</option>
+                                    <option value="byTime">By Timeline (Duration)</option>
                                     <option value="byTimeTaken">By Time Taken</option>
+                                    @if ($user->user_type == 'admin')
                                     <option value="bySupportStaff">By Support Staff</option>
+                                    @endif
                                 </select>
                             </div>
                             <div class="col-6 my-3 d-flex align-items-center ">
@@ -7733,7 +7735,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         if (type == 'byTicketType') {
             $('#clientReportTitle7').html('Tickets By Types');
             dataTableSettings.columns = [{
-                    title: "Support Type",
+                    title: "Ticket Type",
                     data: 'support',
                     name: 'support'
                 },
@@ -7759,7 +7761,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         } else if (type == 'byTimeTaken') {
             $('#clientReportTitle7').html('Tickets By Time Taken');
             dataTableSettings.columns = [{
-                    title: "Duration",
+                    title: "Time Taken (Duration)",
                     data: 'time_interval',
                     name: 'time_interval'
                 },
@@ -7772,14 +7774,14 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         } else if (type == 'bySupportStaff') {
             $('#clientReportTitle7').html('Tickets Solved');
             dataTableSettings.columns = [{
-                    title: "User name (ID)",
+                    title: "Support Staff Name",
                     data: 'username',
                     name: 'username'
                 },
                 {
-                    title: "User_id",
-                    data: 'user_id',
-                    name: 'user_id'
+                    title: "Support User (Staff ID)",
+                    data: 'support_user_id',
+                    name: 'support_user_id'
                 },
                 {
                     title: "Avg Time",
