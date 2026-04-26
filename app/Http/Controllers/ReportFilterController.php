@@ -2742,12 +2742,12 @@ class ReportFilterController extends Controller
                 ->make(true);
         } elseif (request()->type == 'bySupportStaff') {
             $cd = Tickets::select(
-                'user_id',
+                'served_by as support_user_id',
                 DB::raw('COUNT(id) AS no_of_tickets_solved'),
                 DB::raw('AVG(TIMESTAMPDIFF(SECOND, `created_at`, `updated_at`)) / 3600 AS avg_time_taken_hours')
             )
-                // ->where('status','Closed') // Ensure that only solved tickets are considered
-                ->groupBy('user_id');
+                ->whereNotNull('served_by')
+                ->groupBy('served_by');
 
             if ($startDate && $endDate) {
                 $cd->whereBetween('created_at', [$startDate,  $endDate]);
@@ -2756,7 +2756,7 @@ class ReportFilterController extends Controller
             $cd = $cd->get();
             return DataTables::of($cd)
                 ->addColumn('username', function ($row) {
-                    $user = User::find($row->user_id);
+                    $user = User::find($row->support_user_id);
                     if (!empty($user)) {
                         return $user->name;
                     } else {

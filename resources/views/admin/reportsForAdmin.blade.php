@@ -913,7 +913,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                     onchange="onchangeSupportReport(this.value,this.options[this.selectedIndex].text)">
                                     <option value="" selected>Select Attribute</option>
                                     <option value="byTicketType">By Ticket Type</option>
-                                    <option value="byTime">By Time</option>
+                                    <option value="byTime">By Timeline (Duration)</option>
                                     <option value="byTimeTaken">By Time Taken</option>
                                     <option value="bySupportStaff">By Support Staff</option>
                                 </select>
@@ -6887,7 +6887,7 @@ function checkDataAndToggleButtons(table) {
         if (type == 'byTicketType') {
             $('#clientReportTitle7').html('Tickets By Types');
             dataTableSettings.columns = [{
-                    title: "Support Type",
+                    title: "Ticket Type",
                     data: 'support',
                     name: 'support'
                 },
@@ -6913,7 +6913,7 @@ function checkDataAndToggleButtons(table) {
         } else if (type == 'byTimeTaken') {
             $('#clientReportTitle7').html('Tickets By Time Taken');
             dataTableSettings.columns = [{
-                    title: "Duration",
+                    title: "Time Taken (Duration)",
                     data: 'time_interval',
                     name: 'time_interval'
                 },
@@ -6926,14 +6926,14 @@ function checkDataAndToggleButtons(table) {
         } else if (type == 'bySupportStaff') {
             $('#clientReportTitle7').html('Tickets Solved');
             dataTableSettings.columns = [{
-                    title: "Username",
+                    title: "Support Staff Name",
                     data: 'username',
                     name: 'username'
                 },
                 {
-                    title: "User_id",
-                    data: 'user_id',
-                    name: 'user_id'
+                    title: "Support User (Staff ID)",
+                    data: 'support_user_id',
+                    name: 'support_user_id'
                 },
                 {
                     title: "Avg Time",
