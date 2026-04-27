@@ -87,6 +87,14 @@ i.btn.fa-solid {
     flex-wrap: wrap;
 }
 
+.adwiseri-form-actions.text-end {
+    justify-content: flex-end;
+}
+
+.adwiseri-form-actions.text-start {
+    justify-content: flex-start;
+}
+
 .adwiseri-form-actions .btn,
 .adwiseri-form-actions .form-control.btn,
 .adwiseri-form-actions .login-btn {
