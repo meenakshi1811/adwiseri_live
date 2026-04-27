@@ -3746,6 +3746,7 @@ class SubscriberFilterController extends Controller
                         'users.name as user_name', // ✅ Fetch user name
                         DB::raw('COUNT(activities.id) as activity_count') // ✅ Count activities per user
                     )
+                    ->whereIn('users.user_type', ['Subscriber', 'User'])
                     ->groupBy('activities.user_id', 'users.name') // ✅ Group by user ID and name
                     ->orderBy('activity_count', 'desc') // ✅ Sort by highest activity count
                     ->limit(10); // ✅ Get top 10 users
