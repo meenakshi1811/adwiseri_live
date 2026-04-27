@@ -105,7 +105,7 @@
                                 <label>Tax (%)</label>
                             </div>
                             <div class="col-6">
-                                <input type="number" min="1" max="100" value="{{ $inv_setting->tax }}"
+                                <input type="number" min="0" max="100" value="{{ $inv_setting->tax }}"
                                     id="tax" name="tax" class="form-control" placeholder="Tax (%)">
                             </div>
                         </div>
@@ -114,7 +114,7 @@
                                 <label>Discount(%)</label>
                             </div>
                             <div class="col-6">
-                                <input type="number" min="1" max="100" value="{{ $inv_setting->discount }}"
+                                <input type="number" min="0" max="100" value="{{ $inv_setting->discount }}"
                                     id="discount" name="discount" class="form-control" placeholder="Discount (%)">
                             </div>
                         </div>
@@ -674,6 +674,19 @@
                 });
             });
             $('#save-general-settings').click(function() {
+                const timezone = $('#timezon').val();
+                const currency = $('#currenc').val();
+
+                if (!timezone) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'Please select a timezone.' });
+                    return;
+                }
+
+                if (!currency) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'Please select a currency.' });
+                    return;
+                }
+
                 let formData = $('#general-settings-form').serialize();
 
                 $.ajax({
@@ -688,15 +701,29 @@
                         });
                     },
                     error: function(xhr) {
+                        const errorText = xhr?.responseJSON?.message || 'Failed to update settings!';
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: 'Failed to update settings!',
+                            text: errorText,
                         });
                     },
                 });
             });
             $('#save-invoice-settings').click(function() {
+                const tax = $.trim($('#tax').val());
+                const discount = $.trim($('#discount').val());
+
+                if (tax !== '' && (isNaN(tax) || Number(tax) < 0 || Number(tax) > 100)) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'Tax must be between 0 and 100.' });
+                    return;
+                }
+
+                if (discount !== '' && (isNaN(discount) || Number(discount) < 0 || Number(discount) > 100)) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'Discount must be between 0 and 100.' });
+                    return;
+                }
+
                 let formData = $('#invoice-settings-form').serialize();
 
                 $.ajax({
@@ -882,7 +909,13 @@
                         });
                     },
                     error: function (xhr) {
-                        const message = xhr?.responseJSON?.message || 'Failed to apply discount!';
+                        let message = xhr?.responseJSON?.message || 'Failed to apply discount!';
+                        if (xhr?.responseJSON?.errors) {
+                            const firstError = Object.values(xhr.responseJSON.errors)[0];
+                            if (firstError && firstError[0]) {
+                                message = firstError[0];
+                            }
+                        }
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
