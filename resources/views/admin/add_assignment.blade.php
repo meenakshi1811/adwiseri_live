@@ -57,9 +57,7 @@
                                     </span>
                                 @enderror
                             </div>
-                            <div class="col-md-4 p-1">
-                            </div>
-                            <div class="col-md-8 text-left p-1 adwiseri-form-actions">
+                            <div class="col-12 p-1 adwiseri-form-actions">
                                 <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                             </div>
                         </div>
@@ -120,9 +118,7 @@
                                     </span>
                                 @enderror
                             </div>
-                            <div class="col-md-4 p-1">
-                            </div>
-                            <div class="col-md-8 text-left p-1 adwiseri-form-actions">
+                            <div class="col-12 p-1 adwiseri-form-actions">
                                 <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                             </div>
                         </div>

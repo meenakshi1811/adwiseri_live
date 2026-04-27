@@ -88,7 +88,8 @@ i.btn.fa-solid {
 }
 
 .adwiseri-form-actions .btn,
-.adwiseri-form-actions .form-control.btn {
+.adwiseri-form-actions .form-control.btn,
+.adwiseri-form-actions .login-btn {
     width: auto !important;
     min-width: 140px;
 }

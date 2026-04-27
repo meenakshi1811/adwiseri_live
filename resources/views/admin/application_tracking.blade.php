@@ -127,9 +127,7 @@
                                 @enderror
                             </div>
                            
-                            <div class="col-md-3 p-1">
-                            </div>
-                            <div class="col-md-12 p-3 text-center adwiseri-form-actions">
+                            <div class="col-12 p-3 adwiseri-form-actions">
                                 <button type="button" id="view_report" class="form-control btn btn-primary" style="width: fit-content;" onclick="viewReport(); verifyDropDowns();">View Report</button>
                                 <button type="button" id="view_chart" class="form-control btn btn-primary" style="width: fit-content;" onclick="viewChart(); verifyDropDowns();">View Chart</button>
                             </div>
