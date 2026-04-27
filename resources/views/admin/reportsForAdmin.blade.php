@@ -7533,8 +7533,10 @@ function checkDataAndToggleButtons(table) {
                 url: "{{ route('activityReport') }}",
                 data: function(d) {
                     d.type = type;
-                    d.startDate = result.startDate;
-                    d.endDate = result.endDate;
+                    if (result.startDate && result.endDate) {
+                        d.startdate = result.startDate;
+                        d.enddate = result.endDate;
+                    }
 
                 }
             },
@@ -7577,11 +7579,11 @@ function checkDataAndToggleButtons(table) {
                 }
             ];
         } else if (type == 'bySubscribers') {
-            $('#clientReportTitle8').html('Activity By Subscribers');
+            $('#clientReportTitle8').html('Activities by Top 10 Users');
             dataTableSettings.columns = [{
-                    title: "Subscribers",
-                    data: 'subscriber_id',
-                    name: 'subscriber_id',
+                    title: "UserName (ID)",
+                    data: 'user_name_id',
+                    name: 'user_name_id',
                     orderable: false,
                     searchable: false
                 },
