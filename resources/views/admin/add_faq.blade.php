@@ -37,7 +37,7 @@
                                     </span>
                                 @enderror
                             </div>
-                            <div class="col text-start p-1">
+                            <div class="col text-start p-1 adwiseri-form-actions">
                                 <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                             </div>
                         </div>
@@ -78,7 +78,7 @@
                                     </span>
                                 @enderror
                             </div>
-                            <div class="col text-start p-1">
+                            <div class="col text-start p-1 adwiseri-form-actions">
                                 <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                             </div>
                         </div>

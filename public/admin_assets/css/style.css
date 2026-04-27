@@ -77,6 +77,22 @@ i.btn.fa-solid {
     min-width: 140px;
 }
 
+
+.adwiseri-form-actions {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.adwiseri-form-actions .btn,
+.adwiseri-form-actions .form-control.btn {
+    width: auto !important;
+    min-width: 140px;
+}
+
 /*---- Navbar CSS ---*/
 .mainav-head {
     padding-top: 40px;
