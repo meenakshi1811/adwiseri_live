@@ -1327,8 +1327,23 @@ class ReportFilterController extends Controller
     }
     public function activityReport()
     {
+        $user = Auth::user();
+        $startDate = null;
+        $endDate = null;
+
+        if (request()->filled('startdate') && request()->filled('enddate')) {
+            $startDate = Carbon::createFromFormat('d-m-Y', request()->input('startdate'))->startOfDay();
+            $endDate = Carbon::createFromFormat('d-m-Y', request()->input('enddate'))->endOfDay();
+        }
+
         if (request()->type == "byActivityType") {
             $activities = Activities::select('activity_name', DB::raw('count(*) as count'))->groupBy('activity_name');
+            if ($user->user_type == 'Subscriber') {
+                $activities->where('subscriber_id', $user->id);
+            }
+            if ($startDate && $endDate) {
+                $activities->whereBetween('created_at', [$startDate, $endDate]);
+            }
             return DataTables::of($activities)->make(true);
         } elseif (request()->type == "byTime") {
 
@@ -1345,26 +1360,44 @@ class ReportFilterController extends Controller
             $queries = [
                 DB::table('activities')
                     ->select(DB::raw("'Today' AS period, COUNT(*) AS total_activities"))
+                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
+                        $query->where('subscriber_id', $user->id);
+                    })
                     ->whereDate('created_at', $today),
 
                 DB::table('activities')
                     ->select(DB::raw("'Last Week' AS period, COUNT(*) AS total_activities"))
+                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
+                        $query->where('subscriber_id', $user->id);
+                    })
                     ->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd]),
 
                 DB::table('activities')
                     ->select(DB::raw("'Last Month' AS period, COUNT(*) AS total_activities"))
+                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
+                        $query->where('subscriber_id', $user->id);
+                    })
                     ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd]),
 
                 DB::table('activities')
                     ->select(DB::raw("'Last Quarter' AS period, COUNT(*) AS total_activities"))
+                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
+                        $query->where('subscriber_id', $user->id);
+                    })
                     ->whereBetween('created_at', [$lastQuarterStart, $lastQuarterEnd]),
 
                 DB::table('activities')
                     ->select(DB::raw("'Last Year' AS period, COUNT(*) AS total_activities"))
+                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
+                        $query->where('subscriber_id', $user->id);
+                    })
                     ->whereYear('created_at', $lastYear),
 
                 DB::table('activities')
                     ->select(DB::raw("'Since Inception' AS period, COUNT(*) AS total_activities"))
+                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
+                        $query->where('subscriber_id', $user->id);
+                    })
             ];
 
             $unionQuery = array_shift($queries);
@@ -1375,17 +1408,25 @@ class ReportFilterController extends Controller
 
             return DataTables::of($unionQuery)->make(true);
         } elseif (request()->type == "bySubscribers") {
-            $topSubscribers = Activities::with('user')->whereNotNull('subscriber_id')
-                ->select('subscriber_id', DB::raw('COUNT(*) as total_activities'))
-                ->groupBy('subscriber_id')
+            $topUsers = Activities::with('user')
+                ->whereNotNull('user_id')
+                ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
+                    $query->where('subscriber_id', $user->id);
+                })
+                ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
+                    $query->whereBetween('created_at', [$startDate, $endDate]);
+                })
+                ->select('user_id', DB::raw('COUNT(*) as total_activities'))
+                ->groupBy('user_id')
+                ->orderByDesc('total_activities')
                 ->limit(10);
-            return DataTables::of($topSubscribers)
-                ->editColumn('subscriber_id', function ($row) {
+
+            return DataTables::of($topUsers)
+                ->addColumn('user_name_id', function ($row) {
                     if (!empty($row->user)) {
-                        return $row->user->name;
-                    } else {
-                        return "";
+                        return $row->user->name . ' (' . $row->user->id . ')';
                     }
+                    return "";
                 })
                 ->make(true);
         }
