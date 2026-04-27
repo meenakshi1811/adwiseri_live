@@ -208,7 +208,7 @@
                                 <label>Fees (Amount)</label>
                             </div>
                             <div class="col-6">
-                                <input type="number" id="serviceFee" name="fees" class="form-control"
+                                <input type="number" min="0" id="serviceFee" name="fees" class="form-control"
                                     placeholder="Fees(Amount)">
                             </div>
                         </div>
@@ -728,6 +728,50 @@
         });
 
         $('#save-appointment').click(function () {
+            const clientId = $('#appointment-client').val();
+            const clientEmail = $.trim($('#appointment-client-email').val());
+            const remarks = $.trim($('#appointment-form input[name="remarks"]').val());
+            const appointmentDate = $('#appointment-form input[name="appointment_date"]').val();
+            const appointmentTime = $('#appointment-form input[name="appointment_time"]').val();
+
+            if (!clientId) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please select a client.' });
+                return;
+            }
+
+            if (!clientEmail) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please enter client email.' });
+                return;
+            }
+
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailPattern.test(clientEmail)) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please enter a valid client email address.' });
+                return;
+            }
+
+            if (!remarks) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please enter meeting purpose.' });
+                return;
+            }
+
+            if (!appointmentDate) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please select appointment date.' });
+                return;
+            }
+
+            const selectedDate = new Date(`${appointmentDate}T00:00:00`);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (selectedDate < today) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Appointment date cannot be in the past.' });
+                return;
+            }
+
+            if (!appointmentTime) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please select appointment time.' });
+                return;
+            }
 
             let formData = $('#appointment-form').serialize();
 
@@ -1000,6 +1044,19 @@
             });
         }
         $('#save-general-settings').click(function () {
+                const timezone = $('#timezone1').val();
+                const currency = $('#currenc').val();
+
+                if (!timezone) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'Please select a timezone.' });
+                    return;
+                }
+
+                if (!currency) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'Please select a currency.' });
+                    return;
+                }
+
                 let formData = $('#general-settings-form').serialize();
 
                 $.ajax({
@@ -1014,15 +1071,39 @@
                         });
                     },
                     error: function (xhr) {
+                        const errorText = xhr?.responseJSON?.message || 'Failed to update settings!';
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: 'Failed to update settings!',
+                            text: errorText,
                         });
                     },
                 });
             });
             $('#save-invoice-settings').click(function () {
+                    const tax = $('input[name="tax"]').val();
+                    const discount = $('input[name="discount"]').val();
+                    const paymentLink = $.trim($('#payment_link').val());
+
+                    if (tax !== '' && (isNaN(tax) || Number(tax) < 0 || Number(tax) > 100)) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Tax must be between 0 and 100.' });
+                        return;
+                    }
+
+                    if (discount !== '' && (isNaN(discount) || Number(discount) < 0 || Number(discount) > 100)) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Discount must be between 0 and 100.' });
+                        return;
+                    }
+
+                    if (paymentLink) {
+                        try {
+                            new URL(paymentLink);
+                        } catch (e) {
+                            Swal.fire({ icon: 'error', title: 'Error', text: 'Please enter a valid payment link URL.' });
+                            return;
+                        }
+                    }
+
                     let formData = $('#invoice-settings-form').serialize();
 
                     $.ajax({
@@ -1047,6 +1128,19 @@
                     });
             });
             $('#save-add-service').click(function () {
+                    const serviceName = $.trim($('#serviceName').val());
+                    const serviceFee = $('#serviceFee').val();
+
+                    if (!serviceName) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Service name is required.' });
+                        return;
+                    }
+
+                    if (serviceFee === '' || isNaN(serviceFee) || Number(serviceFee) < 0) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Fees is required and must be 0 or greater.' });
+                        return;
+                    }
+
                     let formData = $('#add-service').serialize();
 
                     $.ajax({

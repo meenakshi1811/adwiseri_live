@@ -6165,8 +6165,10 @@ class WebController extends Controller
 
     public function update_my_currency(Request $request)
     {
-
-        // dd($request->all());
+        $validated = $request->validate([
+            'currency' => 'required|string|max:20',
+            'timezone' => 'required|timezone',
+        ]);
         $user = Auth::user();
         if ($user) {
             if ($user->user_type == "Subscriber") {
@@ -6176,12 +6178,11 @@ class WebController extends Controller
             }
             $all_users = User::where('added_by', '=', $subscriber->id)->get();
             foreach ($all_users as $one) {
-                // $one->timezone = $request['timezones'];
-                $one->currency = $request['currency'];
+                $one->currency = $validated['currency'];
                 $one->save();
             }
-            $user->timezone = $request['timezone'];
-            $user->currency = $request['currency'];
+            $user->timezone = $validated['timezone'];
+            $user->currency = $validated['currency'];
             $user->save();
 
             return response()->json([
@@ -6920,8 +6921,8 @@ class WebController extends Controller
     public function add_service(Request $request){
         // Validate the incoming request
         $validated = $request->validate([
-            'service_name' => 'required|string|max:255', // Service name is required, should be a string and max 255 characters
-            'fees' => 'nullable|numeric|min:0', // Fees are optional, should be a number and at least 0
+            'service_name' => 'required|string|max:255',
+            'fees' => 'required|numeric|min:0',
         ]);
         if(!empty($request->input('id'))){
             $service = Services::find($request->input('id'));
@@ -7466,9 +7467,9 @@ public function showFeedbackPopup()
         $request->validate([
             'client_id' => 'required|exists:clients,id',
             'client_email' => 'nullable|email',
-            'appointment_date' => 'required|date',
-            'appointment_time' => 'required',
-            'remarks' => 'nullable|string|max:500',
+            'appointment_date' => 'required|date|after_or_equal:today',
+            'appointment_time' => 'required|date_format:H:i',
+            'remarks' => 'required|string|max:500',
             'send_via' => 'required|in:email'
         ]);
 

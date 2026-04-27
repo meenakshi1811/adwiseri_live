@@ -3650,10 +3650,15 @@ class AdminController extends Controller
 
     public function update_currency(Request $request)
     {
+        $validated = $request->validate([
+            'currency' => 'required|string|max:20',
+            'timezone' => 'required|timezone',
+        ]);
+
         $user = Auth::user();
         if ($user) {
-            $user->currency = $request['currency'];
-             $user->timezone = $request['timezone'];
+            $user->currency = $validated['currency'];
+             $user->timezone = $validated['timezone'];
             $user->save();
             return response()->json([
                 'success' => true,
