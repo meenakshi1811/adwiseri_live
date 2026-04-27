@@ -1168,9 +1168,9 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                     onchange="onchangeActivityReport(this.value,this.options[this.selectedIndex].text)">
                                     <option value="" selected>Select Attribute</option>
                                     <option value="byActivityType">By Activity Type</option>
-                                    <option value="byTime">By Total Number No. of Activities By Time</option>
+                                    <option value="byTime">By Timeline(Duration)</option>
                                     {{-- <option value="Gender">By Gender</option> --}}
-                                    <option value="bySubscribers">By Top 10 Subscribers </option>
+                                    <option value="bySubscribers">By Top 10 Users</option>
                                 </select>
                             </div>
                             <div class="col-6 my-3 d-flex align-items-center ">
@@ -8212,9 +8212,9 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             ];
         } else if (type == 'byTime') {
-            $('#clientReportTitle8').html('Activity ByDuration');
+            $('#clientReportTitle8').html('Activities by Timeline (Duration)');
             dataTableSettings.columns = [{
-                    title: "Activity Duration",
+                    title: "Timeline (Duration)",
                     data: 'period',
                     name: 'period',
                     orderable: false,
@@ -8229,11 +8229,11 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             ];
         } else if (type == 'bySubscribers') {
-            $('#clientReportTitle8').html('Activity BySubscribers');
+            $('#clientReportTitle8').html('Activities by Top 10 Users');
             dataTableSettings.columns = [{
-                    title: "Subscribers",
-                    data: 'subscriber_id',
-                    name: 'subscriber_id',
+                    title: "UserName (ID)",
+                    data: 'user_name_id',
+                    name: 'user_name_id',
                     orderable: false,
                     searchable: false
                 },
