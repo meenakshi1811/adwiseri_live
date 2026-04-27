@@ -1410,8 +1410,15 @@ class ReportFilterController extends Controller
         } elseif (request()->type == "bySubscribers") {
             $topUsers = Activities::with('user')
                 ->whereNotNull('user_id')
-                ->whereHas('user', function ($query) {
+                ->whereHas('user', function ($query) use ($user) {
                     $query->whereIn('user_type', ['Subscriber', 'User']);
+
+                    if ($user->user_type == 'Subscriber') {
+                        $query->where(function ($tenantUsers) use ($user) {
+                            $tenantUsers->where('id', $user->id)
+                                ->orWhere('added_by', $user->id);
+                        });
+                    }
                 })
                 ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
                     $query->where('subscriber_id', $user->id);
