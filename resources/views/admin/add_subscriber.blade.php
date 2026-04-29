@@ -259,8 +259,8 @@
 
 
 
-                            <div class="col text-start p-1 adwiseri-form-actions">
-                                <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
+                            <div class="col text-center p-1 adwiseri-form-actions">
+                                <button type="submit" class="form-control btn btn-primary d-inline-block" style="width: fit-content;">Submit</button>
                             </div>
                         </div>
                     </form>
