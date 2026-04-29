@@ -7733,7 +7733,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         };
         // Configure DataTable based on report type
         if (type == 'byTicketType') {
-            $('#clientReportTitle7').html('Tickets By Types');
+            $('#clientReportTitle7').html('Tickets By Type');
             dataTableSettings.columns = [{
                     title: "Ticket Type",
                     data: 'support',

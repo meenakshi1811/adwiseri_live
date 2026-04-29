@@ -118,6 +118,15 @@
                             </div>
                         </div>
 
+                        <div class="row p-1 mb-3 align-items-center">
+                            <div class="col-6">
+                                <label>Payment Link URL</label>
+                            </div>
+                            <div class="col-6">
+                                <input type="url" value="{{ $inv_setting->payment_link ?? '' }}" id="payment_link" name="payment_link" class="form-control" placeholder="https://example.com/pay">
+                            </div>
+                        </div>
+
                         <div class="row p-1 m-0">
                             <div class="col-12 adwiseri-form-actions text-end">
                                 <button type="button" class="btn btn-primary" id="save-invoice-settings">Save</button>
@@ -236,7 +245,7 @@
                             </div>
                         </div>
                         <div class="row p-1 m-0">
-                            <div class="col-12 adwiseri-form-actions text-end">
+                            <div class="col-12 adwiseri-form-actions text-start">
                                 <button type="submit" class="btn btn-primary" id="save-offers-settings">Add New Service</button>
                             </div>
                         </div>
@@ -355,6 +364,15 @@
                             <div class="col-6"><label>Email Body</label></div>
                             <div class="col-6"><textarea id="emailTemplateBody" name="body" class="form-control" rows="8"></textarea></div>
                         </div>
+                        <div class="row p-1 mb-3 align-items-center">
+                            <div class="col-6">
+                                <label>Payment Link URL</label>
+                            </div>
+                            <div class="col-6">
+                                <input type="url" value="{{ $inv_setting->payment_link ?? '' }}" id="payment_link" name="payment_link" class="form-control" placeholder="https://example.com/pay">
+                            </div>
+                        </div>
+
                         <div class="row p-1 m-0">
                             <div class="col-12 adwiseri-form-actions text-end">
                                 <button type="button" class="btn btn-primary" id="save-email-template">Save</button>
@@ -673,12 +691,12 @@
                 const currency = $('#currenc').val();
 
                 if (!timezone) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'Please select a timezone.' });
+                    Swal.fire({ icon: 'warning', title: '‼️ Oops !', text: 'Please select a timezone.' });
                     return;
                 }
 
                 if (!currency) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'Please select a currency.' });
+                    Swal.fire({ icon: 'warning', title: '‼️ Oops !', text: 'Please select a currency.' });
                     return;
                 }
 
@@ -699,7 +717,7 @@
                         const errorText = xhr?.responseJSON?.message || 'Failed to update settings!';
                         Swal.fire({
                             icon: 'error',
-                            title: 'Error',
+                            title: '‼️ Oops !',
                             text: errorText,
                         });
                     },
@@ -710,12 +728,12 @@
                 const discount = $.trim($('#discount').val());
 
                 if (tax !== '' && (isNaN(tax) || Number(tax) < 0 || Number(tax) > 100)) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'Tax must be between 0 and 100.' });
+                    Swal.fire({ icon: 'warning', title: '‼️ Oops !', text: 'Tax must be between 0 and 100.' });
                     return;
                 }
 
                 if (discount !== '' && (isNaN(discount) || Number(discount) < 0 || Number(discount) > 100)) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'Discount must be between 0 and 100.' });
+                    Swal.fire({ icon: 'warning', title: '‼️ Oops !', text: 'Discount must be between 0 and 100.' });
                     return;
                 }
 
@@ -736,7 +754,7 @@
                         const errorText = xhr?.responseJSON?.message || 'Failed to update invoice settings!';
                         Swal.fire({
                             icon: 'error',
-                            title: 'Error',
+                            title: '‼️ Oops !',
                             text: errorText,
                         });
                     },

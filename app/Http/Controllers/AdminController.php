@@ -501,7 +501,7 @@ class AdminController extends Controller
             }
         }
         $membership = Membership::where('plan_name', $request['membership'])->first();
-        $validityDuration = $membership->validity;
+        $validityDuration = $membership ? $membership->validity : null;
         $user = Auth::user();
         if (isset($request->id)) {
             $country = Countries::find($request->country);
@@ -511,9 +511,10 @@ class AdminController extends Controller
             $data->category = $request['category'];
             $data->sub_category = $request['subcategory'];
             $data->other_subcategory = $request['other'];
-            $data->membership = $request['membership'];
-            $data->membership_start_date = new DateTime("now");
-            $data->membership_expiry_date = (new DateTime("now"))->modify("+" .  $membership->validity . " Days");
+            // Keep subscription plan unchanged when admin edits subscriber details.
+            $data->membership = $data->membership;
+            $data->membership_start_date = $data->membership_start_date;
+            $data->membership_expiry_date = $data->membership_expiry_date;
             $data->organization = $request['organization'];
             $data->designation = $request['designation'];
             $data->dob = null;
@@ -536,7 +537,11 @@ class AdminController extends Controller
             $activity->activity_detail = "Subscriber " . $request->name . " data updated by " . $user->name . " at " . date('d M, Y H:i:s');
             $activity->activity_icon = "user.png";
             $activity->save();
-            Mail::to($data->email)->send(new PlanSubscriptionMail($request['name'], $request['membership'], $validityDuration, 'Your Subscription Plan Has Been Updated'));
+            try {
+                Mail::to($data->email)->send(new PlanSubscriptionMail($request['name'], $data->membership, $validityDuration, 'Your Subscription Plan Has Been Updated'));
+            } catch (\Throwable $e) {
+                \Log::warning('Subscriber update email failed', ['subscriber_id' => $data->id, 'email' => $data->email, 'error' => $e->getMessage()]);
+            }
             return redirect()->route('subscribers')->with('user_updated', "user updated successfully");
         } else {
             $data = new User();
@@ -3608,7 +3613,7 @@ class AdminController extends Controller
             $validated = $request->validate([
                 'tax' => 'nullable|numeric|min:0|max:100',
                 'discount' => 'nullable|numeric|min:0|max:100',
-                'payment_link' => 'nullable|url|max:2048',
+                'payment_link' => ['nullable','string','max:2048','regex:/^https?:\/\/.+/i'],
             ]);
 
             $setting = Invoice_settings::where('user_id',$user->id)->first();

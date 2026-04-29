@@ -224,7 +224,8 @@
                             <div class="col-md-4">
                                 <div class="mb-3">
                                         <label>Price Plan<span class="text-danger" style="font-size: 18px;">*</span></label>
-                                        <select name="membership" class="form-select" aria-label="Default select example">
+                                        <input type="hidden" name="membership" value="{{ $subscriber->membership }}">
+                                        <select name="membership_display" class="form-select" aria-label="Default select example" disabled>
                                             @foreach($membership as $plan)
                                               <option {{ ($subscriber->membership == $plan->plan_name) ? 'selected' : '' }} value="{{  $plan->plan_name }}">{{  $plan->plan_name." ".$plan->price_per_year." USD, Yearly" }}</option>
                                             @endforeach
@@ -501,7 +502,8 @@
                             <div class="col-md-4">
                                 <div class="mb-3">
                                         <label>Price Plan<span class="text-danger" style="font-size: 18px;">*</span></label>
-                                        <select name="membership" class="form-select" aria-label="Default select example">
+                                        <input type="hidden" name="membership" value="{{ $subscriber->membership }}">
+                                        <select name="membership_display" class="form-select" aria-label="Default select example" disabled>
                                             @foreach($membership as $plan)
                                               <option {{ (old('membership') == $plan->plan_name) ? 'selected':'' }} value="{{  $plan->plan_name }}">{{  $plan->plan_name." ".$plan->price_per_year." USD, ".$plan->validity." days " }}</option>
                                             @endforeach
