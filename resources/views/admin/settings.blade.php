@@ -81,7 +81,10 @@
                             </div>
                             <!-- Save Button -->
                             <div class="row p-1 m-0">
-                                <div class="col-12 adwiseri-form-actions text-end">
+                                <div class="col-md-6">
+
+                                </div>
+                                <div class="col-md-6 text-right">
                                     <button type="button" id="save-general-settings"class="btn btn-primary">Save</button>
                                 </div>
                             </div>
@@ -128,7 +131,10 @@
                         </div>
 
                         <div class="row p-1 m-0">
-                            <div class="col-12 adwiseri-form-actions text-end">
+                            <div class="col-md-6">
+
+                                </div>
+                                <div class="col-md-6 text-right">
                                 <button type="button" class="btn btn-primary" id="save-invoice-settings">Save</button>
                             </div>
                         </div>
@@ -245,7 +251,10 @@
                             </div>
                         </div>
                         <div class="row p-1 m-0">
-                            <div class="col-12 adwiseri-form-actions text-start">
+                            <div class="col-md-6">
+
+                                </div>
+                                <div class="col-md-6 text-right">
                                 <button type="submit" class="btn btn-primary" id="save-offers-settings">Add New Service</button>
                             </div>
                         </div>
@@ -328,7 +337,10 @@
                     </div>
 
                     <div class="row p-1 m-0">
-                        <div class="col-12 adwiseri-form-actions text-end">
+                       <div class="col-md-6">
+
+                                </div>
+                                <div class="col-md-6 text-right">
                             <button type="button" class="btn btn-primary" id="save-reports-settings">Apply</button>
                             <button type="reset" class="btn btn-secondary">Cancel</button>
                         </div>
@@ -374,7 +386,10 @@
                         </div>
 
                         <div class="row p-1 m-0">
-                            <div class="col-12 adwiseri-form-actions text-end">
+                           <div class="col-md-6">
+
+                                </div>
+                                <div class="col-md-6 text-right">
                                 <button type="button" class="btn btn-primary" id="save-email-template">Save</button>
                                 <button type="button" class="btn btn-outline-secondary" id="reset-email-template">Reset</button>
                             </div>

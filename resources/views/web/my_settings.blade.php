@@ -134,7 +134,7 @@
                             </div>
                             <div class="row p-1 m-0">
                                 <div class="col-6"></div>
-                                <div class="col-6 text-end">
+                                <div class="col-6 text-right">
                                     <button type="button" class="btn btn-primary" id="save-general-settings">Save</button>
                                 </div>
                             </div>
@@ -179,7 +179,7 @@
                         </div>
                         <div class="row p-1 m-0">
                             <div class="col-6"></div>
-                            <div class="col-6 text-end">
+                            <div class="col-6 text-right">
                                 <button type="button" class="btn btn-primary" id="save-invoice-settings">Save</button>
                             </div>
                         </div>
@@ -214,8 +214,8 @@
                         </div>
                         <div class="row p-1 mb-3 align-items-center">
                             <div class="col-6"></div>
-                            <div class="col-6 text-end">
-                                <button type="button" class="btn btn-primary" id="save-add-service">Save</button>
+                            <div class="col-6 text-right">
+                                <button type="button" class="btn btn-primary" id="save-add-service">Add New Service</button>
                             </div>
                         </div>
                     </form>
@@ -304,7 +304,7 @@
                         </div>
                         <div class="row p-1 mb-3 align-items-center">
                             <div class="col-6"></div>
-                            <div class="col-6 text-end">
+                            <div class="col-6 text-right">
                                 <button type="button" class="btn btn-primary" id="save-payment-reminder">Apply</button>
                                 <button type="button" class="btn btn-outline-secondary" id="cancel-payment-reminder">Cancel</button>
                             </div>
@@ -345,7 +345,10 @@
                             <div class="col-6"><textarea id="emailTemplateBody" name="body" class="form-control" rows="8"></textarea></div>
                         </div>
                         <div class="row p-1 m-0">
-                            <div class="col-12 text-end">
+                            <div class="col-6">
+
+                            </div>
+                            <div class="col-6 text-right">
                                 <button type="button" class="btn btn-primary" id="save-email-template">Save</button>
                                 <button type="button" class="btn btn-outline-secondary" id="reset-email-template">Reset</button>
                             </div>
@@ -442,7 +445,7 @@
                         <div class="row p-1 m-0">
                         <div class="col-6"></div>
 
-                        <div class="col-6 text-end">
+                        <div class="col-6 text-right">
 
                         <button type="button" class="btn btn-primary"
                         id="save-reports-settings">
@@ -547,7 +550,7 @@
                     <!-- Buttons -->
                     <div class="row p-1 m-0">
                         <div class="col-6"></div>
-                        <div class="col-6 text-end">
+                        <div class="col-6 text-right">
 
                             <button type="button" class="btn btn-primary"
                                 id="save-appointment">
