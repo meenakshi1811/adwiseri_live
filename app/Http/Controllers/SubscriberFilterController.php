@@ -52,12 +52,30 @@ use DB;
 
 class SubscriberFilterController extends Controller
 {
+    private function parseReportDate(?string $value, bool $isEndDate = false): Carbon
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return $isEndDate ? Carbon::now()->endOfDay() : Carbon::now()->startOfDay();
+        }
+
+        try {
+            $date = Carbon::createFromFormat('d-m-Y', $value);
+        } catch (\Throwable $e) {
+            $date = Carbon::parse($value);
+        }
+
+        return $isEndDate ? $date->endOfDay() : $date->startOfDay();
+    }
+
+
     public function subscribersReport()
     {
         // This is for tabs
         $user = auth()->user();
-        $startDate = Carbon::createFromFormat('d-m-Y', request()->input('startDate'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d-m-Y', request()->input('endDate'))->endOfDay();
+        $startDate = $this->parseReportDate(request()->input('startDate'));
+        $endDate = $this->parseReportDate(request()->input('endDate'), true);
         if (request()->type == "country") {
 
             if ($user->user_type == 'admin') {
@@ -1139,8 +1157,8 @@ class SubscriberFilterController extends Controller
                     
             return response()->json(['data' => $byDocumentNoofApplications]);
         } elseif (request()->type == "byNoofApplicantsChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
             if (!empty(request()->subid)) {
                 // Filter by specific subscriber ID
                 $data = Applications::whereBetween('created_at', [$startDate, $endDate]) // Explicitly specify the table for created_at
@@ -2274,8 +2292,8 @@ class SubscriberFilterController extends Controller
                 'data' => $formattedData
             ]);
         } elseif (request()->type == "byPaymentVisaCountryChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
             $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
             if (!empty(request()->subid)) {
                 $data = PaymentARs::whereBetween('payment_ar.created_at', [$startDate, $endDate])
@@ -2358,8 +2376,8 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' => $paymentOutstanding]);
             return response()->json(['data' =>  $paymentOutstanding]);
         } elseif (request()->type == "byPaymentApplicationTypeChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
             $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
             if (!empty(request()->subid)) {
                 $data = PaymentARs::whereBetween('payment_ar.created_at', [$startDate, $endDate])
@@ -2533,8 +2551,8 @@ class SubscriberFilterController extends Controller
                 'data' => $formattedData
             ]);
         } elseif (request()->type == "byPaymentVisaCountryChartAP") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
             $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
             if (!empty(request()->subid)) {
                 $data = PaymentARs::whereBetween('payment_ar.created_at', [$startDate, $endDate])
@@ -2618,8 +2636,8 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' => $paymentOutstanding]);
             return response()->json(['data' =>  $paymentOutstanding]);
         } elseif (request()->type == "byPaymentApplicationTypeChartAP") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
             $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
             if (!empty(request()->subid)) {
                 $data = PaymentARs::whereBetween('payment_ar.created_at', [$startDate, $endDate])
@@ -3551,8 +3569,8 @@ class SubscriberFilterController extends Controller
             ]);
             
         } elseif (request()->type == "bySupportStaffChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
             if (!empty(request()->subid)) {
                 $cd = Tickets::select(
@@ -3584,8 +3602,8 @@ class SubscriberFilterController extends Controller
             });
             return response()->json(['data' => $data]);
         } elseif (request()->type == "bySupportStaffNameChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
             $searchUsername = request()->username; // Get the search username from the request
 
@@ -3617,8 +3635,8 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byDemoRequestStatusChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
             $searchUsername = request()->username; // Get the search username from the request
 
@@ -3639,8 +3657,8 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byCounrtyDemoRequestChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
             $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
 
             if (!empty(request()->subid)) {
@@ -3661,8 +3679,8 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "bytimelineDemoRequestChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
             $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
 
             if (!empty(request()->subid)) {
@@ -3685,8 +3703,8 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "bytimeTakenDemoRequestChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
             if (!empty(request()->subid)) {
                 $cd = Tickets::select(
@@ -3904,8 +3922,8 @@ class SubscriberFilterController extends Controller
         } 
         
         elseif (request()->type == "byTop10SubscribersChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
 
             if (!empty(request()->subid)) {
@@ -3989,8 +4007,8 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' => $applications]);
         } elseif (request()->type == "byNoOfTransactionDatesChart") {
 
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
             if (!empty(request()->subid)) {
             } else {
 
@@ -4025,8 +4043,8 @@ class SubscriberFilterController extends Controller
             }
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byAffiliatesNoofSubscribersReferredsChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
             if (!empty(request()->subid)) {
                 $data = DB::table('users as referrer')
@@ -4055,8 +4073,8 @@ class SubscriberFilterController extends Controller
             }
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byAmountOfCommissionsEarntChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
             if (!empty(request()->subid)) {
 
@@ -4093,8 +4111,8 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byAffiliateCountryChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
             $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
 
@@ -4164,8 +4182,8 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byAffiliateCurrentWalletCreditsChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
             if (!empty(request()->subid)) {
                 $referralsPerWalletBalance = DB::table('referrals')
