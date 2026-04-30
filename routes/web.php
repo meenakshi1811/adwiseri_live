@@ -125,6 +125,9 @@ Route::get('/delete_siteuser/{id?}/{localtime?}', [App\Http\Controllers\WebContr
 Route::get('/delete_client/{id?}/{localtime?}', [App\Http\Controllers\WebController::class, 'delete_client'])->name('delete_client')->middleware(['auth','check.device']);
 Route::post('/upload_client_doc', [App\Http\Controllers\WebController::class, 'upload_client_doc'])->name('upload_client_doc')->middleware(['auth','check.device']);
 Route::post('/make_payment', [App\Http\Controllers\WebController::class, 'make_payment'])->name('make_payment');
+
+Route::get('/dummy-razorpay-payment', [App\Http\Controllers\RazorpayPaymentController::class, 'create'])->name('razorpay.dummy.create');
+Route::post('/dummy-razorpay-payment', [App\Http\Controllers\RazorpayPaymentController::class, 'store'])->name('razorpay.dummy.store');
 Route::get('/pay_securely', [App\Http\Controllers\WebController::class, 'pay_securely'])->name('pay_securely');
 Route::post('/upgrade_plan', [App\Http\Controllers\WebController::class, 'upgrade_plan'])->name('upgrade_plan');
 Route::post('/downgrade_plan', [App\Http\Controllers\WebController::class, 'downgrade_plan'])->name('downgrade_plan');
