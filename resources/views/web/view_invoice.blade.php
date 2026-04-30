@@ -94,16 +94,20 @@ else{
         cursor: pointer;
     }
 
-    .note-box {
-        background: #f8f9fa;
-        padding: 15px;
-        margin-top: 30px;
-        border-left: 4px solid #0061f2;
-        font-size: 0.95rem;
-    }
-
     .text-right {
         text-align: right;
+    }
+
+    .payment-link-anchor {
+        color: #0d6efd !important;
+        text-decoration: underline !important;
+        word-break: break-all;
+    }
+
+    .payment-link-anchor:hover,
+    .payment-link-anchor:focus {
+        color: #0a58ca !important;
+        text-decoration: underline !important;
     }
 </style>
 
@@ -220,6 +224,14 @@ else{
                 </tr>
             </tbody>
         </table>
+        @php
+            $paymentLink = isset($invoiceSetting->payment_link) ? trim((string) $invoiceSetting->payment_link) : '';
+        @endphp
+        @if(!empty($paymentLink) && filter_var($paymentLink, FILTER_VALIDATE_URL))
+            <p><strong>Payment Link:</strong>
+                <a class="payment-link-anchor" target="_blank" rel="noopener noreferrer" href="{{ $paymentLink }}">{{ $paymentLink }}</a>
+            </p>
+        @endif
         <div style="margin-top: 60px; text-align: center; font-size: 0.9rem; line-height: 1.6;">
             @if($invoice->type === 'ap' && !empty($invoice->uploaded_invoice))
                 <div class="mb-3">
