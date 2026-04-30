@@ -99,7 +99,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <label>Communication Date<span class="text-danger" style="font-size: 18px;">*</span></label>
                         </div>
                         <div class="col-md-8 p-1">
-                            <input type="datetime-local" id="comm_date" max="" onfocus="set_max()" name="communication_date" class="form-control date" required />
+                            <input type="datetime-local" id="comm_date" max="{{ now()->format('Y-m-d\TH:i') }}" value="{{ now()->format('Y-m-d\TH:i') }}" onfocus="set_max()" name="communication_date" class="form-control date" autocomplete="off" required />
                             @error('communication_date')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -198,20 +198,23 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         var maxdate = ""+y+"-"+m+"-"+dd+"T"+hh+":"+mm+":"+ss+"";
         $("#comm_date").attr('max',maxdate);
     }
+    function setCurrentCommunicationDate(){
+        let now = new Date();
+        let year = now.getFullYear();
+        let month = String(now.getMonth() + 1).padStart(2, '0');
+        let day = String(now.getDate()).padStart(2, '0');
+        let hours = String(now.getHours()).padStart(2, '0');
+        let minutes = String(now.getMinutes()).padStart(2, '0');
+        let localDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+        let commDateInput = document.getElementById("comm_date");
+        commDateInput.value = localDateTime;
+        commDateInput.max = localDateTime;
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
-    let now = new Date();
-    
-    // Get local date and time in YYYY-MM-DDTHH:MM format
-    let year = now.getFullYear();
-    let month = String(now.getMonth() + 1).padStart(2, '0'); // Ensure 2-digit format
-    let day = String(now.getDate()).padStart(2, '0');
-    let hours = String(now.getHours()).padStart(2, '0');
-    let minutes = String(now.getMinutes()).padStart(2, '0');
-
-    let localDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
-
-    document.getElementById("comm_date").value = localDateTime;
-});
+        setCurrentCommunicationDate();
+    });
       $(document).ready(() => {
 
         $("#add_new_zero").click(function(){
@@ -223,6 +226,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         });
 
         $("#add_new").click(function(){
+            setCurrentCommunicationDate();
             $("#add_new").css('display','none');
             $("#back").css('display','block');
             $("#new_discussion").css('display','block');
