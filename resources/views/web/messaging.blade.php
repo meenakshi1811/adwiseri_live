@@ -82,9 +82,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 
                                 @if($user->user_type == "Subscriber")
                                 <div class="dropdown-item" style="width: 100%;">
-                                    <input type="checkbox" class="recipient-checkbox" name="sendto[]" value="admin" /> Admin
-                                </div>
-                                <div class="dropdown-item" style="width: 100%;">
                                     <input type="checkbox" class="recipient-checkbox" name="sendto[]" value="all user" /> All User(Staff)
                                 </div>
                                 @else

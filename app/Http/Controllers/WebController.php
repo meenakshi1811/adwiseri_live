@@ -5704,14 +5704,10 @@ class WebController extends Controller
             // dd(  $sendto );
             if ($sendto != null) {
                 if (count($sendto)) {
-                    // Handle sending messages to admin and all users
-                    if (in_array('admin', $sendto)) {
-                        $admin = User::where('user_type', '=', 'admin')->first();
-                        array_push($receiver_id, $admin->id);
-                        array_push($receiver_name, $admin->name);
-                        $admin_index = array_search('admin', $sendto);
-                        array_splice($sendto, $admin_index, 1);
-                    }
+                    // Subscribers can only message their own staff and/or clients (no admin recipients)
+                    $sendto = array_values(array_filter($sendto, function ($recipient) {
+                        return $recipient !== 'admin';
+                    }));
 
                     if (in_array('all user', $sendto)) {
                         $siteusers = User::where('added_by', '=', $subscriber->id)->get();
@@ -5719,8 +5715,8 @@ class WebController extends Controller
                             array_push($receiver_id, $suser->id);
                             array_push($receiver_name, $suser->name);
                         }
-                        $admin_index = array_search('admin', $sendto);
-                        array_splice($sendto, $admin_index, 1);
+                        $all_user_index = array_search('all user', $sendto);
+                        array_splice($sendto, $all_user_index, 1);
                     } else {
                         if (count($sendto)) {
                             foreach ($sendto as $uid) {
