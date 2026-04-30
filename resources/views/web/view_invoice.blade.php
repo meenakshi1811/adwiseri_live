@@ -220,6 +220,16 @@ else{
                 </tr>
             </tbody>
         </table>
+        @php
+            $paymentLink = isset($invoiceSetting->payment_link) ? trim((string) $invoiceSetting->payment_link) : '';
+        @endphp
+        @if(!empty($paymentLink) && filter_var($paymentLink, FILTER_VALIDATE_URL))
+            <div class="note-box">
+                <p><strong>Payment Link:</strong>
+                    <a target="_blank" rel="noopener noreferrer" href="{{ $paymentLink }}">{{ $paymentLink }}</a>
+                </p>
+            </div>
+        @endif
         <div style="margin-top: 60px; text-align: center; font-size: 0.9rem; line-height: 1.6;">
             @if($invoice->type === 'ap' && !empty($invoice->uploaded_invoice))
                 <div class="mb-3">
