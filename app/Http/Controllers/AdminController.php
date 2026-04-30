@@ -3613,7 +3613,7 @@ class AdminController extends Controller
             $validated = $request->validate([
                 'tax' => 'nullable|numeric|min:0|max:100',
                 'discount' => 'nullable|numeric|min:0|max:100',
-                'payment_link' => ['nullable','string','max:2048','regex:/^https?:\/\/.+/i'],
+                'payment_link' => ['nullable','string'],
             ]);
 
             $setting = Invoice_settings::where('user_id',$user->id)->first();
