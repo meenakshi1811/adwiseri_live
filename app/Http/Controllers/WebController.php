@@ -3132,6 +3132,30 @@ class WebController extends Controller
 
     public function add_new_application(Request $request)
     {
+        $normalizeDate = function ($value) {
+            if (!$value) {
+                return null;
+            }
+            try {
+                return \Carbon\Carbon::createFromFormat('Y-m-d', $value)->format('Y-m-d');
+            } catch (\Exception $e) {
+                try {
+                    return \Carbon\Carbon::createFromFormat('d-m-Y', $value)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    return null;
+                }
+            }
+        };
+        $resolveVisaCountry = function ($value) {
+            if (!$value) {
+                return null;
+            }
+            if (is_numeric($value)) {
+                $country = Countries::find($value);
+                return $country ? $country->country_name : null;
+            }
+            return $value;
+        };
         function job_id()
         {
             $ch = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -3150,12 +3174,12 @@ class WebController extends Controller
                 $subscriber = User::find($client->subscriber_id);
                 $application->application_name = $request['job_role'];
                 $application->application_country =  $client->country;
-                $application->visa_country =  $request['visa_country'];
+                $application->visa_country =  $resolveVisaCountry($request['visa_country']);
                 $application->application_detail = $request['job_detail'];
                 $application->application_program = $request['study_program'];
                 $application->application_status = $request['job_status'];
-                $application->start_date = $request['job_open_date'];
-                $application->end_date = $request['job_completion_date'];
+                $application->start_date = $normalizeDate($request['job_open_date']);
+                $application->end_date = $normalizeDate($request['job_completion_date']);
                 $application->save();
                 $activity = new Activities();
                 $activity->subscriber_id = $subscriber->id;
@@ -3183,12 +3207,12 @@ class WebController extends Controller
                     $application->application_subcategory = $subscriber->sub_category;
                     $application->application_name = $request['job_role'];
                     $application->application_country =  $client->country;
-                     $application->visa_country =  $request['visa_country'];
+                     $application->visa_country =  $resolveVisaCountry($request['visa_country']);
                     $application->application_detail = $request['job_detail'];
                     $application->application_program = $request['study_program'];
                     $application->application_status = $request['job_status'];
-                    $application->start_date = $request['job_open_date'];
-                    $application->end_date = $request['job_completion_date'];
+                    $application->start_date = $normalizeDate($request['job_open_date']);
+                    $application->end_date = $normalizeDate($request['job_completion_date']);
                     $application->save();
                     $activity = new Activities();
                     $activity->subscriber_id = $subscriber->id;

@@ -53,10 +53,17 @@
                         <label>Visa Country<span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>
                     <div class="col-md-8 p-1">
+                                @php
+                                    $selectedVisaCountry = old('visa_country')
+                                        ?: ($application->visa_country ?: ($application->client->visa_country ?? $application->application_country));
+                                    if (is_numeric($selectedVisaCountry)) {
+                                        $selectedVisaCountry = optional($countries->firstWhere('id', (int) $selectedVisaCountry))->country_name;
+                                    }
+                                @endphp
                                 <select name="visa_country" id="visa_country" class="form-control form-select @error('visa_country') is-invalid @enderror" aria-describedby="emailHelp" required>
                                     <option value="">Select Visa Country</option>
                                     @foreach($countries as $country)
-                                    <option {{ ((old('visa_country') ?: ($application->visa_country ?: $application->application_country)) == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
+                                    <option {{ (string) $selectedVisaCountry === (string) $country->country_name ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
                                     @endforeach
                                 </select>
                                 @error('visa_country')
@@ -86,10 +93,11 @@
                          class="form-control date @error('job_open_date') is-invalid @enderror"
                           id="job_open_date"  aria-describedby="emailHelp"
                           value="{{ $application->start_date ? \Carbon\Carbon::parse($application->start_date)->format('Y-m-d') : '' }}"
-                          min="{{ date('Y-m-d') }}"
+                          min="{{ $application->start_date ? \Carbon\Carbon::parse($application->start_date)->format('Y-m-d') : date('Y-m-d') }}"
                           {{-- max="{{ date('Y-m-d', strtotime($application->start_date . ' +2 years')) }}" --}}
                           {{-- required placeholder="Application Start Date" autocomplete="job_open_date"> --}}
-                          placeholder="Application Start Date" autocomplete="job_open_date" disabled>
+                          placeholder="Application Start Date" autocomplete="job_open_date" readonly>
+                        <input type="hidden" name="job_open_date" value="{{ $application->start_date ? \Carbon\Carbon::parse($application->start_date)->format('Y-m-d') : '' }}">
 
                     @error('job_open_date')
                         <span class="invalid-feedback" role="alert">
@@ -125,7 +133,7 @@
                         class="form-control date @error('job_completion_date') is-invalid @enderror"
                         id="job_completion_date"
                         aria-describedby="emailHelp"
-                        min="{{  date('Y-m-d') }}"
+                        min="{{ $application->start_date ? \Carbon\Carbon::parse($application->start_date)->format('Y-m-d') : date('Y-m-d') }}"
                         {{-- max="{{ date('Y-m-d', strtotime($application->start_date . ' +2 years')) }}" --}}
                         value="{{ $application->end_date ? \Carbon\Carbon::parse($application->end_date)->format('Y-m-d') : '' }}"
                         placeholder="Application End Date"
@@ -421,36 +429,25 @@
                 }
             });
           });
-            document.getElementById('job_open_date').addEventListener('change', function () {
-        var inputField = this;
-        var inputDate = new Date(inputField.value); // Get the selected date
-        var today = new Date(); // Current date
+            function attachDateValidation(selector, placeholderText) {
+                const inputField = document.querySelector(selector);
+                if (!inputField) return;
+                inputField.addEventListener('change', function () {
+                    var inputDate = new Date(inputField.value);
+                    var today = new Date();
+                    if (inputDate > today) {
+                        inputField.value = "";
+                        inputField.placeholder = "Future dates are not allowed!";
+                        inputField.classList.add('is-invalid');
+                    } else {
+                        inputField.classList.remove('is-invalid');
+                        inputField.placeholder = placeholderText;
+                    }
+                });
+            }
 
-        // Check if the input date is in the future
-        if (inputDate > today) {
-            inputField.value = ""; // Clear the invalid value
-            inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
-            inputField.classList.add('is-invalid'); // Add red border for invalid input
-        } else {
-            inputField.classList.remove('is-invalid'); // Remove error state
-            inputField.placeholder = "Application Start Date"; // Reset placeholder
-        }
-    });
-     document.getElementById('job_completion_date').addEventListener('change', function () {
-        var inputField = this;
-        var inputDate = new Date(inputField.value); // Get the selected date
-        var today = new Date(); // Current date
-
-        // Check if the input date is in the future
-        if (inputDate > today) {
-            inputField.value = ""; // Clear the invalid value
-            inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
-            inputField.classList.add('is-invalid'); // Add red border for invalid input
-        } else {
-            inputField.classList.remove('is-invalid'); // Remove error state
-            inputField.placeholder = "Application End Date"; // Reset placeholder
-        }
-    });
+            attachDateValidation('#job_open_date, #app_start_date', 'Application Start Date');
+            attachDateValidation('#job_completion_date, #app_end_date', 'Application End Date');
 
         $("#client").change(function(){
             var id = $(this).val();
