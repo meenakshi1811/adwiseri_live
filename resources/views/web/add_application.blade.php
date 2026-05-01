@@ -56,7 +56,7 @@
                                 <select name="visa_country" id="visa_country" class="form-control form-select @error('visa_country') is-invalid @enderror" aria-describedby="emailHelp" required>
                                     <option value="">Select Visa Country</option>
                                     @foreach($countries as $country)
-                                    <option {{ ((old('visa_country') ?: $application->visa_country) == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
+                                    <option {{ ((old('visa_country') ?: ($application->visa_country ?: $application->application_country)) == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
                                     @endforeach
                                 </select>
                                 @error('visa_country')
@@ -119,8 +119,8 @@
                         <label>Application End Date</label>
                     </div>
                     <div class="col-md-8 p-1">
-                        {{-- <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date }}" value="{{ $application->end_date }}" placeholder="Application End Date" autocomplete="job_completion_date"> --}}
-                        {{-- <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date }}" value="{{ $application->end_date }}" placeholder="Application End Date" autocomplete="job_completion_date"> --}}
+                        {{-- <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date }}" value="{{ $application->end_date ? \Carbon\Carbon::parse($application->end_date)->format('Y-m-d') : '' }}" placeholder="Application End Date" autocomplete="job_completion_date"> --}}
+                        {{-- <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date }}" value="{{ $application->end_date ? \Carbon\Carbon::parse($application->end_date)->format('Y-m-d') : '' }}" placeholder="Application End Date" autocomplete="job_completion_date"> --}}
                         <input name="job_completion_date" type="date"
                         class="form-control date @error('job_completion_date') is-invalid @enderror"
                         id="job_completion_date"
