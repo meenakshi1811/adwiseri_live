@@ -44,7 +44,7 @@
                             <select name="visa_country" id="visa_country" class="form-control form-select @error('visa_country') is-invalid @enderror" aria-describedby="emailHelp" required>
                                     <option value="">Select Visa Country</option>
                                     @foreach($countries as $country)
-                                    <option {{ ((old('visa_country') ?: ($application->visa_country ?: $application->application_country)) == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
+                                    <option {{ in_array((string) $country->country_name, [(string) (old('visa_country') ?: ($application->visa_country ?: $application->application_country)), (string) $application->visa_country], true) || (string) (old('visa_country') ?: $application->visa_country) === (string) $country->id ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
                                     @endforeach
                                 </select>
                                 @error('visa_country')
