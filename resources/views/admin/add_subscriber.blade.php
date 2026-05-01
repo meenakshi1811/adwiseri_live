@@ -227,7 +227,7 @@
                                         <input type="hidden" name="membership" value="{{ $subscriber->membership }}">
                                         <select name="membership_display" class="form-select" aria-label="Default select example" disabled>
                                             @foreach($membership as $plan)
-                                              <option {{ ($subscriber->membership == $plan->plan_name) ? 'selected' : '' }} value="{{  $plan->plan_name }}">{{  $plan->plan_name." ".$plan->price_per_year." USD, Yearly" }}</option>
+                                              <option {{ ($subscriber->membership == $plan->plan_name) ? 'selected' : '' }} value="{{  $plan->plan_name }}">{{ strtoupper(trim($plan->plan_name)) == 'FREE' ? 'FREE - 30 Days' : $plan->plan_name." ".$plan->price_per_year." USD, Yearly" }}</option>
                                             @endforeach
                                             </select>
                                 </div>
