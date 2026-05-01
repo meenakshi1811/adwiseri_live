@@ -92,12 +92,12 @@
                           type="date"
                          class="form-control date @error('job_open_date') is-invalid @enderror"
                           id="job_open_date"  aria-describedby="emailHelp"
-                          value="{{ $application->start_date ? \Carbon\Carbon::parse($application->start_date)->format('Y-m-d') : '' }}"
-                          min="{{ $application->start_date ? \Carbon\Carbon::parse($application->start_date)->format('Y-m-d') : date('Y-m-d') }}"
+                          value="{{ $application->start_date_input ?: '' }}"
+                          min="{{ $application->start_date_input ?: date('Y-m-d') }}"
                           {{-- max="{{ date('Y-m-d', strtotime($application->start_date . ' +2 years')) }}" --}}
                           {{-- required placeholder="Application Start Date" autocomplete="job_open_date"> --}}
                           placeholder="Application Start Date" autocomplete="job_open_date" readonly>
-                        <input type="hidden" name="job_open_date" value="{{ $application->start_date ? \Carbon\Carbon::parse($application->start_date)->format('Y-m-d') : '' }}">
+                        <input type="hidden" name="job_open_date" value="{{ $application->start_date_input ?: '' }}">
 
                     @error('job_open_date')
                         <span class="invalid-feedback" role="alert">
@@ -127,15 +127,15 @@
                         <label>Application End Date</label>
                     </div>
                     <div class="col-md-8 p-1">
-                        {{-- <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date }}" value="{{ $application->end_date ? \Carbon\Carbon::parse($application->end_date)->format('Y-m-d') : '' }}" placeholder="Application End Date" autocomplete="job_completion_date"> --}}
-                        {{-- <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date }}" value="{{ $application->end_date ? \Carbon\Carbon::parse($application->end_date)->format('Y-m-d') : '' }}" placeholder="Application End Date" autocomplete="job_completion_date"> --}}
+                        {{-- <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date }}" value="{{ $application->end_date_input ?: '' }}" placeholder="Application End Date" autocomplete="job_completion_date"> --}}
+                        {{-- <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date }}" value="{{ $application->end_date_input ?: '' }}" placeholder="Application End Date" autocomplete="job_completion_date"> --}}
                         <input name="job_completion_date" type="date"
                         class="form-control date @error('job_completion_date') is-invalid @enderror"
                         id="job_completion_date"
                         aria-describedby="emailHelp"
-                        min="{{ $application->start_date ? \Carbon\Carbon::parse($application->start_date)->format('Y-m-d') : date('Y-m-d') }}"
+                        min="{{ $application->start_date_input ?: date('Y-m-d') }}"
                         {{-- max="{{ date('Y-m-d', strtotime($application->start_date . ' +2 years')) }}" --}}
-                        value="{{ $application->end_date ? \Carbon\Carbon::parse($application->end_date)->format('Y-m-d') : '' }}"
+                        value="{{ $application->end_date_input ?: '' }}"
                         placeholder="Application End Date"
                         autocomplete="job_completion_date"
                          onfocus="(this.type='date')"

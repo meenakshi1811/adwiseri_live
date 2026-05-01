@@ -75,8 +75,8 @@
                                 <label>Application Start Date<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="job_open_date_display" min="{{ $application->start_date ? \Carbon\Carbon::parse($application->start_date)->format('Y-m-d') : date('Y-m-d') }}" type="date" class="form-control date @error('job_open_date') is-invalid @enderror" id="app_start_date" onchange="document.getElementById('app_end_date').setAttribute('min',this.value);" aria-describedby="emailHelp" value="{{ $application->start_date ? \Carbon\Carbon::parse($application->start_date)->format('Y-m-d') : '' }}" readonly placeholder="Application Start Date" autocomplete="job_open_date">
-                                <input type="hidden" name="job_open_date" value="{{ $application->start_date ? \Carbon\Carbon::parse($application->start_date)->format('Y-m-d') : '' }}">
+                                <input name="job_open_date_display" min="{{ $application->start_date_input ?: date('Y-m-d') }}" type="date" class="form-control date @error('job_open_date') is-invalid @enderror" id="app_start_date" onchange="document.getElementById('app_end_date').setAttribute('min',this.value);" aria-describedby="emailHelp" value="{{ $application->start_date_input ?: '' }}" readonly placeholder="Application Start Date" autocomplete="job_open_date">
+                                <input type="hidden" name="job_open_date" value="{{ $application->start_date_input ?: '' }}">
                             @error('job_open_date')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -105,7 +105,7 @@
                                 <label>Application End Date</label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date ? \Carbon\Carbon::parse($application->start_date)->format('Y-m-d') : date('Y-m-d') }}" value="{{ $application->end_date ? \Carbon\Carbon::parse($application->end_date)->format('Y-m-d') : '' }}" placeholder="Application End Date" autocomplete="job_completion_date">
+                                <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date_input ?: date('Y-m-d') }}" value="{{ $application->end_date_input ?: '' }}" placeholder="Application End Date" autocomplete="job_completion_date">
                             @error('job_completion_date')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
