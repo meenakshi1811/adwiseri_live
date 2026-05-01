@@ -102,6 +102,8 @@ else{
         color: #0d6efd !important;
         text-decoration: underline !important;
         word-break: break-all;
+        border: none !important;
+        background: none !important;
     }
 
     .payment-link-anchor:hover,
