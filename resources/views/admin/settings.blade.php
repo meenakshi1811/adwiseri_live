@@ -255,7 +255,7 @@
 
                                 </div>
                                 <div class="col-md-6 text-right">
-                                <button type="submit" class="btn btn-primary" id="save-offers-settings">Add New Service</button>
+                                <button type="submit" class="btn btn-primary" id="save-offers-settings">Apply &amp; Save</button>
                             </div>
                         </div>
 
