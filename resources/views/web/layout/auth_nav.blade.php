@@ -285,7 +285,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 @if($user->user_type == "admin" || ($subscription_roles->read_only == 1 or $subscription_roles->read_write_only == 1))
                 <a href="{{ route('user_membership') }}" @if($page == "user_membership") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
                       <span class="sidebar-menu-icon">
-                      <i class="fas fa-dollar-sign"></i> <!-- Font Awesome icon -->
+                      <i class="fa-solid fa-money-bill-wave"></i> <!-- Font Awesome icon -->
                       </span>
                       Subscription
                   </a>
