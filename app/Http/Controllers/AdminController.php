@@ -2537,10 +2537,22 @@ class AdminController extends Controller
                     ->editColumn('created_at', function ($row) {
                         return date("d-m-Y H:i:s", strtotime($row->created_at));
                     })
+                    ->addColumn('attachment', function ($row) {
+                        if (!$row->attachment) {
+                            return 'N/A';
+                        }
+
+                        $attachmentPath = 'web_assets/users/ticket_images/' . $row->attachment;
+                        if (!file_exists($attachmentPath)) {
+                            return 'File missing';
+                        }
+
+                        return '<a href="' . asset($attachmentPath) . '" target="_blank" download="' . e($row->attachment) . '">View/Download</a>';
+                    })
                     ->addColumn('action', function ($row) {
                         return '<a style="background:none; border:none;" onclick="window.location.href = "' . route('view_query', $row->id) . '"";" class="m-0 p-0"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>';
                     })
-                    ->rawColumns(['status', 'action', 'issue'])
+                    ->rawColumns(['status', 'action', 'issue', 'attachment'])
                     ->make(true);
             }
             return view('admin.manage_support', compact('user', 'tickets', 'page','supportStaff'));

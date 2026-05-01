@@ -5347,6 +5347,7 @@ class WebController extends Controller
             $maildata->date = $data['created_at'];
             $maildata->issue = $data['issue'];
             $maildata->attachment = $data['attachment'];
+            $maildata->attachment_label = $data['attachment'] ? ('Attached (' . $data['attachment'] . ')') : 'No attachment';
             $maildata->contact = "True";
             Mail::to("seimpex1@gmail.com")->send(new SupportMail($maildata));
             if (Mail::failures()) {
