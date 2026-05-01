@@ -257,16 +257,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .affiliate-copy-wrap {
     position: absolute;
     top: 50%;
-    left: 34%;
-    right: 38%;
-    transform: translateY(-50%);
+    left: 50%;
+    transform: translate(-50%, -50%);
     color: #fff;
-    text-align: left;
-    width: auto;
+    text-align: center;
+    width: min(90vw, 420px);
 }
 
 .affiliate-copy-text {
-    margin-bottom: 0;
+    margin: 0;
+    line-height: 1.4;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .affiliate-copy-text a {
@@ -277,9 +279,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 @media (max-width: 991px) {
     .affiliate-copy-wrap {
-        left: 10%;
-        right: 10%;
-        width: 80%;
+        width: min(86vw, 360px);
     }
 }
 
@@ -290,10 +290,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     }
 
     .affiliate-copy-wrap {
-        left: 8%;
-        right: 8%;
-        width: 84%;
-        text-align: left;
+        width: min(86vw, 320px);
     }
     .logo-fix{
         width: 100px;
