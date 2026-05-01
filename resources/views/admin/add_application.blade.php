@@ -41,10 +41,17 @@
                                 <label>Visa Country<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
+                            @php
+                                $selectedVisaCountry = old('visa_country')
+                                    ?: ($application->visa_country ?: ($application->client->visa_country ?? $application->application_country));
+                                if (is_numeric($selectedVisaCountry)) {
+                                    $selectedVisaCountry = optional($countries->firstWhere('id', (int) $selectedVisaCountry))->country_name;
+                                }
+                            @endphp
                             <select name="visa_country" id="visa_country" class="form-control form-select @error('visa_country') is-invalid @enderror" aria-describedby="emailHelp" required>
                                     <option value="">Select Visa Country</option>
                                     @foreach($countries as $country)
-                                    <option {{ ((old('visa_country') ?: ($application->visa_country ?: $application->application_country)) == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
+                                    <option {{ (string) $selectedVisaCountry === (string) $country->country_name ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
                                     @endforeach
                                 </select>
                                 @error('visa_country')
@@ -68,7 +75,8 @@
                                 <label>Application Start Date<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="job_open_date" min="{{date('Y-m-d')}}" type="date" class="form-control date @error('job_open_date') is-invalid @enderror" id="app_start_date" onchange="document.getElementById('app_end_date').setAttribute('min',this.value);" aria-describedby="emailHelp" value="{{ $application->start_date ? \Carbon\Carbon::parse($application->start_date)->format('Y-m-d') : '' }}" disabled placeholder="Application Start Date" autocomplete="job_open_date">
+                                <input name="job_open_date_display" min="{{ $application->start_date_input ?: date('Y-m-d') }}" type="date" class="form-control date @error('job_open_date') is-invalid @enderror" id="app_start_date" onchange="document.getElementById('app_end_date').setAttribute('min',this.value);" aria-describedby="emailHelp" value="{{ $application->start_date_input ?: '' }}" readonly placeholder="Application Start Date" autocomplete="job_open_date">
+                                <input type="hidden" name="job_open_date" value="{{ $application->start_date_input ?: '' }}">
                             @error('job_open_date')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -97,7 +105,7 @@
                                 <label>Application End Date</label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date }}" value="{{ $application->end_date ? \Carbon\Carbon::parse($application->end_date)->format('Y-m-d') : '' }}" placeholder="Application End Date" autocomplete="job_completion_date">
+                                <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date_input ?: date('Y-m-d') }}" value="{{ $application->end_date_input ?: '' }}" placeholder="Application End Date" autocomplete="job_completion_date">
                             @error('job_completion_date')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -314,6 +322,9 @@
                 }
             });
           });
+          const clientEl = document.getElementById('client');
+          const isClientSelect = clientEl && clientEl.tagName === 'SELECT';
+
           $("#client").change(function(){
             var id = $(this).val();
             // console.log(counrty);
@@ -344,42 +355,28 @@
                 },
                 cache:false,
                 success: function(data){
-                  console.log(data);
-                    $("#visa_country").val(data);
+                    if (data) {
+                        $("#visa_country").val(data);
+                    }
                 }
             });
           });
 
-          document.getElementById('job_open_date').addEventListener('change', function () {
-        var inputField = this;
-        var inputDate = new Date(inputField.value); // Get the selected date
-        var today = new Date(); // Current date
-
-        // Check if the input date is in the future
-        if (inputDate > today) {
-            inputField.value = ""; // Clear the invalid value
-            inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
-            inputField.classList.add('is-invalid'); // Add red border for invalid input
-        } else {
-            inputField.classList.remove('is-invalid'); // Remove error state
-            inputField.placeholder = "Application Start Date"; // Reset placeholder
-        }
-    });
-     document.getElementById('job_completion_date').addEventListener('change', function () {
-        var inputField = this;
-        var inputDate = new Date(inputField.value); // Get the selected date
-        var today = new Date(); // Current date
-
-        // Check if the input date is in the future
-        if (inputDate > today) {
-            inputField.value = ""; // Clear the invalid value
-            inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
-            inputField.classList.add('is-invalid'); // Add red border for invalid input
-        } else {
-            inputField.classList.remove('is-invalid'); // Remove error state
-            inputField.placeholder = "Application End Date"; // Reset placeholder
-        }
-    });
+          if (isClientSelect && clientEl.value) {
+            $.ajax({
+                url: '/fetch_visa_country/' + clientEl.value,
+                method: 'GET',
+                data: {
+                    "_token": "{{ csrf_token() }}",
+                },
+                cache:false,
+                success: function(data){
+                    if (data) {
+                        $("#visa_country").val(data);
+                    }
+                }
+            });
+          }
       });
   </script>
   <script>

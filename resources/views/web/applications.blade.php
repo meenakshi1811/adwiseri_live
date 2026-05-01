@@ -76,7 +76,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <td class="p-1 text-center">{{ $key+1}}</td>
                             <td class="p-1 text-center">{{ $app->client ? $app->client->name .'('.$app->client_id.')' :  '' }}</td>
                             <td class="p-1 text-center">{{  $app->application_name  .'('.$app->application_id.')'}}</td>
-                            <td class="p-1 text-center">{{ $app->visa_country }}</td>
+                            <td class="p-1 text-center">{{ $app->visa_country ?: ($app->client->visa_country ?? '') }}</td>
                             <td class="p-1 text-center">{{ $app->application_country }}</td>
                             <td class="p-1 text-center">{{ $app->application_status }}</td>
                             <td class="p-1 text-center">{{ $app->formatted_start_date }}</td>
