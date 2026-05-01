@@ -358,36 +358,24 @@
             });
           });
 
-          document.getElementById('job_open_date').addEventListener('change', function () {
-        var inputField = this;
-        var inputDate = new Date(inputField.value); // Get the selected date
-        var today = new Date(); // Current date
-
-        // Check if the input date is in the future
-        if (inputDate > today) {
-            inputField.value = ""; // Clear the invalid value
-            inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
-            inputField.classList.add('is-invalid'); // Add red border for invalid input
-        } else {
-            inputField.classList.remove('is-invalid'); // Remove error state
-            inputField.placeholder = "Application Start Date"; // Reset placeholder
-        }
-    });
-     document.getElementById('job_completion_date').addEventListener('change', function () {
-        var inputField = this;
-        var inputDate = new Date(inputField.value); // Get the selected date
-        var today = new Date(); // Current date
-
-        // Check if the input date is in the future
-        if (inputDate > today) {
-            inputField.value = ""; // Clear the invalid value
-            inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
-            inputField.classList.add('is-invalid'); // Add red border for invalid input
-        } else {
-            inputField.classList.remove('is-invalid'); // Remove error state
-            inputField.placeholder = "Application End Date"; // Reset placeholder
-        }
-    });
+          function attachDateValidation(selector, placeholderText) {
+            const inputField = document.querySelector(selector);
+            if (!inputField) return;
+            inputField.addEventListener('change', function () {
+                var inputDate = new Date(inputField.value);
+                var today = new Date();
+                if (inputDate > today) {
+                    inputField.value = "";
+                    inputField.placeholder = "Future dates are not allowed!";
+                    inputField.classList.add('is-invalid');
+                } else {
+                    inputField.classList.remove('is-invalid');
+                    inputField.placeholder = placeholderText;
+                }
+            });
+          }
+          attachDateValidation('#job_open_date, #app_start_date', 'Application Start Date');
+          attachDateValidation('#job_completion_date, #app_end_date', 'Application End Date');
       });
   </script>
   <script>
