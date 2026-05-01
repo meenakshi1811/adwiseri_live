@@ -352,8 +352,10 @@
   <script>
       $(document).ready(() => {
 
-        var id = document.getElementById('client').value;
-        if(id != ''){
+        const clientEl = document.getElementById('client');
+        var id = clientEl ? clientEl.value : '';
+        const isClientSelect = clientEl && clientEl.tagName === 'SELECT';
+        if(isClientSelect && id != ''){
             $.ajax({
                 url: '/fetch_visa_country/' + id,
                 method: 'GET',
@@ -363,8 +365,9 @@
                 },
                 cache:false,
                 success: function(data){
-                  console.log(data);
-                    $("#visa_country").val(data);
+                    if (data) {
+                        $("#visa_country").val(data);
+                    }
                 }
             });
         }
@@ -382,7 +385,9 @@
                 cache:false,
                 success: function(data){
                   console.log(data);
-                    $("#visa_country").val(data);
+                    if (data) {
+                        $("#visa_country").val(data);
+                    }
                 }
             });
           });
@@ -429,25 +434,7 @@
                 }
             });
           });
-            function attachDateValidation(selector, placeholderText) {
-                const inputField = document.querySelector(selector);
-                if (!inputField) return;
-                inputField.addEventListener('change', function () {
-                    var inputDate = new Date(inputField.value);
-                    var today = new Date();
-                    if (inputDate > today) {
-                        inputField.value = "";
-                        inputField.placeholder = "Future dates are not allowed!";
-                        inputField.classList.add('is-invalid');
-                    } else {
-                        inputField.classList.remove('is-invalid');
-                        inputField.placeholder = placeholderText;
-                    }
-                });
-            }
-
-            attachDateValidation('#job_open_date, #app_start_date', 'Application Start Date');
-            attachDateValidation('#job_completion_date, #app_end_date', 'Application End Date');
+            // Keep server-rendered dates/country intact on edit load; no client-side auto-clearing here.
 
         $("#client").change(function(){
             var id = $(this).val();

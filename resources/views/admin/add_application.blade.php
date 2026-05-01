@@ -322,6 +322,9 @@
                 }
             });
           });
+          const clientEl = document.getElementById('client');
+          const isClientSelect = clientEl && clientEl.tagName === 'SELECT';
+
           $("#client").change(function(){
             var id = $(this).val();
             // console.log(counrty);
@@ -352,30 +355,28 @@
                 },
                 cache:false,
                 success: function(data){
-                  console.log(data);
-                    $("#visa_country").val(data);
+                    if (data) {
+                        $("#visa_country").val(data);
+                    }
                 }
             });
           });
 
-          function attachDateValidation(selector, placeholderText) {
-            const inputField = document.querySelector(selector);
-            if (!inputField) return;
-            inputField.addEventListener('change', function () {
-                var inputDate = new Date(inputField.value);
-                var today = new Date();
-                if (inputDate > today) {
-                    inputField.value = "";
-                    inputField.placeholder = "Future dates are not allowed!";
-                    inputField.classList.add('is-invalid');
-                } else {
-                    inputField.classList.remove('is-invalid');
-                    inputField.placeholder = placeholderText;
+          if (isClientSelect && clientEl.value) {
+            $.ajax({
+                url: '/fetch_visa_country/' + clientEl.value,
+                method: 'GET',
+                data: {
+                    "_token": "{{ csrf_token() }}",
+                },
+                cache:false,
+                success: function(data){
+                    if (data) {
+                        $("#visa_country").val(data);
+                    }
                 }
             });
           }
-          attachDateValidation('#job_open_date, #app_start_date', 'Application Start Date');
-          attachDateValidation('#job_completion_date, #app_end_date', 'Application End Date');
       });
   </script>
   <script>
