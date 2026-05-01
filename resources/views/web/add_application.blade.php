@@ -85,7 +85,7 @@
                           type="date"
                          class="form-control date @error('job_open_date') is-invalid @enderror"
                           id="job_open_date"  aria-describedby="emailHelp"
-                          value="{{ date('Y-m-d', strtotime($application->start_date)) }}"
+                          value="{{ $application->start_date ? \Carbon\Carbon::parse($application->start_date)->format('Y-m-d') : '' }}"
                           min="{{ date('Y-m-d') }}"
                           {{-- max="{{ date('Y-m-d', strtotime($application->start_date . ' +2 years')) }}" --}}
                           {{-- required placeholder="Application Start Date" autocomplete="job_open_date"> --}}
@@ -127,7 +127,7 @@
                         aria-describedby="emailHelp"
                         min="{{  date('Y-m-d') }}"
                         {{-- max="{{ date('Y-m-d', strtotime($application->start_date . ' +2 years')) }}" --}}
-                        value="{{ date('Y-m-d', strtotime($application->end_date)) }}"
+                        value="{{ $application->end_date ? \Carbon\Carbon::parse($application->end_date)->format('Y-m-d') : '' }}"
                         placeholder="Application End Date"
                         autocomplete="job_completion_date"
                          onfocus="(this.type='date')"
