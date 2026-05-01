@@ -24,16 +24,16 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 <div class="col-12 d-flex justify-content-between align-items-center mt-3  mb-3">
                     <h3 class="text-primary text-center flex-grow-1 text-center m-0">Applications</h3>
                     <p>
+                        @if(count($clients) > 0)
+                        <a @if($application_roles->write_only == 1 or $application_roles->read_write_only == 1) href="{{ route('add_application') }}" @else href="#" @endif>Add New</a>
+                        @else
+                        <a @if($application_roles->write_only == 1 or $application_roles->read_write_only == 1) href="{{ route('add_client') }}" @else href="#" @endif>Add New</a>
+                        @endif
                         <a href="{{ route('export_applications') }}">Export</a>
-                  @if(count($clients) > 0)
-                  <a @if($application_roles->write_only == 1 or $application_roles->read_write_only == 1) href="{{ route('add_application') }}" @else href="#" @endif>Add New</a>
-                  @else
-                  <a @if($application_roles->write_only == 1 or $application_roles->read_write_only == 1) href="{{ route('add_client') }}" @else href="#" @endif>Add New</a>
-                  @endif
-                  @if($user->user_type == 'Subscriber')
+                        @if($user->user_type == 'Subscriber')
 
-                  @endif
-                </p>
+                        @endif
+                    </p>
                 </div>
               <div class="row m-0 pb-2">
                 <div class="col-3 border p-1 text-center bg-info text-white">
