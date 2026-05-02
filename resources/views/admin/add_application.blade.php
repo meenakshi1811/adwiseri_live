@@ -16,21 +16,18 @@
                         <input type="hidden" name="id" value="{{ $application->id }}" />
                         <div class="row">
                             <div class="col-md-4 p-1">
-                                <label>Client ID<span class="text-danger" style="font-size: 18px;">*</span></label>
+                                <label>Client (ID)<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input type="text" name="client" id="client" required readonly value="{{ $application->client_id }}" class="form-control @error('client') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp">
+                                <input type="text" name="client" id="client" required readonly value="{{ ($application->client->name ?? 'N/A') . ' (' . $application->client_id . ')' }}" class="form-control @error('client') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp">
+                                <input type="hidden" name="client_id" value="{{ $application->client_id }}">
                             </div>
                             <div class="col-md-4 p-1">
-                                <label>Application Type<span class="text-danger" style="font-size: 18px;">*</span></label>
+                                <label>Application (ID)<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <select name="job_role" id="job_role" class="form-control form-select @error('job_role') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
-                                    <option value="">Select Application Type</option>
-                                    @foreach($job_roles as $job)
-                                    <option {{ ($job->job == $application->application_name) ? 'selected' : '' }} value="{{ $job->job }}">{{ $job->job }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="text" readonly value="{{ $application->application_name }} ({{ $application->id }})" class="form-control">
+                                <input type="hidden" name="job_role" value="{{ $application->application_name }}">
                                 @error('job_role')
                                     <span class="invalid-feedback" role="alert">
                                         <strong>{{ $message }}</strong>
@@ -75,7 +72,7 @@
                                 <label>Application Start Date<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="job_open_date_display" min="{{ $application->start_date_input ?: date('Y-m-d') }}" type="date" class="form-control date @error('job_open_date') is-invalid @enderror" id="app_start_date" onchange="document.getElementById('app_end_date').setAttribute('min',this.value);" aria-describedby="emailHelp" value="{{ $application->start_date_input ?: '' }}" readonly placeholder="Application Start Date" autocomplete="job_open_date">
+                                <input name="job_open_date_display" min="{{ $application->start_date_input ?: date('Y-m-d') }}" type="date" class="form-control date @error('job_open_date') is-invalid @enderror" id="app_start_date" onchange="document.getElementById('app_end_date').setAttribute('min',this.value);" aria-describedby="emailHelp" value="{{ $application->start_date_input ?: '' }}" readonly style="background-color: #fff;" placeholder="Application Start Date" autocomplete="job_open_date">
                                 <input type="hidden" name="job_open_date" value="{{ $application->start_date_input ?: '' }}">
                             @error('job_open_date')
                                 <span class="invalid-feedback" role="alert">
