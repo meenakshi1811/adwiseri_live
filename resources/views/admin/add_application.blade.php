@@ -288,21 +288,21 @@
   <script>
       $(document).ready(() => {
         var id = document.getElementById('client').value;
-        if(id != ''){
-            $.ajax({
-                url: '/fetch_visa_country/' + id,
-                method: 'GET',
-                data: {
-                    "_token": "{{ csrf_token() }}",
-                    // id: id,
-                },
-                cache:false,
-                success: function(data){
-                  console.log(data);
-                    $("#visa_country").val(data);
-                }
-            });
-        }
+        // if(id != ''){
+        //     $.ajax({
+        //         url: '/fetch_visa_country/' + id,
+        //         method: 'GET',
+        //         data: {
+        //             "_token": "{{ csrf_token() }}",
+        //             // id: id,
+        //         },
+        //         cache:false,
+        //         success: function(data){
+        //           console.log(data);
+        //             $("#visa_country").val(data);
+        //         }
+        //     });
+        // }
           //
         // alert(document.getElementById('client').value);
           $("#country").change(function(){
