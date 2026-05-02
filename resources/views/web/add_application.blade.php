@@ -57,7 +57,7 @@
                                         $selectedVisaCountry = optional($countries->firstWhere('id', (int) $selectedVisaCountry))->country_name;
                                     }
                                 @endphp
-                                <select name="visa_country" id="visa_country" class="form-control form-select @error('visa_country') is-invalid @enderror" style="background-color: #fff;" aria-describedby="emailHelp" required>
+                                <select name="visa_country" id="visa_country" class="form-control form-select @error('visa_country') is-invalid @enderror" style="background-color: #fff; color:#000 !important;" aria-describedby="emailHelp" required>
                                     <option value="">Select Visa Country</option>
                                     @foreach($countries as $country)
                                     <option {{ (string) $selectedVisaCountry === (string) $country->country_name ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
@@ -106,7 +106,7 @@
                         <label>Application Status<span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>
                     <div class="col-md-8 p-1">
-                        <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="exampleInputEmail1" style="background-color: #fff;" aria-describedby="emailHelp" required>
+                        <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="exampleInputEmail1" style="background-color: #fff; color:#000 !important;" aria-describedby="emailHelp" required>
                             <option value="">Select Application Status</option>
                             <option {{ ($application->application_status == "Pending") ? 'selected' : '' }} value="Pending">Pending (For submission)</option>
                             <option {{ ($application->application_status == "In Process") ? 'selected' : '' }} value="In Process">In Process (Waiting for decision)</option>
