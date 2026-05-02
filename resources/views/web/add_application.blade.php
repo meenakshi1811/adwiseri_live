@@ -90,11 +90,7 @@
                          class="form-control date @error('job_open_date') is-invalid @enderror"
                           id="job_open_date"  aria-describedby="emailHelp"
                           value="{{ $application->start_date_input ?: '' }}"
-                          min="{{ $application->start_date_input ?: date('Y-m-d') }}"
-                          {{-- max="{{ date('Y-m-d', strtotime($application->start_date . ' +2 years')) }}" --}}
-                          {{-- required placeholder="Application Start Date" autocomplete="job_open_date"> --}}
-                          placeholder="Application Start Date" autocomplete="job_open_date" readonly style="background-color: #fff;">
-                        <input type="hidden" name="job_open_date" value="{{ $application->start_date_input ?: '' }}">
+                          placeholder="Application Start Date" autocomplete="job_open_date" style="background-color: #fff;">
 
                     @error('job_open_date')
                         <span class="invalid-feedback" role="alert">
@@ -130,13 +126,10 @@
                         class="form-control date @error('job_completion_date') is-invalid @enderror"
                         id="job_completion_date"
                         aria-describedby="emailHelp"
-                        min="{{ $application->start_date_input ?: date('Y-m-d') }}"
-                        {{-- max="{{ date('Y-m-d', strtotime($application->start_date . ' +2 years')) }}" --}}
+                        min="{{ $application->start_date_input ?: '' }}"
                         value="{{ $application->end_date_input ?: '' }}"
                         placeholder="Application End Date"
                         autocomplete="job_completion_date"
-                         onfocus="(this.type='date')"
-                        onblur="(this.type='text')"
                         />     @error('job_completion_date')
                         <span class="invalid-feedback" role="alert">
                             <strong>{{ $message }}</strong>
