@@ -1020,6 +1020,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     right: -55px;
 }
 
+
+.discount-offer-card {
+    width: 100%;
+    max-width: 400px;
+    min-height: 280px;
+    height: 280px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
 @media (max-width:560px) {
     .owl-carousel .nav-btn {
         display: none;
