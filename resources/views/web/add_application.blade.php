@@ -17,21 +17,18 @@
                 <input type="hidden" name="local_time" class="localtime" />
                 <div class="row">
                     <div class="col-md-4 p-1">
-                        <label>Client ID<span class="text-danger" style="font-size: 18px;">*</span><i class="fa-solid fa-esterisk"></i></label>
+                        <label>Client (ID)<span class="text-danger" style="font-size: 18px;">*</span><i class="fa-solid fa-esterisk"></i></label>
                     </div>
                     <div class="col-md-8 p-1">
-                        <input type="text" name="client" id="client" required readonly value="{{ $application->client_id }}" class="form-control @error('client') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp">
+                        <input type="text" name="client" id="client" required readonly value="{{ ($application->client->name ?? 'N/A') . ' (' . $application->client_id . ')' }}" class="form-control @error('client') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp">
+                        <input type="hidden" name="client_id" value="{{ $application->client_id }}">
                     </div>
                     <div class="col-md-4 p-1">
-                        <label>Application Type<span class="text-danger" style="font-size: 18px;">*</span></label>
+                        <label>Application (ID)<span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>
                     <div class="col-md-8 p-1">
-                                <select name="job_role" id="job_role" class="form-control form-select @error('job_role') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
-                                    <option value="">Select Application Type</option>
-                                    @foreach($job_roles as $job)
-                                    <option {{ ($job->job == $application->application_name) ? 'selected' : '' }} value="{{ $job->job }}">{{ $job->job }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="text" readonly value="{{ $application->application_name }} ({{ $application->id }})" class="form-control">
+                                <input type="hidden" name="job_role" value="{{ $application->application_name }}">
                                 @error('job_role')
                                     <span class="invalid-feedback" role="alert">
                                         <strong>{{ $message }}</strong>
@@ -96,7 +93,7 @@
                           min="{{ $application->start_date_input ?: date('Y-m-d') }}"
                           {{-- max="{{ date('Y-m-d', strtotime($application->start_date . ' +2 years')) }}" --}}
                           {{-- required placeholder="Application Start Date" autocomplete="job_open_date"> --}}
-                          placeholder="Application Start Date" autocomplete="job_open_date" readonly>
+                          placeholder="Application Start Date" autocomplete="job_open_date" readonly style="background-color: #fff;">
                         <input type="hidden" name="job_open_date" value="{{ $application->start_date_input ?: '' }}">
 
                     @error('job_open_date')
