@@ -1544,7 +1544,7 @@ class AdminController extends Controller
         if ($user) {
             $application = Applications::find($request->id);
             if ($application) {
-                $client = Clients::find($request->client);
+                $client = Clients::find($request->client_id);
                 if (!$client) {
                     return back()->withErrors(['client' => 'Selected client was not found.']);
                 }

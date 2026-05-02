@@ -3170,7 +3170,7 @@ class WebController extends Controller
         if ($user) {
             $application = Applications::find($request->id);
             if ($application) {
-                $client = Clients::find($request->client);
+                $client = Clients::find($request->client_id);
                 $subscriber = User::find($client->subscriber_id);
                 $application->application_name = $request['job_role'];
                 $application->application_country =  $client->country;

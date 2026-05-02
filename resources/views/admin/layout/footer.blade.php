@@ -55,7 +55,7 @@
       });
   </script>
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
+  document.addEventListener('DOMContentLoaded', function () {
       const dateInputs = document.querySelectorAll('input.date, input.datepicker, input[type="date"]');
 
       dateInputs.forEach((input) => {
