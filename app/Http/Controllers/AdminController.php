@@ -1545,7 +1545,15 @@ class AdminController extends Controller
             $application = Applications::find($request->id);
             if ($application) {
                 $client = Clients::find($request->client);
+                if (!$client) {
+                    return back()->withErrors(['client' => 'Selected client was not found.']);
+                }
+
                 $subscriber = User::find($client->subscriber_id);
+                if (!$subscriber) {
+                    return back()->withErrors(['subscriber' => 'Subscriber for the selected client was not found.']);
+                }
+
                 $application->application_name = $request['job_role'];
                 $application->application_country =  $client->country;
                 $application->visa_country = $resolveVisaCountry($request['visa_country']);
@@ -1568,6 +1576,10 @@ class AdminController extends Controller
                 $client = Clients::find($request->client);
                 if ($client) {
                     $subscriber = User::find($client->subscriber_id);
+                    if (!$subscriber) {
+                        return back()->withErrors(['subscriber' => 'Subscriber for the selected client was not found.']);
+                    }
+
                     $application = new Applications();
                     $application->client_id = $client->id;
                     $application->subscriber_id = $subscriber->id;
