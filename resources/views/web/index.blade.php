@@ -425,7 +425,7 @@
                     <h1 class="">Client Review</h1>
                 </div>
                 <div class="row owl-carousel owl-theme mt-5" id="testimonials">
-                    <div class="col-4 card discount-offer-card">
+                    <div class="col-4 card" style="width:400px;">
 
                         <div class="text-img d-flex">
                             <div class="test-image">
@@ -445,7 +445,7 @@
 
                         </div>
                     </div>
-                    <div class="col-4 card discount-offer-card">
+                    <div class="col-4 card" style="width:400px;">
 
                         <div class="text-img d-flex">
                             <div class="test-image">
@@ -465,7 +465,7 @@
 
                         </div>
                     </div>
-                    <div class="col-4 card discount-offer-card">
+                    <div class="col-4 card" style="width:400px;">
 
                         <div class="text-img d-flex">
                             <div class="test-image">
@@ -485,7 +485,7 @@
 
                         </div>
                     </div>
-                    <div class="col-4 card discount-offer-card">
+                    <div class="col-4 card" style="width:400px;">
 
                         <div class="text-img d-flex">
                             <div class="test-image">
@@ -550,7 +550,7 @@
             <h1 class="text-center mb-4">Discounts & Offers</h1>
                 <div class="row owl-carousel owl-theme mt-5" id="testimonials">
                 @foreach($discounts as $discount)
-                    <div class="col-4 card discount-offer-card">
+                    <div class="col-4 card" style="width:400px;">
 
                         <div class="text-img d-flex">
                             <div class="test-image">
