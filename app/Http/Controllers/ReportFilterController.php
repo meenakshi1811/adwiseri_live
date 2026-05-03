@@ -66,12 +66,37 @@ class ReportFilterController extends Controller
             return $isEndDate ? Carbon::now()->endOfDay() : Carbon::now()->startOfDay();
         }
 
-        try {
-            $date = Carbon::createFromFormat('d-m-Y', $value);
-        } catch (\Throwable $e) {
-            $date = Carbon::parse($value);
+        $normalizedValue = str_replace(['/', '.'], '-', $value);
+
+        $supportedFormats = [
+            'd-m-Y',
+            'Y-m-d',
+            'm-d-Y',
+            'Y-n-j',
+            'j-n-Y',
+            'n-j-Y',
+        ];
+
+        foreach ($supportedFormats as $format) {
+            try {
+                $date = Carbon::createFromFormat($format, $normalizedValue);
+                if ($date !== false) {
+                    return $isEndDate ? $date->endOfDay() : $date->startOfDay();
+                }
+            } catch (\Throwable $e) {
+                // Try next format.
+            }
         }
 
+        if (preg_match('/^\d{1,2}$/', $normalizedValue)) {
+            $month = (int) $normalizedValue;
+            if ($month >= 1 && $month <= 12) {
+                $date = Carbon::create(Carbon::now()->year, $month, 1);
+                return $isEndDate ? $date->endOfMonth()->endOfDay() : $date->startOfMonth()->startOfDay();
+            }
+        }
+
+        $date = Carbon::parse($value);
         return $isEndDate ? $date->endOfDay() : $date->startOfDay();
     }
 
