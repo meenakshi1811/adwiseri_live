@@ -111,6 +111,13 @@ class WebController extends Controller
             }
         }
 
+        if (is_string($value) && preg_match('/^\d{1,2}$/', $value)) {
+            $month = (int) $value;
+            if ($month >= 1 && $month <= 12) {
+                return Carbon::create(Carbon::now()->year, $month, 1)->format('Y-m-d');
+            }
+        }
+
         try {
             return Carbon::parse((string) $value)->format('Y-m-d');
         } catch (\Exception $exception) {
@@ -1592,8 +1599,8 @@ class WebController extends Controller
             return redirect()->route('membership')->with('membership_expiry', 'Membership has expired.');
         } else {
             if (request()->ajax()) {
-                $startDate = Carbon::parse(request()->startdate)->startOfDay();
-                $endDate = Carbon::parse(request()->enddate)->endOfDay();
+                $startDate = Carbon::parse($this->normalizeDateValue(request()->startdate) ?? request()->startdate)->startOfDay();
+                $endDate = Carbon::parse($this->normalizeDateValue(request()->enddate) ?? request()->enddate)->endOfDay();
 
                 $siteusers = $siteusers->whereBetween('created_at', [$startDate, $endDate]);
                 return DataTables::of($siteusers)
@@ -2922,8 +2929,8 @@ class WebController extends Controller
                 }
 
 
-                $startDate = Carbon::parse(request()->startdate)->startOfDay();
-                $endDate = Carbon::parse(request()->enddate)->endOfDay();
+                $startDate = Carbon::parse($this->normalizeDateValue(request()->startdate) ?? request()->startdate)->startOfDay();
+                $endDate = Carbon::parse($this->normalizeDateValue(request()->enddate) ?? request()->enddate)->endOfDay();
 
 
                 $applications = $applications->whereBetween('created_at', [$startDate, $endDate]);
@@ -3725,8 +3732,8 @@ class WebController extends Controller
             }
             $page = "wallet";
             if (request()->ajax()) {
-                $startDate = Carbon::parse(request()->startdate)->startOfDay();
-                $endDate = Carbon::parse(request()->enddate)->endOfDay();
+                $startDate = Carbon::parse($this->normalizeDateValue(request()->startdate) ?? request()->startdate)->startOfDay();
+                $endDate = Carbon::parse($this->normalizeDateValue(request()->enddate) ?? request()->enddate)->endOfDay();
 
                 if (request()->tableName == 'wallet'); {
                     $referrals = $referrals->whereBetween('created_at', [$startDate, $endDate]);
@@ -3884,8 +3891,8 @@ class WebController extends Controller
             }
             $page = "referrals";
             if (request()->ajax()) {
-                $startDate = Carbon::parse(request()->startdate)->startOfDay();
-                $endDate = Carbon::parse(request()->enddate)->endOfDay();
+                $startDate = Carbon::parse($this->normalizeDateValue(request()->startdate) ?? request()->startdate)->startOfDay();
+                $endDate = Carbon::parse($this->normalizeDateValue(request()->enddate) ?? request()->enddate)->endOfDay();
 
                 $referrals = $referrals->whereBetween('created_at', [$startDate, $endDate]);
 
@@ -4433,8 +4440,8 @@ class WebController extends Controller
         $page = "invoices";
 
         if (request()->ajax()) {
-            $startDate = Carbon::parse(request()->startdate)->startOfDay();
-            $endDate = Carbon::parse(request()->enddate)->endOfDay();
+            $startDate = Carbon::parse($this->normalizeDateValue(request()->startdate) ?? request()->startdate)->startOfDay();
+            $endDate = Carbon::parse($this->normalizeDateValue(request()->enddate) ?? request()->enddate)->endOfDay();
 
             $invoice_roles = null;
             if ($user->user_type != "admin") {
@@ -4506,8 +4513,8 @@ class WebController extends Controller
         $page = "invoices";
 
         if (request()->ajax()) {
-            $startDate = Carbon::parse(request()->startdate)->startOfDay();
-            $endDate = Carbon::parse(request()->enddate)->endOfDay();
+            $startDate = Carbon::parse($this->normalizeDateValue(request()->startdate) ?? request()->startdate)->startOfDay();
+            $endDate = Carbon::parse($this->normalizeDateValue(request()->enddate) ?? request()->enddate)->endOfDay();
 
             $invoice_roles = null;
             if ($user->user_type != "admin") {
@@ -5595,8 +5602,8 @@ class WebController extends Controller
             $page = "communications";
             $roles = UserRoles::where('user_id', '=', $user->id)->first();
             if (request()->ajax()) {
-                $startDate = Carbon::parse(request()->startdate)->startOfDay();
-                $endDate = Carbon::parse(request()->enddate)->endOfDay();
+                $startDate = Carbon::parse($this->normalizeDateValue(request()->startdate) ?? request()->startdate)->startOfDay();
+                $endDate = Carbon::parse($this->normalizeDateValue(request()->enddate) ?? request()->enddate)->endOfDay();
 
                 $communication_roles = null;
                 if ($user->user_type != "admin") {
@@ -6009,8 +6016,8 @@ class WebController extends Controller
                     $application_roles = UserRoles::where('user_id', '=', $user->id)->where('module', '=', 'Applications')->first();
                 }
 
-                $startDate = Carbon::parse(request()->startdate)->startOfDay();
-                $endDate = Carbon::parse(request()->enddate)->endOfDay();
+                $startDate = Carbon::parse($this->normalizeDateValue(request()->startdate) ?? request()->startdate)->startOfDay();
+                $endDate = Carbon::parse($this->normalizeDateValue(request()->enddate) ?? request()->enddate)->endOfDay();
 
                 $client_docs = $client_docs->whereBetween('created_at', [$startDate, $endDate]);
                 return DataTables::of($client_docs)
@@ -6540,8 +6547,8 @@ class WebController extends Controller
 
         if (request()->ajax()) {
 
-            $startDate = Carbon::parse(request()->startdate)->startOfDay();
-            $endDate = Carbon::parse(request()->enddate)->endOfDay();
+            $startDate = Carbon::parse($this->normalizeDateValue(request()->startdate) ?? request()->startdate)->startOfDay();
+            $endDate = Carbon::parse($this->normalizeDateValue(request()->enddate) ?? request()->enddate)->endOfDay();
 
             if ($user->user_type == 'admin') {
 
