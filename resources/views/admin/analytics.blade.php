@@ -175,7 +175,7 @@
                 <button class="login-btn" onclick="onClickGetReport()">View Data-Chart</button>
             </div>
             <div class="col-md-6 my-5">
-                <button class="login-btn" id="downloadPdf" style="display: none">Download Chart</button>
+                <button class="login-btn" id="downloadPdf" style="display: none">Download (PDF)</button>
             </div>
 
         </div> -->
@@ -185,7 +185,7 @@
                 <button class="login-btn" onclick="onClickGetReport()">View Data-Chart</button>
             </div>
             <div class="col-md-3 d-flex justify-content-center">
-                <button class="login-btn" id="downloadPdf" style="display: none">Download Chart</button>
+                <button class="login-btn" id="downloadPdf" style="display: none">Download (PDF)</button>
             </div>
         </div>
 
@@ -205,6 +205,9 @@
     <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+<script>
+Chart.defaults.scales.category.offset = false;
+</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
 
@@ -2996,12 +2999,12 @@
 
                         const ctx = document.getElementById('myChart');
                         const dynamicColors = generateDistinctColors(labels.length);
-                        const datasets = labels.map((label, i) => ({
-                            label: label,
-                            data: [numbers[i]],     // one value per dataset
-                            backgroundColor: dynamicColors[i],
+                        const datasets = [{
+                            label: selectedAttribute + ' ' + selectedFilter,
+                            data: numbers,
+                            backgroundColor: dynamicColors,
                             borderWidth: 1
-                        }));
+                        }];
 
                         new Chart(ctx, {
                             type: chartType,
@@ -3014,7 +3017,7 @@
                             //         backgroundColor: dynamicColors,
                             //     }]
                             // },
-                            data: { labels: [''], datasets }, // single dummy x-label
+                            data: { labels: labels, datasets },
                             options: {
                                 responsive: false,
 
@@ -3183,12 +3186,12 @@
 
                         const ctx = document.getElementById('myChart');
                         const dynamicColors = generateDistinctColors(labels.length);
-                        const datasets = labels.map((label, i) => ({
-                            label: label,
-                            data: [numbers[i]],     // one value per dataset
-                            backgroundColor: dynamicColors[i],
+                        const datasets = [{
+                            label: selectedAttribute + ' ' + selectedFilter,
+                            data: numbers,
+                            backgroundColor: dynamicColors,
                             borderWidth: 1
-                        }));
+                        }];
 
                         new Chart(ctx, {
                             type: chartType,
@@ -3201,7 +3204,7 @@
                             //         backgroundColor: dynamicColors,
                             //     }]
                             // },
-                              data: { labels: [''], datasets }, // single dummy x-label
+                              data: { labels: labels, datasets },
 
                             options: {
                                 responsive: false,
@@ -3371,12 +3374,12 @@
 
                         const ctx = document.getElementById('myChart');
                         const dynamicColors = generateDistinctColors(labels.length);
-                        const datasets = labels.map((label, i) => ({
-                            label: label,
-                            data: [numbers[i]],     // one value per dataset
-                            backgroundColor: dynamicColors[i],
+                        const datasets = [{
+                            label: selectedAttribute + ' ' + selectedFilter,
+                            data: numbers,
+                            backgroundColor: dynamicColors,
                             borderWidth: 1
-                        }));
+                        }];
 
                         new Chart(ctx, {
                             type: chartType,
@@ -3390,7 +3393,7 @@
                             //     }]
                             // }
                             // ,
-                            data: { labels: [''], datasets },
+                            data: { labels: labels, datasets },
                             options: {
                                 responsive: false, // Makes the chart responsive
                                 scales: {
@@ -3931,12 +3934,12 @@
 
                         const ctx = document.getElementById('myChart');
                         const dynamicColors = generateDistinctColors(labels.length);
-                        const datasets = labels.map((label, i) => ({
-                            label: label,
-                            data: [numbers[i]],     // one value per dataset
-                            backgroundColor: dynamicColors[i],
+                        const datasets = [{
+                            label: selectedAttribute + ' ' + selectedFilter,
+                            data: numbers,
+                            backgroundColor: dynamicColors,
                             borderWidth: 1
-                        }));
+                        }];
 
                         new Chart(ctx, {
                             type: chartType,
@@ -3949,7 +3952,7 @@
                             //         backgroundColor: dynamicColors,
                             //     }]
                             // },
-                              data: { labels: [''], datasets }, // single dummy x-label
+                              data: { labels: labels, datasets },
 
                             options: {
                                 responsive: false,
@@ -10244,12 +10247,12 @@
 
                         const ctx = document.getElementById('myChart');
                         const dynamicColors = generateDistinctColors(labels.length);
-                        const datasets = labels.map((label, i) => ({
-                            label: label,
-                            data: [numbers[i]],     // one value per dataset
-                            backgroundColor: dynamicColors[i],
+                        const datasets = [{
+                            label: selectedAttribute + ' ' + selectedFilter,
+                            data: numbers,
+                            backgroundColor: dynamicColors,
                             borderWidth: 1
-                        }));
+                        }];
 
                         new Chart(ctx, {
                             type: chartType,
@@ -10263,7 +10266,7 @@
                             //     }]
                             // }
                             // ,
-                            data: { labels: [''], datasets },
+                            data: { labels: labels, datasets },
                             options: {
                                 responsive: false,
 

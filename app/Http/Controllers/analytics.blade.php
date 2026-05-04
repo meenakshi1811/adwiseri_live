@@ -170,7 +170,7 @@
                 <button class="login-btn" onclick="onClickGetReport()">View Data-Chart</button>
             </div>
             <div class="col-md-3">
-                <button class="login-btn" id="downloadPdf" style="display: none">Download Chart</button>
+                <button class="login-btn" id="downloadPdf" style="display: none">Download (PDF)</button>
             </div>
 
         </div>
@@ -191,6 +191,9 @@
 <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+<script>
+Chart.defaults.scales.category.offset = false;
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
 
@@ -252,7 +255,7 @@
                 Swal.fire({
                     icon: 'warning',
                     title: 'No Data Available',
-                    text: 'No Data found for Report : ' + title,
+                    text: 'No Data found for Chart : ' + title,
                     confirmButtonText: 'OK'
                 });
                 return true; // Returns true if data is empty
