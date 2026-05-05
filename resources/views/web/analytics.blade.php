@@ -1138,10 +1138,10 @@
         var dateForTitle = selectedDate;
         var chartType = $('#chartType').val();
 
-        selectedDate = selectedDate.split("-")
+        const selectedDateRange = (selectedDate || '').split(' - ');
 
-        var startDate = selectedDate[0].trim();
-        var endDate = selectedDate[1].trim();
+        var startDate = (selectedDateRange[0] || '').trim();
+        var endDate = (selectedDateRange[1] || '').trim();
 
         let hasError = false;
         let title = selectedAttribute + ' : ' + selectedFilterTitle + (!selectedFilterTitle.includes('By Timeline (Duration)') && !selectedFilterTitle.includes('By Year') ? ' (' + startDate + ' - ' + endDate + ')' : '');
