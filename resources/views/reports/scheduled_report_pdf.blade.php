@@ -149,6 +149,11 @@ tr:nth-child(even){
                             <td>
                                 @if ($column === 'created_at' && !empty($row[$column]))
                                     {{ \Carbon\Carbon::parse($row[$column])->format('d-m-Y H:i:s') }}
+                                @elseif ($column === 'status' && in_array($section['title'], ['Subscribers', 'Affiliates'], true))
+                                    @php
+                                        $statusValue = strtolower(trim((string) $row[$column]));
+                                    @endphp
+                                    {{ in_array($statusValue, ['1', 'true', 'active'], true) ? 'Active' : 'Deactive' }}
                                 @else
                                     {{ is_array($row[$column]) ? json_encode($row[$column]) : $row[$column] }}
                                 @endif
