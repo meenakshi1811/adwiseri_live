@@ -1554,7 +1554,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Clients (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Clients (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -1563,7 +1563,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
             },
             language: {
-                emptyTable: 'No Data found for Report : Clients (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Clients (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var rowCount = dataTable.data().count(); // Get total number of rows
@@ -1848,7 +1848,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Clients (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Clients (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -1856,7 +1856,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Clients (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Clients (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var rowCount = dataTable.data().count(); // Get total number of rows
@@ -2048,7 +2048,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Clients ('  + text + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''),
+                        //     text: 'No Data found for Chart : Clients ('  + text + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''),
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -2058,7 +2058,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
             },
             language: {
-                emptyTable: 'No Data found for Report : Clients (' + text + '  (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Clients (' + text + '  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -2433,7 +2433,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Applications  (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Applications  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -2441,7 +2441,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Applications  (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Applications  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -2830,7 +2830,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Applications  ' + selectedText + ' (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Applications  ' + selectedText + ' (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -2838,7 +2838,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Applications  ' + selectedText + ' (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Applications  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -2968,7 +2968,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Users  (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Users  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -2976,7 +2976,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Users  (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Users  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -3152,7 +3152,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Users  '+selectedText+(!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''),
+                        //     text: 'No Data found for Chart : Users  '+selectedText+(!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''),
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -3160,7 +3160,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report :  Users  ' + selectedText + '  (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart :  Users  ' + selectedText + '  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -3485,7 +3485,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Documents  (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Documents  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -3493,7 +3493,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Documents   (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Documents   (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -3827,7 +3827,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Documents  ' + selectedText + ' (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Documents  ' + selectedText + ' (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -3835,7 +3835,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Documents  ' + selectedText + ' (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Documents  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -3965,7 +3965,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Communications  (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Communications  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -3973,7 +3973,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Communications   (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Communications   (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -4137,7 +4137,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Communications  ' + selectedText + ' (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Communications  ' + selectedText + ' (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -4145,7 +4145,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Communications  ' + selectedText + ' (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Communications  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -4413,7 +4413,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report :Invoices  (' + currentDate + ')',
+                        //     text: 'No Data found for Chart :Invoices  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -4421,7 +4421,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Invoices  (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Invoices  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -4608,7 +4608,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     // Swal.fire({
                     //     icon: 'warning',
                     //     title: 'No Data Available',
-                    //     text: 'No Data found for Report :Invoices  (' + currentDate + ')',
+                    //     text: 'No Data found for Chart :Invoices  (' + currentDate + ')',
                     //     confirmButtonText: 'OK'
                     // });
                 }
@@ -4616,7 +4616,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             }
         },
         language: {
-            emptyTable: 'No Data found for Report : Invoices  (' + currentDate + ')',
+            emptyTable: 'No Data found for Chart : Invoices  (' + currentDate + ')',
         },
         initComplete: function(settings, json) {
             var api = this.api();
@@ -4804,7 +4804,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Invoices  ' + selectedText + ' (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Invoices  ' + selectedText + ' (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -4812,7 +4812,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Invoices  ' + selectedText + ' (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Invoices  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -5083,7 +5083,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Invoices  ' + selectedText + ' (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Invoices  ' + selectedText + ' (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -5091,7 +5091,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Invoices  ' + selectedText + ' (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Invoices  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -5369,7 +5369,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Payments  (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Payments  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -5377,7 +5377,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Payments (AR) (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Payments (AR) (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -5574,7 +5574,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Payments  ' + selectedText + ' (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Payments  ' + selectedText + ' (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -5582,7 +5582,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Payments (AR)  ' + selectedText + ' (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Payments (AR)  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -5955,7 +5955,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Payments  (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Payments  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -5963,7 +5963,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Payments (AP)   (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Payments (AP)   (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -6160,7 +6160,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Payments  ' + selectedText + ' (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Payments  ' + selectedText + ' (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -6168,7 +6168,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Payments (AP)  ' + selectedText + ' (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Payments (AP)  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -6529,7 +6529,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Referrals  (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Referrals  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -6537,7 +6537,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Referrals  (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Referrals  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -6827,7 +6827,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Referrals  ' + selectedText + ' (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Referrals  ' + selectedText + ' (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -6835,7 +6835,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Referrals  ' + selectedText + ' (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Referrals  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -6974,7 +6974,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Wallets  (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Wallets  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -6982,7 +6982,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report : Wallet  (' + currentDate + ')',
+                emptyTable: 'No Data found for Chart : Wallet  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
                 var api = this.api();
@@ -7158,7 +7158,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         // Swal.fire({
                         //     icon: 'warning',
                         //     title: 'No Data Available',
-                        //     text: 'No Data found for Report : Wallets  (' + currentDate + ')',
+                        //     text: 'No Data found for Chart : Wallets  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
                     }
@@ -7166,7 +7166,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             language: {
-                emptyTable: 'No Data found for Report :  Wallet ' + selectedText + ' (' + currentDate + ')'
+                emptyTable: 'No Data found for Chart :  Wallet ' + selectedText + ' (' + currentDate + ')'
             },
             initComplete: function(settings, json) {
                 var api = this.api();
