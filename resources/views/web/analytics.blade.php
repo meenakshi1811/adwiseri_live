@@ -260,12 +260,12 @@
             Swal.fire({
                 icon: 'warning',
                 title: 'No Data Available',
-                text: 'No Data found for Report : ' + title,
+                text: 'No Data found for chart : ' + title,
                 confirmButtonText: 'OK'
             });
-            return true; // Returns true if data is empty
+            return true;
         }
-        return false; // Returns false if data is not empty
+        return false;
     }
 
     function formatBytes(bytes, decimals = 2) {
