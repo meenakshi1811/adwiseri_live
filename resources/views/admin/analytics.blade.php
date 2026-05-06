@@ -165,8 +165,8 @@
                     <option value="" selected>Select Chart Type</option>
                     <option value="bar">Bar</option>
                     <option value="line">Line</option>
-                    <option value="doughnut">Doughnut</option>
                     <option value="pie">Pie</option>
+                    <option value="doughnut">Doughnut</option>
                 </select>
             </div>
         </div>
@@ -262,6 +262,12 @@ function normalizeAnalyticsDatasetColors(config) {
             dataset.backgroundColor = colors;
             dataset.hoverBackgroundColor = getAnalyticsColors(dataLength, 0.95);
 
+            if (isCircularAnalyticsChart(config.type)) {
+                dataset.borderColor = 'transparent';
+                dataset.borderWidth = 0;
+                dataset.hoverBorderWidth = 0;
+            }
+
             if (config.type === 'line') {
                 dataset.borderColor = getAnalyticsColor(0, 1);
                 dataset.pointBackgroundColor = colors;
@@ -296,7 +302,7 @@ function enableAnalyticsLegend(config) {
             generateLabels: function(chart) {
                 const defaultGenerator = Chart.defaults.plugins.legend.labels.generateLabels;
 
-                if ((chart.config.type === 'bar' || chart.config.type === 'line') && chart.data.datasets.length === 1) {
+                if (chart.data.datasets.length === 1) {
                     const dataset = chart.data.datasets[0];
                     return chart.data.labels.map((label, index) => {
                         const backgroundColor = Array.isArray(dataset.backgroundColor)
@@ -308,6 +314,7 @@ function enableAnalyticsLegend(config) {
                             fillStyle: backgroundColor,
                             strokeStyle: backgroundColor,
                             lineWidth: 0,
+                            pointStyle: 'circle',
                             hidden: !chart.getDataVisibility(index),
                             index
                         };
@@ -320,7 +327,7 @@ function enableAnalyticsLegend(config) {
         onClick: function(event, legendItem, legend) {
             const chart = legend.chart;
 
-            if ((chart.config.type === 'bar' || chart.config.type === 'line') && chart.data.datasets.length === 1) {
+            if (chart.data.datasets.length === 1) {
                 chart.toggleDataVisibility(legendItem.index);
                 chart.update();
                 return;
@@ -633,8 +640,8 @@ window.Chart = AnalyticsChart;
                         value: "By Application Type"
                     },
                     {
-                        text: "By No. of Applicants per Application (Single/Joint)",
-                        value: "By No. of Applicants per Application"
+                        text: "By Application Counts By No. of Dependants",
+                        value: "ByApplicationCountsByDependants"
                     },
                     {
                         text: "By Payment Mode",
@@ -5298,7 +5305,7 @@ window.Chart = AnalyticsChart;
                         }, 1000); // Small delay to ensure smooth UX
                     });
                 });
-            } else if (selectedFilter == "By No. of Applicants per Application") {
+            } else if (selectedFilter == "ByApplicationCountsByDependants") {
 
                 let chartStatus = Chart.getChart("myChart"); // <canvas> id
                 if (chartStatus != undefined) {
@@ -5309,7 +5316,7 @@ window.Chart = AnalyticsChart;
                     url: "{{ route('subscribersReport') }}",
 
                     data: {
-                        type: 'byNoofApplicantsPerApplicationChart',
+                        type: 'byApplicationCountsByDependantsChart',
                         subid: subID,
                         startDate: startDate,
                         endDate : endDate
@@ -5323,20 +5330,14 @@ window.Chart = AnalyticsChart;
                         var result = data.data;
                         var labels = [];
                         var numbers = [];
-                        const monthNames = ["January", "February", "March", "April", "May", "June",
-                            "July", "August", "September", "October", "November", "December"
-                        ];
 
-                        labels.push('Total Application');
-                        numbers.push(result);
-
-
+                        result.forEach(function(currentElement) {
+                            labels.push(currentElement.dependant_bucket);
+                            numbers.push(currentElement.application_count);
+                        });
 
                         const ctx = document.getElementById('myChart');
                         const dynamicColors = generateDistinctColors(labels.length);
-
-
-                        const applicantsChartType = isCircularAnalyticsChart(chartType) ? 'bar' : chartType;
 
                         new Chart(ctx, {
                             type: applicantsChartType,

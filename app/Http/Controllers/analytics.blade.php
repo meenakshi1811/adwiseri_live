@@ -160,8 +160,8 @@
                     <option value="" selected>Select Chart Type</option>
                     <option value="bar">Bar</option>
                     <option value="line">Line</option>
-                    <option value="doughnut">Doughnut</option>
                     <option value="pie">Pie</option>
+                    <option value="doughnut">Doughnut</option>
                 </select>
             </div>
         </div>
@@ -418,8 +418,8 @@ Chart.defaults.scales.category.offset = false;
                         value: "ByApplicationType"
                     },
                     {
-                        text: "By No. of Applicants per Application (Single/Joint)",
-                        value: "ByNo.ofApplicantsperApplication"
+                        text: "By Application Counts By No. of Dependants",
+                        value: "ByApplicationCountsByDependants"
                     },
                     {
                         text: "By Payment Mode",
@@ -4260,7 +4260,7 @@ Chart.defaults.scales.category.offset = false;
 
                     });
                 });
-            } else if (selectedFilter == "ByNo.ofApplicantsperApplication") {
+            } else if (selectedFilter == "ByApplicationCountsByDependants") {
 
                 let chartStatus = Chart.getChart("myChart"); // <canvas> id
                 if (chartStatus != undefined) {
@@ -4271,7 +4271,7 @@ Chart.defaults.scales.category.offset = false;
                     url: "{{ route('subscribersReport') }}",
 
                     data: {
-                        type: 'byNoofApplicantsPerApplicationChart',
+                        type: 'byApplicationCountsByDependantsChart',
                         subid: subID,
                         startDate: startDate,
                         endDate: endDate
@@ -4286,13 +4286,11 @@ Chart.defaults.scales.category.offset = false;
                         console.log(result);
 
                         var labels = [];
-                        var singleCounts = [];
-                        var jointCounts = [];
+                        var numbers = [];
 
                         result.forEach(function(currentElement) {
-                            labels.push(currentElement.application_name);
-                            singleCounts.push(currentElement.single_clients); // Single count
-                            jointCounts.push(currentElement.joint_clients); // Joint count
+                            labels.push(currentElement.dependant_bucket);
+                            numbers.push(currentElement.application_count);
                         });
 
                         const ctx = document.getElementById('myChart');
@@ -4301,20 +4299,12 @@ Chart.defaults.scales.category.offset = false;
                             type: chartType,
                             data: {
                                 labels: labels,
-                                datasets: [
-                                    {
-                                        label: 'Single Clients',
-                                        data: singleCounts,
-                                        borderWidth: 1,
-                                        backgroundColor: 'rgba(54, 162, 235, 0.6)' // Blue for single
-                                    },
-                                    {
-                                        label: 'Joint Clients',
-                                        data: jointCounts,
-                                        borderWidth: 1,
-                                        backgroundColor: 'rgba(255, 99, 132, 0.6)' // Red for joint
-                                    }
-                                ]
+                                datasets: [{
+                                    label: selectedAttribute + ' ' + $('#filters option:selected').text(),
+                                    data: numbers,
+                                    borderWidth: 1,
+                                    backgroundColor: dynamicColors,
+                                }]
                             },
                             options: {
                                 responsive: false,

@@ -168,8 +168,8 @@
         <option value="" selected>Select Chart Type</option>
         <option value="bar">Bar</option>
         <option value="line">Line</option>
-        <option value="doughnut">Doughnut</option>
         <option value="pie">Pie</option>
+        <option value="doughnut">Doughnut</option>
     </select>
 </div>
 </div>
@@ -255,6 +255,12 @@ function normalizeAnalyticsDatasetColors(config) {
             dataset.backgroundColor = colors;
             dataset.hoverBackgroundColor = getAnalyticsColors(dataLength, 0.95);
 
+            if (isCircularAnalyticsChart(config.type)) {
+                dataset.borderColor = 'transparent';
+                dataset.borderWidth = 0;
+                dataset.hoverBorderWidth = 0;
+            }
+
             if (config.type === 'line') {
                 dataset.borderColor = getAnalyticsColor(0, 1);
                 dataset.pointBackgroundColor = colors;
@@ -289,7 +295,7 @@ function enableAnalyticsLegend(config) {
             generateLabels: function(chart) {
                 const defaultGenerator = Chart.defaults.plugins.legend.labels.generateLabels;
 
-                if ((chart.config.type === 'bar' || chart.config.type === 'line') && chart.data.datasets.length === 1) {
+                if (chart.data.datasets.length === 1) {
                     const dataset = chart.data.datasets[0];
                     return chart.data.labels.map((label, index) => {
                         const backgroundColor = Array.isArray(dataset.backgroundColor)
@@ -301,6 +307,7 @@ function enableAnalyticsLegend(config) {
                             fillStyle: backgroundColor,
                             strokeStyle: backgroundColor,
                             lineWidth: 0,
+                            pointStyle: 'circle',
                             hidden: !chart.getDataVisibility(index),
                             index
                         };
@@ -313,7 +320,7 @@ function enableAnalyticsLegend(config) {
         onClick: function(event, legendItem, legend) {
             const chart = legend.chart;
 
-            if ((chart.config.type === 'bar' || chart.config.type === 'line') && chart.data.datasets.length === 1) {
+            if (chart.data.datasets.length === 1) {
                 chart.toggleDataVisibility(legendItem.index);
                 chart.update();
                 return;
@@ -577,8 +584,8 @@ window.Chart = AnalyticsChart;
                 },
 
                 {
-                    text: "By No. of Applicants per Application (Single/Joint)",
-                    value: "ByNo.ofApplicantsperApplication"
+                    text: "By Application Counts By No. of Dependants",
+                    value: "ByApplicationCountsByDependants"
                 },
 
 
@@ -5627,7 +5634,7 @@ numbers.push(currentElement.total_clients);
                     }, 1000); // Small delay to ensure smooth UX
                 });
             });
-        } else if (selectedFilter == "ByNo.ofApplicantsperApplication") {
+        } else if (selectedFilter == "ByApplicationCountsByDependants") {
 
             let chartStatus = Chart.getChart("myChart"); // <canvas> id
             if (chartStatus != undefined) {
@@ -5638,7 +5645,7 @@ numbers.push(currentElement.total_clients);
                 type: 'GET',
                 url: "{{ route('subscribersReport') }}",
                 data: {
-                    type: 'byNoofApplicantsPerApplicationChart',
+                    type: 'byApplicationCountsByDependantsChart',
                     subid: subID,
                     startDate: startDate,
                     endDate: endDate
@@ -5653,16 +5660,11 @@ numbers.push(currentElement.total_clients);
 
                     var result = data.data;
                     var labels = [];
-                    var singleCounts = [];
-                    var jointCounts = [];
+                    var numbers = [];
 
                     result.forEach(function (item) {
-                        // Optional: Skip zero-value records for cleaner chart
-                        if (item.single_clients !== 0 || item.joint_clients !== 0) {
-                            labels.push(item.application_name);
-                            singleCounts.push(item.single_clients);
-                            jointCounts.push(item.joint_clients);
-                        }
+                        labels.push(item.dependant_bucket);
+                        numbers.push(item.application_count);
                     });
 
                     const ctx = document.getElementById('myChart');
@@ -5673,22 +5675,13 @@ numbers.push(currentElement.total_clients);
                     new Chart(ctx, {
                         type: applicantsChartType,
                         data: {
-                            
                             labels: labels,
-                            datasets: [
-                                {
-                                    label: 'Single Clients',
-                                    data: singleCounts,
-                                    borderWidth: 3,
-                                    backgroundColor: 'rgba(54, 162, 235, 0.6)' // Blue
-                                },
-                                {
-                                    label: 'Joint Clients',
-                                    data: jointCounts,
-                                    borderWidth: 3,
-                                    backgroundColor: 'rgba(255, 99, 132, 0.6)' // Red
-                                }
-                            ]
+                            datasets: [{
+                                label: selectedAttribute + ' ' + $('#filters option:selected').text(),
+                                data: numbers,
+                                borderWidth: 1,
+                                backgroundColor: dynamicColors,
+                            }]
                         },
                         options: {
                             responsive: false,
