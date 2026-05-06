@@ -165,8 +165,8 @@
                     <option value="" selected>Select Chart Type</option>
                     <option value="bar">Bar</option>
                     <option value="line">Line</option>
-                    <option value="doughnut">Doughnut</option>
                     <option value="pie">Pie</option>
+                    <option value="doughnut">Doughnut</option>
                 </select>
             </div>
         </div>
@@ -207,6 +207,154 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 <script>
 Chart.defaults.scales.category.offset = false;
+
+const analyticsChartPalette = [
+    '#2563eb', '#dc2626', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2',
+    '#db2777', '#65a30d', '#ea580c', '#4f46e5', '#0f766e', '#be123c',
+    '#9333ea', '#0284c7', '#ca8a04', '#15803d', '#c026d3', '#0369a1'
+];
+
+function getAnalyticsColor(index, alpha = 1) {
+    const hex = analyticsChartPalette[index % analyticsChartPalette.length];
+    const value = hex.replace('#', '');
+    const r = parseInt(value.substring(0, 2), 16);
+    const g = parseInt(value.substring(2, 4), 16);
+    const b = parseInt(value.substring(4, 6), 16);
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getAnalyticsColors(count, alpha = 0.8) {
+    return Array.from({ length: count }, (_, index) => {
+        if (index < analyticsChartPalette.length) {
+            return getAnalyticsColor(index, alpha);
+        }
+
+        const hue = Math.round((index * 137.508) % 360);
+        return `hsla(${hue}, 72%, 48%, ${alpha})`;
+    });
+}
+
+function isCircularAnalyticsChart(type) {
+    return ['pie', 'doughnut'].includes(type);
+}
+
+function removeCircularChartAxes(config) {
+    if (!isCircularAnalyticsChart(config.type)) {
+        return;
+    }
+
+    config.options.scales = {
+        x: { display: false, grid: { display: false }, ticks: { display: false }, border: { display: false } },
+        y: { display: false, grid: { display: false }, ticks: { display: false }, border: { display: false } }
+    };
+}
+
+function normalizeAnalyticsDatasetColors(config) {
+    const labels = config.data?.labels || [];
+    const datasets = config.data?.datasets || [];
+
+    datasets.forEach((dataset, datasetIndex) => {
+        const dataLength = Array.isArray(dataset.data) ? dataset.data.length : labels.length;
+
+        if (isCircularAnalyticsChart(config.type) || datasets.length === 1) {
+            const colors = getAnalyticsColors(dataLength, isCircularAnalyticsChart(config.type) ? 0.85 : 0.75);
+            dataset.backgroundColor = colors;
+            dataset.hoverBackgroundColor = getAnalyticsColors(dataLength, 0.95);
+
+            if (isCircularAnalyticsChart(config.type)) {
+                dataset.borderColor = 'transparent';
+                dataset.borderWidth = 0;
+                dataset.hoverBorderWidth = 0;
+            }
+
+            if (config.type === 'line') {
+                dataset.borderColor = getAnalyticsColor(0, 1);
+                dataset.pointBackgroundColor = colors;
+                dataset.pointBorderColor = colors;
+                dataset.tension = dataset.tension ?? 0.35;
+            } else if (config.type === 'bar') {
+                dataset.borderColor = getAnalyticsColors(dataLength, 1);
+            }
+        } else {
+            const color = getAnalyticsColor(datasetIndex, 0.75);
+            dataset.backgroundColor = color;
+            dataset.borderColor = getAnalyticsColor(datasetIndex, 1);
+
+            if (config.type === 'line') {
+                dataset.pointBackgroundColor = getAnalyticsColor(datasetIndex, 1);
+                dataset.pointBorderColor = getAnalyticsColor(datasetIndex, 1);
+                dataset.tension = dataset.tension ?? 0.35;
+            }
+        }
+    });
+}
+
+function enableAnalyticsLegend(config) {
+    config.options.plugins.legend = {
+        ...(config.options.plugins.legend || {}),
+        display: true,
+        position: 'bottom',
+        labels: {
+            ...((config.options.plugins.legend || {}).labels || {}),
+            padding: 16,
+            usePointStyle: true,
+            generateLabels: function(chart) {
+                const defaultGenerator = Chart.defaults.plugins.legend.labels.generateLabels;
+
+                if (chart.data.datasets.length === 1) {
+                    const dataset = chart.data.datasets[0];
+                    return chart.data.labels.map((label, index) => {
+                        const backgroundColor = Array.isArray(dataset.backgroundColor)
+                            ? dataset.backgroundColor[index]
+                            : dataset.backgroundColor;
+
+                        return {
+                            text: label,
+                            fillStyle: backgroundColor,
+                            strokeStyle: backgroundColor,
+                            lineWidth: 0,
+                            pointStyle: 'circle',
+                            hidden: !chart.getDataVisibility(index),
+                            index
+                        };
+                    });
+                }
+
+                return defaultGenerator(chart);
+            }
+        },
+        onClick: function(event, legendItem, legend) {
+            const chart = legend.chart;
+
+            if (chart.data.datasets.length === 1) {
+                chart.toggleDataVisibility(legendItem.index);
+                chart.update();
+                return;
+            }
+
+            Chart.defaults.plugins.legend.onClick.call(this, event, legendItem, legend);
+        }
+    };
+}
+
+function sanitizeAnalyticsChartConfig(config) {
+    config.options = config.options || {};
+    config.options.plugins = config.options.plugins || {};
+
+    normalizeAnalyticsDatasetColors(config);
+    removeCircularChartAxes(config);
+    enableAnalyticsLegend(config);
+}
+
+const NativeAnalyticsChart = Chart;
+function AnalyticsChart(ctx, config) {
+    sanitizeAnalyticsChartConfig(config);
+    return new NativeAnalyticsChart(ctx, config);
+}
+Object.setPrototypeOf(AnalyticsChart, NativeAnalyticsChart);
+AnalyticsChart.prototype = NativeAnalyticsChart.prototype;
+window.Chart = AnalyticsChart;
 </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
@@ -492,8 +640,8 @@ Chart.defaults.scales.category.offset = false;
                         value: "By Application Type"
                     },
                     {
-                        text: "By No. of Applicants per Application (Single/Joint)",
-                        value: "By No. of Applicants per Application"
+                        text: "By Application Counts By No. of Dependants",
+                        value: "ByApplicationCountsByDependants"
                     },
                     {
                         text: "By Payment Mode",
@@ -5157,7 +5305,7 @@ Chart.defaults.scales.category.offset = false;
                         }, 1000); // Small delay to ensure smooth UX
                     });
                 });
-            } else if (selectedFilter == "By No. of Applicants per Application") {
+            } else if (selectedFilter == "ByApplicationCountsByDependants") {
 
                 let chartStatus = Chart.getChart("myChart"); // <canvas> id
                 if (chartStatus != undefined) {
@@ -5168,7 +5316,7 @@ Chart.defaults.scales.category.offset = false;
                     url: "{{ route('subscribersReport') }}",
 
                     data: {
-                        type: 'byNoofApplicantsPerApplicationChart',
+                        type: 'byApplicationCountsByDependantsChart',
                         subid: subID,
                         startDate: startDate,
                         endDate : endDate
@@ -5182,18 +5330,14 @@ Chart.defaults.scales.category.offset = false;
                         var result = data.data;
                         var labels = [];
                         var numbers = [];
-                        const monthNames = ["January", "February", "March", "April", "May", "June",
-                            "July", "August", "September", "October", "November", "December"
-                        ];
 
-                        labels.push('Total Application');
-                        numbers.push(result);
-
-
+                        result.forEach(function(currentElement) {
+                            labels.push(currentElement.dependant_bucket);
+                            numbers.push(currentElement.application_count);
+                        });
 
                         const ctx = document.getElementById('myChart');
                         const dynamicColors = generateDistinctColors(labels.length);
-
 
                         new Chart(ctx, {
                             type: chartType,

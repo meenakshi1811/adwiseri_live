@@ -860,6 +860,53 @@ class SubscriberFilterController extends Controller
                 ->get();
 
             return response()->json(['data' => $byApplicationType]);
+        } elseif (request()->type == "byApplicationCountsByDependantsChart") {
+
+            $dependantBuckets = [
+                0 => '0 Dependant',
+                1 => '1 Dependant',
+                2 => '2 Dependants',
+                3 => '3 Dependants',
+                4 => '4 Dependants',
+                5 => '5+ Dependants',
+            ];
+            $applicationCounts = [];
+            foreach ($dependantBuckets as $bucket => $label) {
+                $applicationCounts[$bucket] = [
+                    'dependant_bucket' => $label,
+                    'dependant_count' => $bucket,
+                    'application_count' => 0,
+                ];
+            }
+
+            $dependantCounts = Dependants::select('client_id', DB::raw('COUNT(*) as dependant_count'))
+                ->groupBy('client_id');
+
+            $query = Applications::query()
+                ->leftJoinSub($dependantCounts, 'dependant_counts', function ($join) {
+                    $join->on('applications.client_id', '=', 'dependant_counts.client_id');
+                })
+                ->whereBetween('applications.created_at', [$startDate, $endDate]);
+
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query = $query->where('applications.subscriber_id', request()->subid);
+            }
+
+            $query->selectRaw(
+                "CASE
+                    WHEN COALESCE(dependant_counts.dependant_count, 0) >= 5 THEN 5
+                    ELSE COALESCE(dependant_counts.dependant_count, 0)
+                END as dependant_bucket_key,
+                COUNT(DISTINCT applications.id) as application_count"
+            )
+                ->groupBy('dependant_bucket_key')
+                ->get()
+                ->each(function ($row) use (&$applicationCounts) {
+                    $bucket = (int) $row->dependant_bucket_key;
+                    $applicationCounts[$bucket]['application_count'] = (int) $row->application_count;
+                });
+
+            return response()->json(['data' => array_values($applicationCounts)]);
         } elseif (request()->type == "byNoofApplicantsPerApplicationChart") {
 
             $query = new Applications();
