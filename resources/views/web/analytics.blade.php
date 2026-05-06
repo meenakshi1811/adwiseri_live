@@ -5670,8 +5670,10 @@ numbers.push(currentElement.total_clients);
                     const ctx = document.getElementById('myChart');
                     const dynamicColors = generateDistinctColors(labels.length);
 
+                    const applicantsChartType = isCircularAnalyticsChart(chartType) ? 'bar' : chartType;
+
                     new Chart(ctx, {
-                        type: chartType,
+                        type: applicantsChartType,
                         data: {
                             labels: labels,
                             datasets: [{

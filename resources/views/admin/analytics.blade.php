@@ -5340,7 +5340,7 @@ window.Chart = AnalyticsChart;
                         const dynamicColors = generateDistinctColors(labels.length);
 
                         new Chart(ctx, {
-                            type: chartType,
+                            type: applicantsChartType,
                             data: {
                                 labels: labels,
                                 datasets: [{
