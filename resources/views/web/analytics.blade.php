@@ -6420,18 +6420,27 @@ numbers.push(currentElement.total_clients);
                     $('#downloadPdf').show();
                     var result = data.data;
                     console.log(result);
-                    var labels = [];
-                    var numbers = [];
 
-                    result.forEach(function(currentElement, index) {
-                        if(currentElement.count !== 0) { // Skip ONLY those with 0 count
-                        labels.push(currentElement.type);
+                    const timelineOrder = ['Today', 'Last Week', 'Last Month', 'Last Quarter', 'Last Year', 'Since Inception'];
+                    const timelineCounts = {
+                        'Today': 0,
+                        'Last Week': 0,
+                        'Last Month': 0,
+                        'Last Quarter': 0,
+                        'Last Year': 0,
+                        'Since Inception': 0
+                    };
 
-                        numbers.push(currentElement.count);
+                    result.forEach(function(currentElement) {
+                        if (Object.prototype.hasOwnProperty.call(timelineCounts, currentElement.type)) {
+                            timelineCounts[currentElement.type] = currentElement.count;
                         }
-                    })
+                    });
 
-
+                    const labels = timelineOrder;
+                    const numbers = timelineOrder.map(function(label) {
+                        return timelineCounts[label];
+                    });
 
                     const ctx = document.getElementById('myChart');
                     const dynamicColors = generateDistinctColors(labels.length);
