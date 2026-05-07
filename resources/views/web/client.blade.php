@@ -343,17 +343,14 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                         <!-- Application Dates -->
                                             <div class="mb-3">
                                                 <label for="app_start_date" class="form-label">DateOfBirth <span class="text-danger" style="font-size: 18px;">*</span></label>
-                                                <input name="dob" type="text"
+                                                <input name="dob" type="date"
                                                     class="form-control date @error('dob') is-invalid @enderror"
                                                     id="dob"
                                                     aria-describedby="emailHelp"
                                                     value="{{ old('dob') ? date('Y-m-d', strtotime(old('dob'))) : '' }}"
                                                     placeholder="{{ date('d-m-Y')}}"
-                                                    autocomplete="dob"
+                                                    autocomplete="bday"
                                                     max="{{ date('Y-m-d')}}"
-
-                                                onfocus="(this.type='date')"
-                                                    onblur="(this.type='text')"
                                                     />
                                                     @error('dob')
                                                         <span class="invalid-feedback" role="alert">
