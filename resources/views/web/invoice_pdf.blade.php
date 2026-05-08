@@ -150,7 +150,7 @@
             public_path('web_assets/images/Style2_blue.png'),
             public_path('web_assets/images/Style2.png'),
             public_path('web_assets/images/default_logo.png'),
-        ];
+        ]);
         $logoPath = null;
         $hasSubscriberLogo = false;
 
