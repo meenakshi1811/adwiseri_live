@@ -137,7 +137,11 @@ tr:nth-child(even){
             <thead>
                 <tr>
                     @foreach ($columns as $column)
-                        <th>{{ ucfirst(str_replace('_', ' ', $column)) }}</th>
+                        @php
+                            $formattedColumn = ucwords(str_replace('_', ' ', $column));
+                            $formattedColumn = preg_replace('/\bId\b/', 'ID', $formattedColumn);
+                        @endphp
+                        <th>{{ $formattedColumn }}</th>
                     @endforeach
                 </tr>
             </thead>
