@@ -129,20 +129,43 @@
         $currency = $data->currency ?? 'Rs.';
         $statusRaw = (string) ($data->status ?? '-');
         $statusLabel = $statusRaw === 'PartiallyPaid' ? 'Partially Paid' : ($statusRaw === 'UnPaid' ? 'Unpaid' : $statusRaw);
-        $customLogoPath = !empty($data->logo_path) ? public_path($data->logo_path) : null;
-        $fallbackLogoPaths = [
+        $subscriberName = trim((string) ($data->company_name ?? $data->subscriber_name ?? $data->from_name ?? 'Adwiseri'));
+        $subscriberName = preg_replace('/^Sent on behalf of\s+/i', '', $subscriberName) ?: 'Adwiseri';
+        $subscriberEmail = trim((string) ($data->display_from_email ?? $data->subscriber_email ?? $data->email ?? $data->reply_to_email ?? $data->from_email ?? ''));
+        $subscriberLogoCandidates = [];
+
+        if (!empty($data->logo_path)) {
+            $subscriberLogoCandidates[] = public_path($data->logo_path);
+        }
+
+        if (!empty($data->logo)) {
+            foreach (array_filter([$data->subscriber_id ?? null, $data->user_id ?? null, $data->added_by ?? null]) as $logoUserId) {
+                $subscriberLogoCandidates[] = public_path('web_assets/users/user' . $logoUserId . '/' . $data->logo);
+            }
+
+            $subscriberLogoCandidates[] = public_path('web_assets/users/logos/' . $data->logo);
+        }
+
+        $fallbackLogoCandidates = [
             public_path('web_assets/images/Style2_blue.png'),
             public_path('web_assets/images/Style2.png'),
             public_path('web_assets/images/default_logo.png'),
         ];
         $logoPath = null;
+        $hasSubscriberLogo = false;
 
-        if (!empty($customLogoPath) && file_exists($customLogoPath)) {
-            $logoPath = $customLogoPath;
-        } else {
-            foreach ($fallbackLogoPaths as $fallbackLogoPath) {
-                if (file_exists($fallbackLogoPath)) {
-                    $logoPath = $fallbackLogoPath;
+        foreach (array_unique($subscriberLogoCandidates) as $logoCandidate) {
+            if (!empty($logoCandidate) && file_exists($logoCandidate)) {
+                $logoPath = $logoCandidate;
+                $hasSubscriberLogo = true;
+                break;
+            }
+        }
+
+        if (empty($logoPath)) {
+            foreach ($fallbackLogoCandidates as $logoCandidate) {
+                if (!empty($logoCandidate) && file_exists($logoCandidate)) {
+                    $logoPath = $logoCandidate;
                     break;
                 }
             }
@@ -165,10 +188,12 @@
                 @if(!empty($logoPath))
                     <img class="logo" src="{{ $logoPath }}" alt="Logo">
                 @endif
-                @if(empty($logoPath))
-                    <div class="company">{{ $data->company_name ?? 'Adwiseri' }}</div>
+                @if(empty($hasSubscriberLogo))
+                    <div class="company">{{ $subscriberName }}</div>
                 @endif
-                <div>{{ $data->display_from_email ?? ($data->from_email ?? '') }}</div>
+                @if(!empty($subscriberEmail))
+                    <div>{{ $subscriberEmail }}</div>
+                @endif
             </td>
             <td class="title">
                 INVOICE

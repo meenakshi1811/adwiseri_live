@@ -2178,7 +2178,12 @@ class AdminController extends Controller
                 $maildata->from_email = $user->email;
                 $maildata->to_email = $subs->email;
                 $maildata->company_name = $user->organization ?? $user->name;
+                $maildata->subscriber_name = $user->organization ?? $user->name;
+                $maildata->subscriber_email = $user->email;
                 $maildata->display_from_email = $user->email;
+                $maildata->subscriber_id = $user->id;
+                $maildata->user_id = $user->id;
+                $maildata->logo = $invoice->logo;
                 $maildata->logo_path = 'web_assets/users/user' . $user->id . '/' . $invoice->logo;
                 $maildata->detail = $invoice->detail;
                 $maildata->amount = $invoice->amount;
