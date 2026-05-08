@@ -21,6 +21,18 @@ if($invoice->user_id == null){
 else{
   $userid = $invoice->user_id;
 }
+
+$subscriberLogoUrl = null;
+$subscriberLogoPath = null;
+$subscriberId = $invoice->subscriber_id ?: $userid;
+
+if (!empty($invoice->logo)) {
+    $subscriberLogoPath = public_path('web_assets/users/user' . $subscriberId . '/' . $invoice->logo);
+
+    if (file_exists($subscriberLogoPath)) {
+        $subscriberLogoUrl = asset('web_assets/users/user' . $subscriberId . '/' . $invoice->logo);
+    }
+}
 @endphp
 <style>
     .invoice-box {
@@ -115,12 +127,15 @@ else{
 
 <div class="col-lg-10 column-client">
     <div class="invoice-box">
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex justify-content-between align-items-start mb-3">
             <div>
-                @if($invoice->subscriber_id)
-                    <img src="{{ asset('web_assets/users/user'.$invoice->subscriber_id.'/' . $invoice->logo) }}" alt="Logo" style="max-height:70px; object-fit:contain;">
+                @if(!empty($subscriberLogoUrl))
+                    <img src="{{ $subscriberLogoUrl }}" alt="Logo" style="max-height:70px; object-fit:contain;">
                 @else
-                    <img src="{{ asset('web_assets/users/user'.$invoice->user_id.'/' . $invoice->logo) }}" alt="Logo" style="max-height:70px; object-fit:contain;">
+                    <div class="text-primary fw-bold" style="font-size: 1.35rem;">{{ $invoice->name ?? 'Adwiseri' }}</div>
+                @endif
+                @if(!empty($invoice->email))
+                    <div>{{ $invoice->email }}</div>
                 @endif
             </div>
             <div>
@@ -133,21 +148,7 @@ else{
             </div>
         </div>
 
-        @if($invoice->type == 'ar') 
         <h3 class="text-primary text-center">Invoice</h3>
-        @else
-        <h3 class="text-primary text-center">Invoice</h3>
-        @endif
-        <div class="d-flex justify-content-center align-items-center mb-3">
-            <span class="me-2" style="display:inline-flex; width:28px; height:28px;">
-                @if($invoice->subscriber_id)
-                    <img src="{{ asset('web_assets/users/user'.$invoice->subscriber_id.'/' . $invoice->logo) }}" alt="Logo" style="width:100%; height:100%; object-fit:contain;">
-                @else
-                    <img src="{{ asset('web_assets/users/user'.$invoice->user_id.'/' . $invoice->logo) }}" alt="Logo" style="width:100%; height:100%; object-fit:contain;">
-                @endif
-            </span>
-            <strong>{{ $invoice->name }}</strong>
-        </div>
 
         <!-- <div class="invoice-header mb-4">
              <div>
