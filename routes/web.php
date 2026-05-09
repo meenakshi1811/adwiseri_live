@@ -98,7 +98,7 @@ Route::post('/save-email-template', [App\Http\Controllers\WebController::class, 
 Route::get('/scheduled-report-download/{file}', [App\Http\Controllers\WebController::class, 'downloadScheduledReport'])->name('scheduled_report_download')->middleware('signed');
 
 Route::get('/aboutadwiseri', [App\Http\Controllers\WebController::class, 'aboutadvisori'])->name('aboutadvisori');
-Route::get('/userprofile', [App\Http\Controllers\WebController::class, 'userprofile'])->name('userprofile')->middleware(['auth','check.device']);
+Route::get('/userprofile', [App\Http\Controllers\WebController::class, 'userprofile'])->name('userprofile')->middleware(['auth','check.device','throttle:30,1']);
 Route::post('/get_states', [App\Http\Controllers\WebController::class, 'get_states'])->name('get_states');
 Route::post('/get_timezone', [App\Http\Controllers\WebController::class, 'get_timezone'])->name('get_timezone');
 Route::post('/get_application', [App\Http\Controllers\WebController::class, 'get_application'])->name('get_application');
