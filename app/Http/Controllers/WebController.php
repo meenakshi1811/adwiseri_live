@@ -3142,6 +3142,8 @@ class WebController extends Controller
         $request->validate([
             'job_status' => 'required|string|max:255',
             'job_completion_date' => 'nullable|date|required_if:job_status,Complete',
+        ], [
+            'job_completion_date.required_if' => 'Application End Date is required',
         ]);
 
         $normalizeDate = function ($value) {

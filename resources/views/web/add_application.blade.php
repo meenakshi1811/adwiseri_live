@@ -31,7 +31,7 @@
                                 <input type="hidden" name="job_role" value="{{ $application->application_name }}">
                                 @error('job_role')
                                     <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
+                                        {{ $message }}
                                     </span>
                                 @enderror
                         <!-- <select name="job_role" id="job_role" class="form-control form-select @error('job_role') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
@@ -42,7 +42,7 @@
                         </select>
                         @error('job_role')
                             <span class="invalid-feedback" role="alert">
-                                <strong>{{ $message }}</strong>
+                                {{ $message }}
                             </span>
                         @enderror -->
                     </div>
@@ -65,7 +65,7 @@
                                 </select>
                                 @error('visa_country')
                                     <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
+                                        {{ $message }}
                                     </span>
                                 @enderror    
                         <!-- <select name="visa_country" id="visa_country" class="form-control form-select @error('visa_country') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
@@ -76,7 +76,7 @@
                         </select>
                         @error('country')
                             <span class="invalid-feedback" role="alert">
-                                <strong>{{ $message }}</strong>
+                                {{ $message }}
                             </span>
                         @enderror -->
                     </div>
@@ -94,7 +94,7 @@
 
                     @error('job_open_date')
                         <span class="invalid-feedback" role="alert">
-                            <strong>{{ $message }}</strong>
+                            {{ $message }}
                         </span>
                     @enderror
                     </div>
@@ -112,7 +112,7 @@
                         </select>
                     @error('job_status')
                         <span class="invalid-feedback" role="alert">
-                            <strong>{{ $message }}</strong>
+                            {{ $message }}
                         </span>
                     @enderror
                     </div>
@@ -132,7 +132,7 @@
                         autocomplete="job_completion_date"
                         />     @error('job_completion_date')
                         <span class="invalid-feedback" role="alert">
-                            <strong>{{ $message }}</strong>
+                            {{ $message }}
                         </span>
                     @enderror
                     </div>
@@ -143,7 +143,7 @@
                         <textarea name="job_detail" rows="3" class="form-control @error('job_detail') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ $application->application_detail }}" placeholder="Additional Information" autocomplete="job_detail">{{ $application->application_detail }}</textarea>
                     @error('job_detail')
                         <span class="invalid-feedback" role="alert">
-                            <strong>{{ $message }}</strong>
+                            {{ $message }}
                         </span>
                     @enderror
                     </div>
@@ -182,7 +182,7 @@
                         </select>
                         @error('client')
                             <span class="invalid-feedback" role="alert">
-                                <strong>{{ $message }}</strong>
+                                {{ $message }}
                             </span>
                         @enderror
                     </div>
@@ -198,7 +198,7 @@
                                 </select>
                                 @error('job_role')
                                     <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
+                                        {{ $message }}
                                     </span>
                                 @enderror
                         <!-- <select name="job_role" id="job_role" class="form-control form-select @error('job_role') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
@@ -212,7 +212,7 @@
                         </select>
                         @error('job_role')
                             <span class="invalid-feedback" role="alert">
-                                <strong>{{ $message }}</strong>
+                                {{ $message }}
                             </span>
                         @enderror -->
                     </div>
@@ -228,7 +228,7 @@
                                 </select>
                                 @error('visa_country')
                                     <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
+                                        {{ $message }}
                                     </span>
                                 @enderror
                         <!-- <select name="visa_country" id="visa_country" class="form-control @error('visa_country') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
@@ -239,7 +239,7 @@
                         </select>
                         @error('country')
                             <span class="invalid-feedback" role="alert">
-                                <strong>{{ $message }}</strong>
+                                {{ $message }}
                             </span>
                         @enderror -->
                     </div>
@@ -267,7 +267,7 @@
                                                     />
                     @error('job_open_date')
                         <span class="invalid-feedback" role="alert">
-                            <strong>{{ $message }}</strong>
+                            {{ $message }}
                         </span>
                     @enderror
                     </div>
@@ -285,7 +285,7 @@
                         </select>
                     @error('job_status')
                         <span class="invalid-feedback" role="alert">
-                            <strong>{{ $message }}</strong>
+                            {{ $message }}
                         </span>
                     @enderror
                     </div>
@@ -306,7 +306,7 @@
                         />
                     @error('job_completion_date')
                         <span class="invalid-feedback" role="alert">
-                            <strong>{{ $message }}</strong>
+                            {{ $message }}
                         </span>
                     @enderror
                     </div>
@@ -317,7 +317,7 @@
                         <textarea name="job_detail" rows="3" class="form-control @error('job_detail') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Additional Information">{{old('job_detail')}}</textarea>
                     @error('job_detail')
                         <span class="invalid-feedback" role="alert">
-                            <strong>{{ $message }}</strong>
+                            {{ $message }}
                         </span>
                     @enderror
                     </div>
