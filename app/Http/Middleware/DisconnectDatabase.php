@@ -23,6 +23,9 @@ class DisconnectDatabase
      */
     public function terminate(Request $request, $response): void
     {
-        DB::disconnect();
+        foreach (array_keys(config('database.connections', [])) as $connection) {
+            DB::disconnect($connection);
+            DB::purge($connection);
+        }
     }
 }
