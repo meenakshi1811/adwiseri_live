@@ -160,9 +160,9 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
-         document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function () {
             flatpickr(".datepicker", {
-                dateFormat: "d-m-y",
+                dateFormat: "d-m-Y",
                 defaultDate: document.querySelector('input[name="due_date"]').value || "today",
                 allowInput: true,
                 clickOpens: true
