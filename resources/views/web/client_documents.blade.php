@@ -55,7 +55,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             </div>
                             <div class="col-md-8 p-1">
                                 <select name="client_id" id="client_id" class="form-control form-select @error('client_id') is-invalid @enderror" required>
-                                    <option value="" {{ old('client_id') ? '' : 'selected' }}>Select Client ID</option>
+                                    <option value="" {{ old('client_id') ? '' : 'selected' }}>Select Client</option>
                                     @foreach($clients as $client)
                                         <option value="{{ $client->id }}" {{ old('client_id') == $client->id ? 'selected' : '' }}>
                                             {{ $client->name }} ({{ $client->id }})
@@ -142,7 +142,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 </span>
                             @enderror
                             </div>
-                            <div class="col text-start p-1">
+                            <div class="col text-center p-1">
                                 <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                             </div>
                         </div>
