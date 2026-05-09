@@ -3636,10 +3636,15 @@ class AdminController extends Controller
         // print_r($request->all());
         $id = $request['id'];
         $client = Clients::find($id);
-        $application = Applications::where('client_id', $client->id)->first();
+        $applications = Applications::where('client_id', $client->id)->get();
         ?>
-        <option value="<?php echo $application->id; ?>"><?php echo $application->application_name . "(" . $application->id . ")"; ?></option>
-    <?php
+        <option value="">Select Application</option>
+        <?php
+        foreach ($applications as $application) {
+        ?>
+            <option value="<?php echo $application->id; ?>"><?php echo $application->application_name . "(" . $application->id . ")"; ?></option>
+        <?php
+        }
     }
 
     public function get_applications(Request $request)
