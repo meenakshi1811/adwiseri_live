@@ -3139,6 +3139,11 @@ class WebController extends Controller
 
     public function add_new_application(Request $request)
     {
+        $request->validate([
+            'job_status' => 'required|string|max:255',
+            'job_completion_date' => 'nullable|date|required_if:job_status,Complete',
+        ]);
+
         $normalizeDate = function ($value) {
             if (!$value) {
                 return null;
