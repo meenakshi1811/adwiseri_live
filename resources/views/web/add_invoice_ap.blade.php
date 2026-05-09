@@ -180,7 +180,7 @@
     <script>
          document.addEventListener("DOMContentLoaded", function () {
             flatpickr(".datepicker", {
-                dateFormat: "d-m-y",
+                dateFormat: "d-m-Y",
                 defaultDate: document.querySelector('input[name="due_date"]').value || "today",
                 allowInput: true,
                 clickOpens: true
