@@ -268,7 +268,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 <textarea class="form-control" rows="2" name="message" placeholder="Type Your Message"></textarea>
                             </div>
                             <div class="col-12 text-end m-0 p-0">
-                                <input class="form-control btn btn-primary" type="submit" value="Send" />
+                                <input class="btn btn-primary" type="submit" value="Send" />
                             </div>
                         </div>
                     </form>
@@ -405,7 +405,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         <textarea name="correction_note" class="form-control" rows="2" maxlength="500"></textarea>
                     </div>
 
-                    <button type="submit" class="form-control btn btn-primary mb-4">Generate & Send</button>
+                    <button type="submit" class="btn btn-primary mb-4 d-block mx-auto px-4">Generate & Send</button>
                 </form>
             </div>
             <div class="col-lg-4"></div>
@@ -501,7 +501,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"
                             placeholder="Postcode">
                     </div>
-                    <button type="submit" class="form-control btn btn-primary mb-4">Save</button>
+                    <button type="submit" class="btn btn-primary mb-4 d-block mx-auto px-4">Save</button>
                     <!-- <a href="dashboard.html" class="btn btn-primary mb-4">Next</a> -->
                     <!-- <p class="text-center reg-logbtn">Already have an account! <a href="{{ route('login') }}" class="text-dark"> <strong>Login</strong></a></p> -->
                 </form>
@@ -533,7 +533,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         <input name="doc_file" required type="file" class="form-control" id="doc_file_upload" aria-describedby="emailHelp" accept=".jpg,.jpeg,.png,.pdf">
                         <label style="font-size:12px;">Select jpg, jpeg, png or pdf formats up to 4MB.</label>
                     </div>
-                    <button type="submit" class="form-control btn btn-primary mb-4">Save</button>
+                    <button type="submit" class="btn btn-primary mb-4 d-block mx-auto px-4">Save</button>
                     <!-- <a href="dashboard.html" class="btn btn-primary mb-4">Next</a> -->
                     <!-- <p class="text-center reg-logbtn">Already have an account! <a href="{{ route('login') }}" class="text-dark"> <strong>Login</strong></a></p> -->
                 </form>
@@ -577,7 +577,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         </div>
                     </div>
 
-                    <button type="submit" disabled="disabled" id="save_photo" class="form-control btn btn-primary mb-4">Save</button>
+                    <button type="submit" disabled="disabled" id="save_photo" class="btn btn-primary mb-4 d-block mx-auto px-4">Save</button>
                     <!-- <a href="dashboard.html" class="btn btn-primary mb-4">Next</a> -->
                     <!-- <p class="text-center reg-logbtn">Already have an account! <a href="{{ route('login') }}" class="text-dark"> <strong>Login</strong></a></p> -->
                 </form>
@@ -632,7 +632,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             class="form-control date" id="exampleInputEmail1" aria-describedby="emailHelp"
                             placeholder="Age">
                     </div>
-                    <button type="submit" class="form-control btn btn-primary mb-4">Save</button>
+                    <button type="submit" class="btn btn-primary mb-4 d-block mx-auto px-4">Save</button>
                     <!-- <a href="dashboard.html" class="btn btn-primary mb-4">Next</a> -->
                     <!-- <p class="text-center reg-logbtn">Already have an account! <a href="{{ route('login') }}" class="text-dark"> <strong>Login</strong></a></p> -->
                 </form>
