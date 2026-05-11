@@ -65,17 +65,23 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 }
 
 .flow-arrow {
-    font-size: 26px;
+    width: 46px;
+    height: 24px;
     color: #0d6efd;
-    font-weight: 700;
-    line-height: 1;
+    flex: 0 0 auto;
+}
+
+.flow-arrow svg {
+    width: 100%;
+    height: 100%;
+    display: block;
 }
 
 .status-circle {
     width: 220px;
     height: 220px;
     border-radius: 50%;
-    border: 2px solid #d6dce3;
+    border: 0;
     margin: 0 auto;
     padding: 18px;
     display: flex;
@@ -83,39 +89,40 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     justify-content: center;
     text-align: center;
     box-sizing: border-box;
-    background: #eceff3;
-    box-shadow: 0 8px 16px rgba(35, 48, 64, 0.08);
+    background: linear-gradient(135deg, var(--circle-color, #0d6efd), var(--circle-color-dark, #0b5ed7));
+    box-shadow: 0 8px 16px rgba(35, 48, 64, 0.18);
+    color: #fff;
 }
 
 .circle-date {
     font-size: 14px;
     font-weight: 700;
-    color: #003f95;
+    color: #fff;
     margin-bottom: 2px;
 }
 
 .circle-range {
     font-size: 13px;
-    color: #1d3e72;
+    color: rgba(255, 255, 255, 0.95);
     font-weight: 600;
 }
 
 .status-circle hr {
     width: 100%;
     margin: 9px 0;
-    border-color: rgba(0, 83, 196, 0.35);
+    border-color: rgba(255, 255, 255, 0.42);
 }
 
 .circle-status {
     font-size: 18px;
     line-height: 1.25;
     font-weight: 700;
-    color: #163c76;
+    color: #fff;
 }
 
 .circle-user {
     font-size: 14px;
-    color: #0f2950;
+    color: rgba(255, 255, 255, 0.95);
     font-weight: 600;
 }
 
@@ -305,12 +312,12 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         .summary-label { font-weight: 700; color: #163c76; }
                         .flow-wrapper { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: center; }
                         .flow-step { display: flex; align-items: center; gap: 14px; }
-                        .flow-arrow { font-size: 26px; color: #0d6efd; font-weight: 700; line-height: 1; }
-                        .status-circle { width: 220px; height: 220px; border-radius: 50%; border: 2px solid #d6dce3; margin: 0 auto; padding: 18px; display: flex; flex-direction: column; justify-content: center; text-align: center; box-sizing: border-box; background: #eceff3; }
-                        .status-circle hr { width: 100%; margin: 9px 0; border-color: rgba(0,83,196,0.35); }
-                        .circle-range { font-size: 13px; color: #1d3e72; font-weight: 600; }
-                        .circle-status { font-size: 18px; font-weight: 700; color: #163c76; }
-                        .circle-user { font-size: 14px; color: #0f2950; font-weight: 600; }
+                        .flow-arrow { width: 46px; height: 24px; color: #0d6efd; flex: 0 0 auto; } .flow-arrow svg { width: 100%; height: 100%; display: block; }
+                        .status-circle { width: 220px; height: 220px; border-radius: 50%; border: 0; margin: 0 auto; padding: 18px; display: flex; flex-direction: column; justify-content: center; text-align: center; box-sizing: border-box; background: linear-gradient(135deg, var(--circle-color, #0d6efd), var(--circle-color-dark, #0b5ed7)); color: #fff; }
+                        .status-circle hr { width: 100%; margin: 9px 0; border-color: rgba(255,255,255,0.42); }
+                        .circle-range { font-size: 13px; color: rgba(255, 255, 255, 0.95); font-weight: 600; }
+                        .circle-status { font-size: 18px; font-weight: 700; color: #fff; }
+                        .circle-user { font-size: 14px; color: rgba(255, 255, 255, 0.95); font-weight: 600; }
                     </style>
                 </head>
                 <body>
@@ -351,22 +358,42 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         return `${startDate} - ${endDate}`;
     }
 
+
+    function getCircleColors(index) {
+        const palette = [
+            ['#0d6efd', '#0b5ed7'],
+            ['#20c997', '#159570'],
+            ['#6f42c1', '#59349d'],
+            ['#fd7e14', '#d76400'],
+            ['#dc3545', '#b02a37'],
+            ['#198754', '#13653f'],
+            ['#0dcaf0', '#0998b3'],
+            ['#6610f2', '#4b0cb8']
+        ];
+        return palette[index % palette.length];
+    }
+
+    function getArrowMarkup() {
+        return `<div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg"><line x1="8" y1="30" x2="98" y2="30" stroke="currentColor" stroke-width="10" stroke-linecap="round"/><polygon points="92,10 114,30 92,50" fill="currentColor"/></svg></div>`;
+    }
+
     function renderFlowChart(statuses) {
       let html = '<div class="flow-wrapper">';
       
       statuses.forEach((item, index) => {
           const dateRange = formatDateRange(item);
+          const colors = getCircleColors(index);
 
           html += `
               <div class="flow-step">
-                  <div class="status-circle">
+                  <div class="status-circle" style="--circle-color: ${colors[0]}; --circle-color-dark: ${colors[1]};">
                       <div class="circle-range">${dateRange}</div>
                       <hr>
                       <div class="circle-status">${item.status || '--'}</div>
                       <hr>
                       <div class="circle-user">${item.user || '--'}</div>
                   </div>
-                  ${index < statuses.length - 1 ? '<div class="flow-arrow">→</div>' : ''}
+                  ${index < statuses.length - 1 ? getArrowMarkup() : ''}
               </div>
           `;
       });
