@@ -307,17 +307,20 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 <head>
                     <title>Application Tracking Status</title>
                     <style>
-                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        body { font-family: Arial, sans-serif; padding: 20px; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                         .summary-row { margin-bottom: 6px; font-size: 14px; }
                         .summary-label { font-weight: 700; color: #163c76; }
                         .flow-wrapper { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: center; }
                         .flow-step { display: flex; align-items: center; gap: 14px; }
                         .flow-arrow { width: 46px; height: 24px; color: #0d6efd; flex: 0 0 auto; } .flow-arrow svg { width: 100%; height: 100%; display: block; }
-                        .status-circle { width: 220px; height: 220px; border-radius: 50%; border: 0; margin: 0 auto; padding: 18px; display: flex; flex-direction: column; justify-content: center; text-align: center; box-sizing: border-box; background: linear-gradient(135deg, var(--circle-color, #0d6efd), var(--circle-color-dark, #0b5ed7)); color: #fff; }
+                        .status-circle { width: 220px; height: 220px; border-radius: 50%; border: 0; margin: 0 auto; padding: 18px; display: flex; flex-direction: column; justify-content: center; text-align: center; box-sizing: border-box; background: linear-gradient(135deg, var(--circle-color, #0d6efd), var(--circle-color-dark, #0b5ed7)); color: #fff; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                         .status-circle hr { width: 100%; margin: 9px 0; border-color: rgba(255,255,255,0.42); }
                         .circle-range { font-size: 13px; color: rgba(255, 255, 255, 0.95); font-weight: 600; }
                         .circle-status { font-size: 18px; font-weight: 700; color: #fff; }
                         .circle-user { font-size: 14px; color: rgba(255, 255, 255, 0.95); font-weight: 600; }
+                        @media print {
+                            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                        }
                     </style>
                 </head>
                 <body>
@@ -386,7 +389,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
           html += `
               <div class="flow-step">
-                  <div class="status-circle" style="--circle-color: ${colors[0]}; --circle-color-dark: ${colors[1]};">
+                  <div class="status-circle" style="--circle-color: ${colors[0]}; --circle-color-dark: ${colors[1]}; background: linear-gradient(135deg, ${colors[0]}, ${colors[1]});">
                       <div class="circle-range">${dateRange}</div>
                       <hr>
                       <div class="circle-status">${item.status || '--'}</div>
