@@ -386,7 +386,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
           html += `
               <div class="flow-step">
-                  <div class="status-circle" style="--circle-color: ${colors[0]}; --circle-color-dark: ${colors[1]};">
+                  <div class="status-circle" style="--circle-color: ${colors[0]}; --circle-color-dark: ${colors[1]}; background: linear-gradient(135deg, ${colors[0]}, ${colors[1]});">
                       <div class="circle-range">${dateRange}</div>
                       <hr>
                       <div class="circle-status">${item.status || '--'}</div>
