@@ -15,6 +15,9 @@ $subscription_roles = UserRoles::where('user_id','=',$user->id)->where('module',
 $setting_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Settings')->first();
 $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Support')->first();
 @endphp
+@php
+    $statusFlow = ['Registration', 'Applied', 'Pending', 'In Process', 'Complete', 'Cancelled', 'Withdrawn'];
+@endphp
 
 
 
@@ -78,7 +81,25 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <td class="p-1 text-center">{{  $app->application_name  .'('.$app->application_id.')'}}</td>
                             <td class="p-1 text-center">{{ $app->visa_country ?: ($app->client->visa_country ?? '') }}</td>
                             <td class="p-1 text-center">{{ $app->application_country }}</td>
-                            <td class="p-1 text-center">{{ $app->application_status }}</td>
+                            @php
+                                $currentStatus = $app->application_status ?: 'Registration';
+                                $currentIndex = array_search($currentStatus, $statusFlow, true);
+                                $currentIndex = $currentIndex === false ? 0 : $currentIndex;
+                            @endphp
+                            <td class="p-1 text-center">
+                                <select class="form-control form-select application-status-select"
+                                        data-application-id="{{ $app->id }}"
+                                        @if(!($application_roles->update_only == 1 || $application_roles->read_write_only == 1)) disabled @endif>
+                                    @foreach($statusFlow as $statusOption)
+                                        @php $optionIndex = array_search($statusOption, $statusFlow, true); @endphp
+                                        <option value="{{ $statusOption }}"
+                                            @if($currentStatus === $statusOption) selected @endif
+                                            @if($optionIndex < $currentIndex) disabled @endif>
+                                            {{ $statusOption }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </td>
                             <td class="p-1 text-center">{{ $app->formatted_start_date }}</td>
                             <td class="p-1 text-center">@if($app->end_date != null){{ $app->formatted_end_date }}@endif</td>
                             <td class="p-1 text-center">
@@ -114,6 +135,30 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
   </script>
   <script>
       $(document).ready(() => {
+        $('.application-status-select').on('change', function () {
+            const selectEl = $(this);
+            const applicationId = selectEl.data('application-id');
+            const selectedStatus = selectEl.val();
+
+            $.ajax({
+                url: "{{ route('applications.update_status') }}",
+                method: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    application_id: applicationId,
+                    status: selectedStatus
+                },
+                success: function(response) {
+                    Swal.fire({ icon: 'success', title: 'Success', text: response.message || 'Status updated.' })
+                        .then(() => window.location.reload());
+                },
+                error: function(xhr) {
+                    const message = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Unable to update status.';
+                    Swal.fire({ icon: 'error', title: 'Error', text: message });
+                    window.location.reload();
+                }
+            });
+        });
 
         $("#add_new_zero").click(function(){
             Swal.fire({
