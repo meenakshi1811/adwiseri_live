@@ -222,6 +222,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                             <select name="job_status" id="job_status" required
                                                 class="form-control form-select @error('job_status') is-invalid @enderror">
                                                 <option value="">Select Application Status</option>
+                                                <option {{ (old('job_status') == "Registration") ? 'selected':'' }} value="Registration">Registration</option>
+                                                <option {{ (old('job_status') == "Applied") ? 'selected':'' }} value="Applied">Applied</option>
                                                 <option {{ (old('job_status') == "Pending") ? 'selected':'' }} value="Pending">Pending (For submission)</option>
                                                 <option {{ (old('job_status') == "In Process") ? 'selected':'' }} value="In Process">In Process (Waiting for decision)</option>
                                                 <option {{ (old('job_status') == "Complete") ? 'selected':'' }} value="Complete">Completed (Application/Appeal decision received)</option>

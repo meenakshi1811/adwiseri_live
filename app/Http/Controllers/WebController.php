@@ -3079,6 +3079,30 @@ class WebController extends Controller
             ]);
         }
 
+        $normalizedStatuses = $timeline->pluck('status')
+            ->filter()
+            ->map(function ($status) {
+                return strtolower(trim((string) $status));
+            })
+            ->values();
+
+        $currentStatus = $application->application_status ? trim((string) $application->application_status) : '';
+        $normalizedCurrentStatus = strtolower($currentStatus);
+
+        if ($normalizedCurrentStatus !== '' && !$normalizedStatuses->contains($normalizedCurrentStatus)) {
+            $statusDate = $application->end_date
+                ? Carbon::parse($application->end_date)
+                : ($application->updated_at ? $application->updated_at->copy() : now());
+
+            $timeline->push([
+                'status' => $currentStatus,
+                'start_date' => $statusDate ? $statusDate->format('d/m/Y') : '--',
+                'end_date' => $statusDate ? $statusDate->format('d/m/Y') : '--',
+                'user' => '--',
+                'sort_at' => $statusDate,
+            ]);
+        }
+
         $timeline = $timeline
             ->sortBy(function ($item) {
                 return isset($item['sort_at']) && $item['sort_at'] ? $item['sort_at']->timestamp : PHP_INT_MAX;
