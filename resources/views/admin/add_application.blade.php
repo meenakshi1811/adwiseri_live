@@ -86,6 +86,8 @@
                             <div class="col-md-8 p-1">
                                 <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="exampleInputEmail1" style="background-color: #fff; color:#000 !important;" aria-describedby="emailHelp" required>
                                     <option value="">Select Application Status</option>
+                                    <option {{ ($application->application_status == "Registration") ? 'selected' : '' }} value="Registration">Registration</option>
+                                    <option {{ ($application->application_status == "Applied") ? 'selected' : '' }} value="Applied">Applied</option>
                                     <option {{ ($application->application_status == "Pending") ? 'selected' : '' }} value="Pending">Pending (For submission)</option>
                                     <option {{ ($application->application_status == "In Process") ? 'selected' : '' }} value="In Process">In Process (Waiting for decision)</option>
                                     <option {{ ($application->application_status == "Complete") ? 'selected' : '' }} value="Complete">Completed (Application/Appeal decision received)</option>
@@ -224,6 +226,8 @@
                             <div class="col-md-8 p-1">
                                 <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('job_status') }}" required>
                                     <option value="">Select Application Status</option>
+                                    <option {{ (old('job_status') == "Registration") ? 'selected':'' }} value="Registration">Registration</option>
+                                    <option {{ (old('job_status') == "Applied") ? 'selected':'' }} value="Applied">Applied</option>
                                     <option {{ (old('job_status') == "Pending") ? 'selected':'' }} value="Pending">Pending (For submission)</option>
                                     <option {{ (old('job_status') == "In Process") ? 'selected':'' }} value="In Process">In Process (Waiting for decision)</option>
                                     <option {{ (old('job_status') == "Complete") ? 'selected':'' }} value="Complete">Completed (Application/Appeal decision received)</option>
