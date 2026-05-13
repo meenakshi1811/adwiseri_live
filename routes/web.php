@@ -188,6 +188,7 @@ Route::get('/faqs', [App\Http\Controllers\WebController::class, 'faqs'])->name('
 Route::get('/ask_support', [App\Http\Controllers\WebController::class, 'ask_support'])->name('ask_support')->middleware(['auth','check.device']);
 Route::post('/ask_new_question', [App\Http\Controllers\WebController::class, 'ask_new_question'])->name('ask_new_question');
 Route::get('/applications', [App\Http\Controllers\WebController::class, 'applications'])->name('applications')->middleware(['auth','check.device']);
+Route::post('/applications/update-status', [App\Http\Controllers\WebController::class, 'updateApplicationStatus'])->name('applications.update_status')->middleware(['auth','check.device']);
 Route::get('/user_application_tracking', [App\Http\Controllers\WebController::class, 'user_application_tracking'])->name('user_application_tracking')->middleware(['auth','check.device']);
 Route::get('/clients/by-subscriber', [App\Http\Controllers\WebController::class, 'getClientsBySubscriber'])->name('clients.bySubscriber')->middleware(['auth','check.device']);
 Route::get('/get-applications-by-client/{clientId}', [App\Http\Controllers\WebController::class, 'getApplicationsByClient'])->name('applications.byClient')->middleware(['auth','check.device']);

@@ -58,6 +58,7 @@ use App\Models\Invoice_settings;
 use App\Models\Used_referrals;
 use App\Models\AffiliateCommissionEarnt;
 use App\Models\Application_assignments;
+use App\Models\ApplicationStatusTrack;
 use App\Models\Internal_communications;
 use App\Models\Client_discussions;
 use App\Models\EmailSubscriptions;
@@ -86,6 +87,8 @@ use App\Models\PaymentReminderSetting;
 use App\Services\EmailTemplateService;
 class WebController extends Controller
 {
+    private const APPLICATION_STATUS_FLOW = ['Registration', 'Applied', 'Pending', 'In Process', 'Complete', 'Cancelled', 'Withdrawn'];
+
     private function normalizeDateValue($value): ?string
     {
         if ($value === null) {
@@ -3061,20 +3064,20 @@ class WebController extends Controller
             ]);
         }
 
-        $assignedToUser = $application->assign_to ? User::find($application->assign_to) : null;
-        $statusDate = $application->end_date
-            ? Carbon::parse($application->end_date)
-            : ($application->updated_at ? $application->updated_at->copy() : $registrationDate);
+        $statusTracks = ApplicationStatusTrack::where('application_id', $application->id)
+            ->orderBy('created_at')
+            ->get();
 
-        $timeline->push([
-            'status' => $application->application_status ?: 'Decision',
-            'start_date' => $statusDate ? $statusDate->format('d/m/Y') : '--',
-            'end_date' => $application->end_date ? date("d/m/Y", strtotime($application->end_date)) : '--',
-            'user' => $assignedToUser
-                ? $assignedToUser->name . ' (' . $assignedToUser->id . ')'
-                : ($subscriber ? $subscriber->name . ' (' . $subscriber->id . ')' : '--'),
-            'sort_at' => $statusDate,
-        ]);
+        foreach ($statusTracks as $track) {
+            $changedAt = $track->changed_at ? Carbon::parse($track->changed_at) : ($track->created_at ? $track->created_at->copy() : null);
+            $timeline->push([
+                'status' => $track->status,
+                'start_date' => $changedAt ? $changedAt->format('d/m/Y') : '--',
+                'end_date' => $changedAt ? $changedAt->format('d/m/Y') : '--',
+                'user' => $track->updated_by_name ?: '--',
+                'sort_at' => $changedAt,
+            ]);
+        }
 
         $timeline = $timeline
             ->sortBy(function ($item) {
@@ -3088,6 +3091,52 @@ class WebController extends Controller
             });
 
         return response()->json($timeline);
+    }
+
+    public function updateApplicationStatus(Request $request)
+    {
+        $request->validate([
+            'application_id' => 'required|integer|exists:applications,id',
+            'status' => 'required|string|max:255',
+        ]);
+
+        $application = Applications::findOrFail($request->application_id);
+        $currentStatus = $application->application_status ?: 'Registration';
+        $newStatus = $request->status;
+
+        $statusFlow = self::APPLICATION_STATUS_FLOW;
+        $currentIndex = array_search($currentStatus, $statusFlow, true);
+        $newIndex = array_search($newStatus, $statusFlow, true);
+
+        if ($newIndex === false) {
+            return response()->json(['message' => 'Invalid status selected.'], 422);
+        }
+
+        if ($currentIndex === false) {
+            $currentIndex = 0;
+        }
+
+        if ($newIndex < $currentIndex) {
+            return response()->json(['message' => 'Status cannot move backwards.'], 422);
+        }
+
+        if ($newStatus === $currentStatus) {
+            return response()->json(['message' => 'Status already set.']);
+        }
+
+        $application->application_status = $newStatus;
+        $application->save();
+
+        $user = Auth::user();
+        ApplicationStatusTrack::create([
+            'application_id' => $application->id,
+            'status' => $newStatus,
+            'updated_by' => $user ? $user->id : null,
+            'updated_by_name' => $user ? ($user->name . ' (' . $user->id . ')') : null,
+            'changed_at' => now(),
+        ]);
+
+        return response()->json(['message' => 'Application status updated successfully.']);
     }
 
     public function add_application()
@@ -3184,6 +3233,7 @@ class WebController extends Controller
         if ($user) {
             $application = Applications::find($request->id);
             if ($application) {
+                $oldStatus = $application->application_status ?: 'Registration';
                 $client = Clients::find($request->client_id);
                 $subscriber = User::find($client->subscriber_id);
                 $application->application_name = $request['job_role'];
@@ -3195,6 +3245,15 @@ class WebController extends Controller
                 $application->start_date = $normalizeDate($request['job_open_date']);
                 $application->end_date = $normalizeDate($request['job_completion_date']);
                 $application->save();
+                if ($oldStatus !== $request['job_status']) {
+                    ApplicationStatusTrack::create([
+                        'application_id' => $application->id,
+                        'status' => $request['job_status'],
+                        'updated_by' => $user->id,
+                        'updated_by_name' => $user->name . ' (' . $user->id . ')',
+                        'changed_at' => now(),
+                    ]);
+                }
                 $activity = new Activities();
                 $activity->subscriber_id = $subscriber->id;
                 $activity->user_id = $user->id;
@@ -3228,6 +3287,13 @@ class WebController extends Controller
                     $application->start_date = $normalizeDate($request['job_open_date']);
                     $application->end_date = $normalizeDate($request['job_completion_date']);
                     $application->save();
+                    ApplicationStatusTrack::create([
+                        'application_id' => $application->id,
+                        'status' => $request['job_status'],
+                        'updated_by' => $user->id,
+                        'updated_by_name' => $user->name . ' (' . $user->id . ')',
+                        'changed_at' => now(),
+                    ]);
                     $activity = new Activities();
                     $activity->subscriber_id = $subscriber->id;
                     $activity->user_id = $user->id;
