@@ -538,6 +538,10 @@
                                         value="{{ old('job_status') }}" required>
                                         <option value="">Select Application Status
                                         </option>
+                                        <option {{ old('job_status') == 'Registration' ? 'selected' : '' }} value="Registration">
+                                            Registration</option>
+                                        <option {{ old('job_status') == 'Applied' ? 'selected' : '' }} value="Applied">
+                                            Applied</option>
                                         <option {{ old('job_status') == 'Pending' ? 'selected' : '' }} value="Pending">
                                             Pending</option>
                                         <option {{ old('job_status') == 'In Process' ? 'selected' : '' }}
@@ -546,6 +550,8 @@
                                             Complete</option>
                                         <option {{ old('job_status') == 'Cancelled' ? 'selected' : '' }}
                                             value="Cancelled">Cancelled</option>
+                                        <option {{ old('job_status') == 'Withdrawn' ? 'selected' : '' }}
+                                            value="Withdrawn">Withdrawn</option>
                                     </select>
                                     @error('job_status')
                                         <span class="invalid-feedback" role="alert">
