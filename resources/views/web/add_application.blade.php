@@ -103,20 +103,24 @@
                         <label>Application Status<span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>
                     <div class="col-md-8 p-1">
+                        @php
+                            $currentApplicationStatus = $application->application_status ?? old('job_status', '');
+                            $isTerminalApplicationStatus = in_array($currentApplicationStatus, ['Withdrawn', 'Cancelled'], true);
+                        @endphp
                         <select name="job_status" class="form-control form-select js-app-status @error('job_status') is-invalid @enderror" id="exampleInputEmail1" style="background-color: #fff; color:#000 !important;" aria-describedby="emailHelp" required>
                             <option value="">Select Application Status</option>
-                            <option {{ ($application->application_status == "Client Registered") ? 'selected' : '' }} value="Client Registered">Client Registered</option>
-                            <option {{ ($application->application_status == "Client Counselled") ? 'selected' : '' }} value="Client Counselled">Client Counselled</option>
-                            <option {{ ($application->application_status == "Preparation") ? 'selected' : '' }} value="Preparation">Preparation</option>
-                            <option {{ ($application->application_status == "Apointment Booked") ? 'selected' : '' }} value="Apointment Booked">Apointment Booked</option>
-                            <option {{ ($application->application_status == "Applied") ? 'selected' : '' }} value="Applied">Applied</option>
-                            <option {{ ($application->application_status == "Decision") ? 'selected' : '' }} value="Decision">Decision</option>
-                            <option {{ ($application->application_status == "Appeal Lodged") ? 'selected' : '' }} value="Appeal Lodged">Appeal Lodged</option>
-                            <option {{ ($application->application_status == "Appeal Decision") ? 'selected' : '' }} value="Appeal Decision">Appeal Decision</option>
-                            <option {{ ($application->application_status == "AR / JR Lodged") ? 'selected' : '' }} value="AR / JR Lodged">AR / JR Lodged</option>
-                            <option {{ ($application->application_status == "AR / JR Decision") ? 'selected' : '' }} value="AR / JR Decision">AR / JR Decision</option>
-                            <option {{ ($application->application_status == "Withdrawn") ? 'selected' : '' }} value="Withdrawn">Withdrawn</option>
-                            <option {{ ($application->application_status == "Cancelled") ? 'selected' : '' }} value="Cancelled">Cancelled</option>
+                            <option {{ ($application->application_status == "Client Registered") ? 'selected' : '' }} value="Client Registered" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Client Registered") disabled @endif>Client Registered</option>
+                            <option {{ ($application->application_status == "Client Counselled") ? 'selected' : '' }} value="Client Counselled" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Client Counselled") disabled @endif>Client Counselled</option>
+                            <option {{ ($application->application_status == "Preparation") ? 'selected' : '' }} value="Preparation" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Preparation") disabled @endif>Preparation</option>
+                            <option {{ ($application->application_status == "Apointment Booked") ? 'selected' : '' }} value="Apointment Booked" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Apointment Booked") disabled @endif>Apointment Booked</option>
+                            <option {{ ($application->application_status == "Applied") ? 'selected' : '' }} value="Applied" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Applied") disabled @endif>Applied</option>
+                            <option {{ ($application->application_status == "Decision") ? 'selected' : '' }} value="Decision" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Decision") disabled @endif>Decision</option>
+                            <option {{ ($application->application_status == "Appeal Lodged") ? 'selected' : '' }} value="Appeal Lodged" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Appeal Lodged") disabled @endif>Appeal Lodged</option>
+                            <option {{ ($application->application_status == "Appeal Decision") ? 'selected' : '' }} value="Appeal Decision" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Appeal Decision") disabled @endif>Appeal Decision</option>
+                            <option {{ ($application->application_status == "AR / JR Lodged") ? 'selected' : '' }} value="AR / JR Lodged" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "AR / JR Lodged") disabled @endif>AR / JR Lodged</option>
+                            <option {{ ($application->application_status == "AR / JR Decision") ? 'selected' : '' }} value="AR / JR Decision" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "AR / JR Decision") disabled @endif>AR / JR Decision</option>
+                            <option {{ ($application->application_status == "Withdrawn") ? 'selected' : '' }} value="Withdrawn" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Withdrawn") disabled @endif>Withdrawn</option>
+                            <option {{ ($application->application_status == "Cancelled") ? 'selected' : '' }} value="Cancelled" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Cancelled") disabled @endif>Cancelled</option>
                         </select>
                     @error('job_status')
                         <span class="invalid-feedback" role="alert">
