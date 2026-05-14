@@ -89,6 +89,7 @@
                           type="date"
                          class="form-control date @error('job_open_date') is-invalid @enderror"
                           id="job_open_date"  aria-describedby="emailHelp"
+                          max="{{ date('Y-m-d') }}"
                           value="{{ $application->start_date_input ?: '' }}"
                           placeholder="Application Start Date" autocomplete="job_open_date" style="background-color: #fff;">
 
@@ -134,6 +135,7 @@
                         id="job_completion_date"
                         aria-describedby="emailHelp"
                         min="{{ $application->start_date_input ?: '' }}"
+                        max="{{ date('Y-m-d') }}"
                         value="{{ $application->end_date_input ?: '' }}"
                         placeholder="Application End Date"
                         autocomplete="job_completion_date"
