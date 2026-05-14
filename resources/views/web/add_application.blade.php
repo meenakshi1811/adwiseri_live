@@ -156,7 +156,7 @@
                     </div>
                     <div class="col-md-4 p-1">
                             </div>
-                            <div class="col-md-8 text-center p-1">
+                            <div class="col-md-8 text-left p-1">
                                 <button type="submit" class="btn btn-primary">Submit</button>
                                 <!-- <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button> -->
                             </div>

@@ -122,7 +122,7 @@
                                 </span>
                             @enderror
                             </div>
-                            <div class="col-12 p-1 adwiseri-form-actions text-center">
+                            <div class="col-12 p-1 adwiseri-form-actions text-left">
                                 <button type="submit" class="btn btn-primary">Submit</button>
                                 <!-- <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button> -->
                             </div>
@@ -271,7 +271,7 @@
                                 </span>
                             @enderror
                             </div>
-                            <div class="col-12 p-1 adwiseri-form-actions text-center">
+                            <div class="col-12 p-1 adwiseri-form-actions text-left">
                                 <button type="submit" class="btn btn-primary">Submit</button>
                             </div>
                         </div>
