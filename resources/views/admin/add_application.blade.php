@@ -122,8 +122,8 @@
                                 </span>
                             @enderror
                             </div>
-                            <div class="col-12 p-1 adwiseri-form-actions">
-                                <button type="submit" class="btn btn-outline-success login-btn" style="width: 100%;">Submit</button>
+                            <div class="col-12 p-1 adwiseri-form-actions text-center">
+                                <button type="submit" class="btn btn-primary">Submit</button>
                                 <!-- <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button> -->
                             </div>
                         </div>
@@ -271,8 +271,8 @@
                                 </span>
                             @enderror
                             </div>
-                            <div class="col-12 p-1 adwiseri-form-actions">
-                                <button type="submit" class="btn btn-outline-success login-btn" style="width: 100%;">Submit</button>
+                            <div class="col-12 p-1 adwiseri-form-actions text-center">
+                                <button type="submit" class="btn btn-primary">Submit</button>
                             </div>
                         </div>
                     </form>
