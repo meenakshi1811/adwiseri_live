@@ -84,7 +84,7 @@
                                 <label>Application Status<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="exampleInputEmail1" style="background-color: #fff; color:#000 !important;" aria-describedby="emailHelp" required>
+                                <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="edit_job_status" style="background-color: #fff; color:#000 !important;" aria-describedby="emailHelp" required>
                                     <option value="">Select Application Status</option>
                                     <option {{ ($application->application_status == "Registration") ? 'selected' : '' }} value="Registration">Registration</option>
                                     <option {{ ($application->application_status == "Applied") ? 'selected' : '' }} value="Applied">Applied</option>
@@ -104,7 +104,7 @@
                                 <label>Application End Date</label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date_input ?: date('Y-m-d') }}" value="{{ $application->end_date_input ?: '' }}" placeholder="Application End Date" autocomplete="job_completion_date">
+                                <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date_input ?: date('Y-m-d') }}" value="{{ $application->end_date_input ?: '' }}" placeholder="Application End Date" autocomplete="job_completion_date" readonly>
                             @error('job_completion_date')
                                 <span class="invalid-feedback" role="alert">
                                     {{ $message }}
@@ -224,7 +224,7 @@
                                 <label>Application Status<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('job_status') }}" required>
+                                <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="add_job_status" aria-describedby="emailHelp" value="{{ old('job_status') }}" required>
                                     <option value="">Select Application Status</option>
                                     <option {{ (old('job_status') == "Registration") ? 'selected':'' }} value="Registration">Registration</option>
                                     <option {{ (old('job_status') == "Applied") ? 'selected':'' }} value="Applied">Applied</option>
@@ -252,7 +252,7 @@
                         placeholder="Application End Date"
                         autocomplete="job_completion_date"
                           max="{{date('Y-m-d')}}"
-                        {{-- readonly --}}
+                        readonly
                         />
                             @error('job_completion_date')
                                 <span class="invalid-feedback" role="alert">
@@ -378,6 +378,25 @@
                 }
             });
           }
+
+          const endDateEditableStatuses = ["Decision", "Withdrawn", "Cancelled"];
+
+          function toggleEndDateField(statusSelector, endDateSelector) {
+            const statusValue = $(statusSelector).val();
+            const isEditable = endDateEditableStatuses.includes(statusValue);
+            $(endDateSelector).prop('readonly', !isEditable);
+          }
+
+          $("#edit_job_status").on("change", function () {
+            toggleEndDateField("#edit_job_status", "#app_end_date");
+          });
+
+          $("#add_job_status").on("change", function () {
+            toggleEndDateField("#add_job_status", "#job_completion_date");
+          });
+
+          toggleEndDateField("#edit_job_status", "#app_end_date");
+          toggleEndDateField("#add_job_status", "#job_completion_date");
       });
   </script>
   <script>

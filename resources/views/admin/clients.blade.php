@@ -622,10 +622,18 @@ window.onclick = function (event) {
 
         $(document).ready(function() {
             // Get the modal
+            const endDateEditableStatuses = ["Decision", "Complete", "Withdrawn", "Cancelled"];
+
+            function toggleApplicationEndDateReadonly() {
+                var currentStatus = $("#job_status").val();
+                var shouldEnableEndDate = endDateEditableStatuses.includes(currentStatus);
+                $("#job_completion_date").prop("readonly", !shouldEnableEndDate);
+            }
+
             $("#job_open_date").on("change", function () {
                 var startDate = $(this).val(); // Get the selected start date
                 var $endDateInput = $("#job_completion_date");
-                $endDateInput.prop("readonly", false);
+
                 // Update the min attribute of the end date
                 $endDateInput.attr("min", startDate);
 
@@ -634,6 +642,12 @@ window.onclick = function (event) {
                     $endDateInput.val("");
                 }
              });
+
+             $("#job_status").on("change", function () {
+                toggleApplicationEndDateReadonly();
+             });
+
+             toggleApplicationEndDateReadonly();
              document.getElementById('job_open_date').addEventListener('change', function () {
         var inputField = this;
         var inputDate = new Date(inputField.value); // Get the selected date
