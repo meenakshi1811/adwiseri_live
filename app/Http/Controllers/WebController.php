@@ -3214,9 +3214,11 @@ class WebController extends Controller
     {
         $request->validate([
             'job_status' => 'required|string|max:255',
-            'job_completion_date' => 'nullable|date|required_if:job_status,Complete',
+            'job_open_date' => 'required|date',
+            'job_completion_date' => 'nullable|date|required_if:job_status,Complete|after_or_equal:job_open_date',
         ], [
             'job_completion_date.required_if' => 'Application End Date is required',
+            'job_completion_date.after_or_equal' => 'Application End Date must be on or after Application Start Date',
         ]);
 
         $normalizeDate = function ($value) {
