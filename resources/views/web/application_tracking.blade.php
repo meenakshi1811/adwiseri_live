@@ -262,6 +262,44 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
   </script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script>
+    const STATUS_FLOW = [
+        'Client Registered',
+        'Client Counselled',
+        'Preparation',
+        'Apointment Booked',
+        'Applied',
+        'Decision',
+        'Appeal Lodged',
+        'Appeal Decision',
+        'AR / JR Lodged',
+        'AR / JR Decision',
+        'Withdrawn',
+        'Cancelled'
+    ];
+
+    function buildFullStatusTimeline(statuses) {
+        const statusMap = new Map();
+        (statuses || []).forEach((item) => {
+            const key = (item.status || '').trim().toLowerCase();
+            if (key && !statusMap.has(key)) {
+                statusMap.set(key, item);
+            }
+        });
+
+        return STATUS_FLOW.map((statusName, index) => {
+            const key = statusName.toLowerCase();
+            const matched = statusMap.get(key);
+
+            return {
+                index: index + 1,
+                status: statusName,
+                start_date: matched ? matched.start_date : '--',
+                end_date: matched ? matched.end_date : '--',
+                user: matched ? (matched.user || '--') : '--'
+            };
+        });
+    }
+
     function setActiveActionButton(activeButtonId) {
         $('.tracking-action-btn').removeClass('active');
         if (activeButtonId) {
@@ -340,16 +378,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     function formatDateRange(item) {
         const startDate = item.start_date || '--';
         const endDate = item.end_date || '';
-        const status = (item.status || '').toLowerCase();
-
-        if (status === 'registration') {
-            return startDate;
-        }
-
-        if (status === 'pending') {
-            return `${startDate} - `;
-        }
-
         if (!endDate || endDate === '--') {
             return `${startDate} - `;
         }
@@ -496,7 +524,13 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             $('#tracking_id').text(applicationText);  // Assuming data[0].name contains the desired text
                             viewReport();
                             verifyDropDowns();
-                              data.forEach(item => {
+                          } else {
+                              rows = `<tr><td colspan="4" class="text-center">No data found.</td></tr>`;
+                              $('#tracking_id').text('No application selected');  // Fallback text when no data
+                          }
+
+                          const fullTimeline = buildFullStatusTimeline(data);
+                          fullTimeline.forEach(item => {
                                   rows += `
                                       <tr>
                                           <td class="text-center">${item.index}</td>
@@ -506,13 +540,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                       </tr>
                                   `;
                               });
-                          } else {
-                              rows = `<tr><td colspan="4" class="text-center">No data found.</td></tr>`;
-                              $('#tracking_id').text('No application selected');  // Fallback text when no data
-                          }
 
                           $('#application_table_body').html(rows);
-                          renderFlowChart(data);
+                          renderFlowChart(fullTimeline);
                       },
                       error: function () {
                           alert('Failed to fetch application data.');
