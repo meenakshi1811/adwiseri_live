@@ -155,7 +155,7 @@
                                 </span>
                             @enderror
                         </div>
-                        <div class="col-md-8 offset-md-4 p-1 text-center">
+                        <div class="col-md-12 p-1 text-center">
                             <button type="submit" class="btn btn-primary px-4">Submit</button>
                         </div>
                     </div>
