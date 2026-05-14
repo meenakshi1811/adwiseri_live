@@ -104,13 +104,18 @@
                     <div class="col-md-8 p-1">
                         <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="exampleInputEmail1" style="background-color: #fff; color:#000 !important;" aria-describedby="emailHelp" required>
                             <option value="">Select Application Status</option>
-                            <option {{ ($application->application_status == "Registration") ? 'selected' : '' }} value="Registration">Registration</option>
+                            <option {{ ($application->application_status == "Client Registered") ? 'selected' : '' }} value="Client Registered">Client Registered</option>
+                            <option {{ ($application->application_status == "Client Counselled") ? 'selected' : '' }} value="Client Counselled">Client Counselled</option>
+                            <option {{ ($application->application_status == "Preparation") ? 'selected' : '' }} value="Preparation">Preparation</option>
+                            <option {{ ($application->application_status == "Apointment Booked") ? 'selected' : '' }} value="Apointment Booked">Apointment Booked</option>
                             <option {{ ($application->application_status == "Applied") ? 'selected' : '' }} value="Applied">Applied</option>
-                            <option {{ ($application->application_status == "Pending") ? 'selected' : '' }} value="Pending">Pending (For submission)</option>
-                            <option {{ ($application->application_status == "In Process") ? 'selected' : '' }} value="In Process">In Process (Waiting for decision)</option>
-                            <option {{ ($application->application_status == "Complete") ? 'selected' : '' }} value="Complete">Completed (Application/Appeal decision received)</option>
-                            <option {{ ($application->application_status == "Cancelled") ? 'selected' : '' }} value="Cancelled">Cancelled (Application/Appeal Cancelled by Consultancy/Authorities)</option>
-                            <option {{ ($application->application_status == "Withdrawn") ? 'selected' : '' }} value="Withdrawn">Withdrawn (Application/Appeal Withdrawn by Client)</option>
+                            <option {{ ($application->application_status == "Decision") ? 'selected' : '' }} value="Decision">Decision</option>
+                            <option {{ ($application->application_status == "Appeal Lodged") ? 'selected' : '' }} value="Appeal Lodged">Appeal Lodged</option>
+                            <option {{ ($application->application_status == "Appeal Decision") ? 'selected' : '' }} value="Appeal Decision">Appeal Decision</option>
+                            <option {{ ($application->application_status == "AR / JR Lodged") ? 'selected' : '' }} value="AR / JR Lodged">AR / JR Lodged</option>
+                            <option {{ ($application->application_status == "AR / JR Decision") ? 'selected' : '' }} value="AR / JR Decision">AR / JR Decision</option>
+                            <option {{ ($application->application_status == "Withdrawn") ? 'selected' : '' }} value="Withdrawn">Withdrawn</option>
+                            <option {{ ($application->application_status == "Cancelled") ? 'selected' : '' }} value="Cancelled">Cancelled</option>
                         </select>
                     @error('job_status')
                         <span class="invalid-feedback" role="alert">
@@ -279,13 +284,18 @@
                     <div class="col-md-8 p-1">
                         <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('job_status') }}" required>
                             <option value="">Select Application Status</option>
-                            <option {{ (old('job_status') == "Registration") ? 'selected':'' }} value="Registration">Registration</option>
+                            <option {{ (old('job_status') == "Client Registered") ? 'selected':'' }} value="Client Registered">Client Registered</option>
+                            <option {{ (old('job_status') == "Client Counselled") ? 'selected':'' }} value="Client Counselled">Client Counselled</option>
+                            <option {{ (old('job_status') == "Preparation") ? 'selected':'' }} value="Preparation">Preparation</option>
+                            <option {{ (old('job_status') == "Apointment Booked") ? 'selected':'' }} value="Apointment Booked">Apointment Booked</option>
                             <option {{ (old('job_status') == "Applied") ? 'selected':'' }} value="Applied">Applied</option>
-                            <option {{ (old('job_status') == "Pending") ? 'selected':'' }} value="Pending">Pending (For submission)</option>
-                            <option {{ (old('job_status') == "In Process") ? 'selected':'' }} value="In Process">In Process (Waiting for decision)</option>
-                            <option {{ (old('job_status') == "Complete") ? 'selected':'' }} value="Complete">Completed (Application/Appeal decision received)</option>
-                            <option {{ (old('job_status') == "Cancelled") ? 'selected':'' }} value="Cancelled">Cancelled (Application/Appeal Cancelled by Consultancy/Authorities)</option>
-                            <option {{ (old('job_status') == "Withdrawn") ? 'selected' : '' }} value="Withdrawn">Withdrawn (Application/Appeal Withdrawn by Client)</option>
+                            <option {{ (old('job_status') == "Decision") ? 'selected':'' }} value="Decision">Decision</option>
+                            <option {{ (old('job_status') == "Appeal Lodged") ? 'selected':'' }} value="Appeal Lodged">Appeal Lodged</option>
+                            <option {{ (old('job_status') == "Appeal Decision") ? 'selected':'' }} value="Appeal Decision">Appeal Decision</option>
+                            <option {{ (old('job_status') == "AR / JR Lodged") ? 'selected':'' }} value="AR / JR Lodged">AR / JR Lodged</option>
+                            <option {{ (old('job_status') == "AR / JR Decision") ? 'selected':'' }} value="AR / JR Decision">AR / JR Decision</option>
+                            <option {{ (old('job_status') == "Withdrawn") ? 'selected' : '' }} value="Withdrawn">Withdrawn</option>
+                            <option {{ (old('job_status') == "Cancelled") ? 'selected':'' }} value="Cancelled">Cancelled</option>
                         </select>
                     @error('job_status')
                         <span class="invalid-feedback" role="alert">
