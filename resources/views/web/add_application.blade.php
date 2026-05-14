@@ -157,7 +157,7 @@
                     <div class="col-md-4 p-1">
                             </div>
                             <div class="col-md-8 text-left p-1">
-                                <button type="submit" class="btn btn-outline-success login-btn" style="width: 100%;">Submit</button>
+                                <button type="submit" class="btn btn-primary">Submit</button>
                                 <!-- <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button> -->
                             </div>
                 </div>
@@ -194,6 +194,33 @@
                         @enderror
                     </div>
                     <div class="col-md-4 p-1">
+                        <label>Visa Country<span class="text-danger" style="font-size: 18px;">*</span></label>
+                    </div>
+                    <div class="col-md-8 p-1">
+                                <select name="visa_country" id="visa_country" class="form-control form-select @error('visa_country') is-invalid @enderror" aria-describedby="emailHelp" required>
+                                    <option value="">Select Visa Country</option>
+                                    @foreach($countries as $country)
+                                    <option {{ (old('visa_country') == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
+                                    @endforeach
+                                </select>
+                                @error('visa_country')
+                                    <span class="invalid-feedback" role="alert">
+                                        {{ $message }}
+                                    </span>
+                                @enderror
+                        <!-- <select name="visa_country" id="visa_country" class="form-control @error('visa_country') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
+                            <option value="">Select Visa Country</option>
+                            @foreach($countries as $country)
+                            <option {{ (old('visa_country') == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
+                            @endforeach
+                        </select>
+                        @error('country')
+                            <span class="invalid-feedback" role="alert">
+                                {{ $message }}
+                            </span>
+                        @enderror -->
+                    </div>
+                    <div class="col-md-4 p-1">
                         <label>Application Type<span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>
                     <div class="col-md-8 p-1">
@@ -218,33 +245,6 @@
                             @endif
                         </select>
                         @error('job_role')
-                            <span class="invalid-feedback" role="alert">
-                                {{ $message }}
-                            </span>
-                        @enderror -->
-                    </div>
-                    <div class="col-md-4 p-1">
-                        <label>Visa Country<span class="text-danger" style="font-size: 18px;">*</span></label>
-                    </div>
-                    <div class="col-md-8 p-1">
-                                <select name="visa_country" id="visa_country" class="form-control form-select @error('visa_country') is-invalid @enderror" aria-describedby="emailHelp" required>
-                                    <option value="">Select Visa Country</option>
-                                    @foreach($countries as $country)
-                                    <option {{ (old('visa_country') == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
-                                    @endforeach
-                                </select>
-                                @error('visa_country')
-                                    <span class="invalid-feedback" role="alert">
-                                        {{ $message }}
-                                    </span>
-                                @enderror
-                        <!-- <select name="visa_country" id="visa_country" class="form-control @error('visa_country') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
-                            <option value="">Select Visa Country</option>
-                            @foreach($countries as $country)
-                            <option {{ (old('visa_country') == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
-                            @endforeach
-                        </select>
-                        @error('country')
                             <span class="invalid-feedback" role="alert">
                                 {{ $message }}
                             </span>
@@ -339,7 +339,7 @@
                             </div>
                             <div class="col-md-8 text-left p-1">
                                 <!-- <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button> -->
-                                <button type="submit" class="btn btn-outline-success login-btn" style="width: 100%;">Submit</button>
+                                <button type="submit" class="btn btn-primary">Submit</button>
                             </div>
                 </div>
             </form>
