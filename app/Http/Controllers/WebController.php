@@ -3020,99 +3020,27 @@ class WebController extends Controller
 
     public function getApplicationData($id)
     {
-        $application = Applications::with('client.user')->find($id);
+        $application = Applications::find($id);
 
         if (!$application) {
             return response()->json([]);
         }
 
-        $timeline = collect([]);
-
-        $client = $application->client;
-        $subscriber = $client && $client->user ? $client->user : null;
-        $registrationDate = $application->start_date ? Carbon::parse($application->start_date) : ($application->created_at ? $application->created_at->copy() : null);
-
-        $timeline->push([
-            'status' => 'Client Registered',
-            'start_date' => $registrationDate ? $registrationDate->format('d/m/Y') : '--',
-            'end_date' => $registrationDate ? $registrationDate->format('d/m/Y') : '--',
-            'user' => $subscriber ? $subscriber->name . ' (' . $subscriber->id . ')' : '--',
-            'sort_at' => $registrationDate,
-        ]);
-
-        $assignments = Application_assignments::with('user')
-            ->where(function ($query) use ($application) {
-                $query->where('application_id', $application->id);
-
-                if (!empty($application->application_id)) {
-                    $query->orWhere('application_id', $application->application_id);
-                }
-            })
-            ->orderBy('id')
-            ->get();
-
-        foreach ($assignments as $assignment) {
-            $assignedUser = $assignment->user;
-            $assignedDate = $assignment->created_at ? $assignment->created_at->format('d/m/Y') : '--';
-
-            $timeline->push([
-                'status' => 'Assigned',
-                'start_date' => $assignedDate,
-                'end_date' => $assignedDate,
-                'user' => $assignedUser ? $assignedUser->name . ' (' . $assignedUser->id . ')' : '--',
-                'sort_at' => $assignment->created_at ? $assignment->created_at->copy() : null,
-            ]);
-        }
-
-        $statusTracks = ApplicationStatusTrack::where('application_id', $application->id)
+        $timeline = ApplicationStatusTrack::where('application_id', $application->id)
             ->orderBy('created_at')
-            ->get();
+            ->get()
+            ->map(function ($track, $idx) {
+                $changedAt = $track->changed_at ? Carbon::parse($track->changed_at) : ($track->created_at ? $track->created_at->copy() : null);
 
-        foreach ($statusTracks as $track) {
-            $changedAt = $track->changed_at ? Carbon::parse($track->changed_at) : ($track->created_at ? $track->created_at->copy() : null);
-            $timeline->push([
-                'status' => $track->status,
-                'start_date' => $changedAt ? $changedAt->format('d/m/Y') : '--',
-                'end_date' => $changedAt ? $changedAt->format('d/m/Y') : '--',
-                'user' => $track->updated_by_name ?: '--',
-                'sort_at' => $changedAt,
-            ]);
-        }
-
-        $normalizedStatuses = $timeline->pluck('status')
-            ->filter()
-            ->map(function ($status) {
-                return strtolower(trim((string) $status));
+                return [
+                    'index' => $idx + 1,
+                    'status' => $track->status,
+                    'start_date' => $changedAt ? $changedAt->format('d/m/Y') : '--',
+                    'end_date' => $changedAt ? $changedAt->format('d/m/Y') : '--',
+                    'user' => $track->updated_by_name ?: '--',
+                ];
             })
             ->values();
-
-        $currentStatus = $application->application_status ? trim((string) $application->application_status) : '';
-        $normalizedCurrentStatus = strtolower($currentStatus);
-
-        if ($normalizedCurrentStatus !== '' && !$normalizedStatuses->contains($normalizedCurrentStatus)) {
-            $statusDate = $application->end_date
-                ? Carbon::parse($application->end_date)
-                : ($application->updated_at ? $application->updated_at->copy() : now());
-
-            $timeline->push([
-                'status' => $currentStatus,
-                'start_date' => $statusDate ? $statusDate->format('d/m/Y') : '--',
-                'end_date' => $statusDate ? $statusDate->format('d/m/Y') : '--',
-                'user' => '--',
-                'sort_at' => $statusDate,
-            ]);
-        }
-
-        $timeline = $timeline
-            ->sortBy(function ($item) {
-                return isset($item['sort_at']) && $item['sort_at'] ? $item['sort_at']->timestamp : PHP_INT_MAX;
-            })
-            ->values()
-            ->map(function ($item, $idx) {
-                unset($item['sort_at']);
-                $item['index'] = $idx + 1;
-                return $item;
-            });
 
         return response()->json($timeline);
     }

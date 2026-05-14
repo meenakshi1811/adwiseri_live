@@ -262,42 +262,14 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
   </script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script>
-    const STATUS_FLOW = [
-        'Client Registered',
-        'Client Counselled',
-        'Preparation',
-        'Apointment Booked',
-        'Applied',
-        'Decision',
-        'Appeal Lodged',
-        'Appeal Decision',
-        'AR / JR Lodged',
-        'AR / JR Decision',
-        'Withdrawn',
-        'Cancelled'
-    ];
+    const STATUS_DISPLAY_MAP = {
+        'Preparation': 'App. Preparation',
+        'Applied': 'Applied (waiting for decision)',
+        'Decision': 'Decision Made'
+    };
 
-    function buildFullStatusTimeline(statuses) {
-        const statusMap = new Map();
-        (statuses || []).forEach((item) => {
-            const key = (item.status || '').trim().toLowerCase();
-            if (key && !statusMap.has(key)) {
-                statusMap.set(key, item);
-            }
-        });
-
-        return STATUS_FLOW.map((statusName, index) => {
-            const key = statusName.toLowerCase();
-            const matched = statusMap.get(key);
-
-            return {
-                index: index + 1,
-                status: statusName,
-                start_date: matched ? matched.start_date : '--',
-                end_date: matched ? matched.end_date : '--',
-                user: matched ? (matched.user || '--') : '--'
-            };
-        });
+    function getDisplayStatus(status) {
+        return STATUS_DISPLAY_MAP[status] || status || '--';
     }
 
     function setActiveActionButton(activeButtonId) {
@@ -420,7 +392,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                   <div class="status-circle" style="--circle-color: ${colors[0]}; --circle-color-dark: ${colors[1]}; background: linear-gradient(135deg, ${colors[0]}, ${colors[1]});">
                       <div class="circle-range">${dateRange}</div>
                       <hr>
-                      <div class="circle-status">${item.status || '--'}</div>
+                      <div class="circle-status">${getDisplayStatus(item.status)}</div>
                       <hr>
                       <div class="circle-user">${item.user || '--'}</div>
                   </div>
@@ -529,12 +501,12 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                               $('#tracking_id').text('No application selected');  // Fallback text when no data
                           }
 
-                          const fullTimeline = buildFullStatusTimeline(data);
-                          fullTimeline.forEach(item => {
+                          const trackedStatuses = data || [];
+                          trackedStatuses.forEach(item => {
                                   rows += `
                                       <tr>
                                           <td class="text-center">${item.index}</td>
-                                          <td class="text-center">${item.status}</td>
+                                          <td class="text-center">${getDisplayStatus(item.status)}</td>
                                           <td class="text-center">${formatDateRange(item)}</td>
                                           <td class="text-center">${item.user}</td>
                                       </tr>
@@ -542,7 +514,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                               });
 
                           $('#application_table_body').html(rows);
-                          renderFlowChart(fullTimeline);
+                          renderFlowChart(trackedStatuses);
                       },
                       error: function () {
                           alert('Failed to fetch application data.');
