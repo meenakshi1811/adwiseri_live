@@ -155,8 +155,8 @@
                                 </span>
                             @enderror
                         </div>
-                        <div class="col text-start p-1">
-                            <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
+                        <div class="col-md-8 offset-md-4 p-1 text-center">
+                            <button type="submit" class="btn btn-primary px-4">Submit</button>
                         </div>
                     </div>
                 </form>
