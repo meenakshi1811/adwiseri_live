@@ -310,12 +310,16 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
         const clientText = $('#client').find('option:selected').text() || '--';
         const applicationText = $('#application').find('option:selected').text() || '--';
+        const selectedApplicationName = $('#application').find('option:selected').contents().get(0)?.nodeValue?.trim() || applicationText;
+        const selectedApplicationId = $('#application').val() || '';
+        const safeApplicationName = selectedApplicationName.replace(/[\/:*?"<>|]/g, '').trim() || 'Application';
+        const trackingFileTitle = `Tracking - ${safeApplicationName}${selectedApplicationId ? ` (${selectedApplicationId})` : ''}`;
 
         const printableWindow = window.open('', '_blank');
         printableWindow.document.write(`
             <html>
                 <head>
-                    <title>Application Tracking Status</title>
+                    <title>${trackingFileTitle}</title>
                     <style>
                         body { font-family: Arial, sans-serif; padding: 20px; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                         .summary-row { margin-bottom: 6px; font-size: 14px; }
@@ -334,7 +338,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     </style>
                 </head>
                 <body>
-                    <h2>Application Tracking Status</h2>
+                    <h2>${trackingFileTitle}</h2>
                     <div class="summary-row"><span class="summary-label">Client Name (ID) :-</span> ${clientText}</div>
                     <div class="summary-row"><span class="summary-label">Application (ID) :-</span> ${applicationText}</div>
                     <br>
