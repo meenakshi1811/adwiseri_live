@@ -16,7 +16,7 @@ $setting_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Support')->first();
 @endphp
 @php
-    $statusFlow = ['Registration', 'Applied', 'Pending', 'In Process', 'Complete', 'Cancelled', 'Withdrawn'];
+    $statusFlow = ['Client Registered', 'Client Counselled', 'Preparation', 'Apointment Booked', 'Applied', 'Decision', 'Appeal Lodged', 'Appeal Decision', 'AR / JR Lodged', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
 @endphp
 
 
@@ -82,7 +82,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <td class="p-1 text-center">{{ $app->visa_country ?: ($app->client->visa_country ?? '') }}</td>
                             <td class="p-1 text-center">{{ $app->application_country }}</td>
                             @php
-                                $currentStatus = $app->application_status ?: 'Registration';
+                                $currentStatus = $app->application_status ?: 'Client Registered';
                                 $currentIndex = array_search($currentStatus, $statusFlow, true);
                                 $currentIndex = $currentIndex === false ? 0 : $currentIndex;
                             @endphp

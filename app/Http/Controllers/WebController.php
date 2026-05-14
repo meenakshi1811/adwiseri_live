@@ -87,7 +87,7 @@ use App\Models\PaymentReminderSetting;
 use App\Services\EmailTemplateService;
 class WebController extends Controller
 {
-    private const APPLICATION_STATUS_FLOW = ['Registration', 'Applied', 'Pending', 'In Process', 'Complete', 'Cancelled', 'Withdrawn'];
+    private const APPLICATION_STATUS_FLOW = ['Client Registered', 'Client Counselled', 'Preparation', 'Apointment Booked', 'Applied', 'Decision', 'Appeal Lodged', 'Appeal Decision', 'AR / JR Lodged', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
 
     private function normalizeDateValue($value): ?string
     {
@@ -3033,7 +3033,7 @@ class WebController extends Controller
         $registrationDate = $application->start_date ? Carbon::parse($application->start_date) : ($application->created_at ? $application->created_at->copy() : null);
 
         $timeline->push([
-            'status' => 'Registration',
+            'status' => 'Client Registered',
             'start_date' => $registrationDate ? $registrationDate->format('d/m/Y') : '--',
             'end_date' => $registrationDate ? $registrationDate->format('d/m/Y') : '--',
             'user' => $subscriber ? $subscriber->name . ' (' . $subscriber->id . ')' : '--',
@@ -3125,7 +3125,7 @@ class WebController extends Controller
         ]);
 
         $application = Applications::findOrFail($request->application_id);
-        $currentStatus = $application->application_status ?: 'Registration';
+        $currentStatus = $application->application_status ?: 'Client Registered';
         $newStatus = $request->status;
 
         $statusFlow = self::APPLICATION_STATUS_FLOW;
@@ -3257,7 +3257,7 @@ class WebController extends Controller
         if ($user) {
             $application = Applications::find($request->id);
             if ($application) {
-                $oldStatus = $application->application_status ?: 'Registration';
+                $oldStatus = $application->application_status ?: 'Client Registered';
                 $client = Clients::find($request->client_id);
                 $subscriber = User::find($client->subscriber_id);
                 $application->application_name = $request['job_role'];
