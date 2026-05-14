@@ -159,22 +159,6 @@
                                 @enderror
                             </div>
                             <div class="col-md-4 p-1">
-                                <label>Application Type<span class="text-danger" style="font-size: 18px;">*</span></label>
-                            </div>
-                            <div class="col-md-8 p-1">
-                                <select name="job_role" id="job_role" class="form-control form-select @error('job_role') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
-                                    <option value="">Select Application Type</option>
-                                    @if(old('job_role'))
-                                    <option value="{{old('job_role')}}" selected>{{old('job_role')}}</option>
-                                    @endif
-                                </select>
-                                @error('job_role')
-                                    <span class="invalid-feedback" role="alert">
-                                        {{ $message }}
-                                    </span>
-                                @enderror
-                            </div>
-                            <div class="col-md-4 p-1">
                                 <label>Visa Country<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
@@ -200,6 +184,22 @@
                                         {{ $message }}
                                     </span>
                                 @enderror -->
+                            </div>
+                            <div class="col-md-4 p-1">
+                                <label>Application Type<span class="text-danger" style="font-size: 18px;">*</span></label>
+                            </div>
+                            <div class="col-md-8 p-1">
+                                <select name="job_role" id="job_role" class="form-control form-select @error('job_role') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
+                                    <option value="">Select Application Type</option>
+                                    @if(old('job_role'))
+                                    <option value="{{old('job_role')}}" selected>{{old('job_role')}}</option>
+                                    @endif
+                                </select>
+                                @error('job_role')
+                                    <span class="invalid-feedback" role="alert">
+                                        {{ $message }}
+                                    </span>
+                                @enderror
                             </div>
                             <div class="col-md-4 p-1">
                                 <label>Application Start Date<span class="text-danger" style="font-size: 18px;">*</span></label>
