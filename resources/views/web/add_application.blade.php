@@ -102,7 +102,7 @@
                         <label>Application Status<span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>
                     <div class="col-md-8 p-1">
-                        <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="exampleInputEmail1" style="background-color: #fff; color:#000 !important;" aria-describedby="emailHelp" required>
+                        <select name="job_status" class="form-control form-select js-app-status @error('job_status') is-invalid @enderror" id="exampleInputEmail1" style="background-color: #fff; color:#000 !important;" aria-describedby="emailHelp" required>
                             <option value="">Select Application Status</option>
                             <option {{ ($application->application_status == "Client Registered") ? 'selected' : '' }} value="Client Registered">Client Registered</option>
                             <option {{ ($application->application_status == "Client Counselled") ? 'selected' : '' }} value="Client Counselled">Client Counselled</option>
@@ -127,10 +127,10 @@
                         <label>Application End Date</label>
                     </div>
                     <div class="col-md-8 p-1">
-                        {{-- <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date }}" value="{{ $application->end_date_input ?: '' }}" placeholder="Application End Date" autocomplete="job_completion_date"> --}}
-                        {{-- <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date }}" value="{{ $application->end_date_input ?: '' }}" placeholder="Application End Date" autocomplete="job_completion_date"> --}}
+                        {{-- <input name="job_completion_date" type="date" class="form-control date js-app-end-date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date }}" value="{{ $application->end_date_input ?: '' }}" placeholder="Application End Date" autocomplete="job_completion_date"> --}}
+                        {{-- <input name="job_completion_date" type="date" class="form-control date js-app-end-date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date }}" value="{{ $application->end_date_input ?: '' }}" placeholder="Application End Date" autocomplete="job_completion_date"> --}}
                         <input name="job_completion_date" type="date"
-                        class="form-control date @error('job_completion_date') is-invalid @enderror"
+                        class="form-control date js-app-end-date @error('job_completion_date') is-invalid @enderror"
                         id="job_completion_date"
                         aria-describedby="emailHelp"
                         min="{{ $application->start_date_input ?: '' }}"
@@ -282,7 +282,7 @@
                         <label>Application Status<span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>
                     <div class="col-md-8 p-1">
-                        <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('job_status') }}" required>
+                        <select name="job_status" class="form-control form-select js-app-status @error('job_status') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('job_status') }}" required>
                             <option value="">Select Application Status</option>
                             <option {{ (old('job_status') == "Client Registered") ? 'selected':'' }} value="Client Registered">Client Registered</option>
                             <option {{ (old('job_status') == "Client Counselled") ? 'selected':'' }} value="Client Counselled">Client Counselled</option>
@@ -308,7 +308,7 @@
                     </div>
                     <div class="col-md-8 p-1">
                         <input name="job_completion_date" type="date"
-                        class="form-control date @error('job_completion_date') is-invalid @enderror"
+                        class="form-control date js-app-end-date @error('job_completion_date') is-invalid @enderror"
                         id="job_completion_date"
                         aria-describedby="emailHelp"
                         value="{{ old('job_completion_date') ? date('Y-m-d', strtotime(old('job_completion_date'))) : null }}"
@@ -355,6 +355,23 @@
   </script>
   <script>
       $(document).ready(() => {
+        const endDateEditableStatuses = ["Decision", "Withdrawn", "Cancelled"];
+
+        const syncEndDateEditability = () => {
+            const statusField = document.querySelector(".js-app-status");
+            const endDateField = document.querySelector(".js-app-end-date");
+
+            if (!statusField || !endDateField) {
+                return;
+            }
+
+            const canEditEndDate = endDateEditableStatuses.includes(statusField.value);
+            endDateField.readOnly = !canEditEndDate;
+
+            if (!canEditEndDate) {
+                endDateField.value = "";
+            }
+        };
 
         const clientEl = document.getElementById('client');
         var id = clientEl ? clientEl.value : '';
@@ -396,10 +413,15 @@
             });
           });
 
+        $(document).on("change", ".js-app-status", syncEndDateEditability);
+        syncEndDateEditability();
+
         $("#job_open_date").on("change", function () {
                 var startDate = $(this).val(); // Get the selected start date
                 var $endDateInput = $("#job_completion_date");
-                $endDateInput.prop("readonly", false);
+                const selectedStatus = $(".js-app-status").first().val();
+                const canEditEndDate = endDateEditableStatuses.includes(selectedStatus);
+                $endDateInput.prop("readonly", !canEditEndDate);
                 // Update the min attribute of the end date
                 $endDateInput.attr("min", startDate);
 
