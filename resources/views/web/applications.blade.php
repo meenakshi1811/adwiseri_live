@@ -85,6 +85,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 $currentStatus = $app->application_status ?: 'Client Registered';
                                 $currentIndex = array_search($currentStatus, $statusFlow, true);
                                 $currentIndex = $currentIndex === false ? 0 : $currentIndex;
+                                $isTerminalStatus = in_array($currentStatus, ['Withdrawn', 'Cancelled'], true);
                             @endphp
                             <td class="p-1 text-center">
                                 <select class="form-control form-select application-status-select"
@@ -94,7 +95,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                         @php $optionIndex = array_search($statusOption, $statusFlow, true); @endphp
                                         <option value="{{ $statusOption }}"
                                             @if($currentStatus === $statusOption) selected @endif
-                                            @if($optionIndex < $currentIndex) disabled @endif>
+                                            @if($optionIndex < $currentIndex || ($isTerminalStatus && $statusOption !== $currentStatus)) disabled @endif>
                                             {{ $statusOption }}
                                         </option>
                                     @endforeach
