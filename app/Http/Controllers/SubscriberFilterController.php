@@ -860,6 +860,47 @@ class SubscriberFilterController extends Controller
                 ->get();
 
             return response()->json(['data' => $byApplicationType]);
+        } elseif (request()->type == "byApplicationStatus") {
+
+            $applicationStatuses = [
+                ['label' => 'Registered', 'values' => ['Client Registered', 'Registered', 'Registration']],
+                ['label' => 'Counselled', 'values' => ['Client Counselled', 'Counselled']],
+                ['label' => 'Preparation', 'values' => ['Preparation']],
+                ['label' => 'Apointment Booked', 'values' => ['Apointment Booked', 'Appointment Booked']],
+                ['label' => 'Applied', 'values' => ['Applied']],
+                ['label' => 'Decision', 'values' => ['Decision']],
+                ['label' => 'Appeal Lodged', 'values' => ['Appeal Lodged']],
+                ['label' => 'Appeal Decision', 'values' => ['Appeal Decision']],
+                ['label' => 'AR / JR Lodged', 'values' => ['AR / JR Lodged']],
+                ['label' => 'AR / JR Decision', 'values' => ['AR / JR Decision']],
+                ['label' => 'Withdrawn', 'values' => ['Withdrawn']],
+                ['label' => 'Cancelled', 'values' => ['Cancelled']],
+            ];
+
+            $query = Applications::query();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query = $query->where('subscriber_id', request()->subid);
+            }
+
+            $statusCounts = $query->whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw("COALESCE(NULLIF(application_status, ''), 'Client Registered') as application_status, COUNT(*) as number_of_applications")
+                ->groupBy(DB::raw("COALESCE(NULLIF(application_status, ''), 'Client Registered')"))
+                ->pluck('number_of_applications', 'application_status');
+
+            $applicationsByStatus = collect($applicationStatuses)
+                ->map(function ($status) use ($statusCounts) {
+                    $applicationCount = collect($status['values'])->sum(function ($statusValue) use ($statusCounts) {
+                        return (int) ($statusCounts[$statusValue] ?? 0);
+                    });
+
+                    return [
+                        'application_status' => $status['label'],
+                        'number_of_applications' => $applicationCount,
+                    ];
+                })
+                ->values();
+
+            return response()->json(['data' => $applicationsByStatus]);
         } elseif (request()->type == "byApplicationCountsByDependantsChart") {
 
             $dependantBuckets = [

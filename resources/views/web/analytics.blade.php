@@ -567,6 +567,10 @@ window.Chart = AnalyticsChart;
                     value: "ByApplicationType"
                 },
                 {
+                    text: "By Application Status",
+                    value: "ByApplicationStatus"
+                },
+                {
                     text: "By Clients' Home Country",
                     value: "ByApplicationHomeCountry"
                 },
@@ -5682,6 +5686,159 @@ numbers.push(currentElement.total_clients);
                         downloadButton.removeAttribute('data-downloading'); // Reset flag
                         downloadButton.disabled = false;
                     }, 1000); // Small delay to ensure smooth UX
+                });
+            });
+        } else if (selectedFilter == "ByApplicationStatus") {
+            let chartStatus = Chart.getChart("myChart"); // <canvas> id
+            if (chartStatus != undefined) {
+                chartStatus.destroy();
+            }
+            $.ajax({
+                type: 'GET',
+                url: "{{ route('subscribersReport') }}",
+                data: {
+                    type: 'byApplicationStatus',
+                    subid: subID,
+                    startDate: startDate,
+                    endDate: endDate
+                },
+                success: function(data) {
+                    if (checkIfDataIsEmpty(data, title)) {
+                        return;
+                    }
+                    $('#downloadPdf').prop('disabled', false);
+                    $('#downloadPdf').show();
+                    var result = sortChartResult(data.data);
+                    var labels = [];
+                    var numbers = [];
+                    result.forEach(function(currentElement) {
+                        labels.push(currentElement.application_status);
+                        numbers.push(currentElement.number_of_applications);
+                    });
+
+                    const ctx = document.getElementById('myChart');
+                    const dynamicColors = generateDistinctColors(labels.length);
+
+                    new Chart(ctx, {
+                        type: chartType,
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'No. Of Applications',
+                                data: numbers,
+                                borderWidth: 2,
+                                borderColor: 'black',
+                                backgroundColor: dynamicColors,
+                            }]
+                        },
+                        options: {
+                            responsive: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1,
+                                        precision: 0
+                                    }
+                                }
+                            },
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: title,
+                                    font: {
+                                        size: 20,
+                                        weight: 800
+                                    },
+                                    padding: {
+                                        bottom: 50
+                                    },
+                                    color: 'black',
+                                    align: 'center'
+                                },
+                                legend: {
+                                    display: true,
+                                    position: 'bottom',
+                                    labels: {
+                                        padding: 30
+                                    }
+                                },
+                                colors: {
+                                    forceOverride: false
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(tooltipItem) {
+                                            return 'No. Of Applications: ' + tooltipItem.raw;
+                                        }
+                                    }
+                                },
+                                datalabels: {
+                                    anchor: 'end',
+                                    align: 'top',
+                                    formatter: (value) => {
+                                        return value;
+                                    },
+                                    font: {
+                                        size: 14,
+                                        weight: 300
+                                    },
+                                    color: 'black',
+                                    offset: 15,
+                                }
+                            }
+                        },
+                        plugins: [ChartDataLabels]
+                    });
+
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error occurred: " + status + " - " + error);
+                }
+            });
+            document.getElementById('downloadPdf').addEventListener('click', function(event) {
+                event.preventDefault();
+                let downloadButton = this;
+
+                if (downloadButton.getAttribute('data-downloading') === 'true') {
+                    return;
+                }
+
+                downloadButton.setAttribute('data-downloading', 'true');
+                downloadButton.disabled = true;
+                html2canvas(document.getElementById('myChart')).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const {
+                        jsPDF
+                    } = window.jspdf;
+
+                    const pdfWidth = 595;
+                    const pdfHeight = 842;
+
+                    const pdf = new jsPDF({
+                        orientation: 'portrait',
+                        unit: 'px',
+                        format: [pdfWidth, pdfHeight]
+                    });
+
+                    const canvasWidth = canvas.width;
+                    const canvasHeight = canvas.height;
+                    const scaleFactor = Math.min(pdfWidth / canvasWidth, pdfHeight / canvasHeight);
+                    const imgWidth = canvasWidth * scaleFactor;
+                    const imgHeight = canvasHeight * scaleFactor;
+
+                    const xOffset = (pdfWidth - imgWidth) / 2;
+                    const yOffset = 20;
+
+                    pdf.addImage(imgData, 'PNG', xOffset, yOffset, imgWidth, imgHeight);
+                    pdf.save(title + '.pdf');
+                }).catch(error => {
+                    console.error("Error generating PDF: ", error);
+                }).finally(() => {
+                    setTimeout(() => {
+                        downloadButton.removeAttribute('data-downloading');
+                        downloadButton.disabled = false;
+                    }, 1000);
                 });
             });
         } else if (selectedFilter == "ByApplicationCountsByDependants") {
