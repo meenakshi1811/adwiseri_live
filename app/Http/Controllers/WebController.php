@@ -3165,6 +3165,14 @@ class WebController extends Controller
                 }
             }
         };
+        $endDateEditableStatuses = ['Decision', 'Appeal Decision', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
+        $resolveApplicationEndDate = function ($status, $endDate) use ($endDateEditableStatuses, $normalizeDate) {
+            if (!in_array($status, $endDateEditableStatuses, true)) {
+                return null;
+            }
+
+            return $normalizeDate($endDate);
+        };
         $resolveVisaCountry = function ($value) {
             if (!$value) {
                 return null;
@@ -3199,7 +3207,7 @@ class WebController extends Controller
                 $application->application_program = $request['study_program'];
                 $application->application_status = $request['job_status'];
                 $application->start_date = $normalizeDate($request['job_open_date']);
-                $application->end_date = $normalizeDate($request['job_completion_date']);
+                $application->end_date = $resolveApplicationEndDate($request['job_status'], $request['job_completion_date']);
                 $application->save();
                 if ($oldStatus !== $request['job_status']) {
                     ApplicationStatusTrack::create([
@@ -3241,7 +3249,7 @@ class WebController extends Controller
                     $application->application_program = $request['study_program'];
                     $application->application_status = $request['job_status'];
                     $application->start_date = $normalizeDate($request['job_open_date']);
-                    $application->end_date = $normalizeDate($request['job_completion_date']);
+                    $application->end_date = $resolveApplicationEndDate($request['job_status'], $request['job_completion_date']);
                     $application->save();
                     ApplicationStatusTrack::create([
                         'application_id' => $application->id,
