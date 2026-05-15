@@ -301,6 +301,19 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         $('#report_section').hide();
     }
 
+    function getOptionNameWithoutId(optionText, optionId) {
+        const trimmedText = (optionText || '').trim();
+        if (!optionId) {
+            return trimmedText;
+        }
+
+        return trimmedText.replace(new RegExp(`\\s*\\(${optionId}\\)\\s*$`), '').trim();
+    }
+
+    function sanitizePrintTitle(title) {
+        return title.replace(/[\/:*?"<>|]/g, '').trim() || 'Application Tracking';
+    }
+
     function downloadStatus() {
         setActiveActionButton('download_status');
         const chartContent = document.getElementById('application_flow_chart').innerHTML;
@@ -310,10 +323,11 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
         const clientText = $('#client').find('option:selected').text() || '--';
         const applicationText = $('#application').find('option:selected').text() || '--';
-        const selectedApplicationName = $('#application').find('option:selected').contents().get(0)?.nodeValue?.trim() || applicationText;
         const selectedApplicationId = $('#application').val() || '';
-        const safeApplicationName = selectedApplicationName.replace(/[\/:*?"<>|]/g, '').trim() || 'Application';
-        const trackingFileTitle = `Tracking - ${safeApplicationName}${selectedApplicationId ? ` (${selectedApplicationId})` : ''}`;
+        const selectedApplicationName = getOptionNameWithoutId(applicationText, selectedApplicationId) || 'Application';
+        const applicationNameWithId = `${selectedApplicationName}${selectedApplicationId ? ` (${selectedApplicationId})` : ''}`;
+        const trackingPdfTitle = `Application Tracking - ${applicationNameWithId}`;
+        const trackingFileTitle = `${sanitizePrintTitle(trackingPdfTitle)}.PDF`;
 
         const printableWindow = window.open('', '_blank');
         printableWindow.document.write(`
@@ -322,8 +336,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     <title>${trackingFileTitle}</title>
                     <style>
                         body { font-family: Arial, sans-serif; padding: 20px; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                        .summary-row { margin-bottom: 6px; font-size: 14px; }
-                        .summary-label { font-weight: 700; color: #163c76; }
+                        .tracking-summary { margin-bottom: 48px; text-align: center; }
+                        .tracking-title { color: #163c76; font-size: 24px; font-weight: 700; margin: 0 0 10px; }
+                        .summary-row { color: #222; font-size: 16px; font-weight: 600; margin-bottom: 8px; text-align: center; }
                         .flow-wrapper { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: center; }
                         .flow-step { display: flex; align-items: center; gap: 14px; }
                         .flow-arrow { width: 46px; height: 24px; color: #0d6efd; flex: 0 0 auto; } .flow-arrow svg { width: 100%; height: 100%; display: block; }
@@ -338,10 +353,11 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     </style>
                 </head>
                 <body>
-                    <h2>${trackingFileTitle}</h2>
-                    <div class="summary-row"><span class="summary-label">Client Name (ID) :-</span> ${clientText}</div>
-                    <div class="summary-row"><span class="summary-label">Application (ID) :-</span> ${applicationText}</div>
-                    <br>
+                    <div class="tracking-summary">
+                        <h2 class="tracking-title">${trackingFileTitle}</h2>
+                        <div class="summary-row">${clientText}</div>
+                        <div class="summary-row">${applicationNameWithId}</div>
+                    </div>
                     <div>${chartContent}</div>
                 </body>
             </html>
