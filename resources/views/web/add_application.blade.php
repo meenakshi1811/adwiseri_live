@@ -104,23 +104,25 @@
                     </div>
                     <div class="col-md-8 p-1">
                         @php
-                            $currentApplicationStatus = $application->application_status ?? old('job_status', '');
+                            $currentApplicationStatus = old('job_status', $application->application_status ?? '');
                             $isTerminalApplicationStatus = in_array($currentApplicationStatus, ['Withdrawn', 'Cancelled'], true);
+                            $endDateEditableStatuses = ['Decision', 'Appeal Decision', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
+                            $isEndDateEditable = in_array($currentApplicationStatus, $endDateEditableStatuses, true);
                         @endphp
                         <select name="job_status" class="form-control form-select js-app-status @error('job_status') is-invalid @enderror" id="exampleInputEmail1" style="background-color: #fff; color:#000 !important;" aria-describedby="emailHelp" required>
                             <option value="">Select Application Status</option>
-                            <option {{ ($application->application_status == "Client Registered") ? 'selected' : '' }} value="Client Registered" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Client Registered") disabled @endif>Client Registered</option>
-                            <option {{ ($application->application_status == "Client Counselled") ? 'selected' : '' }} value="Client Counselled" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Client Counselled") disabled @endif>Client Counselled</option>
-                            <option {{ ($application->application_status == "Preparation") ? 'selected' : '' }} value="Preparation" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Preparation") disabled @endif>Preparation</option>
-                            <option {{ ($application->application_status == "Apointment Booked") ? 'selected' : '' }} value="Apointment Booked" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Apointment Booked") disabled @endif>Apointment Booked</option>
-                            <option {{ ($application->application_status == "Applied") ? 'selected' : '' }} value="Applied" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Applied") disabled @endif>Applied</option>
-                            <option {{ ($application->application_status == "Decision") ? 'selected' : '' }} value="Decision" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Decision") disabled @endif>Decision</option>
-                            <option {{ ($application->application_status == "Appeal Lodged") ? 'selected' : '' }} value="Appeal Lodged" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Appeal Lodged") disabled @endif>Appeal Lodged</option>
-                            <option {{ ($application->application_status == "Appeal Decision") ? 'selected' : '' }} value="Appeal Decision" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Appeal Decision") disabled @endif>Appeal Decision</option>
-                            <option {{ ($application->application_status == "AR / JR Lodged") ? 'selected' : '' }} value="AR / JR Lodged" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "AR / JR Lodged") disabled @endif>AR / JR Lodged</option>
-                            <option {{ ($application->application_status == "AR / JR Decision") ? 'selected' : '' }} value="AR / JR Decision" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "AR / JR Decision") disabled @endif>AR / JR Decision</option>
-                            <option {{ ($application->application_status == "Withdrawn") ? 'selected' : '' }} value="Withdrawn" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Withdrawn") disabled @endif>Withdrawn</option>
-                            <option {{ ($application->application_status == "Cancelled") ? 'selected' : '' }} value="Cancelled" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Cancelled") disabled @endif>Cancelled</option>
+                            <option {{ ($currentApplicationStatus == "Client Registered") ? 'selected' : '' }} value="Client Registered" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Client Registered") disabled @endif>Client Registered</option>
+                            <option {{ ($currentApplicationStatus == "Client Counselled") ? 'selected' : '' }} value="Client Counselled" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Client Counselled") disabled @endif>Client Counselled</option>
+                            <option {{ ($currentApplicationStatus == "Preparation") ? 'selected' : '' }} value="Preparation" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Preparation") disabled @endif>Preparation</option>
+                            <option {{ ($currentApplicationStatus == "Apointment Booked") ? 'selected' : '' }} value="Apointment Booked" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Apointment Booked") disabled @endif>Apointment Booked</option>
+                            <option {{ ($currentApplicationStatus == "Applied") ? 'selected' : '' }} value="Applied" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Applied") disabled @endif>Applied</option>
+                            <option {{ ($currentApplicationStatus == "Decision") ? 'selected' : '' }} value="Decision" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Decision") disabled @endif>Decision</option>
+                            <option {{ ($currentApplicationStatus == "Appeal Lodged") ? 'selected' : '' }} value="Appeal Lodged" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Appeal Lodged") disabled @endif>Appeal Lodged</option>
+                            <option {{ ($currentApplicationStatus == "Appeal Decision") ? 'selected' : '' }} value="Appeal Decision" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Appeal Decision") disabled @endif>Appeal Decision</option>
+                            <option {{ ($currentApplicationStatus == "AR / JR Lodged") ? 'selected' : '' }} value="AR / JR Lodged" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "AR / JR Lodged") disabled @endif>AR / JR Lodged</option>
+                            <option {{ ($currentApplicationStatus == "AR / JR Decision") ? 'selected' : '' }} value="AR / JR Decision" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "AR / JR Decision") disabled @endif>AR / JR Decision</option>
+                            <option {{ ($currentApplicationStatus == "Withdrawn") ? 'selected' : '' }} value="Withdrawn" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Withdrawn") disabled @endif>Withdrawn</option>
+                            <option {{ ($currentApplicationStatus == "Cancelled") ? 'selected' : '' }} value="Cancelled" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Cancelled") disabled @endif>Cancelled</option>
                         </select>
                     @error('job_status')
                         <span class="invalid-feedback" role="alert">
@@ -132,17 +134,16 @@
                         <label>Application End Date</label>
                     </div>
                     <div class="col-md-8 p-1">
-                        {{-- <input name="job_completion_date" type="date" class="form-control date js-app-end-date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date }}" value="{{ $application->end_date_input ?: '' }}" placeholder="Application End Date" autocomplete="job_completion_date"> --}}
-                        {{-- <input name="job_completion_date" type="date" class="form-control date js-app-end-date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date }}" value="{{ $application->end_date_input ?: '' }}" placeholder="Application End Date" autocomplete="job_completion_date"> --}}
                         <input name="job_completion_date" type="date"
                         class="form-control date js-app-end-date @error('job_completion_date') is-invalid @enderror"
                         id="job_completion_date"
                         aria-describedby="emailHelp"
                         min="{{ $application->start_date_input ?: '' }}"
                         max="{{ date('Y-m-d') }}"
-                        value="{{ $application->end_date_input ?: '' }}"
+                        value="{{ $isEndDateEditable ? ($application->end_date_input ?: '') : '' }}"
                         placeholder="Application End Date"
                         autocomplete="job_completion_date"
+                        @unless($isEndDateEditable) readonly disabled @endunless
                         />     @error('job_completion_date')
                         <span class="invalid-feedback" role="alert">
                             {{ $message }}
@@ -313,16 +314,21 @@
                         <label>Application End Date</label>
                     </div>
                     <div class="col-md-8 p-1">
+                        @php
+                            $selectedApplicationStatus = old('job_status', '');
+                            $endDateEditableStatuses = ['Decision', 'Appeal Decision', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
+                            $isEndDateEditable = in_array($selectedApplicationStatus, $endDateEditableStatuses, true);
+                        @endphp
                         <input name="job_completion_date" type="date"
                         class="form-control date js-app-end-date @error('job_completion_date') is-invalid @enderror"
                         id="job_completion_date"
                         aria-describedby="emailHelp"
-                        value="{{ old('job_completion_date') ? date('Y-m-d', strtotime(old('job_completion_date'))) : null }}"
+                        value="{{ $isEndDateEditable && old('job_completion_date') ? date('Y-m-d', strtotime(old('job_completion_date'))) : null }}"
 
                         placeholder="Application End Date"
                         autocomplete="job_completion_date"
                           max="{{date('Y-m-d')}}"
-                        {{-- readonly --}}
+                        @unless($isEndDateEditable) readonly disabled @endunless
                         />
                     @error('job_completion_date')
                         <span class="invalid-feedback" role="alert">
@@ -361,7 +367,7 @@
   </script>
   <script>
       $(document).ready(() => {
-        const endDateEditableStatuses = ["Decision", "Withdrawn", "Cancelled"];
+        const endDateEditableStatuses = ["Decision", "Appeal Decision", "AR / JR Decision", "Withdrawn", "Cancelled"];
 
         const syncEndDateEditability = () => {
             const statusField = document.querySelector(".js-app-status");
@@ -373,6 +379,7 @@
 
             const canEditEndDate = endDateEditableStatuses.includes(statusField.value);
             endDateField.readOnly = !canEditEndDate;
+            endDateField.disabled = !canEditEndDate;
 
             if (!canEditEndDate) {
                 endDateField.value = "";
@@ -428,6 +435,7 @@
                 const selectedStatus = $(".js-app-status").first().val();
                 const canEditEndDate = endDateEditableStatuses.includes(selectedStatus);
                 $endDateInput.prop("readonly", !canEditEndDate);
+                $endDateInput.prop("disabled", !canEditEndDate);
                 // Update the min attribute of the end date
                 $endDateInput.attr("min", startDate);
 
