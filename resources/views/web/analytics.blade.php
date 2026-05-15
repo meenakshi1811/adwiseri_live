@@ -1264,6 +1264,56 @@ window.Chart = AnalyticsChart;
     }
 
 
+    function getChartSortValue(value) {
+        if (value === null || value === undefined) {
+            return null;
+        }
+
+        const normalizedValue = String(value).trim();
+        if (!normalizedValue) {
+            return null;
+        }
+
+        const lowerValue = normalizedValue.toLowerCase();
+        if (lowerValue.includes('under')) {
+            return 0;
+        }
+
+        const numericMatch = normalizedValue.replace(/,/g, '').match(/\d+(?:\.\d+)?/);
+        return numericMatch ? Number(numericMatch[0]) : null;
+    }
+
+    function sortChartResult(result) {
+        if (!Array.isArray(result)) {
+            return result;
+        }
+
+        const sortableKeys = [
+            'year',
+            'age_group',
+            'amount_range',
+            'price_range',
+            'range',
+            'timeline',
+            'duration',
+            'type'
+        ];
+
+        const sortableKey = sortableKeys.find(function(key) {
+            return result.length > 1 && result.every(function(item) {
+                return item && Object.prototype.hasOwnProperty.call(item, key) && getChartSortValue(item[key]) !== null;
+            });
+        });
+
+        if (!sortableKey) {
+            return result;
+        }
+
+        return result.slice().sort(function(firstItem, secondItem) {
+            return getChartSortValue(firstItem[sortableKey]) - getChartSortValue(secondItem[sortableKey]);
+        });
+    }
+
     function onClickGetReport() {
 
 
@@ -1421,7 +1471,7 @@ window.Chart = AnalyticsChart;
 
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -1588,7 +1638,7 @@ window.Chart = AnalyticsChart;
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -1754,7 +1804,7 @@ window.Chart = AnalyticsChart;
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -1920,7 +1970,7 @@ window.Chart = AnalyticsChart;
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -2081,7 +2131,7 @@ window.Chart = AnalyticsChart;
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -2240,7 +2290,7 @@ window.Chart = AnalyticsChart;
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -2400,7 +2450,7 @@ window.Chart = AnalyticsChart;
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
 
@@ -2560,7 +2610,7 @@ window.Chart = AnalyticsChart;
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -2719,7 +2769,7 @@ window.Chart = AnalyticsChart;
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -2878,7 +2928,7 @@ window.Chart = AnalyticsChart;
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -3043,7 +3093,7 @@ window.Chart = AnalyticsChart;
                 $('#downloadPdf').prop('disabled', false);
                 $('#downloadPdf').show();
 
-                var result = data.data;
+                var result = sortChartResult(data.data);
                 var labels = [];
                 var numbers = [];
 
@@ -3257,7 +3307,7 @@ window.Chart = AnalyticsChart;
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
 
@@ -3441,7 +3491,7 @@ window.Chart = AnalyticsChart;
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
 
@@ -3628,7 +3678,7 @@ window.Chart = AnalyticsChart;
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -3830,7 +3880,7 @@ window.Chart = AnalyticsChart;
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -4030,7 +4080,7 @@ window.Chart = AnalyticsChart;
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
 
@@ -4211,7 +4261,7 @@ window.Chart = AnalyticsChart;
 
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -4419,7 +4469,7 @@ window.Chart = AnalyticsChart;
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -4625,7 +4675,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -4832,7 +4882,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -5039,7 +5089,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -5245,7 +5295,7 @@ numbers.push(currentElement.total_clients);
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -5451,7 +5501,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -5658,7 +5708,7 @@ numbers.push(currentElement.total_clients);
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
 
@@ -5821,7 +5871,7 @@ numbers.push(currentElement.total_clients);
                     $('#downloadPdf').show();
 
                     console.log(data);
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -6028,7 +6078,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement) {
@@ -6219,7 +6269,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement) {
@@ -6416,7 +6466,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     console.log(result);
 
                     const timelineOrder = ['Today', 'Last Week', 'Last Month', 'Last Quarter', 'Last Year', 'Since Inception'];
@@ -6611,7 +6661,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -6803,7 +6853,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
 
                     var labels = [];
                     var numbers = [];
@@ -7009,7 +7059,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
 
                     var labels = [];
                     var numbers = [];
@@ -7215,7 +7265,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     console.log(result);
@@ -7427,7 +7477,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
 
@@ -7613,7 +7663,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -7817,7 +7867,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -8026,7 +8076,7 @@ numbers.push(currentElement.total_clients);
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -8231,7 +8281,7 @@ numbers.push(currentElement.total_clients);
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -8438,7 +8488,7 @@ numbers.push(currentElement.total_clients);
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -8642,7 +8692,7 @@ numbers.push(currentElement.total_clients);
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -8849,7 +8899,7 @@ numbers.push(currentElement.total_clients);
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
                     console.log('hi');
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -9052,7 +9102,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -9259,7 +9309,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -9463,7 +9513,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -9670,7 +9720,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -9877,7 +9927,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -10082,7 +10132,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -10288,7 +10338,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -10494,7 +10544,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -10701,7 +10751,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -10907,7 +10957,7 @@ numbers.push(currentElement.total_clients);
                         }
                         $('#downloadPdf').prop('disabled', false);
                         $('#downloadPdf').show();
-                        var result = data.data;
+                        var result = sortChartResult(data.data);
                         //console.log(result);
                         var labels = [];
                         var numbers = [];
@@ -11112,7 +11162,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -11323,7 +11373,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -11538,7 +11588,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -11752,7 +11802,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -11967,7 +12017,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -12182,7 +12232,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -12402,7 +12452,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -12618,7 +12668,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -12833,7 +12883,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -13048,7 +13098,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -13263,7 +13313,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -13481,7 +13531,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -13686,7 +13736,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -13889,7 +13939,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -14093,7 +14143,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -14296,7 +14346,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -14500,7 +14550,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -14705,7 +14755,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -14911,7 +14961,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -15114,7 +15164,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -15318,7 +15368,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -15521,7 +15571,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -15725,7 +15775,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -15930,7 +15980,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -16137,7 +16187,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -16339,7 +16389,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -16519,7 +16569,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -16720,7 +16770,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -16923,7 +16973,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -17125,7 +17175,7 @@ numbers.push(currentElement.total_clients);
                     if (checkIfDataIsEmpty(data, title)) {
                         return; // Exit if data is empty and alert is shown
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     // Prepare labels and numbers
                     var labels = [];
                     var numbers = [];
@@ -17316,7 +17366,7 @@ numbers.push(currentElement.total_clients);
                     if (checkIfDataIsEmpty(data, title)) {
                         return; // Exit if data is empty and alert is shown
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -17522,7 +17572,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -17725,7 +17775,7 @@ numbers.push(currentElement.total_clients);
                         alert('No data found')
                         return
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     // Prepare labels and numbers
                     var labels = [];
                     var numbers = [];
@@ -17877,7 +17927,7 @@ numbers.push(currentElement.total_clients);
                         alert('No data found')
                         return
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -18038,7 +18088,7 @@ numbers.push(currentElement.total_clients);
                         alert('No data found')
                         return
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -18195,7 +18245,7 @@ numbers.push(currentElement.total_clients);
                         alert('No data found')
                         return
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -18355,7 +18405,7 @@ numbers.push(currentElement.total_clients);
                         alert('No data found')
                         return
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -18515,7 +18565,7 @@ numbers.push(currentElement.total_clients);
                         alert('No data found')
                         return
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -18675,7 +18725,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -18878,7 +18928,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -19082,7 +19132,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -19288,7 +19338,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -19489,7 +19539,7 @@ numbers.push(currentElement.total_clients);
                         alert('No data found')
                         return
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -19651,7 +19701,7 @@ numbers.push(currentElement.total_clients);
                         return;
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var totalTickets = [];
                     var openTickets = [];
@@ -19821,7 +19871,7 @@ numbers.push(currentElement.total_clients);
                         return;
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
 
@@ -19979,7 +20029,7 @@ numbers.push(currentElement.total_clients);
                         return;
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
 
@@ -20135,7 +20185,7 @@ numbers.push(currentElement.total_clients);
                         return;
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
 
@@ -20624,7 +20674,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -20828,7 +20878,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -21032,7 +21082,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -21237,7 +21287,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     console.log(result);
                     var labels = [];
                     var numbers = [];

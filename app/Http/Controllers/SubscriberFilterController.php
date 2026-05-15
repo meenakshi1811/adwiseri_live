@@ -705,8 +705,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -717,8 +717,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -729,8 +729,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -769,7 +769,7 @@ class SubscriberFilterController extends Controller
                 DB::raw('COUNT(*) AS count') // Count referrals per year
             )
                 ->groupBy(DB::raw('YEAR(created_at)')) // Group by year
-                ->orderBy('year', 'desc') // Order from newest to oldest
+                ->orderBy('year', 'asc') // Order from oldest to newest
                 ->get();
 
             return response()->json(['data' => $clients]);
@@ -1069,7 +1069,7 @@ class SubscriberFilterController extends Controller
                 DB::raw('COUNT(*) AS count') // Count referrals per year
             )
                 ->groupBy(DB::raw('YEAR(created_at)')) // Group by year
-                ->orderBy('year', 'asc') // Order from newest to oldest
+                ->orderBy('year', 'asc') // Order from oldest to newest
                 ->get();
 
             return response()->json(['data' => $clients]);
@@ -1144,8 +1144,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -1156,8 +1156,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -1168,8 +1168,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
                 // dd($monthlyApplications);
             // 🔹 Merge All Data
@@ -1259,7 +1259,7 @@ class SubscriberFilterController extends Controller
                     DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
                 )
                 ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-                ->orderBy('year', 'desc') // ✅ Sort by newest first
+                ->orderBy('year', 'asc') // ✅ Sort by oldest first
                 ->get();
 
             return response()->json(['data' => $byUserTimeline]);
@@ -1330,8 +1330,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year_num', 'week_num')
-            ->orderBy('year_num', 'desc')
-            ->orderBy('week_num', 'desc')
+            ->orderBy('year_num', 'asc')
+            ->orderBy('week_num', 'asc')
             ->get();
         
         // 🔹 Quarterly Applications
@@ -1342,8 +1342,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year', 'quarter')
-            ->orderBy('year', 'desc')
-            ->orderBy('quarter', 'desc')
+            ->orderBy('year', 'asc')
+            ->orderBy('quarter', 'asc')
             ->get();
         
         // 🔹 Monthly Applications
@@ -1354,8 +1354,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year', 'month')
-            ->orderBy('year', 'desc')
-            ->orderBy('month', 'desc')
+            ->orderBy('year', 'asc')
+            ->orderBy('month', 'asc')
             ->get();
         
         // 🔹 Merge All Data
@@ -1576,7 +1576,7 @@ class SubscriberFilterController extends Controller
                 DB::raw('COUNT(*) AS count') // Count referrals per year
             )
                 ->groupBy('gender') // Group by year
-                ->orderBy('count', 'desc') // Order from newest to oldest
+                ->orderBy('count', 'desc') // Order by count, highest to lowest
                 ->get();
             return response()->json(['data' => $byUserGender]);
         } elseif (request()->type == "byUserApplicationProcessedChart") {
@@ -1646,7 +1646,7 @@ class SubscriberFilterController extends Controller
                 DB::raw('COUNT(*) AS count') // Count referrals per year
             )
                 ->groupBy(DB::raw('YEAR(created_at)')) // Group by year
-                ->orderBy('year', 'desc') // Order from newest to oldest
+                ->orderBy('year', 'asc') // Order from oldest to newest
                 ->get();
 
 
@@ -1718,8 +1718,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year_num', 'week_num')
-            ->orderBy('year_num', 'desc')
-            ->orderBy('week_num', 'desc')
+            ->orderBy('year_num', 'asc')
+            ->orderBy('week_num', 'asc')
             ->get();
         
         // 🔹 Quarterly Applications
@@ -1730,8 +1730,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year', 'quarter')
-            ->orderBy('year', 'desc')
-            ->orderBy('quarter', 'desc')
+            ->orderBy('year', 'asc')
+            ->orderBy('quarter', 'asc')
             ->get();
         
         // 🔹 Monthly Applications
@@ -1742,8 +1742,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year', 'month')
-            ->orderBy('year', 'desc')
-            ->orderBy('month', 'desc')
+            ->orderBy('year', 'asc')
+            ->orderBy('month', 'asc')
             ->get();
         
         // 🔹 Merge All Data
@@ -1842,7 +1842,7 @@ class SubscriberFilterController extends Controller
                 DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
             )
             ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-            ->orderBy('year', 'desc') // ✅ Sort by newest first
+            ->orderBy('year', 'asc') // ✅ Sort by oldest first
             ->get();
 
 
@@ -1917,8 +1917,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -1929,8 +1929,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -1941,8 +1941,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -2038,7 +2038,7 @@ class SubscriberFilterController extends Controller
                 DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
             )
             ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-            ->orderBy('year', 'desc') // ✅ Sort by newest first
+            ->orderBy('year', 'asc') // ✅ Sort by oldest first
             ->get();
 
 
@@ -2113,8 +2113,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -2125,8 +2125,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -2137,8 +2137,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -2239,7 +2239,7 @@ class SubscriberFilterController extends Controller
                 DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
             )
             ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-            ->orderBy('year', 'desc') // ✅ Sort by newest first
+            ->orderBy('year', 'asc') // ✅ Sort by oldest first
             ->where('type', 'ar')
             ->get();
             return response()->json(['data' => $byPaymentMode]);
@@ -2312,8 +2312,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -2324,8 +2324,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -2336,8 +2336,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -2498,7 +2498,7 @@ class SubscriberFilterController extends Controller
                 DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
             )
             ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-            ->orderBy('year', 'desc') // ✅ Sort by newest first
+            ->orderBy('year', 'asc') // ✅ Sort by oldest first
             ->where('type', 'ap')
             ->get();
             return response()->json(['data' => $byPaymentMode]);
@@ -2571,8 +2571,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -2583,8 +2583,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -2595,8 +2595,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -2813,7 +2813,7 @@ class SubscriberFilterController extends Controller
                     DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
                 )
                 ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-                ->orderBy('year', 'desc') // ✅ Sort by newest first
+                ->orderBy('year', 'asc') // ✅ Sort by oldest first
                 ->get();
 
             return response()->json(['data' => $byUserTimeline]);
@@ -2878,8 +2878,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year_num', 'week_num')
-            ->orderBy('year_num', 'desc')
-            ->orderBy('week_num', 'desc')
+            ->orderBy('year_num', 'asc')
+            ->orderBy('week_num', 'asc')
             ->get();
         
         // 🔹 Quarterly Applications
@@ -2890,8 +2890,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year', 'quarter')
-            ->orderBy('year', 'desc')
-            ->orderBy('quarter', 'desc')
+            ->orderBy('year', 'asc')
+            ->orderBy('quarter', 'asc')
             ->get();
         
         // 🔹 Monthly Applications
@@ -2902,8 +2902,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year', 'month')
-            ->orderBy('year', 'desc')
-            ->orderBy('month', 'desc')
+            ->orderBy('year', 'asc')
+            ->orderBy('month', 'asc')
             ->get();
         
         // 🔹 Merge All Data
@@ -2947,7 +2947,7 @@ class SubscriberFilterController extends Controller
                     DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
                 )
                 ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-                ->orderBy('year', 'desc') // ✅ Sort by newest first
+                ->orderBy('year', 'asc') // ✅ Sort by oldest first
                 ->get();
 
             return response()->json(['data' => $byUserTimeline]);
@@ -2963,7 +2963,7 @@ class SubscriberFilterController extends Controller
                     DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
                 )
                 ->groupBy(DB::raw('YEAR(communication_date)')) // ✅ Group by extracted year
-                ->orderBy('year', 'desc') // ✅ Sort by newest first
+                ->orderBy('year', 'asc') // ✅ Sort by oldest first
                 ->get();
             return response()->json(['data' =>  $byCommunicationMeetingNoteType]);
         } elseif (request()->type == "byCommunicationMeetingNotesByTimeline(Duration)") {
@@ -3038,8 +3038,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -3050,8 +3050,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -3062,8 +3062,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -3188,7 +3188,7 @@ class SubscriberFilterController extends Controller
                     DB::raw('COUNT(users.id) AS count') // ✅ Count based on users.id
                 )
                 ->groupBy(DB::raw('YEAR(users.created_at)')) // ✅ Group by extracted year
-                ->orderBy('year', 'desc') // ✅ Sort by newest first
+                ->orderBy('year', 'asc') // ✅ Sort by oldest first
                 ->get();
 
             return response()->json(['data' => $byUserTimeline]);
@@ -3267,8 +3267,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -3279,8 +3279,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -3291,8 +3291,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -3366,7 +3366,7 @@ class SubscriberFilterController extends Controller
                     DB::raw('COUNT(id) AS count') // ✅ Count based on users.id
                 )
                 ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-                ->orderBy('year', 'desc') // ✅ Sort by newest first
+                ->orderBy('year', 'asc') // ✅ Sort by oldest first
                 ->get();
 
             return response()->json(['data' => $byUserTimeline]);
@@ -3435,8 +3435,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -3447,8 +3447,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -3459,8 +3459,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -3520,7 +3520,7 @@ class SubscriberFilterController extends Controller
                     DB::raw('COUNT(id) AS count') // ✅ Count based on users.id
                 )
                 ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-                ->orderBy('year', 'desc') // ✅ Sort by newest first
+                ->orderBy('year', 'asc') // ✅ Sort by oldest first
                 ->get();
 
             return response()->json(['data' => $byUserTimeline]);
@@ -3588,8 +3588,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -3600,8 +3600,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -3612,8 +3612,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -3866,7 +3866,7 @@ class SubscriberFilterController extends Controller
                     DB::raw('COUNT(id) AS count') // ✅ Count based on users.id
                 )
                 ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-                ->orderBy('year', 'desc') // ✅ Sort by newest first
+                ->orderBy('year', 'asc') // ✅ Sort by oldest first
                 ->get();
 
             return response()->json(['data' => $byUserTimeline]);
@@ -3940,8 +3940,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -3952,8 +3952,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -3964,8 +3964,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
