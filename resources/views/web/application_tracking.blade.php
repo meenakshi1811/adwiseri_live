@@ -328,6 +328,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         const applicationNameWithId = `${selectedApplicationName}${selectedApplicationId ? ` (${selectedApplicationId})` : ''}`;
         const trackingPdfTitle = `Application Tracking - ${applicationNameWithId}`;
         const trackingFileTitle = `${sanitizePrintTitle(trackingPdfTitle)}.PDF`;
+        const trackingDisplayTitle = trackingPdfTitle;
 
         const printableWindow = window.open('', '_blank');
         printableWindow.document.write(`
@@ -354,9 +355,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 </head>
                 <body>
                     <div class="tracking-summary">
-                        <h2 class="tracking-title">${trackingFileTitle}</h2>
-                        <div class="summary-row">${clientText}</div>
-                        <div class="summary-row">${applicationNameWithId}</div>
+                        <h2 class="tracking-title">${trackingDisplayTitle}</h2>
+                        <div class="summary-row">Client :- ${clientText}</div>
+                        <div class="summary-row">Application :- ${applicationNameWithId}</div>
                     </div>
                     <div>${chartContent}</div>
                 </body>
