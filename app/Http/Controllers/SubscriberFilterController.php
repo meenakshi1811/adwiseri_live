@@ -860,6 +860,20 @@ class SubscriberFilterController extends Controller
                 ->get();
 
             return response()->json(['data' => $byApplicationType]);
+        } elseif (request()->type == "byApplicationStatus") {
+
+            $query = Applications::query();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query = $query->where('subscriber_id', request()->subid);
+            }
+
+            $byApplicationStatus = $query->whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw("COALESCE(NULLIF(application_status, ''), 'Not Set') as application_status, COUNT(*) as status_count")
+                ->groupBy('application_status')
+                ->orderBy('status_count', 'desc')
+                ->get();
+
+            return response()->json(['data' => $byApplicationStatus]);
         } elseif (request()->type == "byApplicationCountsByDependantsChart") {
 
             $dependantBuckets = [
