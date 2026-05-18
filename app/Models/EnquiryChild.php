@@ -13,7 +13,8 @@ class EnquiryChild extends Model
         'child_name',
         'child_age',
         'child_gender',
-        'child_dob'
+        'child_dob',
+        'apply_together'
     ];
 
     public function enquiry()

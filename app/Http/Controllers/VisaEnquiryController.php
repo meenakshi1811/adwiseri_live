@@ -247,7 +247,8 @@ class VisaEnquiryController extends Controller
                         'child_name' => $child,
                         'child_age' => $request->child_age[$key] ?? null,
                         'child_gender' => $request->child_gender[$key] ?? null,
-                        'child_dob' => $childDobs[$key] ?? null
+                        'child_dob' => $childDobs[$key] ?? null,
+                        'apply_together' => !empty($request->child_apply_together[$key]) ? 1 : 0
                     ]);
 
                 }
@@ -269,7 +270,7 @@ class VisaEnquiryController extends Controller
 
             DB::commit();
 
-            return redirect()->back()->with('success','Enquiry submitted successfully.');
+            return redirect()->route('enquiries')->with('success','Enquiry submitted successfully.');
 
         }catch(\Exception $e){
 
