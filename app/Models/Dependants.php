@@ -16,9 +16,12 @@ class Dependants extends Model
         'client_id',
         'subscriber_id',
         'dob',
+        'age',
         'passport_no',
         'relation',
-        'gender'
+        'gender',
+        'qualification',
+        'work_experience_years'
     ];
     public function client(){
         return $this->belongsTo(Clients::class,'client_id');

@@ -335,19 +335,32 @@ $homeCountryOptions = $allCountries ?? $countries;
 <div class="row">
 
 <div class="col-md-6 mb-3">
+<label>Spouse Name</label>
 <input type="text" name="spouse_name" class="form-control" placeholder="Spouse Name" value="{{ old('spouse_name', $enquiry->spouse_name ?? '') }}">
 </div>
 
 <div class="col-md-6 mb-3">
-<input type="email" name="spouse_email" class="form-control" placeholder="Spouse Email" value="{{ old('spouse_email', $enquiry->spouse_email ?? '') }}">
+<label>Age</label>
+<input type="number" name="spouse_age" class="form-control @error('spouse_age') is-invalid @enderror" min="0" max="120" placeholder="Age" value="{{ old('spouse_age', $enquiry->spouse_age ?? '') }}">
+@error('spouse_age')
+<div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
 </div>
 
 <div class="col-md-6 mb-3">
-<input type="text" name="spouse_dob" class="form-control datepicker" value="{{ old('spouse_dob', $enquiry->spouse_dob ?? '') }}">
+<label>Qualification</label>
+<input type="text" name="spouse_qualification" class="form-control @error('spouse_qualification') is-invalid @enderror" maxlength="255" placeholder="Qualification" value="{{ old('spouse_qualification', $enquiry->spouse_qualification ?? '') }}">
+@error('spouse_qualification')
+<div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
 </div>
 
 <div class="col-md-6 mb-3">
-<input type="text" name="spouse_contact" class="form-control" placeholder="Contact No" value="{{ old('spouse_contact', $enquiry->spouse_contact ?? '') }}">
+<label>Work Experience (Years)</label>
+<input type="number" name="spouse_work_experience_years" class="form-control @error('spouse_work_experience_years') is-invalid @enderror" min="0" max="80" step="0.1" placeholder="Work Experience (Years)" value="{{ old('spouse_work_experience_years', $enquiry->spouse_work_experience_years ?? '') }}">
+@error('spouse_work_experience_years')
+<div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
 </div>
 
 </div>
@@ -477,7 +490,7 @@ $homeCountryOptions = $allCountries ?? $countries;
             required
         >
         <label class="form-check-label" for="consent_to_store_data">
-            I consent to Adwiseri storing and processing my submitted personal data, including my signature, for enquiry handling.
+            I consent to Adwiseri for storing and processing my submitted personal data, including my signature, for enquiry handling.
         </label>
     </div>
     @error('consent_to_store_data')

@@ -96,6 +96,9 @@ class VisaEnquiryController extends Controller
             'address' => 'required|string|min:3|max:1000',
             'postcode' => 'nullable|string|max:50',
             'country' => 'required|string|max:255',
+            'spouse_age' => 'nullable|integer|min:0|max:120',
+            'spouse_qualification' => 'nullable|string|max:255',
+            'spouse_work_experience_years' => 'nullable|numeric|min:0|max:80',
         ]);
 
         DB::beginTransaction();
@@ -130,9 +133,12 @@ class VisaEnquiryController extends Controller
                 'test_date' => $this->normalizeDateValue($request->test_date),
 
                 'spouse_name' => $request->spouse_name,
-                'spouse_email' => $request->spouse_email,
-                'spouse_dob' => $this->normalizeDateValue($request->spouse_dob),
-                'spouse_contact' => $request->spouse_contact,
+                'spouse_age' => $request->spouse_age,
+                'spouse_qualification' => $request->spouse_qualification,
+                'spouse_work_experience_years' => $request->spouse_work_experience_years,
+                'spouse_email' => null,
+                'spouse_dob' => null,
+                'spouse_contact' => null,
 
                 'form_date' => $this->normalizeDateValue($request->form_date),
                 'place' => $request->place,
