@@ -93,6 +93,9 @@ class VisaEnquiryController extends Controller
             'country_pref.0' => 'required|string|max:255',
             'country_pref.*' => 'nullable|string|max:255|distinct',
             'visa_category' => 'required|string|max:255',
+            'address' => 'required|string|max:1000',
+            'postcode' => 'nullable|string|max:50',
+            'country' => 'nullable|string|max:255',
         ]);
 
         DB::beginTransaction();
@@ -108,6 +111,8 @@ class VisaEnquiryController extends Controller
                 'contact_no' => $request->contact_no,
                 'marital_status' => $request->marital_status,
                 'address' => $request->address,
+                'postcode' => $request->postcode,
+                'country' => $request->country,
 
                 'country_pref_1' => $countryPref1,
                 'country_pref_2' => $countryPref2,

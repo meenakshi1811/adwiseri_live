@@ -26,6 +26,7 @@
 @endif
 @php
 $isEdit = $isEdit ?? false;
+$homeCountryOptions = $allCountries ?? $countries;
 @endphp
 <form method="POST" action="{{ $isEdit ? route('visa_enquiries.update', $enquiry->id) : route('visa.enquiry.store') }}">
 @csrf
@@ -72,7 +73,22 @@ $isEdit = $isEdit ?? false;
 
 <div class="col-md-12 mb-3">
 <label>Address *</label>
-<textarea name="address" class="form-control">{{ old('address', $enquiry->address ?? '') }}</textarea>
+<textarea name="address" class="form-control" required>{{ old('address', $enquiry->address ?? '') }}</textarea>
+</div>
+
+<div class="col-md-6 mb-3">
+<label>Postcode</label>
+<input type="text" name="postcode" class="form-control" value="{{ old('postcode', $enquiry->postcode ?? '') }}">
+</div>
+
+<div class="col-md-6 mb-3">
+<label>Home Country</label>
+<select name="country" class="form-control form-select">
+<option value="">Select Home Country</option>
+@foreach($homeCountryOptions as $country)
+<option value="{{ $country->country_name }}" {{ old('country', $enquiry->country ?? '') == $country->country_name ? 'selected' : '' }}>{{ $country->country_name }}</option>
+@endforeach
+</select>
 </div>
 
 </div>
