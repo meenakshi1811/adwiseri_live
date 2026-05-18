@@ -124,7 +124,7 @@ $countryPreferences = collect([
 
 <td class="text-center">
 
-{{ 1 + (!empty($enquiry->spouse_name) ? 1 : 0) + (int) ($enquiry->children_count ?? 0) }}
+{{ 1 + (!empty($enquiry->spouse_name) ? 1 : 0) + (int) ($enquiry->children_applying_count ?? 0) }}
 
 </td>
 

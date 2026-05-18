@@ -7159,7 +7159,9 @@ public function showFeedbackPopup()
 
         if ($user->user_type == "Subscriber") {
 
-            $enquiries = VisaEnquiry::withCount('children')
+            $enquiries = VisaEnquiry::withCount(['children as children_applying_count' => function ($query) {
+                            $query->where('apply_together', 1);
+                        }])
                         ->where('subscriber_id',$user->id)
                         ->orderBy('created_at','desc')
                         ->get();
@@ -7172,7 +7174,9 @@ public function showFeedbackPopup()
                 return redirect()->route('membership')->with('membership_expiry', 'Membership has expired.');
             }
 
-            $enquiries = VisaEnquiry::withCount('children')
+            $enquiries = VisaEnquiry::withCount(['children as children_applying_count' => function ($query) {
+                            $query->where('apply_together', 1);
+                        }])
                         ->where('subscriber_id',$subscriber->id)
                         ->orderBy('created_at','desc')
                         ->get();
@@ -7284,6 +7288,9 @@ public function showFeedbackPopup()
             }
 
             foreach ($enquiry->children as $child) {
+                if ((int) ($child->apply_together ?? 0) !== 1) {
+                    continue;
+                }
                 if (empty($child->child_name)) {
                     continue;
                 }
@@ -7552,7 +7559,8 @@ public function showFeedbackPopup()
                         'child_name' => $child,
                         'child_age' => $request->child_age[$key] ?? null,
                         'child_gender' => $request->child_gender[$key] ?? null,
-                        'child_dob' => $childDobs[$key] ?? null
+                        'child_dob' => $childDobs[$key] ?? null,
+                        'apply_together' => !empty($request->child_apply_together[$key]) ? 1 : 0
                     ]);
                 }
             }
