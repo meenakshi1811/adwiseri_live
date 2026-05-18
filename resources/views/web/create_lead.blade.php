@@ -597,12 +597,25 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
-document.addEventListener("DOMContentLoaded", function () {
-    flatpickr(".datepicker", {
-        dateFormat: "d-m-Y",
-        allowInput: true,
-        maxDate: "today"
+function initDatepickers(context) {
+    const scope = context || document;
+    const elements = scope.querySelectorAll ? scope.querySelectorAll(".datepicker") : [];
+
+    elements.forEach(function (element) {
+        if (element._flatpickr) {
+            return;
+        }
+
+        flatpickr(element, {
+            dateFormat: "d-m-Y",
+            allowInput: true,
+            maxDate: "today"
+        });
     });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    initDatepickers(document);
 });
 $(document).ready(function(){
 
@@ -681,7 +694,11 @@ $('#full_name').on('input', function(){
     }
 });
 
-function addRow(container,html){ $(container).append(html); }
+function addRow(container,html){
+const newRow = $(html);
+$(container).append(newRow);
+initDatepickers(newRow.get(0));
+}
 
 $(document).on('click','.addResidency',function(){
 addRow('#residency_history',
