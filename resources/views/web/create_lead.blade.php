@@ -24,10 +24,22 @@
 </div>
 
 @endif
+
+@if($errors->any())
+<div class="alert alert-danger">
+    <strong>Please correct the highlighted enquiry form fields.</strong>
+    <ul class="mb-0 mt-2">
+        @foreach($errors->all() as $error)
+        <li>{{ $error }}</li>
+        @endforeach
+    </ul>
+</div>
+@endif
 @php
 $isEdit = $isEdit ?? false;
+$homeCountryOptions = $allCountries ?? $countries;
 @endphp
-<form method="POST" action="{{ $isEdit ? route('visa_enquiries.update', $enquiry->id) : route('visa.enquiry.store') }}">
+<form method="POST" id="enquiry_form" action="{{ $isEdit ? route('visa_enquiries.update', $enquiry->id) : route('visa.enquiry.store') }}">
 @csrf
 
 <input type="hidden" name="subscriber_id" value="{{ $subscriberId }}">
@@ -72,7 +84,32 @@ $isEdit = $isEdit ?? false;
 
 <div class="col-md-12 mb-3">
 <label>Address *</label>
-<textarea name="address" class="form-control">{{ old('address', $enquiry->address ?? '') }}</textarea>
+<textarea name="address" id="address" class="form-control @error('address') is-invalid @enderror" required minlength="3" maxlength="1000" data-required-message="Please enter the client address before submitting the enquiry.">{{ old('address', $enquiry->address ?? '') }}</textarea>
+@error('address')
+<div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
+<div id="address_required_alert" class="alert alert-danger mt-2 py-2" style="display:none;">Please enter the client address before submitting the enquiry.</div>
+</div>
+
+<div class="col-md-6 mb-3">
+<label>Postcode</label>
+<input type="text" name="postcode" class="form-control @error('postcode') is-invalid @enderror" value="{{ old('postcode', $enquiry->postcode ?? '') }}">
+@error('postcode')
+<div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
+</div>
+
+<div class="col-md-6 mb-3">
+<label>Home Country *</label>
+<select name="country" class="form-control form-select @error('country') is-invalid @enderror" required>
+<option value="">Select Home Country</option>
+@foreach($homeCountryOptions as $country)
+<option value="{{ $country->country_name }}" {{ old('country', $enquiry->country ?? '') == $country->country_name ? 'selected' : '' }}>{{ $country->country_name }}</option>
+@endforeach
+</select>
+@error('country')
+<div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
 </div>
 
 </div>
@@ -298,19 +335,32 @@ $isEdit = $isEdit ?? false;
 <div class="row">
 
 <div class="col-md-6 mb-3">
+<label>Spouse Name</label>
 <input type="text" name="spouse_name" class="form-control" placeholder="Spouse Name" value="{{ old('spouse_name', $enquiry->spouse_name ?? '') }}">
 </div>
 
 <div class="col-md-6 mb-3">
-<input type="email" name="spouse_email" class="form-control" placeholder="Spouse Email" value="{{ old('spouse_email', $enquiry->spouse_email ?? '') }}">
+<label>Age</label>
+<input type="number" name="spouse_age" class="form-control @error('spouse_age') is-invalid @enderror" min="0" max="120" placeholder="Age" value="{{ old('spouse_age', $enquiry->spouse_age ?? '') }}">
+@error('spouse_age')
+<div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
 </div>
 
 <div class="col-md-6 mb-3">
-<input type="text" name="spouse_dob" class="form-control datepicker" value="{{ old('spouse_dob', $enquiry->spouse_dob ?? '') }}">
+<label>Qualification</label>
+<input type="text" name="spouse_qualification" class="form-control @error('spouse_qualification') is-invalid @enderror" maxlength="255" placeholder="Qualification" value="{{ old('spouse_qualification', $enquiry->spouse_qualification ?? '') }}">
+@error('spouse_qualification')
+<div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
 </div>
 
 <div class="col-md-6 mb-3">
-<input type="text" name="spouse_contact" class="form-control" placeholder="Contact No" value="{{ old('spouse_contact', $enquiry->spouse_contact ?? '') }}">
+<label>Work Experience (Years)</label>
+<input type="number" name="spouse_work_experience_years" class="form-control @error('spouse_work_experience_years') is-invalid @enderror" min="0" max="80" step="0.1" placeholder="Work Experience (Years)" value="{{ old('spouse_work_experience_years', $enquiry->spouse_work_experience_years ?? '') }}">
+@error('spouse_work_experience_years')
+<div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
 </div>
 
 </div>
@@ -440,7 +490,7 @@ $isEdit = $isEdit ?? false;
             required
         >
         <label class="form-check-label" for="consent_to_store_data">
-            I consent to Adwiseri storing and processing my submitted personal data, including my signature, for enquiry handling.
+            I consent to Adwiseri for storing and processing my submitted personal data, including my signature, for enquiry handling.
         </label>
     </div>
     @error('consent_to_store_data')
@@ -495,6 +545,58 @@ $isEdit = $isEdit ?? false;
 
 <script>
 
+
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById('enquiry_form');
+    const addressField = document.getElementById('address');
+    const addressAlert = document.getElementById('address_required_alert');
+
+    if (!form || !addressField) {
+        return;
+    }
+
+    const addressMessage = addressField.dataset.requiredMessage || 'Please enter the client address before submitting the enquiry.';
+
+    function showAddressAlert() {
+        if (addressAlert) {
+            addressAlert.textContent = addressMessage;
+            addressAlert.style.display = 'block';
+        }
+    }
+
+    function hideAddressAlert() {
+        if (addressAlert) {
+            addressAlert.style.display = 'none';
+        }
+        addressField.setCustomValidity('');
+    }
+
+    addressField.addEventListener('invalid', function () {
+        addressField.setCustomValidity(addressMessage);
+        showAddressAlert();
+    });
+
+    addressField.addEventListener('input', hideAddressAlert);
+
+    form.addEventListener('submit', function (event) {
+        const trimmedAddress = addressField.value.trim();
+
+        if (!trimmedAddress) {
+            event.preventDefault();
+            addressField.value = '';
+            addressField.setCustomValidity(addressMessage);
+            showAddressAlert();
+            alert(addressMessage);
+            addressField.reportValidity();
+            addressField.focus();
+            return false;
+        }
+
+        addressField.value = trimmedAddress;
+        hideAddressAlert();
+    });
+});
+
 document.addEventListener("DOMContentLoaded", function () {
     flatpickr(".datepicker", {
         dateFormat: "d-m-Y",
@@ -525,7 +627,7 @@ signaturePad.clear();
 $('#signature').val('');
 });
 
-$('form').on('submit', function(){
+$('#enquiry_form').on('submit', function(){
 
 if(!signaturePad.isEmpty()){
 var dataURL = signaturePad.toDataURL();
@@ -533,6 +635,7 @@ $('#signature').val(dataURL);
 }
 
 });
+
 
 }
 

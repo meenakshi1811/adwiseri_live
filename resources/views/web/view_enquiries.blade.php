@@ -55,6 +55,16 @@
 <div class="field-value">{{ $enquiry->address ?? '-' }}</div>
 </div>
 
+<div class="col-md-4">
+<label class="field-label">Postcode</label>
+<div class="field-value">{{ $enquiry->postcode ?? '-' }}</div>
+</div>
+
+<div class="col-md-4">
+<label class="field-label">Home Country</label>
+<div class="field-value">{{ $enquiry->country ?? '-' }}</div>
+</div>
+
 </div>
 </div>
 
@@ -88,6 +98,36 @@
 
 </div>
 </div>
+
+{{-- SPOUSE DETAILS --}}
+
+@if(!empty($enquiry->spouse_name))
+<div class="mb-5">
+<h5 class="section-title">Spouse Personal Details</h5>
+
+<div class="row g-3">
+<div class="col-md-3">
+<label class="field-label">Name</label>
+<div class="field-value">{{ $enquiry->spouse_name ?? '-' }}</div>
+</div>
+
+<div class="col-md-3">
+<label class="field-label">Age</label>
+<div class="field-value">{{ $enquiry->spouse_age ?? '-' }}</div>
+</div>
+
+<div class="col-md-3">
+<label class="field-label">Qualification</label>
+<div class="field-value">{{ $enquiry->spouse_qualification ?? '-' }}</div>
+</div>
+
+<div class="col-md-3">
+<label class="field-label">Work Experience (Years)</label>
+<div class="field-value">{{ $enquiry->spouse_work_experience_years ?? '-' }}</div>
+</div>
+</div>
+</div>
+@endif
 
 
 {{-- RESIDENCY HISTORY --}}

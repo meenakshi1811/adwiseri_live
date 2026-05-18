@@ -82,6 +82,7 @@ use App\Models\EnquiryRefusalHistory;
 use App\Models\EnquiryWorkExperience;
 use App\Models\EnquiryChild;
 use App\Models\EnquiryFundingSource;
+use App\Models\Dependants;
 use App\Models\ReportSetting;
 use App\Models\PaymentReminderSetting;
 use App\Services\EmailTemplateService;
@@ -1565,14 +1566,14 @@ class WebController extends Controller
             if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
                 return redirect()->route('membership')->with('membership_expiry', 'Membership has expired.');
             }
-            $clients = Clients::where('subscriber_id', '=', $user->id)->orderBy('created_at', 'desc')->get();
+            $clients = Clients::withCount('dependants')->where('subscriber_id', '=', $user->id)->orderBy('created_at', 'desc')->get();
         } else {
             $subscriber = User::find($user->added_by);
             $roles = UserRoles::where('user_id', '=', $user->id)->first();
             if ((new DateTime($subscriber->membership_expiry_date)) < (new DateTime("now"))) {
                 return redirect()->route('membership')->with('membership_expiry', 'Membership has expired.');
             }
-            $clients = Clients::where('user_id', '=', $user->id)->orderBy('created_at', 'desc')->get();
+            $clients = Clients::withCount('dependants')->where('user_id', '=', $user->id)->orderBy('created_at', 'desc')->get();
         }
         $countries = Countries::get();
         $page = "clients";
@@ -6599,9 +6600,9 @@ class WebController extends Controller
 
             if ($user->user_type == 'admin') {
 
-                $clients = Clients::whereBetween('created_at', [$startDate, $endDate])->orderBy('created_at', 'desc')->get();
+                $clients = Clients::withCount('dependants')->whereBetween('created_at', [$startDate, $endDate])->orderBy('created_at', 'desc')->get();
             } else {
-                $clients = Clients::where('subscriber_id', '=', $user->id)->whereBetween('created_at', [$startDate, $endDate])->orderBy('created_at', 'desc')->get();
+                $clients = Clients::withCount('dependants')->where('subscriber_id', '=', $user->id)->whereBetween('created_at', [$startDate, $endDate])->orderBy('created_at', 'desc')->get();
             }
 
             // dd($clients->toSql(),$clients->getBindings(),$startDate,$endDate);
@@ -6612,7 +6613,7 @@ class WebController extends Controller
                  return $row->name.'('.$row->subscriber_id.')';
               })
                  ->addColumn('noa',function ($row) use ($client_roles, $user) {
-                 return $row->applications ? ($row->applications->count() ?? 'No') : 'No User' ;
+                 return 1 + (int) ($row->dependants_count ?? 0);
               })
               ->editColumn('created_at', function ($row) {
                 return date("d-m-Y", strtotime($row->created_at));
@@ -7190,7 +7191,7 @@ public function showFeedbackPopup()
 
             DB::beginTransaction();
 
-            $enquiry = VisaEnquiry::find($request->enquiry_id);
+            $enquiry = VisaEnquiry::with('children')->find($request->enquiry_id);
 
             if (!$enquiry) {
                 return response()->json([
@@ -7251,12 +7252,51 @@ public function showFeedbackPopup()
             $client->dob = $enquiry->dob ?? null;
 
             $client->address = $enquiry->address;
-            $client->country = $enquiry->country_pref_1 ?? $enquiry->country_pref_2 ?? $enquiry->country_pref_3;
+            $client->country = $enquiry->country ?? null;
             $client->state = $enquiry->state ?? null;
             $client->city = $enquiry->city ?? $enquiry->place ?? null;
-            $client->pincode = $enquiry->pincode ?? null;
+            $client->pincode = $enquiry->postcode ?? $enquiry->pincode ?? null;
 
             $client->save();
+
+            if (!empty($enquiry->spouse_name)) {
+                $spouseDependantData = [
+                    'client_id' => $client->id,
+                    'subscriber_id' => $subscriber->id,
+                    'name' => $enquiry->spouse_name,
+                    'dob' => $enquiry->spouse_dob ?? null,
+                    'relation' => 'Spouse',
+                ];
+
+                if (Schema::hasColumn('dependants', 'age')) {
+                    $spouseDependantData['age'] = $enquiry->spouse_age ?? null;
+                }
+
+                if (Schema::hasColumn('dependants', 'qualification')) {
+                    $spouseDependantData['qualification'] = $enquiry->spouse_qualification ?? null;
+                }
+
+                if (Schema::hasColumn('dependants', 'work_experience_years')) {
+                    $spouseDependantData['work_experience_years'] = $enquiry->spouse_work_experience_years ?? null;
+                }
+
+                Dependants::create($spouseDependantData);
+            }
+
+            foreach ($enquiry->children as $child) {
+                if (empty($child->child_name)) {
+                    continue;
+                }
+
+                Dependants::create([
+                    'client_id' => $client->id,
+                    'subscriber_id' => $subscriber->id,
+                    'name' => $child->child_name,
+                    'dob' => $child->child_dob ?? null,
+                    'relation' => 'Child',
+                    'gender' => $child->child_gender ?? null,
+                ]);
+            }
 
             /* Update enquiry status */
             $enquiry->status = 1;
@@ -7350,7 +7390,8 @@ public function showFeedbackPopup()
             'enquiry' => $enquiry,
             'isEdit' => true,
             'defaultPlace' => $defaultPlace,
-            'countries' => $countries
+            'countries' => $countries,
+            'allCountries' => Countries::orderBy('country_name', 'asc')->get()
         ]);
     }
 
@@ -7364,6 +7405,12 @@ public function showFeedbackPopup()
             'country_pref.0' => 'required|string|max:255',
             'country_pref.*' => 'nullable|string|max:255|distinct',
             'visa_category' => 'required|string|max:255',
+            'address' => 'required|string|min:3|max:1000',
+            'postcode' => 'nullable|string|max:50',
+            'country' => 'required|string|max:255',
+            'spouse_age' => 'nullable|integer|min:0|max:120',
+            'spouse_qualification' => 'nullable|string|max:255',
+            'spouse_work_experience_years' => 'nullable|numeric|min:0|max:80',
         ]);
 
         $enquiry = VisaEnquiry::find($id);
@@ -7384,6 +7431,8 @@ public function showFeedbackPopup()
                 'contact_no' => $request->contact_no,
                 'marital_status' => $request->marital_status,
                 'address' => $request->address,
+                'postcode' => $request->postcode,
+                'country' => $request->country,
                 'country_pref_1' => $countryPref1,
                 'country_pref_2' => $countryPref2,
                 'country_pref_3' => $countryPref3,
@@ -7396,9 +7445,12 @@ public function showFeedbackPopup()
                 'overall_score' => $request->overall_score,
                 'test_date' => $this->normalizeDateValue($request->test_date),
                 'spouse_name' => $request->spouse_name,
-                'spouse_email' => $request->spouse_email,
-                'spouse_dob' => $this->normalizeDateValue($request->spouse_dob),
-                'spouse_contact' => $request->spouse_contact,
+                'spouse_age' => $request->spouse_age,
+                'spouse_qualification' => $request->spouse_qualification,
+                'spouse_work_experience_years' => $request->spouse_work_experience_years,
+                'spouse_email' => null,
+                'spouse_dob' => null,
+                'spouse_contact' => null,
                 'signature' => $request->signature ?: $enquiry->signature,
             ];
 
@@ -8040,8 +8092,9 @@ public function showFeedbackPopup()
         $subscriberId = decrypt($id);
         $subscriber = User::find($subscriberId);
         $countries = $this->getSubscriberCountryOptions((int) $subscriberId);
+        $allCountries = Countries::orderBy('country_name', 'asc')->get();
         $defaultPlace = trim(($subscriber?->city ?? '').', '.($subscriber?->country ?? ''), ', ');
 
-        return view('web.create_lead',compact('subscriberId','defaultPlace','countries'));
+        return view('web.create_lead',compact('subscriberId','defaultPlace','countries','allCountries'));
     }
 }
