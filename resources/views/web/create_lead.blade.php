@@ -367,17 +367,18 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 </div>
 
-<h5 class="mt-4">Do you have Children?</h5>
+<h5 class="mt-4">10. How many children you have?</h5>
 
-<select id="children_option" class="form-control mb-3">
-<option value="no">No</option>
-<option value="yes">Yes</option>
+<select id="children_count" name="children_count" class="form-control mb-3">
+@for($childCount = 0; $childCount <= 6; $childCount++)
+<option value="{{ $childCount }}" {{ (int) old('children_count', isset($enquiry) ? ($enquiry->children->count() ?? 0) : 0) === $childCount ? 'selected' : '' }}>{{ $childCount }}</option>
+@endfor
 </select>
 
 <div id="children_section" style="display:none">
 
 <div id="children_rows">
-@php $childrenRows = old('child_name') ? collect(old('child_name'))->map(fn($_, $i) => ['child_name' => old('child_name.'.$i), 'child_age' => old('child_age.'.$i), 'child_gender' => old('child_gender.'.$i), 'child_dob' => old('child_dob.'.$i)]) : ($enquiry->children ?? collect([[]])); @endphp
+@php $childrenRows = old('child_name') ? collect(old('child_name'))->map(fn($_, $i) => ['child_name' => old('child_name.'.$i), 'child_age' => old('child_age.'.$i), 'child_gender' => old('child_gender.'.$i), 'child_dob' => old('child_dob.'.$i), 'child_apply_together' => old('child_apply_together.'.$i)]) : ($enquiry->children ?? collect()); @endphp
 @foreach($childrenRows as $idx => $row)
 <div class="row child-row {{ $idx > 0 ? 'mt-2' : '' }}">
 <div class="col-md-3">
@@ -394,14 +395,13 @@ $homeCountryOptions = $allCountries ?? $countries;
 </select>
 </div>
 <div class="col-md-3">
-<input type="text" name="child_dob[]" class="form-control datepicker" value="{{ $row['child_dob'] ?? $row->child_dob ?? '' }}">
+<input type="text" name="child_dob[]" class="form-control datepicker" placeholder="Date of Birth" value="{{ $row['child_dob'] ?? $row->child_dob ?? '' }}">
 </div>
 <div class="col-md-2">
-@if($idx === 0)
-<button type="button" class="btn btn-success addChild">+</button>
-@else
-<button type="button" class="btn btn-danger remove">-</button>
-@endif
+<div class="form-check mt-2">
+<input type="checkbox" class="form-check-input" name="child_apply_together[{{ $idx }}]" value="1" {{ !empty($row['child_apply_together'] ?? $row->apply_together ?? null) ? 'checked' : '' }}>
+<label class="form-check-label">Apply together</label>
+</div>
 </div>
 </div>
 @endforeach
@@ -490,7 +490,7 @@ $homeCountryOptions = $allCountries ?? $countries;
             required
         >
         <label class="form-check-label" for="consent_to_store_data">
-            I consent to Adwiseri for storing and processing my submitted personal data, including my signature, for enquiry handling.
+            I consent Adwiseri to store and process my submitted personal data, including my signature, for enquiry handling.
         </label>
     </div>
     @error('consent_to_store_data')
@@ -600,7 +600,8 @@ document.addEventListener("DOMContentLoaded", function () {
 document.addEventListener("DOMContentLoaded", function () {
     flatpickr(".datepicker", {
         dateFormat: "d-m-Y",
-        allowInput: true
+        allowInput: true,
+        maxDate: "today"
     });
 });
 $(document).ready(function(){
@@ -645,14 +646,17 @@ else{ $('#spouse_section').hide(); }
 });
 if($('#marital_status').val()=='Married'){ $('#spouse_section').show(); }
 
-$('#children_option').change(function(){
-if($(this).val()=='yes'){ $('#children_section').show(); }
-else{ $('#children_section').hide(); }
+function renderChildrenRows() {
+const count = parseInt($('#children_count').val() || '0', 10);
+const rows = $('#children_rows .child-row');
+rows.each(function(index){
+    $(this).toggle(index < count);
 });
-@if(isset($enquiry) && $enquiry->children && $enquiry->children->count() > 0)
-$('#children_option').val('yes');
-$('#children_section').show();
-@endif
+if (count > 0) { $('#children_section').show(); } else { $('#children_section').hide(); }
+}
+
+$('#children_count').change(renderChildrenRows);
+renderChildrenRows();
 
 $('#visa_category').change(function(){
 
@@ -719,16 +723,21 @@ addRow('#work_experience',
 '</div>');
 });
 
-$(document).on('click','.addChild',function(){
-addRow('#children_rows',
-'<div class="row mt-2">'+
+function buildChildRow(){
+return '<div class="row child-row mt-2">'+
 '<div class="col-md-3"><input type="text" name="child_name[]" class="form-control"></div>'+
 '<div class="col-md-2"><input type="number" name="child_age[]" class="form-control"></div>'+
 '<div class="col-md-2"><select name="child_gender[]" class="form-control"><option>M</option><option>F</option><option>PNTS</option></select></div>'+
-'<div class="col-md-3"><input type="text" name="child_dob[]" class="form-control datepicker"></div>'+
-'<div class="col-md-2"><button type="button" class="btn btn-danger remove">-</button></div>'+
-'</div>');
-});
+'<div class="col-md-3"><input type="text" name="child_dob[]" placeholder="Date of Birth" class="form-control datepicker"></div>'+
+'<div class="col-md-2"><div class="form-check mt-2"><input type="checkbox" class="form-check-input" name="child_apply_together['+childRowIndex+']" value="1"><label class="form-check-label">Apply together</label></div></div>'+
+'</div>';
+}
+
+let childRowIndex = $('#children_rows .child-row').length;
+while ($('#children_rows .child-row').length < 6) {
+    addRow('#children_rows', buildChildRow());
+    childRowIndex++;
+}
 
 $(document).on('click','.remove',function(){ $(this).closest('.row').remove(); });
 
