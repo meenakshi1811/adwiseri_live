@@ -19,6 +19,8 @@ class VisaEnquiry extends Model
         'contact_no',
         'marital_status',
         'address',
+        'postcode',
+        'country',
         'country_pref_1',
         'country_pref_2',
         'country_pref_3',

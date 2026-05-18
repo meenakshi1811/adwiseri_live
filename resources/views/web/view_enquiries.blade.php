@@ -55,6 +55,16 @@
 <div class="field-value">{{ $enquiry->address ?? '-' }}</div>
 </div>
 
+<div class="col-md-4">
+<label class="field-label">Postcode</label>
+<div class="field-value">{{ $enquiry->postcode ?? '-' }}</div>
+</div>
+
+<div class="col-md-4">
+<label class="field-label">Home Country</label>
+<div class="field-value">{{ $enquiry->country ?? '-' }}</div>
+</div>
+
 </div>
 </div>
 

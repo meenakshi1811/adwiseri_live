@@ -448,7 +448,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <td class="p-1 text-center">{{ $client->country }}</td>
                             <td class="p-1 text-center">{{ $client->city }}</td>
                             <td class="p-1 text-center">{{ $client->pincode }}</td>
-                            <td class="text-center"> {{ $client->applications ? ($client->applications->count() ?? 'No') : 'No User' }}</td>
+                            <td class="text-center"> {{ 1 + (int) ($client->dependants_count ?? 0) }}</td>
                             <td class="text-center">{{  \Carbon\Carbon::parse($client->created_at)->format('d-m-Y') }}</td>
                             <td class="text-center action-icon p-1">
                                 <a @if($client_roles->read_only == 1 or $client_roles->read_write_only == 1) href="{{ route('client_profile', $client->id)}}" @else href="#" @endif style="text-decoration:none;"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:12px;"></i></a>
