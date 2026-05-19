@@ -345,7 +345,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 <div class="col-md-2 mb-3 d-flex align-items-end">
 <div class="form-check mb-2">
 <input type="checkbox" class="form-check-input" name="spouse_apply_together" id="spouse_apply_together" value="1" {{ old('spouse_apply_together', !empty($enquiry->spouse_name ?? null) ? 1 : 0) ? 'checked' : '' }}>
-<label class="form-check-label" for="spouse_apply_together">Applying Together?</label>
+<label class="form-check-label" for="spouse_apply_together">Applying together?</label>
 </div>
 </div>
 
@@ -379,7 +379,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 <h5 class="mt-4">10. How many children you have?</h5>
 
-<select id="children_count" name="children_count" class="form-control mb-3">
+<select id="children_count" name="children_count" class="form-control form-control-sm d-inline-block w-auto mb-3">
 @for($childCount = 0; $childCount <= 6; $childCount++)
 <option value="{{ $childCount }}" {{ (int) old('children_count', isset($enquiry) ? ($enquiry->children->count() ?? 0) : 0) === $childCount ? 'selected' : '' }}>{{ $childCount }}</option>
 @endfor
@@ -410,7 +410,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 <div class="col-md-2">
 <div class="form-check mt-2">
 <input type="checkbox" class="form-check-input" name="child_apply_together[{{ $idx }}]" value="1" {{ !empty($row['child_apply_together'] ?? $row->apply_together ?? null) ? 'checked' : '' }}>
-<label class="form-check-label">Apply together</label>
+<label class="form-check-label">Applying together?</label>
 </div>
 </div>
 </div>
@@ -500,7 +500,7 @@ $homeCountryOptions = $allCountries ?? $countries;
             required
         >
         <label class="form-check-label" for="consent_to_store_data">
-            I consent Adwiseri to store and process my submitted personal data, including my signature, for enquiry handling.
+            I consent Adwiseri to store and process my submitted personal data, including my signature, for application related counselling and processing.
         </label>
     </div>
     @error('consent_to_store_data')
@@ -762,7 +762,7 @@ return '<div class="row child-row mt-2">'+
 '<div class="col-md-2"><input type="number" name="child_age[]" class="form-control"></div>'+
 '<div class="col-md-2"><select name="child_gender[]" class="form-control"><option>M</option><option>F</option><option>PNTS</option></select></div>'+
 '<div class="col-md-3"><input type="text" name="child_dob[]" placeholder="Date of Birth" class="form-control datepicker"></div>'+
-'<div class="col-md-2"><div class="form-check mt-2"><input type="checkbox" class="form-check-input" name="child_apply_together['+childRowIndex+']" value="1"><label class="form-check-label">Apply together</label></div></div>'+
+'<div class="col-md-2"><div class="form-check mt-2"><input type="checkbox" class="form-check-input" name="child_apply_together['+childRowIndex+']" value="1"><label class="form-check-label">Applying together?</label></div></div>'+
 '</div>';
 }
 
