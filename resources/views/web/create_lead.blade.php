@@ -151,7 +151,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 </div>
 
 <div class="col-md-6 mt-3">
-<label>Preferred Visa Category *</label>
+<label>Select preferred Visa *</label>
 <select name="visa_category" id="visa_category" class="form-control" required>
 <option value="">Select</option>
 <option value="Visit" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Visit' ? 'selected' : '' }}>Visit</option>
@@ -228,7 +228,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 <input type="text" name="refusal_country[]" class="form-control" placeholder="Country" value="{{ $row['country'] ?? $row->country ?? '' }}">
 </div>
 <div class="col-md-3">
-<input type="text" name="refusal_date[]" class="form-control datepicker" value="{{ $row['refusal_date'] ?? $row->refusal_date ?? '' }}">
+<input type="text" name="refusal_date[]" class="form-control datepicker" placeholder="Refusal Date" value="{{ $row['refusal_date'] ?? $row->refusal_date ?? '' }}">
 </div>
 <div class="col-md-4">
 <input type="text" name="refusal_reason[]" class="form-control" placeholder="Reason" value="{{ $row['refusal_reason'] ?? $row->refusal_reason ?? '' }}">
@@ -293,7 +293,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 </div>
 
 <div class="col-md-4">
-<input type="text" name="test_date" class="form-control datepicker" value="{{ old('test_date', $enquiry->test_date ?? '') }}">
+<input type="text" name="test_date" class="form-control datepicker" placeholder="Score Date" value="{{ old('test_date', $enquiry->test_date ?? '') }}">
 </div>
 
 </div>
@@ -301,22 +301,25 @@ $homeCountryOptions = $allCountries ?? $countries;
 <h5 class="mt-4">8. Work Experience</h5>
 
 <div id="work_experience">
-@php $workRows = old('job_title') ? collect(old('job_title'))->map(fn($_, $i) => ['job_title' => old('job_title.'.$i), 'employer' => old('employer.'.$i), 'work_country' => old('work_country.'.$i), 'joining_date' => old('joining_date.'.$i)]) : ($enquiry->workExperience ?? collect([[]])); @endphp
+@php $workRows = old('job_title') ? collect(old('job_title'))->map(fn($_, $i) => ['job_title' => old('job_title.'.$i), 'employer' => old('employer.'.$i), 'work_country' => old('work_country.'.$i), 'joining_date' => old('joining_date.'.$i), 'to_date' => old('to_date.'.$i)]) : ($enquiry->workExperience ?? collect([[]])); @endphp
 @foreach($workRows as $idx => $row)
 <div class="row work-row {{ $idx > 0 ? 'mt-2' : '' }}">
 <div class="col-md-3">
 <input type="text" name="job_title[]" class="form-control" placeholder="Job Title" value="{{ $row['job_title'] ?? $row->job_title ?? '' }}">
 </div>
-<div class="col-md-3">
+<div class="col-md-2">
 <input type="text" name="employer[]" class="form-control" placeholder="Employer Name" value="{{ $row['employer'] ?? $row->employer ?? '' }}">
 </div>
 <div class="col-md-2">
 <input type="text" name="work_country[]" class="form-control" placeholder="Country" value="{{ $row['work_country'] ?? $row->work_country ?? '' }}">
 </div>
 <div class="col-md-2">
-<input type="text" name="joining_date[]" class="form-control datepicker" value="{{ $row['joining_date'] ?? $row->joining_date ?? '' }}">
+<input type="text" name="joining_date[]" class="form-control datepicker" placeholder="From (Date)" value="{{ $row['joining_date'] ?? $row->joining_date ?? '' }}">
 </div>
 <div class="col-md-2">
+<input type="text" name="to_date[]" class="form-control datepicker" placeholder="To (Date)" value="{{ $row['to_date'] ?? $row->to_date ?? '' }}">
+</div>
+<div class="col-md-1">
 @if($idx === 0)
 <button type="button" class="btn btn-success addWork">+</button>
 @else
@@ -334,9 +337,16 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 <div class="row">
 
-<div class="col-md-6 mb-3">
+<div class="col-md-4 mb-3">
 <label>Spouse Name</label>
 <input type="text" name="spouse_name" class="form-control" placeholder="Spouse Name" value="{{ old('spouse_name', $enquiry->spouse_name ?? '') }}">
+</div>
+
+<div class="col-md-2 mb-3 d-flex align-items-end">
+<div class="form-check mb-2">
+<input type="checkbox" class="form-check-input" name="spouse_apply_together" id="spouse_apply_together" value="1" {{ old('spouse_apply_together', !empty($enquiry->spouse_name ?? null) ? 1 : 0) ? 'checked' : '' }}>
+<label class="form-check-label" for="spouse_apply_together">Applying together?</label>
+</div>
 </div>
 
 <div class="col-md-6 mb-3">
@@ -369,7 +379,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 <h5 class="mt-4">10. How many children you have?</h5>
 
-<select id="children_count" name="children_count" class="form-control mb-3">
+<select id="children_count" name="children_count" class="form-control form-control-sm d-inline-block w-auto mb-3">
 @for($childCount = 0; $childCount <= 6; $childCount++)
 <option value="{{ $childCount }}" {{ (int) old('children_count', isset($enquiry) ? ($enquiry->children->count() ?? 0) : 0) === $childCount ? 'selected' : '' }}>{{ $childCount }}</option>
 @endfor
@@ -400,7 +410,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 <div class="col-md-2">
 <div class="form-check mt-2">
 <input type="checkbox" class="form-check-input" name="child_apply_together[{{ $idx }}]" value="1" {{ !empty($row['child_apply_together'] ?? $row->apply_together ?? null) ? 'checked' : '' }}>
-<label class="form-check-label">Apply together</label>
+<label class="form-check-label">Applying together?</label>
 </div>
 </div>
 </div>
@@ -490,7 +500,7 @@ $homeCountryOptions = $allCountries ?? $countries;
             required
         >
         <label class="form-check-label" for="consent_to_store_data">
-            I consent Adwiseri to store and process my submitted personal data, including my signature, for enquiry handling.
+            I consent Adwiseri to store and process my submitted personal data, including my signature, for application related counselling and processing.
         </label>
     </div>
     @error('consent_to_store_data')
@@ -609,7 +619,12 @@ function initDatepickers(context) {
         flatpickr(element, {
             dateFormat: "d-m-Y",
             allowInput: true,
-            maxDate: "today"
+            maxDate: "today",
+            onValueUpdate: function(selectedDates, dateStr, instance) {
+                if (instance.element && instance.element.name === "dob" && selectedDates[0] && selectedDates[0] > new Date()) {
+                    instance.clear();
+                }
+            }
         });
     });
 }
@@ -723,7 +738,7 @@ $(document).on('click','.addRefusal',function(){
 addRow('#refusal_history',
 '<div class="row mt-2">'+
 '<div class="col-md-3"><input type="text" name="refusal_country[]" class="form-control"></div>'+
-'<div class="col-md-3"><input type="text" name="refusal_date[]" class="form-control datepicker"></div>'+
+'<div class="col-md-3"><input type="text" name="refusal_date[]" class="form-control datepicker" placeholder="Refusal Date"></div>'+
 '<div class="col-md-4"><input type="text" name="refusal_reason[]" class="form-control"></div>'+
 '<div class="col-md-2"><button type="button" class="btn btn-danger remove">-</button></div>'+
 '</div>');
@@ -733,10 +748,11 @@ $(document).on('click','.addWork',function(){
 addRow('#work_experience',
 '<div class="row mt-2">'+
 '<div class="col-md-3"><input type="text" name="job_title[]" class="form-control"></div>'+
-'<div class="col-md-3"><input type="text" name="employer[]" class="form-control"></div>'+
+'<div class="col-md-2"><input type="text" name="employer[]" class="form-control"></div>'+
 '<div class="col-md-2"><input type="text" name="work_country[]" class="form-control"></div>'+
-'<div class="col-md-2"><input type="text" name="joining_date[]" class="form-control datepicker"></div>'+
-'<div class="col-md-2"><button type="button" class="btn btn-danger remove">-</button></div>'+
+'<div class="col-md-2"><input type="text" name="joining_date[]" class="form-control datepicker" placeholder="From (Date)"></div>'+
+'<div class="col-md-2"><input type="text" name="to_date[]" class="form-control datepicker" placeholder="To (Date)"></div>'+
+'<div class="col-md-1"><button type="button" class="btn btn-danger remove">-</button></div>'+
 '</div>');
 });
 
@@ -746,7 +762,7 @@ return '<div class="row child-row mt-2">'+
 '<div class="col-md-2"><input type="number" name="child_age[]" class="form-control"></div>'+
 '<div class="col-md-2"><select name="child_gender[]" class="form-control"><option>M</option><option>F</option><option>PNTS</option></select></div>'+
 '<div class="col-md-3"><input type="text" name="child_dob[]" placeholder="Date of Birth" class="form-control datepicker"></div>'+
-'<div class="col-md-2"><div class="form-check mt-2"><input type="checkbox" class="form-check-input" name="child_apply_together['+childRowIndex+']" value="1"><label class="form-check-label">Apply together</label></div></div>'+
+'<div class="col-md-2"><div class="form-check mt-2"><input type="checkbox" class="form-check-input" name="child_apply_together['+childRowIndex+']" value="1"><label class="form-check-label">Applying together?</label></div></div>'+
 '</div>';
 }
 
