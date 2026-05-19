@@ -131,6 +131,11 @@
 </div>
 
 <div class="col-md-3">
+<label class="field-label">Applying Together?</label>
+<div class="field-value">{{ (int) ($enquiry->spouse_apply_together ?? 0) === 1 ? 'Yes' : 'No' }}</div>
+</div>
+
+<div class="col-md-3">
 <label class="field-label">Qualification</label>
 <div class="field-value">{{ $enquiry->spouse_qualification ?? '-' }}</div>
 </div>
@@ -238,7 +243,8 @@
 <th>Job Title</th>
 <th>Employer</th>
 <th>Country</th>
-<th>Joining Date</th>
+<th>From (Date)</th>
+<th>To (Date)</th>
 </tr>
 </thead>
 
@@ -251,11 +257,12 @@
 <td>{{ $row->employer }}</td>
 <td>{{ $row->work_country }}</td>
 <td>{{ $formatSubscriberDate($row->joining_date ?? null) }}</td>
+<td>{{ $formatSubscriberDate($row->to_date ?? null) }}</td>
 </tr>
 
 @empty
 <tr>
-<td colspan="4" class="text-center text-muted">No records</td>
+<td colspan="5" class="text-center text-muted">No records</td>
 </tr>
 @endforelse
 
@@ -299,7 +306,7 @@
 
 @empty
 <tr>
-<td colspan="4" class="text-center text-muted">No records</td>
+<td colspan="5" class="text-center text-muted">No records</td>
 </tr>
 @endforelse
 
