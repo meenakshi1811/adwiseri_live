@@ -228,7 +228,6 @@ $homeCountryOptions = $allCountries ?? $countries;
 <input type="text" name="refusal_country[]" class="form-control" placeholder="Country" value="{{ $row['country'] ?? $row->country ?? '' }}">
 </div>
 <div class="col-md-3">
-<label>Refusal Date</label>
 <input type="text" name="refusal_date[]" class="form-control datepicker" placeholder="Refusal Date" value="{{ $row['refusal_date'] ?? $row->refusal_date ?? '' }}">
 </div>
 <div class="col-md-4">
@@ -294,7 +293,6 @@ $homeCountryOptions = $allCountries ?? $countries;
 </div>
 
 <div class="col-md-4">
-<label>Score Date</label>
 <input type="text" name="test_date" class="form-control datepicker" placeholder="Score Date" value="{{ old('test_date', $enquiry->test_date ?? '') }}">
 </div>
 
@@ -316,11 +314,9 @@ $homeCountryOptions = $allCountries ?? $countries;
 <input type="text" name="work_country[]" class="form-control" placeholder="Country" value="{{ $row['work_country'] ?? $row->work_country ?? '' }}">
 </div>
 <div class="col-md-2">
-<label>From (Date)</label>
 <input type="text" name="joining_date[]" class="form-control datepicker" placeholder="From (Date)" value="{{ $row['joining_date'] ?? $row->joining_date ?? '' }}">
 </div>
 <div class="col-md-2">
-<label>To (Date)</label>
 <input type="text" name="to_date[]" class="form-control datepicker" placeholder="To (Date)" value="{{ $row['to_date'] ?? $row->to_date ?? '' }}">
 </div>
 <div class="col-md-1">
@@ -615,31 +611,52 @@ function initDatepickers(context) {
     const elements = scope.querySelectorAll ? scope.querySelectorAll(".datepicker") : [];
 
     elements.forEach(function (element) {
-        if (element._flatpickr) {
-            return;
-        }
+        if (element._flatpickr) return;
 
         flatpickr(element, {
             dateFormat: "d-m-Y",
             allowInput: true,
             disableMobile: true,
-            maxDate: "today",
-            onValueUpdate: function(selectedDates, dateStr, instance) {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                if (selectedDates[0] && selectedDates[0] > today) {
-                    instance.clear();
-                }
+            maxDate: new Date(),
+
+            onReady: function(selectedDates, dateStr, instance) {
+                element.setAttribute('max', new Date().toISOString().split('T')[0]);
             },
+
+            onChange: function(selectedDates, dateStr, instance) {
+                validatePastDate(instance);
+            },
+
             onClose: function(selectedDates, dateStr, instance) {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                if (selectedDates[0] && selectedDates[0] > today) {
-                    instance.clear();
-                }
+                validatePastDate(instance);
+            }
+        });
+
+        element.addEventListener('blur', function () {
+            if (element._flatpickr) {
+                element._flatpickr.setDate(element.value, true, "d-m-Y");
+                validatePastDate(element._flatpickr);
             }
         });
     });
+}
+
+function validatePastDate(instance) {
+    if (!instance.input.value) return;
+
+    const selectedDate = instance.parseDate(instance.input.value, "d-m-Y");
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (selectedDate) {
+        selectedDate.setHours(0, 0, 0, 0);
+
+        if (selectedDate > today) {
+            instance.clear();
+            alert("Future date is not allowed.");
+        }
+    }
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -768,7 +785,7 @@ $(document).on('click','.addRefusal',function(){
 addRow('#refusal_history',
 '<div class="row mt-2">'+
 '<div class="col-md-3"><input type="text" name="refusal_country[]" class="form-control"></div>'+
-'<div class="col-md-3"><label>Refusal Date</label><input type="text" name="refusal_date[]" class="form-control datepicker" placeholder="Refusal Date"></div>'+
+'<div class="col-md-3"><input type="text" name="refusal_date[]" class="form-control datepicker" placeholder="Refusal Date"></div>'+
 '<div class="col-md-4"><input type="text" name="refusal_reason[]" class="form-control"></div>'+
 '<div class="col-md-2"><button type="button" class="btn btn-danger remove">-</button></div>'+
 '</div>');
