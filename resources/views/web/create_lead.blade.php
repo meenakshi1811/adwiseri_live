@@ -293,7 +293,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 </div>
 
 <div class="col-md-4">
-<input type="text" name="test_date" class="form-control datepicker" value="{{ old('test_date', $enquiry->test_date ?? '') }}">
+<input type="text" name="test_date" class="form-control datepicker" placeholder="Score Date" value="{{ old('test_date', $enquiry->test_date ?? '') }}">
 </div>
 
 </div>
@@ -334,9 +334,16 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 <div class="row">
 
-<div class="col-md-6 mb-3">
+<div class="col-md-4 mb-3">
 <label>Spouse Name</label>
 <input type="text" name="spouse_name" class="form-control" placeholder="Spouse Name" value="{{ old('spouse_name', $enquiry->spouse_name ?? '') }}">
+</div>
+
+<div class="col-md-2 mb-3 d-flex align-items-end">
+<div class="form-check mb-2">
+<input type="checkbox" class="form-check-input" name="spouse_apply_together" id="spouse_apply_together" value="1" {{ old('spouse_apply_together', !empty($enquiry->spouse_name ?? null) ? 1 : 0) ? 'checked' : '' }}>
+<label class="form-check-label" for="spouse_apply_together">Applying Together?</label>
+</div>
 </div>
 
 <div class="col-md-6 mb-3">
