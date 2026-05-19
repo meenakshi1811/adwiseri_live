@@ -301,22 +301,25 @@ $homeCountryOptions = $allCountries ?? $countries;
 <h5 class="mt-4">8. Work Experience</h5>
 
 <div id="work_experience">
-@php $workRows = old('job_title') ? collect(old('job_title'))->map(fn($_, $i) => ['job_title' => old('job_title.'.$i), 'employer' => old('employer.'.$i), 'work_country' => old('work_country.'.$i), 'joining_date' => old('joining_date.'.$i)]) : ($enquiry->workExperience ?? collect([[]])); @endphp
+@php $workRows = old('job_title') ? collect(old('job_title'))->map(fn($_, $i) => ['job_title' => old('job_title.'.$i), 'employer' => old('employer.'.$i), 'work_country' => old('work_country.'.$i), 'joining_date' => old('joining_date.'.$i), 'to_date' => old('to_date.'.$i)]) : ($enquiry->workExperience ?? collect([[]])); @endphp
 @foreach($workRows as $idx => $row)
 <div class="row work-row {{ $idx > 0 ? 'mt-2' : '' }}">
 <div class="col-md-3">
 <input type="text" name="job_title[]" class="form-control" placeholder="Job Title" value="{{ $row['job_title'] ?? $row->job_title ?? '' }}">
 </div>
-<div class="col-md-3">
+<div class="col-md-2">
 <input type="text" name="employer[]" class="form-control" placeholder="Employer Name" value="{{ $row['employer'] ?? $row->employer ?? '' }}">
 </div>
 <div class="col-md-2">
 <input type="text" name="work_country[]" class="form-control" placeholder="Country" value="{{ $row['work_country'] ?? $row->work_country ?? '' }}">
 </div>
 <div class="col-md-2">
-<input type="text" name="joining_date[]" class="form-control datepicker" value="{{ $row['joining_date'] ?? $row->joining_date ?? '' }}">
+<input type="text" name="joining_date[]" class="form-control datepicker" placeholder="From (Date)" value="{{ $row['joining_date'] ?? $row->joining_date ?? '' }}">
 </div>
 <div class="col-md-2">
+<input type="text" name="to_date[]" class="form-control datepicker" placeholder="To (Date)" value="{{ $row['to_date'] ?? $row->to_date ?? '' }}">
+</div>
+<div class="col-md-1">
 @if($idx === 0)
 <button type="button" class="btn btn-success addWork">+</button>
 @else
@@ -740,10 +743,11 @@ $(document).on('click','.addWork',function(){
 addRow('#work_experience',
 '<div class="row mt-2">'+
 '<div class="col-md-3"><input type="text" name="job_title[]" class="form-control"></div>'+
-'<div class="col-md-3"><input type="text" name="employer[]" class="form-control"></div>'+
+'<div class="col-md-2"><input type="text" name="employer[]" class="form-control"></div>'+
 '<div class="col-md-2"><input type="text" name="work_country[]" class="form-control"></div>'+
-'<div class="col-md-2"><input type="text" name="joining_date[]" class="form-control datepicker"></div>'+
-'<div class="col-md-2"><button type="button" class="btn btn-danger remove">-</button></div>'+
+'<div class="col-md-2"><input type="text" name="joining_date[]" class="form-control datepicker" placeholder="From (Date)"></div>'+
+'<div class="col-md-2"><input type="text" name="to_date[]" class="form-control datepicker" placeholder="To (Date)"></div>'+
+'<div class="col-md-1"><button type="button" class="btn btn-danger remove">-</button></div>'+
 '</div>');
 });
 
