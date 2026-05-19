@@ -17,6 +17,20 @@
 <div class="card shadow-sm border-0">
 <div class="card-body">
 
+@php
+    $formatSubscriberDate = function ($value) {
+        if (empty($value)) {
+            return '-';
+        }
+
+        try {
+            return \Carbon\Carbon::parse($value)->format('m-d-Y');
+        } catch (\Exception $exception) {
+            return $value;
+        }
+    };
+@endphp
+
 
 {{-- PERSONAL DETAILS --}}
 
@@ -32,7 +46,7 @@
 
 <div class="col-md-4">
 <label class="field-label">DOB</label>
-<div class="field-value">{{ $enquiry->dob ?? '-' }}</div>
+<div class="field-value">{{ $formatSubscriberDate($enquiry->dob ?? null) }}</div>
 </div>
 
 <div class="col-md-4">
@@ -236,7 +250,7 @@
 <td>{{ $row->job_title }}</td>
 <td>{{ $row->employer }}</td>
 <td>{{ $row->work_country }}</td>
-<td>{{ $row->joining_date }}</td>
+<td>{{ $formatSubscriberDate($row->joining_date ?? null) }}</td>
 </tr>
 
 @empty
@@ -280,7 +294,7 @@
 <td>{{ $child->child_name }}</td>
 <td>{{ $child->child_age }}</td>
 <td>{{ $child->child_gender }}</td>
-<td>{{ $child->child_dob }}</td>
+<td>{{ $formatSubscriberDate($child->child_dob ?? null) }}</td>
 </tr>
 
 @empty
@@ -308,7 +322,7 @@
 
 <div class="col-md-3">
 <label class="field-label">Date</label>
-<div class="field-value">{{ $enquiry->form_date }}</div>
+<div class="field-value">{{ $formatSubscriberDate($enquiry->form_date ?? null) }}</div>
 </div>
 
 <div class="col-md-3">
