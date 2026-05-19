@@ -151,7 +151,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 </div>
 
 <div class="col-md-6 mt-3">
-<label>Select preferred Visa *</label>
+<label>Select preferred Visa Category *</label>
 <select name="visa_category" id="visa_category" class="form-control" required>
 <option value="">Select</option>
 <option value="Visit" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Visit' ? 'selected' : '' }}>Visit</option>
@@ -228,6 +228,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 <input type="text" name="refusal_country[]" class="form-control" placeholder="Country" value="{{ $row['country'] ?? $row->country ?? '' }}">
 </div>
 <div class="col-md-3">
+<label>Refusal Date</label>
 <input type="text" name="refusal_date[]" class="form-control datepicker" placeholder="Refusal Date" value="{{ $row['refusal_date'] ?? $row->refusal_date ?? '' }}">
 </div>
 <div class="col-md-4">
@@ -745,7 +746,7 @@ $(document).on('click','.addRefusal',function(){
 addRow('#refusal_history',
 '<div class="row mt-2">'+
 '<div class="col-md-3"><input type="text" name="refusal_country[]" class="form-control"></div>'+
-'<div class="col-md-3"><input type="text" name="refusal_date[]" class="form-control datepicker" placeholder="Refusal Date"></div>'+
+'<div class="col-md-3"><label>Refusal Date</label><input type="text" name="refusal_date[]" class="form-control datepicker" placeholder="Refusal Date"></div>'+
 '<div class="col-md-4"><input type="text" name="refusal_reason[]" class="form-control"></div>'+
 '<div class="col-md-2"><button type="button" class="btn btn-danger remove">-</button></div>'+
 '</div>');
