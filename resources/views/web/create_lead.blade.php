@@ -274,7 +274,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 </div>
 
-<h5 class="mt-4">7. English Language Competency</h5>
+<h5 class="mt-4">7. English Language Proficiency</h5>
 
 <div class="row">
 
@@ -314,9 +314,11 @@ $homeCountryOptions = $allCountries ?? $countries;
 <input type="text" name="work_country[]" class="form-control" placeholder="Country" value="{{ $row['work_country'] ?? $row->work_country ?? '' }}">
 </div>
 <div class="col-md-2">
+<label>From (Date)</label>
 <input type="text" name="joining_date[]" class="form-control datepicker" placeholder="From (Date)" value="{{ $row['joining_date'] ?? $row->joining_date ?? '' }}">
 </div>
 <div class="col-md-2">
+<label>To (Date)</label>
 <input type="text" name="to_date[]" class="form-control datepicker" placeholder="To (Date)" value="{{ $row['to_date'] ?? $row->to_date ?? '' }}">
 </div>
 <div class="col-md-1">
@@ -342,13 +344,6 @@ $homeCountryOptions = $allCountries ?? $countries;
 <input type="text" name="spouse_name" class="form-control" placeholder="Spouse Name" value="{{ old('spouse_name', $enquiry->spouse_name ?? '') }}">
 </div>
 
-<div class="col-md-2 mb-3 d-flex align-items-end">
-<div class="form-check mb-2">
-<input type="checkbox" class="form-check-input" name="spouse_apply_together" id="spouse_apply_together" value="1" {{ old('spouse_apply_together', !empty($enquiry->spouse_name ?? null) ? 1 : 0) ? 'checked' : '' }}>
-<label class="form-check-label" for="spouse_apply_together">Applying together?</label>
-</div>
-</div>
-
 <div class="col-md-6 mb-3">
 <label>Age</label>
 <input type="number" name="spouse_age" class="form-control @error('spouse_age') is-invalid @enderror" min="0" max="120" placeholder="Age" value="{{ old('spouse_age', $enquiry->spouse_age ?? '') }}">
@@ -371,6 +366,12 @@ $homeCountryOptions = $allCountries ?? $countries;
 @error('spouse_work_experience_years')
 <div class="invalid-feedback d-block">{{ $message }}</div>
 @enderror
+</div>
+<div class="col-md-6 mb-3 d-flex align-items-end">
+<div class="form-check mb-2">
+<input type="checkbox" class="form-check-input" name="spouse_apply_together" id="spouse_apply_together" value="1" {{ old('spouse_apply_together', $enquiry->spouse_apply_together ?? 0) ? 'checked' : '' }}>
+<label class="form-check-label" for="spouse_apply_together">Applying together?</label>
+</div>
 </div>
 
 </div>
@@ -755,8 +756,8 @@ addRow('#work_experience',
 '<div class="col-md-3"><input type="text" name="job_title[]" class="form-control"></div>'+
 '<div class="col-md-2"><input type="text" name="employer[]" class="form-control"></div>'+
 '<div class="col-md-2"><input type="text" name="work_country[]" class="form-control"></div>'+
-'<div class="col-md-2"><input type="text" name="joining_date[]" class="form-control datepicker" placeholder="From (Date)"></div>'+
-'<div class="col-md-2"><input type="text" name="to_date[]" class="form-control datepicker" placeholder="To (Date)"></div>'+
+'<div class="col-md-2"><label>From (Date)</label><input type="text" name="joining_date[]" class="form-control datepicker" placeholder="From (Date)"></div>'+
+'<div class="col-md-2"><label>To (Date)</label><input type="text" name="to_date[]" class="form-control datepicker" placeholder="To (Date)"></div>'+
 '<div class="col-md-1"><button type="button" class="btn btn-danger remove">-</button></div>'+
 '</div>');
 });

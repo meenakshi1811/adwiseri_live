@@ -7263,7 +7263,7 @@ public function showFeedbackPopup()
 
             $client->save();
 
-            if (!empty($enquiry->spouse_name)) {
+            if (!empty($enquiry->spouse_name) && (int) ($enquiry->spouse_apply_together ?? 0) === 1) {
                 $spouseDependantData = [
                     'client_id' => $client->id,
                     'subscriber_id' => $subscriber->id,
@@ -7415,6 +7415,7 @@ public function showFeedbackPopup()
             'address' => 'required|string|min:3|max:1000',
             'postcode' => 'nullable|string|max:50',
             'country' => 'required|string|max:255',
+            'spouse_apply_together' => 'nullable|boolean',
             'spouse_age' => 'nullable|integer|min:0|max:120',
             'spouse_qualification' => 'nullable|string|max:255',
             'spouse_work_experience_years' => 'nullable|numeric|min:0|max:80',
@@ -7452,6 +7453,7 @@ public function showFeedbackPopup()
                 'overall_score' => $request->overall_score,
                 'test_date' => $this->normalizeDateValue($request->test_date),
                 'spouse_name' => $request->spouse_name,
+                'spouse_apply_together' => $request->boolean('spouse_apply_together'),
                 'spouse_age' => $request->spouse_age,
                 'spouse_qualification' => $request->spouse_qualification,
                 'spouse_work_experience_years' => $request->spouse_work_experience_years,
@@ -7532,6 +7534,7 @@ public function showFeedbackPopup()
 
             EnquiryWorkExperience::where('enquiry_id', $enquiry->id)->delete();
             $joiningDates = $this->normalizeDateArray($request->joining_date ?? []);
+            $toDates = $this->normalizeDateArray($request->to_date ?? []);
             if ($request->job_title) {
                 foreach ($request->job_title as $key => $job) {
                     if (empty($job)) {
@@ -7542,7 +7545,8 @@ public function showFeedbackPopup()
                         'job_title' => $job,
                         'employer' => $request->employer[$key] ?? null,
                         'work_country' => $request->work_country[$key] ?? null,
-                        'joining_date' => $joiningDates[$key] ?? null
+                        'joining_date' => $joiningDates[$key] ?? null,
+                        'to_date' => $toDates[$key] ?? null
                     ]);
                 }
             }
