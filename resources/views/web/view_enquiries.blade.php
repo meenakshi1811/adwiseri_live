@@ -243,7 +243,8 @@
 <th>Job Title</th>
 <th>Employer</th>
 <th>Country</th>
-<th>Joining Date</th>
+<th>From (Date)</th>
+<th>To (Date)</th>
 </tr>
 </thead>
 
@@ -256,11 +257,12 @@
 <td>{{ $row->employer }}</td>
 <td>{{ $row->work_country }}</td>
 <td>{{ $formatSubscriberDate($row->joining_date ?? null) }}</td>
+<td>{{ $formatSubscriberDate($row->to_date ?? null) }}</td>
 </tr>
 
 @empty
 <tr>
-<td colspan="4" class="text-center text-muted">No records</td>
+<td colspan="5" class="text-center text-muted">No records</td>
 </tr>
 @endforelse
 
@@ -304,7 +306,7 @@
 
 @empty
 <tr>
-<td colspan="4" class="text-center text-muted">No records</td>
+<td colspan="5" class="text-center text-muted">No records</td>
 </tr>
 @endforelse
 

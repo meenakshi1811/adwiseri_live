@@ -7534,6 +7534,7 @@ public function showFeedbackPopup()
 
             EnquiryWorkExperience::where('enquiry_id', $enquiry->id)->delete();
             $joiningDates = $this->normalizeDateArray($request->joining_date ?? []);
+            $toDates = $this->normalizeDateArray($request->to_date ?? []);
             if ($request->job_title) {
                 foreach ($request->job_title as $key => $job) {
                     if (empty($job)) {
@@ -7544,7 +7545,8 @@ public function showFeedbackPopup()
                         'job_title' => $job,
                         'employer' => $request->employer[$key] ?? null,
                         'work_country' => $request->work_country[$key] ?? null,
-                        'joining_date' => $joiningDates[$key] ?? null
+                        'joining_date' => $joiningDates[$key] ?? null,
+                        'to_date' => $toDates[$key] ?? null
                     ]);
                 }
             }

@@ -315,9 +315,11 @@ $homeCountryOptions = $allCountries ?? $countries;
 <input type="text" name="work_country[]" class="form-control" placeholder="Country" value="{{ $row['work_country'] ?? $row->work_country ?? '' }}">
 </div>
 <div class="col-md-2">
+<label>From (Date)</label>
 <input type="text" name="joining_date[]" class="form-control datepicker" placeholder="From (Date)" value="{{ $row['joining_date'] ?? $row->joining_date ?? '' }}">
 </div>
 <div class="col-md-2">
+<label>To (Date)</label>
 <input type="text" name="to_date[]" class="form-control datepicker" placeholder="To (Date)" value="{{ $row['to_date'] ?? $row->to_date ?? '' }}">
 </div>
 <div class="col-md-1">
@@ -755,8 +757,8 @@ addRow('#work_experience',
 '<div class="col-md-3"><input type="text" name="job_title[]" class="form-control"></div>'+
 '<div class="col-md-2"><input type="text" name="employer[]" class="form-control"></div>'+
 '<div class="col-md-2"><input type="text" name="work_country[]" class="form-control"></div>'+
-'<div class="col-md-2"><input type="text" name="joining_date[]" class="form-control datepicker" placeholder="From (Date)"></div>'+
-'<div class="col-md-2"><input type="text" name="to_date[]" class="form-control datepicker" placeholder="To (Date)"></div>'+
+'<div class="col-md-2"><label>From (Date)</label><input type="text" name="joining_date[]" class="form-control datepicker" placeholder="From (Date)"></div>'+
+'<div class="col-md-2"><label>To (Date)</label><input type="text" name="to_date[]" class="form-control datepicker" placeholder="To (Date)"></div>'+
 '<div class="col-md-1"><button type="button" class="btn btn-danger remove">-</button></div>'+
 '</div>');
 });
