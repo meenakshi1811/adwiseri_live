@@ -274,7 +274,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 </div>
 
-<h5 class="mt-4">7. English Language Competency</h5>
+<h5 class="mt-4">7. English Language Proficiency</h5>
 
 <div class="row">
 
@@ -293,6 +293,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 </div>
 
 <div class="col-md-4">
+<label>Score Date</label>
 <input type="text" name="test_date" class="form-control datepicker" placeholder="Score Date" value="{{ old('test_date', $enquiry->test_date ?? '') }}">
 </div>
 
@@ -342,13 +343,6 @@ $homeCountryOptions = $allCountries ?? $countries;
 <input type="text" name="spouse_name" class="form-control" placeholder="Spouse Name" value="{{ old('spouse_name', $enquiry->spouse_name ?? '') }}">
 </div>
 
-<div class="col-md-2 mb-3 d-flex align-items-end">
-<div class="form-check mb-2">
-<input type="checkbox" class="form-check-input" name="spouse_apply_together" id="spouse_apply_together" value="1" {{ old('spouse_apply_together', !empty($enquiry->spouse_name ?? null) ? 1 : 0) ? 'checked' : '' }}>
-<label class="form-check-label" for="spouse_apply_together">Applying together?</label>
-</div>
-</div>
-
 <div class="col-md-6 mb-3">
 <label>Age</label>
 <input type="number" name="spouse_age" class="form-control @error('spouse_age') is-invalid @enderror" min="0" max="120" placeholder="Age" value="{{ old('spouse_age', $enquiry->spouse_age ?? '') }}">
@@ -371,6 +365,12 @@ $homeCountryOptions = $allCountries ?? $countries;
 @error('spouse_work_experience_years')
 <div class="invalid-feedback d-block">{{ $message }}</div>
 @enderror
+</div>
+<div class="col-md-6 mb-3 d-flex align-items-end">
+<div class="form-check mb-2">
+<input type="checkbox" class="form-check-input" name="spouse_apply_together" id="spouse_apply_together" value="1" {{ old('spouse_apply_together', $enquiry->spouse_apply_together ?? 0) ? 'checked' : '' }}>
+<label class="form-check-label" for="spouse_apply_together">Applying together?</label>
+</div>
 </div>
 
 </div>
