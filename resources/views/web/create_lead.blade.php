@@ -57,7 +57,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 <div class="col-md-6 mb-3">
 <label>DOB</label>
-<input type="text" name="dob" class="form-control datepicker" value="{{ old('dob', $enquiry->dob ?? '') }}">
+<input type="text" name="dob" id="dob" class="form-control datepicker" placeholder="DD-MM-YYYY" autocomplete="off" value="{{ old('dob', $enquiry->dob ?? '') }}">
 </div>
 
 <div class="col-md-6 mb-3">
@@ -622,6 +622,7 @@ function initDatepickers(context) {
         flatpickr(element, {
             dateFormat: "d-m-Y",
             allowInput: true,
+            disableMobile: true,
             maxDate: "today",
             onValueUpdate: function(selectedDates, dateStr, instance) {
                 if (selectedDates[0] && selectedDates[0] > new Date()) {
@@ -665,6 +666,18 @@ $('#signature').val('');
 });
 
 $('#enquiry_form').on('submit', function(){
+const dobInput = document.getElementById('dob');
+if (dobInput && dobInput.value) {
+const dobPicker = dobInput._flatpickr || null;
+const parsedDob = dobPicker ? dobPicker.parseDate(dobInput.value, "d-m-Y") : null;
+const today = new Date();
+today.setHours(0,0,0,0);
+if (parsedDob && parsedDob > today) {
+alert('Date of birth cannot be in the future.');
+dobInput.focus();
+return false;
+}
+}
 
 if(!signaturePad.isEmpty()){
 var dataURL = signaturePad.toDataURL();
