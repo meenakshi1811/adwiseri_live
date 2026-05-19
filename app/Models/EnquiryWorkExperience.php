@@ -13,7 +13,8 @@ class EnquiryWorkExperience extends Model
         'job_title',
         'employer',
         'work_country',
-        'joining_date'
+        'joining_date',
+        'to_date'
     ];
 
     public function enquiry()
