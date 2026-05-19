@@ -89,6 +89,16 @@ class VisaEnquiryController extends Controller
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'contact_no' => 'required|string|max:25',
+            'dob' => ['nullable', function ($attribute, $value, $fail) {
+                $normalizedDob = $this->normalizeDateValue($value);
+                if ($value !== null && trim((string) $value) !== '' && $normalizedDob === null) {
+                    $fail('The date of birth is not a valid date.');
+                    return;
+                }
+                if ($normalizedDob !== null && Carbon::parse($normalizedDob)->isAfter(Carbon::today())) {
+                    $fail('The date of birth cannot be in the future.');
+                }
+            }],
             'country_pref' => 'required|array|min:1',
             'country_pref.0' => 'required|string|max:255',
             'country_pref.*' => 'nullable|string|max:255|distinct',
@@ -96,6 +106,7 @@ class VisaEnquiryController extends Controller
             'address' => 'required|string|min:3|max:1000',
             'postcode' => 'nullable|string|max:50',
             'country' => 'required|string|max:255',
+            'spouse_apply_together' => 'nullable|boolean',
             'spouse_age' => 'nullable|integer|min:0|max:120',
             'spouse_qualification' => 'nullable|string|max:255',
             'spouse_work_experience_years' => 'nullable|numeric|min:0|max:80',
@@ -133,6 +144,7 @@ class VisaEnquiryController extends Controller
                 'test_date' => $this->normalizeDateValue($request->test_date),
 
                 'spouse_name' => $request->spouse_name,
+                'spouse_apply_together' => $request->boolean('spouse_apply_together'),
                 'spouse_age' => $request->spouse_age,
                 'spouse_qualification' => $request->spouse_qualification,
                 'spouse_work_experience_years' => $request->spouse_work_experience_years,
@@ -222,6 +234,7 @@ class VisaEnquiryController extends Controller
 
             /* Work Experience */
             $joiningDates = $this->normalizeDateArray($request->joining_date ?? []);
+            $toDates = $this->normalizeDateArray($request->to_date ?? []);
             if($request->job_title){
                 foreach($request->job_title as $key=>$job){
 
@@ -230,7 +243,8 @@ class VisaEnquiryController extends Controller
                         'job_title' => $job,
                         'employer' => $request->employer[$key] ?? null,
                         'work_country' => $request->work_country[$key] ?? null,
-                        'joining_date' => $joiningDates[$key] ?? null
+                        'joining_date' => $joiningDates[$key] ?? null,
+                        'to_date' => $toDates[$key] ?? null
                     ]);
 
                 }
