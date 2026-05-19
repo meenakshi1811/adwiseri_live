@@ -625,12 +625,16 @@ function initDatepickers(context) {
             disableMobile: true,
             maxDate: "today",
             onValueUpdate: function(selectedDates, dateStr, instance) {
-                if (selectedDates[0] && selectedDates[0] > new Date()) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                if (selectedDates[0] && selectedDates[0] > today) {
                     instance.clear();
                 }
             },
             onClose: function(selectedDates, dateStr, instance) {
-                if (selectedDates[0] && selectedDates[0] > new Date()) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                if (selectedDates[0] && selectedDates[0] > today) {
                     instance.clear();
                 }
             }
@@ -666,15 +670,20 @@ $('#signature').val('');
 });
 
 $('#enquiry_form').on('submit', function(){
-const dobInput = document.getElementById('dob');
-if (dobInput && dobInput.value) {
-const dobPicker = dobInput._flatpickr || null;
-const parsedDob = dobPicker ? dobPicker.parseDate(dobInput.value, "d-m-Y") : null;
+const dateInputs = Array.from(document.querySelectorAll('.datepicker'));
 const today = new Date();
 today.setHours(0,0,0,0);
-if (parsedDob && parsedDob > today) {
-alert('Date of birth cannot be in the future.');
-dobInput.focus();
+
+for (let i = 0; i < dateInputs.length; i++) {
+const input = dateInputs[i];
+if (!input.value) {
+continue;
+}
+const picker = input._flatpickr || null;
+const parsedDate = picker ? picker.parseDate(input.value, "d-m-Y") : null;
+if (parsedDate && parsedDate > today) {
+alert('Future dates are not allowed. Please select today or an earlier date.');
+input.focus();
 return false;
 }
 }
