@@ -294,6 +294,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 </div>
 
 <div class="col-md-4">
+<label>Score Date</label>
 <input type="text" name="test_date" class="form-control datepicker" placeholder="Score Date" value="{{ old('test_date', $enquiry->test_date ?? '') }}">
 </div>
 
