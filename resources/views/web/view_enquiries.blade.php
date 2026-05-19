@@ -131,6 +131,11 @@
 </div>
 
 <div class="col-md-3">
+<label class="field-label">Applying Together?</label>
+<div class="field-value">{{ (int) ($enquiry->spouse_apply_together ?? 0) === 1 ? 'Yes' : 'No' }}</div>
+</div>
+
+<div class="col-md-3">
 <label class="field-label">Qualification</label>
 <div class="field-value">{{ $enquiry->spouse_qualification ?? '-' }}</div>
 </div>
