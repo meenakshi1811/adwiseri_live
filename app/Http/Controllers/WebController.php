@@ -7392,6 +7392,35 @@ public function showFeedbackPopup()
             [$enquiry->country_pref_1, $enquiry->country_pref_2, $enquiry->country_pref_3]
         );
 
+        $formatToSubscriberDate = static function ($dateValue) {
+            if (empty($dateValue)) {
+                return $dateValue;
+            }
+
+            try {
+                return Carbon::parse($dateValue)->format('m-d-Y');
+            } catch (\Throwable $e) {
+                return $dateValue;
+            }
+        };
+
+        $enquiry->dob = $formatToSubscriberDate($enquiry->dob);
+        $enquiry->test_date = $formatToSubscriberDate($enquiry->test_date);
+        $enquiry->form_date = $formatToSubscriberDate($enquiry->form_date);
+
+        foreach ($enquiry->refusalHistory as $refusal) {
+            $refusal->refusal_date = $formatToSubscriberDate($refusal->refusal_date);
+        }
+
+        foreach ($enquiry->workExperience as $experience) {
+            $experience->joining_date = $formatToSubscriberDate($experience->joining_date);
+            $experience->to_date = $formatToSubscriberDate($experience->to_date);
+        }
+
+        foreach ($enquiry->children as $child) {
+            $child->child_dob = $formatToSubscriberDate($child->child_dob);
+        }
+
         return view('web.create_lead', [
             'subscriberId' => $enquiry->subscriber_id,
             'enquiry' => $enquiry,
