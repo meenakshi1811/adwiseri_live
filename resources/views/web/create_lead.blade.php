@@ -344,7 +344,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 <div class="col-md-2 mb-3 d-flex align-items-end">
 <div class="form-check mb-2">
-<input type="checkbox" class="form-check-input" name="spouse_apply_together" id="spouse_apply_together" value="1" {{ old('spouse_apply_together', !empty($enquiry->spouse_name ?? null) ? 1 : 0) ? 'checked' : '' }}>
+<input type="checkbox" class="form-check-input" name="spouse_apply_together" id="spouse_apply_together" value="1" {{ old('spouse_apply_together', $enquiry->spouse_apply_together ?? 0) ? 'checked' : '' }}>
 <label class="form-check-label" for="spouse_apply_together">Applying together?</label>
 </div>
 </div>

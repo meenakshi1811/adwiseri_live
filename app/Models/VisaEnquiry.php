@@ -33,6 +33,7 @@ class VisaEnquiry extends Model
         'overall_score',
         'test_date',
         'spouse_name',
+        'spouse_apply_together',
         'spouse_age',
         'spouse_qualification',
         'spouse_work_experience_years',
