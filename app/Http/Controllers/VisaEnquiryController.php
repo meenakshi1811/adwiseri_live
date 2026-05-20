@@ -260,7 +260,7 @@ class VisaEnquiryController extends Controller
                         'enquiry_id' => $enquiry->id,
                         'child_name' => $child,
                         'child_age' => $request->child_age[$key] ?? null,
-                        'child_gender' => $request->child_gender[$key] ?? null,
+                        'child_gender' => $request->child_relation[$key] ?? ($request->child_gender[$key] ?? null),
                         'child_dob' => $childDobs[$key] ?? null,
                         'apply_together' => !empty($request->child_apply_together[$key]) ? 1 : 0
                     ]);
