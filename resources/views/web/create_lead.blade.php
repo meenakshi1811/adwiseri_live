@@ -796,8 +796,8 @@ addRow('#work_experience',
 '<div class="col-md-3"><input type="text" name="job_title[]" class="form-control" placeholder="Job Title"></div>'+
 '<div class="col-md-2"><input type="text" name="employer[]" class="form-control" placeholder="Employer Name"></div>'+
 '<div class="col-md-2"><input type="text" name="work_country[]" class="form-control" placeholder="Country"></div>'+
-'<div class="col-md-2"><label>From (Date)</label><input type="text" name="joining_date[]" class="form-control datepicker" placeholder="From (Date)"></div>'+
-'<div class="col-md-2"><label>To (Date)</label><input type="text" name="to_date[]" class="form-control datepicker" placeholder="To (Date)"></div>'+
+'<div class="col-md-2"><input type="text" name="joining_date[]" class="form-control datepicker" placeholder="From (Date)"></div>'+
+'<div class="col-md-2"><input type="text" name="to_date[]" class="form-control datepicker" placeholder="To (Date)"></div>'+
 '<div class="col-md-1"><button type="button" class="btn btn-danger remove">-</button></div>'+
 '</div>');
 });
