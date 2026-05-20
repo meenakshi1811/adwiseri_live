@@ -52,7 +52,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 <div class="col-md-6 mb-3">
 <label>Full Name *</label>
-<input type="text" id="full_name" name="full_name" class="form-control" value="{{ old('full_name', $enquiry->full_name ?? '') }}" required>
+<input type="text" id="full_name" name="full_name" class="form-control" placeholder="Full Name" value="{{ old('full_name', $enquiry->full_name ?? '') }}" required>
 </div>
 
 <div class="col-md-6 mb-3">
@@ -62,12 +62,12 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 <div class="col-md-6 mb-3">
 <label>Email *</label>
-<input type="email" name="email" class="form-control" value="{{ old('email', $enquiry->email ?? '') }}" required>
+<input type="email" name="email" class="form-control" placeholder="Email Address" value="{{ old('email', $enquiry->email ?? '') }}" required>
 </div>
 
 <div class="col-md-6 mb-3">
 <label>Contact Number *</label>
-<input type="text" name="contact_no" class="form-control" value="{{ old('contact_no', $enquiry->contact_no ?? '') }}" required>
+<input type="text" name="contact_no" class="form-control" placeholder="Contact Number" value="{{ old('contact_no', $enquiry->contact_no ?? '') }}" required>
 </div>
 
 <div class="col-md-6 mb-3">
@@ -93,7 +93,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 <div class="col-md-6 mb-3">
 <label>Postcode</label>
-<input type="text" name="postcode" class="form-control @error('postcode') is-invalid @enderror" value="{{ old('postcode', $enquiry->postcode ?? '') }}">
+<input type="text" name="postcode" class="form-control @error('postcode') is-invalid @enderror" placeholder="Postcode" value="{{ old('postcode', $enquiry->postcode ?? '') }}">
 @error('postcode')
 <div class="invalid-feedback d-block">{{ $message }}</div>
 @enderror
@@ -453,17 +453,17 @@ $homeCountryOptions = $allCountries ?? $countries;
 <div class="col-md-3">
 <label>Date</label>
 <div class="input-group">
-<input type="text" name="form_date" class="form-control datepicker" value="{{ old('form_date', $enquiry->form_date ?? now()->format('d-m-Y')) }}">
+<input type="text" name="form_date" class="form-control datepicker" placeholder="Form Date" value="{{ old('form_date', $enquiry->form_date ?? now()->format('d-m-Y')) }}">
 </div>
 </div>
 <div class="col-md-3">
 <label>Place</label>
-<input type="text" name="place" class="form-control" value="{{ old('place', $enquiry->place ?? ($defaultPlace ?? '')) }}">
+<input type="text" name="place" class="form-control" placeholder="Place" value="{{ old('place', $enquiry->place ?? ($defaultPlace ?? '')) }}">
 </div>
 
 <div class="col-md-3">
 <label>Print Name</label>
-<input type="text" name="print_name" id="print_name" class="form-control" value="{{ old('print_name', $enquiry->print_name ?? $enquiry->sign_name ?? '') }}">
+<input type="text" name="print_name" id="print_name" class="form-control" placeholder="Print Name" value="{{ old('print_name', $enquiry->print_name ?? $enquiry->sign_name ?? '') }}">
 </div>
 <div class="col-md-6">
 <label>Signature</label>
