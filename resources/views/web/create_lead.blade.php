@@ -245,11 +245,12 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 </div>
 
-<h5 class="mt-4">6. Educational Qualifications</h5>
+<h5 class="mt-4">6. Highest Qualification</h5>
 
 <div class="row">
 
 <div class="col-md-3">
+<label>Diploma/12th/Bachelors/Masters/PhD</label>
 <select name="qualification" class="form-control">
 <option {{ old('qualification', $enquiry->qualification ?? '') == '10th' ? 'selected' : '' }}>10th</option>
 <option {{ old('qualification', $enquiry->qualification ?? '') == '12th' ? 'selected' : '' }}>12th</option>
@@ -333,7 +334,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 <div id="spouse_section" style="display:none">
 
-<h5 class="mt-4">9. Spouse Personal Details</h5>
+<h5 class="mt-4" id="spouse_section_title">9. Spouse Personal Details</h5>
 
 <div class="row">
 
@@ -376,7 +377,7 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 </div>
 
-<h5 class="mt-4">10. How many children you have?</h5>
+<h5 class="mt-4" id="children_section_title">10. How many children you have?</h5>
 
 <select id="children_count" name="children_count" class="form-control form-control-sm d-inline-block w-auto mb-3">
 @for($childCount = 0; $childCount <= 6; $childCount++)
@@ -717,8 +718,15 @@ $('#signature').val(dataURL);
 $('#marital_status').change(function(){
 if($(this).val()=='Married'){ $('#spouse_section').show(); }
 else{ $('#spouse_section').hide(); }
+updateSectionNumbers();
 });
 if($('#marital_status').val()=='Married'){ $('#spouse_section').show(); }
+function updateSectionNumbers(){
+const isMarried = $('#marital_status').val()=='Married';
+$('#spouse_section_title').text('9. Spouse Personal Details');
+$('#children_section_title').text((isMarried ? '10' : '9') + '. How many children you have?');
+}
+updateSectionNumbers();
 
 function renderChildrenRows() {
 const count = parseInt($('#children_count').val() || '0', 10);
