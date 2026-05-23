@@ -151,9 +151,9 @@ $homeCountryOptions = $allCountries ?? $countries;
 </div>
 
 <div class="col-md-6 mt-3">
-<label>Select preferred Visa Category *</label>
+<label>Preferred Visa Category *</label>
 <select name="visa_category" id="visa_category" class="form-control" required>
-<option value="">Select</option>
+<option value="">Visa Category</option>
 <option value="Visit" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Visit' ? 'selected' : '' }}>Visit</option>
 <option value="Training" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Training' ? 'selected' : '' }}>Training</option>
 <option value="Study" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Study' ? 'selected' : '' }}>Study</option>
