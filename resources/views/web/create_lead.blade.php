@@ -520,15 +520,12 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 <div class="mt-4">
 @if(!$isEdit)
-<label>
-<input type="checkbox" required> I agree to <a href="/privacy_policy" target="_blank">Privacy Policy</a>
+<div class="form-check">
+<input class="form-check-input" type="checkbox" id="agree_policy_terms" required>
+<label class="form-check-label" for="agree_policy_terms">
+I agree to <a href="/privacy_policy" target="_blank">Privacy Policy</a> &amp; <a href="/terms_of_use" target="_blank">Terms of Service</a>
 </label>
-
-<br>
-
-<label>
-<input type="checkbox" required> I agree to <a href="/terms_of_use" target="_blank">Terms of Service</a>
-</label>
+</div>
 @endif
 
 </div>
