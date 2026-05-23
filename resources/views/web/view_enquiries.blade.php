@@ -24,9 +24,13 @@
         }
 
         try {
-            return \Carbon\Carbon::parse($value)->format('m-d-Y');
+            return \Carbon\Carbon::createFromFormat('d-m-Y', $value)->format('m-d-Y');
         } catch (\Exception $exception) {
-            return $value;
+            try {
+                return \Carbon\Carbon::parse($value)->format('m-d-Y');
+            } catch (\Exception $e) {
+                return $value;
+            }
         }
     };
 @endphp
