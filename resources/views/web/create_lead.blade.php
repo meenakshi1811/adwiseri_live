@@ -151,9 +151,9 @@ $homeCountryOptions = $allCountries ?? $countries;
 </div>
 
 <div class="col-md-6 mt-3">
-<label>Select preferred Visa Category *</label>
+<label>Preferred Visa Category *</label>
 <select name="visa_category" id="visa_category" class="form-control" required>
-<option value="">Select</option>
+<option value="">Visa Category</option>
 <option value="Visit" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Visit' ? 'selected' : '' }}>Visit</option>
 <option value="Training" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Training' ? 'selected' : '' }}>Training</option>
 <option value="Study" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Study' ? 'selected' : '' }}>Study</option>
@@ -250,8 +250,8 @@ $homeCountryOptions = $allCountries ?? $countries;
 <div class="row">
 
 <div class="col-md-3">
-<label>Diploma/12th/Bachelors/Masters/PhD</label>
 <select name="qualification" class="form-control">
+<option value="" disabled {{ old('qualification', $enquiry->qualification ?? '') ? '' : 'selected' }}>School/Diploma/Bachelors/Masters/PhD</option>
 <option {{ old('qualification', $enquiry->qualification ?? '') == '10th' ? 'selected' : '' }}>10th</option>
 <option {{ old('qualification', $enquiry->qualification ?? '') == '12th' ? 'selected' : '' }}>12th</option>
 <option {{ old('qualification', $enquiry->qualification ?? '') == 'Diploma' ? 'selected' : '' }}>Diploma</option>
@@ -520,15 +520,12 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 <div class="mt-4">
 @if(!$isEdit)
-<label>
-<input type="checkbox" required> I agree to <a href="/privacy_policy" target="_blank">Privacy Policy</a>
+<div class="form-check">
+<input class="form-check-input" type="checkbox" id="agree_policy_terms" required>
+<label class="form-check-label" for="agree_policy_terms">
+I agree to <a href="/privacy_policy" target="_blank">Privacy Policy</a> &amp; <a href="/terms_of_use" target="_blank">Terms of Service</a>
 </label>
-
-<br>
-
-<label>
-<input type="checkbox" required> I agree to <a href="/terms_of_use" target="_blank">Terms of Service</a>
-</label>
+</div>
 @endif
 
 </div>
