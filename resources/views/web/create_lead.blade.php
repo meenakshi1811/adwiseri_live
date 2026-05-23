@@ -250,8 +250,8 @@ $homeCountryOptions = $allCountries ?? $countries;
 <div class="row">
 
 <div class="col-md-3">
-<label>Diploma/12th/Bachelors/Masters/PhD</label>
 <select name="qualification" class="form-control">
+<option value="" disabled {{ old('qualification', $enquiry->qualification ?? '') ? '' : 'selected' }}>School/Diploma/Bachelors/Masters/PhD</option>
 <option {{ old('qualification', $enquiry->qualification ?? '') == '10th' ? 'selected' : '' }}>10th</option>
 <option {{ old('qualification', $enquiry->qualification ?? '') == '12th' ? 'selected' : '' }}>12th</option>
 <option {{ old('qualification', $enquiry->qualification ?? '') == 'Diploma' ? 'selected' : '' }}>Diploma</option>
