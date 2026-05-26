@@ -7683,13 +7683,27 @@ public function showFeedbackPopup()
         $appointment->setAttribute('accept_url', $responseLinks['accept_url']);
         $appointment->setAttribute('decline_url', $responseLinks['decline_url']);
 
-        Mail::to($clientEmail)->send(new AppointmentSchedulerMail($appointment, $client, $user));
+        try {
+            Mail::to($clientEmail)->send(new AppointmentSchedulerMail($appointment, $client, $user));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Appointment invitation sent successfully.',
-            'calendly_link' => $responseLinks['accept_url'],
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Appointment invitation sent successfully.',
+                'calendly_link' => $responseLinks['accept_url'],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Appointment scheduled but notification failed to send', [
+                'appointment_id' => $appointment->id,
+                'client_id' => $client->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Appointment saved successfully, but notification email could not be sent right now.',
+                'calendly_link' => $responseLinks['accept_url'],
+            ]);
+        }
     }
 
     private function createAppointmentResponseLinks(Appointment $appointment, ?string $clientEmail): array
