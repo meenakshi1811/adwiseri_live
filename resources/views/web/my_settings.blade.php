@@ -517,7 +517,7 @@
                                 <label>Select Date</label>
                             </div>
                             <div class="col-6">
-                                <input type="date" name="appointment_date" class="form-control">
+                                <input type="date" name="appointment_date" class="form-control" min="{{ now()->toDateString() }}">
                             </div>
                         </div>
 
@@ -730,11 +730,17 @@
             $('#reminder-email-to').val(paymentReminderDefaults.email_to);
         });
 
+
+        const appointmentDateField = $('#appointment-form input[name="appointment_date"]');
+        const todayIso = new Date().toISOString().split('T')[0];
+        appointmentDateField.attr('min', todayIso);
+
         $('#save-appointment').click(function () {
             const clientId = $('#appointment-client').val();
             const clientEmail = $.trim($('#appointment-client-email').val());
             const remarks = $.trim($('#appointment-form input[name="remarks"]').val());
-            const appointmentDate = $('#appointment-form input[name="appointment_date"]').val();
+            const appointmentDateField = $('#appointment-form input[name="appointment_date"]');
+            const appointmentDate = appointmentDateField.val();
             const appointmentTime = $('#appointment-form input[name="appointment_time"]').val();
 
             if (!clientId) {
