@@ -9,8 +9,8 @@
 @section('main-section')
     <div class="col-lg-10 column-client">
         <div class="client-dashboard">
-            <div class="client-btn d-flex mb-2">
-                <h3 class="text-primary">Settings</h3>
+            <div class="client-btn d-flex justify-content-center mb-2">
+                <h3 class="text-primary text-center">Settings</h3>
             </div>
 
             <ul class="nav nav-tabs border" id="settingsTab" role="tablist">

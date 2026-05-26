@@ -4,8 +4,8 @@
 
         <div class="col-lg-10 column-client">
             <div class="client-dashboard">
-                <div class="client-btn d-flex justify-content-between mb-4">
-                    <h3 class="text-primary px-3">Reports</h3>
+                <div class="client-btn d-flex justify-content-center mb-4">
+                    <h3 class="text-primary px-3 text-center">Reports</h3>
                 </div>
                 <div class="col p-3 border">
                     <div class="client-btn d-flex justify-content-between mb-4">

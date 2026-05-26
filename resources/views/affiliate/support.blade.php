@@ -17,8 +17,8 @@ $setting_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Support')->first();
 @endphp
     <div class="col-lg-10 column-client">
-        <div class="col d-flex justify-content-between">
-            <h3 class="text-primary px-2">Support</h3>
+        <div class="col d-flex align-items-center">
+            <h3 class="text-primary px-2 flex-grow-1 text-center m-0">Support</h3>
             <a href="{{ route('ask_support_affiliate') }}"><b>Ask For Support (Raise Ticket)</b></a>
         </div>
         <div class="col">

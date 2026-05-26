@@ -8,8 +8,8 @@
     </style>
     <div class="col-lg-10 column-client">
         <div class="client-dashboard">
-            <div class="client-btn d-flex justify-content-between mb-4">
-                <h3 class="text-primary px-3">Analytics</h3>
+            <div class="client-btn d-flex justify-content-center mb-4">
+                <h3 class="text-primary px-3 text-center">Analytics</h3>
             </div>
         </div>
 

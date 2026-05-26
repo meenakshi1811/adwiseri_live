@@ -74,8 +74,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 </style>
 <div class="col-lg-10 column-client">
     <div class="client-dashboard">
-        <div class="client-btn d-flex justify-content-between ">
-            <h3 class="text-primary px-3">Reports</h3>
+        <div class="client-btn d-flex justify-content-center">
+            <h3 class="text-primary px-3 text-center">Reports</h3>
         </div>
 
 
