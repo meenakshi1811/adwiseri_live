@@ -300,7 +300,7 @@ class StripeController extends Controller
             $user->name,
             $plan['membership'],
             $plan['validity'],
-            'Your Subscription Plan Has Been Updated',
+            'Your Subscription Plan Has Been Upgraded',
             $this->buildInvoicePdfData($internalInvoice, $user, $company)
         ));
         session()->forget('pay_data');
