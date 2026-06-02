@@ -1219,6 +1219,8 @@ class WebController extends Controller
         $welcomedata->plan_name = $plan->plan_name;
         $welcomedata->duration = $plan->validity . " Days";
         $welcomedata->amount = number_format((float) $signupInvoiceAmount, 2);
+        $welcomedata->paid_amount = number_format((float) $signupInvoiceAmount, 2);
+        $welcomedata->subscription = $signupInvoiceAmount > 0 ? 'Paid' : 'Free';
         $welcomedata->subscription_type = $plan->plan_name;
         $welcomedata->start_date = !empty($data->membership_start_date)
             ? (($data->membership_start_date instanceof \DateTimeInterface)
@@ -1230,7 +1232,6 @@ class WebController extends Controller
                 ? $data->membership_expiry_date->format('d-m-Y')
                 : date("d-m-Y", strtotime((string) $data->membership_expiry_date)))
             : '-';
-        $welcomedata->paid_amount = number_format((float) $signupInvoiceAmount, 2);
 
         if ($company) {
             $welcomedata->from_email = $company->email;
@@ -1433,8 +1434,8 @@ class WebController extends Controller
             $clients = Clients::where('subscriber_id', '=', $user->id)->get();
             $assignments = Application_assignments::where('subscriber_id', '=', $subscriber->id)->get();
             $users = User::where('added_by', '=', $user->id)->get();
-            $totalPayments = PaymentARs::where('type','ap')->where('subscriber_id', '=', $user->id)->sum(DB::raw('amount - paid_amount'));
-            $totalPaymentsAR = PaymentARs::where('type','aR')->where('subscriber_id', '=', $user->id)->sum(DB::raw('amount - paid_amount'));
+            $totalPayments = PaymentARs::whereRaw('LOWER(type) = ?', ['ap'])->where('subscriber_id', '=', $user->id)->sum('paid_amount');
+            $totalPaymentsAR = PaymentARs::whereRaw('LOWER(type) = ?', ['ar'])->where('subscriber_id', '=', $user->id)->sum(DB::raw('amount - paid_amount'));
             $meetings = Client_discussions::where('subscriber_id', $user->id)->get();
             $paymentARs =PaymentARs::where('subscriber_id', '=', $user->id)->get();
         } else {
@@ -1443,8 +1444,8 @@ class WebController extends Controller
             $clients = Clients::where('subscriber_id', '=', $user->added_by)->get();
             $assignments = Application_assignments::where('subscriber_id', '=', $subscriber->id)->get();
             $users = User::where('added_by', '=', $user->added_by)->get();
-            $totalPayments = PaymentARs::where('type','ap')->where('subscriber_id', '=', $subscriber->added_by)->sum(DB::raw('amount - paid_amount'));
-            $totalPaymentsAR = PaymentARs::where('type','ar')->where('subscriber_id', '=', $subscriber->added_by)->sum(DB::raw('amount - paid_amount'));
+            $totalPayments = PaymentARs::whereRaw('LOWER(type) = ?', ['ap'])->where('subscriber_id', '=', $subscriber->id)->sum('paid_amount');
+            $totalPaymentsAR = PaymentARs::whereRaw('LOWER(type) = ?', ['ar'])->where('subscriber_id', '=', $subscriber->id)->sum(DB::raw('amount - paid_amount'));
             $meetings = Client_discussions::where('subscriber_id', $subscriber->added_by)->get();
             $paymentARs =PaymentARs::where('subscriber_id', $subscriber->added_by)->get();
         }

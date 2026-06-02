@@ -84,7 +84,7 @@
                         <p><strong>Have a question?</strong></p>
                         <p>Check our <strong><a href="https://adwiseri.com/faqs">FAQ Page</a></strong> for a quick answer.</p>
                         <p>
-                            You can always contact our support team via live chat or email.<br>
+                            You can always contact our support team via email or by raising a ticket from the support section.<br>
                             We will be happy to help you!<br><br>
                             Thanks,<br>
                             <b>The Adwiseri Team</b>
