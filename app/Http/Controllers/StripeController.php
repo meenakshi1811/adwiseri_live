@@ -118,6 +118,16 @@ class StripeController extends Controller
         return $internalInvoice;
     }
 
+    private function calculateInclusiveExpiryDate(int $durationYears): Carbon
+    {
+        return Carbon::now()->addYears($durationYears)->subDay();
+    }
+
+    private function formatPlanDuration(int $durationYears): string
+    {
+        return $durationYears . ' ' . ($durationYears === 1 ? 'Year' : 'Years');
+    }
+
     private function formatMailDate($date): string
     {
         if (empty($date)) {
@@ -232,7 +242,7 @@ class StripeController extends Controller
         $user->membership = $data['plan_name'];
         $user->membership_type = "Subscription";
         $user->membership_start_date = new DateTime("now");
-        $user->membership_expiry_date = (new DateTime("now"))->modify("+".$duration." years");
+        $user->membership_expiry_date = $this->calculateInclusiveExpiryDate((int) $duration);
         $user->wallet = 0;
         $user->save();
         $my_users = User::where('added_by','=',$user->id)->get();
@@ -423,7 +433,7 @@ class StripeController extends Controller
         //     $data->membership_type = "Trial";
         //     $data->membership_expiry_date = (new DateTime("now"))->modify("+30 days");
         // }
-        $enddate = (new DateTime("now"))->modify("+".$duration." Years");
+        $enddate = $this->calculateInclusiveExpiryDate((int) $duration);
         $user->membership_start_date = new DateTime("now");
         $user->membership_expiry_date = $enddate;
         $user->wallet = 0;
@@ -648,7 +658,7 @@ class StripeController extends Controller
         $welcomedata->name = $data['name'];
         $welcomedata->email = $email;
         $welcomedata->plan_name = $plan->plan_name;
-        $welcomedata->duration = $duration." Year(s)";
+        $welcomedata->duration = $this->formatPlanDuration((int) $duration);
         $welcomedata->amount = $amount;
         $welcomedata->invoice_id = $internal_invoice->id;
         $welcomedata->token = $internal_invoice->token;
