@@ -118,6 +118,19 @@ class StripeController extends Controller
         return $internalInvoice;
     }
 
+    private function formatMailDate($date): string
+    {
+        if (empty($date)) {
+            return '-';
+        }
+
+        if ($date instanceof \DateTimeInterface) {
+            return $date->format('d M Y');
+        }
+
+        return date('d M Y', strtotime((string) $date));
+    }
+
     private function buildInvoicePdfData(Internal_Invoices $internalInvoice, User $subscriber, User $company): object
     {
         return (object) [
@@ -641,12 +654,8 @@ class StripeController extends Controller
         $welcomedata->token = $internal_invoice->token;
         $welcomedata->subscription = "Paid";
         $welcomedata->subscription_type = $plan->plan_name;
-        $welcomedata->start_date = !empty($user->membership_start_date)
-            ? date('d M Y', strtotime($user->membership_start_date))
-            : '-';
-        $welcomedata->end_date = !empty($user->membership_expiry_date)
-            ? date('d M Y', strtotime($user->membership_expiry_date))
-            : '-';
+        $welcomedata->start_date = $this->formatMailDate($user->membership_start_date);
+        $welcomedata->end_date = $this->formatMailDate($user->membership_expiry_date);
         $welcomedata->paid_amount = number_format((float) $amount, 2);
         $welcomedata->from_email = $company->email;
         $welcomedata->from_name = $company->organization ?: 'adwiseri';
