@@ -86,6 +86,7 @@ use App\Models\Dependants;
 use App\Models\ReportSetting;
 use App\Models\PaymentReminderSetting;
 use App\Services\EmailTemplateService;
+use App\Services\AdminApPaymentSyncService;
 class WebController extends Controller
 {
     private const APPLICATION_STATUS_FLOW = ['Client Registered', 'Client Counselled', 'Preparation', 'Apointment Booked', 'Applied', 'Decision', 'Appeal Lodged', 'Appeal Decision', 'AR / JR Lodged', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
@@ -498,7 +499,7 @@ class WebController extends Controller
             'service_taken' => $detail,
             'amount' => $amount,
             'paid_amount' => $amount,
-            'payment_mode' => 'Online',
+            'payment_mode' => $paymentMode,
             'payment_date' => now(),
             'type' => 'ap',
         ]);
@@ -1431,6 +1432,7 @@ class WebController extends Controller
         $this->set_timezone();
         if ($user->user_type == "Subscriber") {
             $subscriber = $user;
+            app(AdminApPaymentSyncService::class)->syncPaidInvoicesForSubscriber($subscriber->id);
             $clients = Clients::where('subscriber_id', '=', $user->id)->get();
             $assignments = Application_assignments::where('subscriber_id', '=', $subscriber->id)->get();
             $users = User::where('added_by', '=', $user->id)->get();
@@ -1441,6 +1443,7 @@ class WebController extends Controller
         } else {
             return redirect()->route('userprofile');
             $subscriber = User::find($user->added_by);
+            app(AdminApPaymentSyncService::class)->syncPaidInvoicesForSubscriber($subscriber->id);
             $clients = Clients::where('subscriber_id', '=', $user->added_by)->get();
             $assignments = Application_assignments::where('subscriber_id', '=', $subscriber->id)->get();
             $users = User::where('added_by', '=', $user->added_by)->get();
