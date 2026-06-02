@@ -507,6 +507,28 @@ class WebController extends Controller
         return $internalInvoice;
     }
 
+
+    private function calculateInclusiveExpiryDate(int $durationYears): Carbon
+    {
+        return Carbon::now()->addYears($durationYears)->subDay();
+    }
+
+    private function calculateInclusiveExpiryDateFromDays(int $durationDays): Carbon
+    {
+        return Carbon::now()->addDays($durationDays)->subDay();
+    }
+
+    private function formatPlanDurationFromDays(int $durationDays): string
+    {
+        if ($durationDays % 365 === 0) {
+            $years = (int) ($durationDays / 365);
+
+            return $years . ' ' . ($years === 1 ? 'Year' : 'Years');
+        }
+
+        return $durationDays . ' ' . ($durationDays === 1 ? 'Day' : 'Days');
+    }
+
     private function buildInvoicePdfData(Internal_Invoices $internalInvoice, User $subscriber, User $company): object
     {
         return (object) [
@@ -1018,7 +1040,7 @@ class WebController extends Controller
         //     $data->membership_type = "Trial";
         //     $data->membership_expiry_date = (new DateTime("now"))->modify("+30 days");
         // }
-        $enddate = (new DateTime("now"))->modify("+" . $plan->validity . " Days");
+        $enddate = $this->calculateInclusiveExpiryDateFromDays((int) $plan->validity);
         $data->membership_start_date = new DateTime("now");
         $data->membership_expiry_date = $enddate;
         $data->wallet = 0;
@@ -1218,7 +1240,7 @@ class WebController extends Controller
         $welcomedata->name = $data['name'];
         $welcomedata->email = $email;
         $welcomedata->plan_name = $plan->plan_name;
-        $welcomedata->duration = $plan->validity . " Days";
+        $welcomedata->duration = $this->formatPlanDurationFromDays((int) $plan->validity);
         $welcomedata->amount = number_format((float) $signupInvoiceAmount, 2);
         $welcomedata->paid_amount = number_format((float) $signupInvoiceAmount, 2);
         $welcomedata->subscription = $signupInvoiceAmount > 0 ? 'Paid' : 'Free';
@@ -4031,7 +4053,7 @@ class WebController extends Controller
                     $user->membership = $membership->plan_name;
                     $user->membership_type = "Subscription";
                     $user->membership_start_date = new DateTime("now");
-                    $user->membership_expiry_date = (new DateTime("now"))->modify("+" . $duration . " years");
+                    $user->membership_expiry_date = $this->calculateInclusiveExpiryDate((int) $duration);
                     $user->wallet = $new_wallet;
                     $user->save();
                     $my_users = User::where('added_by', '=', $user->id)->get();
@@ -4188,7 +4210,7 @@ class WebController extends Controller
                 $user->membership = $membership->plan_name;
                 $user->membership_type = "Subscription";
                 $user->membership_start_date = new DateTime("now");
-                $user->membership_expiry_date = (new DateTime("now"))->modify("+" . $duration . " years");
+                $user->membership_expiry_date = $this->calculateInclusiveExpiryDate((int) $duration);
                 $user->wallet = $new_wallet;
                 $user->save();
                 $my_users = User::where('added_by', '=', $user->id)->get();
@@ -4306,7 +4328,7 @@ class WebController extends Controller
             $user->membership = $request['plan_name'];
             $user->membership_type = "Subscription";
             $user->membership_start_date = new DateTime("now");
-            $user->membership_expiry_date = (new DateTime("now"))->modify("+" . $duration . " years");
+            $user->membership_expiry_date = $this->calculateInclusiveExpiryDate((int) $duration);
             $user->save();
             $my_users = User::where('added_by', '=', $user->id)->get();
             foreach ($my_users as $myuser) {

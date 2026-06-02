@@ -33,6 +33,11 @@
             body {
                 font-family: 'Lato', sans-serif!important;
             }
+            @media print {
+                .invoice-print-button {
+                    display: none !important;
+                }
+            }
         </style>
 </head>
 <style>
@@ -61,7 +66,7 @@
       <div class="col-12 p-3 column-client" style="width: 100%;">
         <div class="client-dashboard">
             <h3 class="text-primary text-center p-3">Invoice</h3>
-            <div class="client-btn d-flex mb-3 px-3 d-flex justify-content-between">
+            <div class="client-btn d-flex mb-3 px-3 d-flex justify-content-between align-items-center">
                 <div class="col d-flex justify-content-start align-items-end" style="width: 70px;height:70px;">
                     @if($u->user_type == "Subscriber" or $u->user_type == "admin")
                   <img class="border rounded" src="{{ asset('web_assets/users/user'.$userid.'/' . $invoice->logo) }}" style="max-width: 100%;max-height:100%;width:auto;height:auto;">
@@ -69,6 +74,7 @@
                   <img class="border rounded" src="{{ asset('web_assets/users/user'.$u->added_by.'/' . $invoice->logo) }}" style="max-width: 100%;max-height:100%;width:auto;height:auto;">
                   @endif
                 </div>
+                <button type="button" class="btn btn-primary invoice-print-button" onclick="window.print()">Print Invoice</button>
             </div>
             <div class="col px-3">
                 <div class="row">
@@ -157,18 +163,6 @@
             </div>
         </div>
     </div>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-    <script>
-        $(document).ready(function (){
-            window.print();
-            window.onafterprint = function(){
-                window.close();
-            }
-        });
-    </script>
-
-
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
 integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
 crossorigin="anonymous"></script>

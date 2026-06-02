@@ -88,7 +88,7 @@ class WelcomeMail extends Mailable
         $map['end_date'] = $map['end_date'] ?? '-';
         $map['currency_symbol'] = $map['currency_symbol'] ?? '$';
         $map['paid_amount'] = $this->formatAmountForWelcome($paidAmount ?? ($isPaid ? '0.00' : 0));
-        $map['duration'] = $map['duration'] ?? '-';
+        $map['duration'] = $this->normalizeDurationForWelcome($map['duration'] ?? '-');
         $map['invoice_link'] = $map['invoice_link'] ?? '#';
         $map['invoice_link_section'] = $map['invoice_link'] !== '#'
             ? '<p style="margin-bottom:16px;line-height:1.9;">View invoice: <a href="' . $map['invoice_link'] . '">Click here</a></p>'
@@ -99,6 +99,29 @@ class WelcomeMail extends Mailable
         return $map;
     }
 
+
+    private function normalizeDurationForWelcome($duration): string
+    {
+        $duration = trim((string) $duration);
+
+        if ($duration === '') {
+            return '-';
+        }
+
+        if (preg_match('/^(\d+)\s+Year\(s\)$/i', $duration, $matches)) {
+            $years = (int) $matches[1];
+
+            return $years . ' ' . ($years === 1 ? 'Year' : 'Years');
+        }
+
+        if (preg_match('/^(\d+)\s+Day\(s\)$/i', $duration, $matches)) {
+            $days = (int) $matches[1];
+
+            return $days . ' ' . ($days === 1 ? 'Day' : 'Days');
+        }
+
+        return $duration;
+    }
 
     private function formatAmountForWelcome($amount): string
     {
