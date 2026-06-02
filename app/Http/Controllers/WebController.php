@@ -1434,8 +1434,8 @@ class WebController extends Controller
             $clients = Clients::where('subscriber_id', '=', $user->id)->get();
             $assignments = Application_assignments::where('subscriber_id', '=', $subscriber->id)->get();
             $users = User::where('added_by', '=', $user->id)->get();
-            $totalPayments = PaymentARs::where('type','ap')->where('subscriber_id', '=', $user->id)->sum(DB::raw('amount - paid_amount'));
-            $totalPaymentsAR = PaymentARs::where('type','aR')->where('subscriber_id', '=', $user->id)->sum(DB::raw('amount - paid_amount'));
+            $totalPayments = PaymentARs::whereRaw('LOWER(type) = ?', ['ap'])->where('subscriber_id', '=', $user->id)->sum('paid_amount');
+            $totalPaymentsAR = PaymentARs::whereRaw('LOWER(type) = ?', ['ar'])->where('subscriber_id', '=', $user->id)->sum(DB::raw('amount - paid_amount'));
             $meetings = Client_discussions::where('subscriber_id', $user->id)->get();
             $paymentARs =PaymentARs::where('subscriber_id', '=', $user->id)->get();
         } else {
@@ -1444,8 +1444,8 @@ class WebController extends Controller
             $clients = Clients::where('subscriber_id', '=', $user->added_by)->get();
             $assignments = Application_assignments::where('subscriber_id', '=', $subscriber->id)->get();
             $users = User::where('added_by', '=', $user->added_by)->get();
-            $totalPayments = PaymentARs::where('type','ap')->where('subscriber_id', '=', $subscriber->added_by)->sum(DB::raw('amount - paid_amount'));
-            $totalPaymentsAR = PaymentARs::where('type','ar')->where('subscriber_id', '=', $subscriber->added_by)->sum(DB::raw('amount - paid_amount'));
+            $totalPayments = PaymentARs::whereRaw('LOWER(type) = ?', ['ap'])->where('subscriber_id', '=', $subscriber->id)->sum('paid_amount');
+            $totalPaymentsAR = PaymentARs::whereRaw('LOWER(type) = ?', ['ar'])->where('subscriber_id', '=', $subscriber->id)->sum(DB::raw('amount - paid_amount'));
             $meetings = Client_discussions::where('subscriber_id', $subscriber->added_by)->get();
             $paymentARs =PaymentARs::where('subscriber_id', $subscriber->added_by)->get();
         }

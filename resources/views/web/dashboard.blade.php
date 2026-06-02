@@ -50,8 +50,8 @@
                         <i style="font-size: 30px;width:50px;height:50px; background: #ffffff;border-radius:50%;" class="fa fa-credit-card text-info p-1 d-flex text-center align-items-center justify-content-center"></i>
                         <!--<i style="display:flex;align-items:center;justify-content:center;font-size: 36px;border:2px solid rgb(118, 210, 247);border-radius:50%;width:50px;height:50px;text-align:center;" class="fa fa-dollar text-info p-1"></i>-->
                         <!-- Display AP value -->
-                        <h4 style="font-weight: bolder!important;font-size:18px;margin-top:4px">AR : &nbsp; {{ $totalPaymentsAR }}</h4>
-                        <h4 style="font-weight: bolder!important;font-size:18px;margin-top:4px">AP : &nbsp; {{ $totalPayments }}</h4>
+                        <h4 style="font-weight: bolder!important;font-size:18px;margin-top:4px">AR : &nbsp; {{ number_format((float) $totalPaymentsAR, 2) }}</h4>
+                        <h4 style="font-weight: bolder!important;font-size:18px;margin-top:4px">AP : &nbsp; {{ number_format((float) $totalPayments, 2) }}</h4>
                         <p style="font-weight: bolder!important;">Payments</p>
                     </div>
                   </div>
