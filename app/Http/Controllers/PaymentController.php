@@ -19,6 +19,7 @@ use DataTables;
 use DB;
 use App\Models\Internal_Invoices;
 use Carbon\Carbon;
+use App\Services\AdminApPaymentSyncService;
 
 class PaymentController extends Controller
 {
@@ -118,6 +119,7 @@ class PaymentController extends Controller
         } else {
             $subscriber = User::find($user->added_by);
         }
+        app(AdminApPaymentSyncService::class)->syncPaidInvoicesForSubscriber($subscriber->id);
         $paymentAP = PaymentARs::where('subscriber_id', '=', $subscriber->id)->where('type','ap')->orderBy('created_at', 'desc')->get();
         $page = "payments";
         // dd($paymentAP);
