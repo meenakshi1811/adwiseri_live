@@ -1219,6 +1219,8 @@ class WebController extends Controller
         $welcomedata->plan_name = $plan->plan_name;
         $welcomedata->duration = $plan->validity . " Days";
         $welcomedata->amount = number_format((float) $signupInvoiceAmount, 2);
+        $welcomedata->paid_amount = number_format((float) $signupInvoiceAmount, 2);
+        $welcomedata->subscription = $signupInvoiceAmount > 0 ? 'Paid' : 'Free';
         $welcomedata->subscription_type = $plan->plan_name;
         $welcomedata->start_date = !empty($data->membership_start_date)
             ? (($data->membership_start_date instanceof \DateTimeInterface)
@@ -1230,7 +1232,6 @@ class WebController extends Controller
                 ? $data->membership_expiry_date->format('d-m-Y')
                 : date("d-m-Y", strtotime((string) $data->membership_expiry_date)))
             : '-';
-        $welcomedata->paid_amount = number_format((float) $signupInvoiceAmount, 2);
 
         if ($company) {
             $welcomedata->from_email = $company->email;

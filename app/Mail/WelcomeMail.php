@@ -29,7 +29,7 @@ class WelcomeMail extends Mailable
         $defaultSubject = 'Welcome to adwiseri';
         $mail = $this->subject($defaultSubject);
 
-        if ($template && !empty(trim((string) $template->body)) && $this->isPaidSubscriptionMail($data)) {
+        if ($template && !empty(trim((string) $template->body))) {
             $payload = $this->buildPlaceholderData($data);
             $content = $this->replacePlaceholders($template->body, $payload);
             $subject = $this->replacePlaceholders($template->subject ?: $defaultSubject, $payload);
@@ -61,13 +61,6 @@ class WelcomeMail extends Mailable
         return $mail;
     }
 
-    private function isPaidSubscriptionMail($data): bool
-    {
-        $map = is_array($data) ? $data : (array) $data;
-
-        return strtolower((string) ($map['subscription'] ?? '')) === 'paid';
-    }
-
     private function buildPlaceholderData($data): array
     {
         $map = is_array($data) ? $data : (array) $data;
@@ -80,12 +73,44 @@ class WelcomeMail extends Mailable
             $map['subscription_type'] = $map['plan_name'];
         }
 
+        $planName = trim((string) ($map['plan_name'] ?? $map['subscription_type'] ?? 'Free'));
+        $paidAmount = $map['paid_amount'] ?? ($map['amount'] ?? null);
+        $numericPaidAmount = is_numeric(str_replace(',', '', (string) $paidAmount))
+            ? (float) str_replace(',', '', (string) $paidAmount)
+            : null;
+        $isPaid = strtolower((string) ($map['subscription'] ?? '')) === 'paid'
+            || ($numericPaidAmount !== null && $numericPaidAmount > 0)
+            || strtolower($planName) !== 'free';
+
+        $map['plan_name'] = $planName;
+        $map['subscription_type'] = $map['subscription_type'] ?? $planName;
         $map['start_date'] = $map['start_date'] ?? '-';
         $map['end_date'] = $map['end_date'] ?? '-';
-        $map['paid_amount'] = $map['paid_amount'] ?? ($map['amount'] ?? '0.00');
+        $map['currency_symbol'] = $map['currency_symbol'] ?? '$';
+        $map['paid_amount'] = $this->formatAmountForWelcome($paidAmount ?? ($isPaid ? '0.00' : 0));
+        $map['duration'] = $map['duration'] ?? '-';
         $map['invoice_link'] = $map['invoice_link'] ?? '#';
+        $map['invoice_link_section'] = $map['invoice_link'] !== '#'
+            ? '<p style="margin-bottom:16px;line-height:1.9;">View invoice: <a href="' . $map['invoice_link'] . '">Click here</a></p>'
+            : '';
+        $planLabel = preg_match('/\bplan$/i', $planName) ? $planName : $planName . ' Plan';
+        $map['plan_activation_line'] = 'Your <strong>' . $planLabel . '</strong> is activated successfully. The plan details are as follows:';
 
         return $map;
+    }
+
+
+    private function formatAmountForWelcome($amount): string
+    {
+        $normalizedAmount = str_replace(',', '', (string) $amount);
+
+        if (is_numeric($normalizedAmount)) {
+            return number_format((float) $normalizedAmount, 2);
+        }
+
+        $trimmedAmount = trim((string) $amount);
+
+        return $trimmedAmount === '' ? '0.00' : $trimmedAmount;
     }
 
     private function replacePlaceholders(?string $text, array $data): string
