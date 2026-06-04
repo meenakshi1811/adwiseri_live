@@ -861,16 +861,12 @@ window.Chart = AnalyticsChart;
                     value: ""
                 },
                 {
-                    text: "By Payment (AR)",
+                    text: "By Amount",
                     value: "ByPaymentAR"
                 },
                 {
                     text: "By Payment Mode",
                     value: "ByPaymentMode"
-                },
-                {
-                    text: "By Payment Amount ",
-                    value: "ByPaymentAmount"
                 },
                 {
                     text: " By Payment Outstanding Amount",
@@ -905,16 +901,12 @@ window.Chart = AnalyticsChart;
                     value: ""
                 }, 
                 {
-                    text: "By Payment (AP)",
+                    text: "By Amount",
                     value: "ByPaymentAP"
                 },
                 {
                     text: "By Payment Mode",
                     value: "ByPaymentModeAP"
-                },
-                {
-                    text: "By Payment Amount ",
-                    value: "ByPaymentAmountAP"
                 },
                 {
                     text: " By Payment Outstanding Amount",
@@ -3687,11 +3679,8 @@ window.Chart = AnalyticsChart;
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
 
-                        if(currentElement.count !== 0) { // Skip ONLY those with 0 count
-                            labels.push(currentElement.age_group);
-                            numbers.push(currentElement.count);
-
-                        }
+                        labels.push(currentElement.age_group);
+                        numbers.push(currentElement.count);
 
                     })
 
@@ -8403,11 +8392,8 @@ numbers.push(currentElement.total_clients);
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
 
-                        if(currentElement.count !== 0) { // Skip ONLY those with 0 count
-                            labels.push(currentElement.year);
-                            numbers.push(currentElement.count);
-
-                        }
+                        labels.push(currentElement.age_group);
+                        numbers.push(currentElement.count);
 
                     })
 
@@ -13653,10 +13639,8 @@ numbers.push(currentElement.total_clients);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
-                        if(currentElement.number_of_invoices !== 0){
                         labels.push(currentElement.amount_range);
                         numbers.push(currentElement.number_of_invoices);
-                        }
                     })
 
 
@@ -13858,10 +13842,8 @@ numbers.push(currentElement.total_clients);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
-                        if(currentElement.number_of_invoices !== 0){
                         labels.push(currentElement.amount_range);
                         numbers.push(currentElement.number_of_invoices);
-                        }
                     })
 
 
@@ -14265,10 +14247,8 @@ numbers.push(currentElement.total_clients);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
-                        if(currentElement.number_of_invoices !== 0){
                         labels.push(currentElement.amount_range);
                         numbers.push(currentElement.number_of_invoices);
-                        }
                     })
 
 
@@ -15083,10 +15063,8 @@ numbers.push(currentElement.total_clients);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
-                        if(currentElement.number_of_invoices !== 0){
                         labels.push(currentElement.amount_range);
                         numbers.push(currentElement.number_of_invoices);
-                        }
                     })
 
 
