@@ -8094,7 +8094,7 @@ public function showFeedbackPopup()
             $emails = array_values(array_filter(array_map('trim', explode(',', $normalizedInput)), function ($email) {
                 return $email !== '';
             }));
-            $emails = array_slice(array_values(array_unique($emails, SORT_STRING)), 0, 5);
+            $emails = $this->uniqueEmailRecipients($emails);
 
             if (count($emails) === 0) {
                 return response()->json([
@@ -8121,16 +8121,15 @@ public function showFeedbackPopup()
                 ], 422);
             }
 
-            $subscriberEmail = trim((string) optional($user)->email);
-
-            if ($subscriberEmail !== '') {
-                $emails = array_values(array_filter($emails, function ($email) use ($subscriberEmail) {
-                    return strcasecmp($email, $subscriberEmail) !== 0;
-                }));
-                array_unshift($emails, $subscriberEmail);
+            if (count($emails) > 5) {
+                return response()->json([
+                    'message' => 'The given data was invalid.',
+                    'errors' => [
+                        'emails' => ['Please enter no more than 5 recipient email addresses.']
+                    ]
+                ], 422);
             }
 
-            $emails = array_slice(array_values(array_unique($emails, SORT_STRING)), 0, 5);
             $normalizedEmails = implode(', ', $emails);
 
             $setting = ReportSetting::updateOrCreate(
@@ -8165,6 +8164,32 @@ public function showFeedbackPopup()
         }
     }
 
+
+
+    private function uniqueEmailRecipients(array $emails): array
+    {
+        $uniqueEmails = [];
+        $seenEmails = [];
+
+        foreach ($emails as $email) {
+            $email = trim((string) $email);
+
+            if ($email === '') {
+                continue;
+            }
+
+            $emailKey = strtolower($email);
+
+            if (isset($seenEmails[$emailKey])) {
+                continue;
+            }
+
+            $seenEmails[$emailKey] = true;
+            $uniqueEmails[] = $email;
+        }
+
+        return $uniqueEmails;
+    }
 
     public function downloadScheduledReport(Request $request, $file)
     {
