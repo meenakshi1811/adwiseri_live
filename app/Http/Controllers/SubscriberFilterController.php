@@ -2103,10 +2103,21 @@ class SubscriberFilterController extends Controller
          elseif (request()->type == "byPaymentARChart") {
             $query = new PaymentARs();
             if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query =   $query->where('subscriber_id', request()->subid);
+                $query = $query->where('subscriber_id', request()->subid);
             }
-            $byPaymentAR = $query->where('type', 'ar')->select(
-                DB::raw('
+
+            $byPaymentAR = DB::table(DB::raw('(SELECT "1-99" AS amount_range UNION ALL
+                        SELECT "100-249" UNION ALL
+                        SELECT "250-499" UNION ALL
+                        SELECT "500-999" UNION ALL
+                        SELECT "1000-2499" UNION ALL
+                        SELECT "2500-4999" UNION ALL
+                        SELECT "5000-9999" UNION ALL
+                        SELECT "10,000+" ) AS amount_ranges'))
+                ->leftJoinSub(
+                    $query->where('type', 'ar')
+                        ->whereBetween('created_at', [$startDate, $endDate])
+                        ->selectRaw('
                             CASE
                                 WHEN amount BETWEEN 1 AND 99 THEN "1-99"
                                 WHEN amount BETWEEN 100 AND 249 THEN "100-249"
@@ -2116,22 +2127,38 @@ class SubscriberFilterController extends Controller
                                 WHEN amount BETWEEN 2500 AND 4999 THEN "2500-4999"
                                 WHEN amount BETWEEN 5000 AND 9999 THEN "5000-9999"
                                 WHEN amount >= 10000 THEN "10,000+"
-                            END AS amount_range')
-            )
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->selectRaw('COUNT(*) as number_of_invoices')
-                ->groupBy('amount_range')
-                ->orderBy('amount_range', 'asc')
+                            END AS amount_range,
+                            COUNT(*) as number_of_invoices
+                        ')
+                        ->groupBy('amount_range'),
+                    'payments',
+                    'amount_ranges.amount_range',
+                    '=',
+                    'payments.amount_range'
+                )
+                ->select('amount_ranges.amount_range', DB::raw('COALESCE(payments.number_of_invoices, 0) AS number_of_invoices'))
+                ->orderByRaw("FIELD(amount_ranges.amount_range, '1-99', '100-249', '250-499', '500-999', '1000-2499', '2500-4999', '5000-9999', '10,000+')")
                 ->get();
 
             return response()->json(['data' => $byPaymentAR]);
         } elseif (request()->type == "byPaymentAPChart") {
             $query = new PaymentARs();
             if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query =   $query->where('subscriber_id', request()->subid);
+                $query = $query->where('subscriber_id', request()->subid);
             }
-            $byPaymentAR = $query->where('type', 'ap')->select(
-                DB::raw('
+
+            $byPaymentAP = DB::table(DB::raw('(SELECT "1-99" AS amount_range UNION ALL
+                        SELECT "100-249" UNION ALL
+                        SELECT "250-499" UNION ALL
+                        SELECT "500-999" UNION ALL
+                        SELECT "1000-2499" UNION ALL
+                        SELECT "2500-4999" UNION ALL
+                        SELECT "5000-9999" UNION ALL
+                        SELECT "10,000+" ) AS amount_ranges'))
+                ->leftJoinSub(
+                    $query->where('type', 'ap')
+                        ->whereBetween('created_at', [$startDate, $endDate])
+                        ->selectRaw('
                             CASE
                                 WHEN amount BETWEEN 1 AND 99 THEN "1-99"
                                 WHEN amount BETWEEN 100 AND 249 THEN "100-249"
@@ -2141,15 +2168,20 @@ class SubscriberFilterController extends Controller
                                 WHEN amount BETWEEN 2500 AND 4999 THEN "2500-4999"
                                 WHEN amount BETWEEN 5000 AND 9999 THEN "5000-9999"
                                 WHEN amount >= 10000 THEN "10,000+"
-                            END AS amount_range')
-            )
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->selectRaw('COUNT(*) as number_of_invoices')
-                ->groupBy('amount_range')
-                ->orderBy('amount_range', 'asc')
+                            END AS amount_range,
+                            COUNT(*) as number_of_invoices
+                        ')
+                        ->groupBy('amount_range'),
+                    'payments',
+                    'amount_ranges.amount_range',
+                    '=',
+                    'payments.amount_range'
+                )
+                ->select('amount_ranges.amount_range', DB::raw('COALESCE(payments.number_of_invoices, 0) AS number_of_invoices'))
+                ->orderByRaw("FIELD(amount_ranges.amount_range, '1-99', '100-249', '250-499', '500-999', '1000-2499', '2500-4999', '5000-9999', '10,000+')")
                 ->get();
 
-            return response()->json(['data' => $byPaymentAR]);
+            return response()->json(['data' => $byPaymentAP]);
         } elseif (request()->type == "byPaymentModeChart") {
             $query = new PaymentARs();
             if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
