@@ -86,6 +86,10 @@ class ScheduledReportService
             if ($setting->frequency !== 'daily') {
                 $subject = 'Adwiseri Scheduled Report (' . $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y') . ')';
             }
+            if (empty($recipients)) {
+                $recipients = $this->extractRecipients(null, $user->email);
+            }
+
             $sentRecipients = [];
             $failedRecipients = [];
 
@@ -124,7 +128,7 @@ class ScheduledReportService
                     'period_end' => $endDate->toDateString(),
                     'file_name' => $storageFileName,
                     'recipients' => json_encode($recipients),
-                    'status' => 'sent',
+                    'status' => empty($failedRecipients) ? 'sent' : 'partial',
                     'triggered_by' => $trigger,
                     'sent_at' => now(),
                     'error_message' => empty($failedRecipients) ? null : $statusMessage,
@@ -461,12 +465,45 @@ class ScheduledReportService
 
     private function extractRecipients($emails, $fallbackEmail)
     {
-        if (empty($emails)) {
-            return [$fallbackEmail];
+        $fallbackEmail = trim((string) $fallbackEmail);
+        $recipients = [];
+
+        if (!empty($emails)) {
+            $normalizedInput = str_replace(["\r\n", "\r", "\n", ";"], ',', (string) $emails);
+            $recipients = array_filter(array_map('trim', explode(',', $normalizedInput)), function ($email) {
+                return $email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL);
+            });
         }
 
-        $items = array_filter(array_map('trim', explode(',', $emails)));
+        if ($fallbackEmail !== '' && filter_var($fallbackEmail, FILTER_VALIDATE_EMAIL)) {
+            array_unshift($recipients, $fallbackEmail);
+        }
 
-        return empty($items) ? [$fallbackEmail] : array_values(array_unique($items));
+        return $this->uniqueRecipients($recipients);
+    }
+
+    private function uniqueRecipients(array $emails): array
+    {
+        $uniqueEmails = [];
+        $seenEmails = [];
+
+        foreach ($emails as $email) {
+            $email = trim((string) $email);
+
+            if ($email === '') {
+                continue;
+            }
+
+            $emailKey = strtolower($email);
+
+            if (isset($seenEmails[$emailKey])) {
+                continue;
+            }
+
+            $seenEmails[$emailKey] = true;
+            $uniqueEmails[] = $email;
+        }
+
+        return $uniqueEmails;
     }
 }
