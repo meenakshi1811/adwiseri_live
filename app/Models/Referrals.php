@@ -13,6 +13,7 @@ class Referrals extends Model
     protected $primaryKey = "id";
     protected $fillable = [
         'user_id',
+        'userid',
         'user_name',
         'total_amount',
         'amount_added',
