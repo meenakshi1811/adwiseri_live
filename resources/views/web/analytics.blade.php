@@ -3687,11 +3687,8 @@ window.Chart = AnalyticsChart;
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
 
-                        if(currentElement.count !== 0) { // Skip ONLY those with 0 count
-                            labels.push(currentElement.age_group);
-                            numbers.push(currentElement.count);
-
-                        }
+                        labels.push(currentElement.age_group);
+                        numbers.push(currentElement.count);
 
                     })
 
@@ -8403,11 +8400,8 @@ numbers.push(currentElement.total_clients);
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
 
-                        if(currentElement.count !== 0) { // Skip ONLY those with 0 count
-                            labels.push(currentElement.year);
-                            numbers.push(currentElement.count);
-
-                        }
+                        labels.push(currentElement.age_group);
+                        numbers.push(currentElement.count);
 
                     })
 
