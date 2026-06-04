@@ -693,11 +693,11 @@ window.Chart = AnalyticsChart;
                     value: "ByClientsTopDocs"
                 },
                 {
-                    text: "By Filesize (Top 50)",
+                    text: "By File size (Top 10)",
                     value: "ByFilesizeDocs"
                 },
                 {
-                    text: "By Filetype",
+                    text: "By FileType",
                     value: "ByDocumentFiletype"
                 }, {
                     text: "By Year",
@@ -739,14 +739,6 @@ window.Chart = AnalyticsChart;
                 {
                     text: " By No. of Meeting Notes By Type ",
                     value: "ByCommunicationMeetingNotesType"
-                },                
-                {
-                    text: "By No. of Messages By Timeline (Duration)",
-                    value: "ByCommunicationMessagesByTimeline(Duration)"
-                },
-                {
-                    text: "By Year",
-                    value: "ByCommunicationMeetingNotesByYear"
                 },                
                 {
                     text: "By Timeline (Duration)",
@@ -992,11 +984,11 @@ window.Chart = AnalyticsChart;
                     value: "ByWalletTransactionType"
                 },
                 {
-                    text: "By Year",
+                    text: "By Transaction Year",
                     value: "ByWalletYear"
                 },
                 {
-                    text: "By Timeline (Duration)",
+                    text: "By Transaction Timeline (Duration)",
                     value: "ByWalletTimeline(Duration)"
                 }
 
@@ -7589,13 +7581,8 @@ numbers.push(currentElement.total_clients);
 
 
                     result.forEach(function(currentElement) {
-                        console.log(currentElement.file_type);
-                        if(currentElement.count === 0) {
-                         
-                        labels.push(currentElement.file_type); // Document names for labels
-                        numbers.push(currentElement.count); // Convert 
-                        }
-
+                        labels.push(currentElement.file_type); // Document types for labels
+                        numbers.push(currentElement.count); // Document count
                     });
 
                     const ctx = document.getElementById('myChart');
@@ -19012,7 +18999,7 @@ numbers.push(currentElement.total_clients);
                 url: "{{ route('subscribersReport') }}",
 
                 data: {
-                    type: 'ByUser',
+                    type: 'bySupportStaffChart',
                     subid: subID,
                     startDate: startDate,
                     endDate: endDate
@@ -19028,9 +19015,9 @@ numbers.push(currentElement.total_clients);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
-                        if(currentElement.number_of_tickets !== 0){
-                        labels.push(currentElement.support);
-                        numbers.push(currentElement.number_of_tickets);
+                        if(currentElement.no_of_tickets_solved !== 0){
+                            labels.push(currentElement.username);
+                            numbers.push(currentElement.no_of_tickets_solved);
                         }
                     })
 

@@ -1229,16 +1229,19 @@ class SubscriberFilterController extends Controller
             //     ->orderBy('no_of_docs', 'desc') // Order by highest number of docs
             //     ->limit(50) // Limit results (optional)
             //     ->get();
-            $byDocumentNoofApplications = $query->join('applications', 'client_docs.application_id', '=', 'applications.application_id') // Join applications table
-                ->whereBetween('client_docs.created_at', [$startDate, $endDate]) // Filter by date range
-                ->whereNotNull('client_docs.application_id') // Ensure application_id exists
+            $byDocumentNoofApplications = $query->leftJoin('applications', function ($join) {
+                    $join->on('client_docs.application_id', '=', 'applications.application_id')
+                        ->orOn('client_docs.application_id', '=', 'applications.id');
+                })
+                ->whereBetween('client_docs.created_at', [$startDate, $endDate])
+                ->whereNotNull('client_docs.application_id')
                 ->select(
-                    DB::raw("CONCAT(applications.application_name, ' (', applications.application_id, ')') as application_name"), // Format: Test (1)
-                    DB::raw('COUNT(DISTINCT client_docs.id) as no_of_docs') // Count total number of documents
+                    DB::raw("COALESCE(CONCAT(applications.application_name, ' (', applications.application_id, ')'), CONCAT('Application ', client_docs.application_id)) as application_name"),
+                    DB::raw('COUNT(DISTINCT client_docs.id) as no_of_docs')
                 )
-                ->groupBy('applications.application_id', 'applications.application_name') // Group by application_id & application_name
-                ->orderBy('no_of_docs', 'desc') // Order by highest number of docs
-                ->limit(50) // Limit results (optional)
+                ->groupBy('client_docs.application_id', 'applications.application_id', 'applications.application_name')
+                ->orderBy('no_of_docs', 'desc')
+                ->limit(20)
                 ->get();
 
                     
@@ -1476,7 +1479,7 @@ class SubscriberFilterController extends Controller
             usort($filesWithSize, function ($a, $b) {
                 return $b['file_size'] <=> $a['file_size'];
             });
-            $topFiles = array_slice($filesWithSize, 0, 50);
+            $topFiles = array_slice($filesWithSize, 0, 10);
 
             return response()->json(['data' => $topFiles]);
         } elseif (request()->type == "byFileTypeDocsChart") {
@@ -1486,44 +1489,15 @@ class SubscriberFilterController extends Controller
                 $query->where('client_docs.user_id', $user->id);
             }
 
-            $documents = $query->join('users', 'client_docs.user_id', '=', 'users.id') // Join users table
-                ->select(
-                    'client_docs.doc_file', // Document file path
-                    'client_docs.client_id', // Client ID for file path construction
-                    'users.name as user_name', // User name
-                    DB::raw("SUBSTRING_INDEX(client_docs.doc_file, '.', -1) as file_type") // Extract file type
-                )
-                ->where('client_docs.user_id', $user->id)
-                ->whereBetween('client_docs.created_at', [$startDate, $endDate])
+            $fileTypeCount = $query->whereBetween('client_docs.created_at', [$startDate, $endDate])
+                ->whereNotNull('client_docs.doc_file')
+                ->where('client_docs.doc_file', '!=', '')
+                ->selectRaw("LOWER(SUBSTRING_INDEX(client_docs.doc_file, '.', -1)) as file_type, COUNT(*) as count")
+                ->groupBy('file_type')
+                ->orderBy('count', 'desc')
                 ->get();
 
-            $fileTypeCount = [];
-
-
-            foreach ($documents as $doc) {
-                // Construct the file path
-                $filePath = public_path('web_assets/users/client' . $doc->client_id . '/docs/' . $doc->doc_file);
-
-                // Check if the file exists
-                if (file_exists($filePath)) {
-                    // Get the file type
-                    $fileType = strtolower(pathinfo($filePath, PATHINFO_EXTENSION)); // Normalize to lowercase
-
-                    // If the file type doesn't exist in the array, initialize it
-                    if (!isset($fileTypeCount[$fileType])) {
-                        $fileTypeCount[$fileType] = [
-                            'file_type' => $fileType,
-                            'count' => 0
-                        ];
-                    }
-
-                    // Increment the count for this file type
-                    $fileTypeCount[$fileType]['count']++;
-                }
-            }
-
-            // Return the data as a JSON response
-            return response()->json(['data' => array_values($fileTypeCount)]);
+            return response()->json(['data' => $fileTypeCount]);
         } elseif (request()->type == "byUserRoleChart") {
 
             $query =  new User();
@@ -2765,21 +2739,20 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' =>  $byCommunicationMeetingNoteType]);
         } elseif (request()->type == "byCommunicationMessagesByYear") {
           
-            $query =   new Client_discussions();
-            $query1 = clone $query;
+            $query = new Internal_communications();
 
             if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query =  $query = $query->where('subscriber_id', $user->id);
+                $query = $query->where('subscriber_id', $user->id);
             }
 
             $byUserTimeline = $query
-                // ✅ Ensure correct filtering
+                ->whereBetween('created_at', [$startDate, $endDate])
                 ->select(
-                    DB::raw('YEAR(created_at) AS year'), // ✅ Specify users.created_at to avoid ambiguity
-                    DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
+                    DB::raw('YEAR(created_at) AS year'),
+                    DB::raw('COUNT(*) AS count')
                 )
-                ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-                ->orderBy('year', 'asc') // ✅ Sort by oldest first
+                ->groupBy(DB::raw('YEAR(created_at)'))
+                ->orderBy('year', 'asc')
                 ->get();
 
             return response()->json(['data' => $byUserTimeline]);
@@ -3285,12 +3258,8 @@ class SubscriberFilterController extends Controller
                 'data' => $formattedData
             ]);
         } elseif (request()->type == "byWalletTransactionType") {
-            $query = Referrals::whereNotNull('type')
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->select(
-                    'type',
-                    DB::raw('COUNT(*) as transaction_count') // ✅ Count transactions per type
-                );
+            $query = Referrals::where('type', 'Wallet Transaction')
+                ->whereBetween('created_at', [$startDate, $endDate]);
 
             if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise")
                 && $user->user_type == 'Subscriber'
@@ -3298,26 +3267,15 @@ class SubscriberFilterController extends Controller
                 $query = $query->where('userid', $user->id);
             }
 
-            // ✅ Group transactions by type
-            $transactions = $query->groupBy('type')->get();
+            $transactions = $query->selectRaw("CASE WHEN debit_amount IS NOT NULL AND debit_amount > 0 THEN 'Debit' ELSE 'Credit' END AS transaction_type")
+                ->selectRaw('COUNT(*) as transaction_count')
+                ->groupBy('transaction_type')
+                ->orderByRaw("FIELD(transaction_type, 'Credit', 'Debit')")
+                ->get();
 
-            // ✅ Format the response manually
-            $formattedTransactions = $transactions->map(function ($row) {
-                return [
-                    'transaction_type' => match ($row->type) {
-                        'cashback' => 'Cashback',
-                        'one_off' => 'One-off Credit',
-                        'double_term' => 'Double Subscription Term',
-                        default => ucfirst(str_replace('_', ' ', $row->type)), // ✅ Format unknown types
-                    },
-                    'transaction_count' => $row->transaction_count
-                ];
-            });
-
-            // ✅ Return JSON response
             return response()->json([
                 'status' => 'success',
-                'data' => $formattedTransactions
+                'data' => $transactions
             ]);
         } elseif (request()->type == "byWalletYear") {
             $query = new Referrals();
@@ -3607,26 +3565,21 @@ class SubscriberFilterController extends Controller
             ]);
             
         } elseif (request()->type == "bySupportStaffChart") {
-            $startDate = $this->parseReportDate(request()->start);
-            $endDate = $this->parseReportDate(request()->end, true);
+            $startDate = $this->parseReportDate(request()->input('startDate', request()->start));
+            $endDate = $this->parseReportDate(request()->input('endDate', request()->end), true);
 
-            if (!empty(request()->subid)) {
-                $cd = Tickets::select(
-                    'user_id',
-                    DB::raw('COUNT(id) AS no_of_tickets_solved'),
-                    DB::raw('AVG(TIMESTAMPDIFF(SECOND, `created_at`, `updated_at`)) / 3600 AS avg_time_taken_hours')
-                )->where('subscriber_id', request()->subid)
-                    ->groupBy('user_id')
-                    ->get();
-            } else {
-                $cd = Tickets::select(
-                    'user_id',
-                    DB::raw('COUNT(id) AS no_of_tickets_solved'),
-                    DB::raw('AVG(TIMESTAMPDIFF(SECOND, `created_at`, `updated_at`)) / 3600 AS avg_time_taken_hours')
-                )
-                    ->groupBy('user_id')
-                    ->get();
+            $query = Tickets::whereBetween('created_at', [$startDate, $endDate]);
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query = $query->where('subscriber_id', $user->id);
             }
+
+            $cd = $query->select(
+                'user_id',
+                DB::raw('COUNT(id) AS no_of_tickets_solved'),
+                DB::raw('AVG(TIMESTAMPDIFF(SECOND, `created_at`, `updated_at`)) / 3600 AS avg_time_taken_hours')
+            )
+                ->groupBy('user_id')
+                ->get();
 
 
             $data = $cd->map(function ($row) {
