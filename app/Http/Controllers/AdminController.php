@@ -12,6 +12,8 @@ use Session;
 use Cookie;
 use Validator;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
 use DateTime;
 use DateTimeZone;
@@ -4252,14 +4254,22 @@ class AdminController extends Controller
                 'required',
                 'array',
                 function ($attribute, $value, $fail) {
-                    if (!in_array('All', $value) && count(array_filter($value)) === 0) {
+                    $selectedSubscribers = collect($value)
+                        ->filter(fn ($subscriberId) => $subscriberId !== null && $subscriberId !== '')
+                        ->values();
+
+                    if (!$selectedSubscribers->contains(fn ($subscriberId) => strtolower((string) $subscriberId) === 'all') && $selectedSubscribers->isEmpty()) {
                         $fail('Please select at least one subscriber.');
                     }
                 },
             ],
             'subscribers.*' => [
                 function ($attribute, $value, $fail) {
-                    if ($value !== 'All' && !\App\Models\User::where('id', $value)->exists()) {
+                    if (strtolower((string) $value) === 'all') {
+                        return;
+                    }
+
+                    if (!User::where('id', $value)->where('user_type', 'Subscriber')->exists()) {
                         $fail('Invalid subscriber selected.');
                     }
                 },
@@ -4270,22 +4280,22 @@ class AdminController extends Controller
             'offer_start_date' => 'required_if:subscriber_type,new|nullable|date',
             'offer_end_date' => 'required_if:subscriber_type,new|nullable|date|after_or_equal:offer_start_date',
         ]);
-    
-        $subscribe = $validated['subscribers'];
+
+        $subscribe = collect($validated['subscribers'])
+            ->filter(fn ($subscriberId) => $subscriberId !== null && $subscriberId !== '')
+            ->values();
         $type = $validated['discount_type'];
-        $value = $validated['discount_value'] ?? null;
+        $value = isset($validated['discount_value']) ? (float) $validated['discount_value'] : null;
         $subscriberType = $validated['subscriber_type'];
         $offerStartDate = $validated['offer_start_date'] ?? null;
         $offerEndDate = $validated['offer_end_date'] ?? null;
         $subscriberData = [];
-    
-        // Handle "All" (case-insensitive)
-        if (collect($subscribe)->contains(function ($item) {
-            return strtolower($item) === 'all';
-        })) {
-            $subscriberQuery = User::where('user_type', 'Subscriber');
-        } else {
-            $subscriberQuery = User::whereIn('id', $subscribe)->where('user_type', 'Subscriber');
+        $skippedSubscribers = [];
+
+        $subscriberQuery = User::where('user_type', 'Subscriber');
+
+        if (!$subscribe->contains(fn ($subscriberId) => strtolower((string) $subscriberId) === 'all')) {
+            $subscriberQuery->whereIn('id', $subscribe->all());
         }
 
         if ($subscriberType === 'new') {
@@ -4302,79 +4312,118 @@ class AdminController extends Controller
                 'message' => 'No subscribers found for the selected criteria.'
             ], 422);
         }
-    
-        foreach ($subscribers as $subscriber) {
-            $debit = 0;
-            $wallet_balance = $subscriber->wallet;
-            $previous_balance = $subscriber->wallet;
-    
-            if ($type === 'cashback') {
-                $member = Membership::where('plan_name', $subscriber->membership)->first();
-                if (!$member) {
-                    continue;
+
+        DB::transaction(function () use ($subscribers, $type, $value, $subscriberType, $offerStartDate, $offerEndDate, &$subscriberData, &$skippedSubscribers) {
+            foreach ($subscribers as $subscriber) {
+                $debit = 0;
+                $previousBalance = (float) ($subscriber->wallet ?? 0);
+                $walletBalance = $previousBalance;
+
+                if ($type === 'cashback') {
+                    $member = Membership::where('plan_name', $subscriber->membership)->first();
+
+                    if (!$member || (float) $member->price_per_year <= 0) {
+                        $skippedSubscribers[] = $subscriber->name ?: $subscriber->email ?: ('Subscriber #' . $subscriber->id);
+                        continue;
+                    }
+
+                    $debit = round((float) $member->price_per_year * ($value / 100), 2);
+                    $subscriber->wallet = $previousBalance + $debit;
+                    $walletBalance = (float) $subscriber->wallet;
+                } elseif ($type === 'one_off') {
+                    $debit = round($value, 2);
+                    $subscriber->wallet = $previousBalance + $debit;
+                    $walletBalance = (float) $subscriber->wallet;
+                } elseif ($type === 'double_term') {
+                    $expiryDate = $subscriber->membership_expiry_date
+                        ? Carbon::parse($subscriber->membership_expiry_date)
+                        : Carbon::now();
+                    $subscriber->membership_expiry_date = $expiryDate->addYear()->toDateString();
                 }
 
-                $debit = $member->price_per_year * ($value / 100);
-                $subscriber->wallet += $debit;
-                $wallet_balance = $subscriber->wallet;
-    
-            } elseif ($type === 'one_off') {
-                $debit = $value;
-                $subscriber->wallet += $value;
-                $wallet_balance = $subscriber->wallet;
-    
-            } elseif ($type === 'double_term') {
-                $subscriber->membership_expiry_date = Carbon::parse($subscriber->membership_expiry_date)->addYears(1);
-                // Wallet doesn't change here
+                $subscriber->save();
+
+                $offerAttributes = [
+                    'user_id' => $subscriber->id,
+                    'discount_type' => $type,
+                    'discount_value' => $value,
+                ];
+
+                if (Schema::hasColumn('offers', 'subscriber_type')) {
+                    $offerAttributes['subscriber_type'] = $subscriberType;
+                }
+
+                if (Schema::hasColumn('offers', 'offer_start_date')) {
+                    $offerAttributes['offer_start_date'] = $offerStartDate;
+                }
+
+                if (Schema::hasColumn('offers', 'offer_end_date')) {
+                    $offerAttributes['offer_end_date'] = $offerEndDate;
+                }
+
+                $offer = Offers::create($offerAttributes);
+
+                $saveReferral = new Referrals();
+                $saveReferral->referral_code = $subscriber->referral;
+                $saveReferral->userid = $subscriber->id;
+                $saveReferral->user_name = $subscriber->name;
+                $saveReferral->total_amount = $subscriber->wallet;
+                $saveReferral->type = $type;
+                $saveReferral->amount_added = $debit;
+                $saveReferral->offer_id = $offer->id;
+                $saveReferral->previous_balance = $previousBalance;
+                $saveReferral->wallet_balance = $walletBalance;
+                $saveReferral->save();
+
+                $subscriberData[] = [
+                    'name' => $subscriber->name,
+                    'email' => $subscriber->email,
+                    'type' => $type,
+                    'value' => $value,
+                    'credit_amount' => round($debit, 2),
+                    'description' => $type === 'one_off'
+                        ? 'One-off Credit / Offer / Dispute Resolution'
+                        : ($type === 'cashback' ? 'Discount / Cashback' : 'Double Term'),
+                ];
             }
-    
-            $offer = Offers::create([
-                'user_id' => $subscriber->id,
-                'discount_type' => $type,
-                'discount_value' => $value,
-                'subscriber_type' => $subscriberType,
-                'offer_start_date' => $offerStartDate,
-                'offer_end_date' => $offerEndDate,
-            ]);
-    
-            Referrals::create([
-                'referral_code' => $subscriber->referral,
-                'userid' => $subscriber->id,
-                'user_name' => $subscriber->name,
-                'total_amount' => $subscriber->wallet,
-                'type' => $type,
-                'amount_added' => $debit,
-                'offer_id' => $offer->id,
-                'previous_balance' => $previous_balance,
-                'wallet_balance' => $wallet_balance,
-            ]);
-    
-            $subscriber->save();
-    
-            $subscriberData[] = [
-                'name' => $subscriber->name,
-                'email' => $subscriber->email,
-                'type' => $type,
-                'value' => $value,
-                'credit_amount' => round($debit, 2),
-                'description' => $type === 'one_off'
-                    ? 'One-off Credit / Offer / Dispute Resolution'
-                    : ($type === 'cashback' ? 'Discount / Cashback' : 'Double Term'),
-            ];
+        });
+
+        if (empty($subscriberData)) {
+            return response()->json([
+                'message' => 'No discounts or offers were applied. Cashback requires each selected subscriber to have a membership plan with a yearly price.',
+                'skipped_subscribers' => $skippedSubscribers,
+            ], 422);
         }
 
-        // Send separate email to each subscriber so each one gets their own details.
+        $mailFailures = 0;
         foreach ($subscriberData as $subscriber) {
-            Mail::send([], [], function ($message) use ($subscriber) {
-                $message->to($subscriber['email'])
-                    ->subject('Wallet Credit / Offer Applied')
-                    ->setBody(view('web.offer_appliedtemplate', $subscriber)->render(), 'text/html');
-            });
+            try {
+                Mail::send('web.offer_appliedtemplate', $subscriber, function ($message) use ($subscriber) {
+                    $message->to($subscriber['email'])
+                        ->subject('Wallet Credit / Offer Applied');
+                });
+            } catch (\Throwable $exception) {
+                $mailFailures++;
+                Log::warning('Offer applied but notification email failed.', [
+                    'email' => $subscriber['email'] ?? null,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+        $message = 'Offer applied successfully!';
+        if ($mailFailures > 0) {
+            $message .= ' Some notification emails could not be sent, but the discount/offer was saved.';
+        }
+        if (!empty($skippedSubscribers)) {
+            $message .= ' Some subscribers were skipped because their membership plan price is missing.';
         }
 
         return response()->json([
-            'message' => 'Offer applied successfully!',
+            'message' => $message,
             'processed_subscribers' => count($subscriberData),
+            'skipped_subscribers' => $skippedSubscribers,
+            'email_failures' => $mailFailures,
         ]);
     }
     

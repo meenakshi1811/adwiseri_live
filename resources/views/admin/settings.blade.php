@@ -876,6 +876,7 @@
                 const subscriberType = $('#subscriber_type').val();
                 const offerStartDate = $('#offer_start_date').val();
                 const offerEndDate = $('#offer_end_date').val();
+                const saveButton = $('#save-offers-settings');
 
                 if ((discountType === 'cashback' || discountType === 'one_off') && (discountValue === '' || parseFloat(discountValue) < 1)) {
                     Swal.fire({
@@ -914,6 +915,7 @@
                 }
 
                 const formData = {
+                    _token: "{{ csrf_token() }}",
                     discount_value: discountValue,
                     subscribers: selectedSubscribers,
                     discount_type: discountType,
@@ -921,6 +923,8 @@
                     offer_start_date: offerStartDate,
                     offer_end_date: offerEndDate,
                 };
+
+                saveButton.prop('disabled', true).text('Applying...');
 
                 $.ajax({
                     url: "{{ url('offers_store') }}",
@@ -944,11 +948,17 @@
                                 message = firstError[0];
                             }
                         }
+                        if (xhr.status === 419) {
+                            message = 'Your session expired. Please refresh the page and try again.';
+                        }
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
                             text: message,
                         });
+                    },
+                    complete: function () {
+                        saveButton.prop('disabled', false).text('Apply & Save');
                     },
                 });
             });
