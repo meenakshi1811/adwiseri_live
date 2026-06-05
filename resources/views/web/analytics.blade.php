@@ -739,18 +739,10 @@ window.Chart = AnalyticsChart;
                 {
                     text: " By No. of Meeting Notes By Type ",
                     value: "ByCommunicationMeetingNotesType"
-                },                
-                {
-                    text: "By Timeline (Duration)",
-                    value: "ByCommunicationMeetingNotesByTimeline(Duration)"
                 },
                 {
                     text: "By No. of Messages By Year",
                     value: "ByCommunicationMessagesByYear"
-                },
-                {
-                    text: "By No. of Meeting Notes By Year",
-                    value: "ByNoOfMeetingNotesByYear"
                 },
 
 
