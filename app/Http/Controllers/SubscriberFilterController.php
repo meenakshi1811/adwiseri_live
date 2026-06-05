@@ -2741,17 +2741,19 @@ class SubscriberFilterController extends Controller
           
             $query = new Internal_communications();
 
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+            if (!empty(request()->subid)) {
+                $query = $query->where('subscriber_id', request()->subid);
+            } elseif (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
                 $query = $query->where('subscriber_id', $user->id);
             }
 
             $byUserTimeline = $query
-                ->whereBetween('created_at', [$startDate, $endDate])
+                ->whereBetween('internal_communications.created_at', [$startDate, $endDate])
                 ->select(
-                    DB::raw('YEAR(created_at) AS year'),
+                    DB::raw('YEAR(internal_communications.created_at) AS year'),
                     DB::raw('COUNT(*) AS count')
                 )
-                ->groupBy(DB::raw('YEAR(created_at)'))
+                ->groupBy(DB::raw('YEAR(internal_communications.created_at)'))
                 ->orderBy('year', 'asc')
                 ->get();
 
