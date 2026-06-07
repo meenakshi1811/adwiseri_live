@@ -17254,13 +17254,25 @@ numbers.push(currentElement.total_clients);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
-                        // Concatenate user_name with operation_type (Credit/Debit)
-                        if(currentElement.transaction_count){
-                        labels.push(currentElement.transaction_type);
-                        numbers.push(currentElement
-                            .transaction_count); // Display total balance change as the number
+                        const transactionType = currentElement.transaction_type || currentElement.TransactionType || '';
+                        const transactionCount = Number(currentElement.transaction_count || 0);
+
+                        if (transactionType && transactionCount > 0) {
+                            labels.push(transactionType);
+                            numbers.push(transactionCount);
                         }
                     })
+
+                    if (labels.length === 0) {
+                        $('#downloadPdf').prop('disabled', true);
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'No Data Available',
+                            text: 'No Data found for chart : ' + title,
+                            confirmButtonText: 'OK'
+                        });
+                        return;
+                    }
 
                     const ctx = document.getElementById('myChart');
                     const dynamicColors = generateDistinctColors(labels.length);
@@ -17315,13 +17327,13 @@ numbers.push(currentElement.total_clients);
                                     callbacks: {
                                         label: function(tooltipItem) {
                                             const dataValue = tooltipItem.raw || '';
-                                            return `Balance Change: ${dataValue}`;
+                                            return `No. of Transactions: ${dataValue}`;
                                         },
                                         beforeBody: function(tooltipItem) {
                                             const datasetLabel = tooltipItem[0].dataset.label ||
                                                 '';
                                             const dataLabel = tooltipItem[0].label || '';
-                                            return `User: ${dataLabel}`;
+                                            return `Trans-Type: ${dataLabel}`;
                                         },
                                         afterBody: function(tooltipItem) {
                                             const dataValue = tooltipItem[0].raw || '';

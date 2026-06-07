@@ -3260,29 +3260,99 @@ class SubscriberFilterController extends Controller
                 'data' => $formattedData
             ]);
         } elseif (request()->type == "byWalletTransactionType") {
-            $query = Referrals::where('type', 'Wallet Transaction')
-                ->whereBetween('created_at', [$startDate, $endDate]);
+            $walletOwner = $user;
 
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise")
-                && $user->user_type == 'Subscriber'
-            ) {
-                $query = $query->where('userid', $user->id);
+            if ($user->user_type !== 'Subscriber' && !empty($user->added_by)) {
+                $walletOwner = User::find($user->added_by) ?? $user;
             }
 
-            $transactions = $query->selectRaw("CASE WHEN debit_amount IS NOT NULL AND debit_amount > 0 THEN 'Debit' ELSE 'Credit' END AS transaction_type")
-                ->selectRaw('COUNT(*) as transaction_count')
+            $query = Referrals::whereBetween('created_at', [$startDate, $endDate]);
+
+            if (($walletOwner->membership == 'Adwiseri' || $walletOwner->membership == "Adwiseri+" || $walletOwner->membership == "Enterprise")
+                && $walletOwner->user_type == 'Subscriber'
+            ) {
+                $query = $query->where(function ($walletQuery) use ($walletOwner) {
+                    $walletQuery->where('userid', $walletOwner->id);
+
+                    if (!empty($walletOwner->referral)) {
+                        $walletQuery->orWhere('referral_code', $walletOwner->referral);
+                    }
+                });
+            }
+
+            $transactions = $query->whereNotNull('type')
+                ->get(['type'])
+                ->map(function ($walletTransaction) {
+                    $rawType = trim((string) $walletTransaction->type);
+                    $normalizedType = strtolower(str_replace([' ', '-'], '_', $rawType));
+
+                    switch ($normalizedType) {
+                        case 'cashback':
+                            $displayText = 'Cashback';
+                            break;
+                        case 'one_off':
+                        case 'one_off_credit':
+                            $displayText = 'One-off credit';
+                            break;
+                        case 'double_term':
+                            $displayText = 'Double the subscription term';
+                            break;
+                        case 'wallet_transaction':
+                        case 'purchase':
+                            $displayText = 'Purchase';
+                            break;
+                        case 'renewal':
+                            $displayText = 'Renewal';
+                            break;
+                        case 'upgrade':
+                            $displayText = 'Upgrade';
+                            break;
+                        case 'dispute':
+                        case 'dispute_resolution':
+                            $displayText = 'Dispute resolution';
+                            break;
+                        default:
+                            $displayText = $rawType;
+                            break;
+                    }
+
+                    return [
+                        'transaction_type' => $displayText,
+                    ];
+                })
+                ->filter(function ($walletTransaction) {
+                    return $walletTransaction['transaction_type'] !== '';
+                })
                 ->groupBy('transaction_type')
-                ->orderByRaw("FIELD(transaction_type, 'Credit', 'Debit')")
-                ->get();
+                ->map(function ($groupedTransactions, $transactionType) {
+                    return [
+                        'transaction_type' => $transactionType,
+                        'transaction_count' => $groupedTransactions->count(),
+                    ];
+                })
+                ->sortBy('transaction_type')
+                ->values();
 
             return response()->json([
                 'status' => 'success',
                 'data' => $transactions
             ]);
         } elseif (request()->type == "byWalletYear") {
-            $query = new Referrals();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query = $query->where('userid', $user->id);
+            $walletOwner = $user;
+
+            if ($user->user_type !== 'Subscriber' && !empty($user->added_by)) {
+                $walletOwner = User::find($user->added_by) ?? $user;
+            }
+
+            $query = Referrals::query();
+            if (($walletOwner->membership == 'Adwiseri' || $walletOwner->membership == 'Adwiseri+' || $walletOwner->membership == 'Enterprise') && $walletOwner->user_type == 'Subscriber') {
+                $query = $query->where(function ($walletQuery) use ($walletOwner) {
+                    $walletQuery->where('userid', $walletOwner->id);
+
+                    if (!empty($walletOwner->referral)) {
+                        $walletQuery->orWhere('referral_code', $walletOwner->referral);
+                    }
+                });
             }
 
             $byUserTimeline = $query
@@ -3309,15 +3379,32 @@ class SubscriberFilterController extends Controller
             // Get Inspection Start Date (modify this based on where the date is stored)
             
             // Base Query
-            $query =   new Referrals ();
-            
+            $walletOwner = $user;
+
+            if ($user->user_type !== 'Subscriber' && !empty($user->added_by)) {
+                $walletOwner = User::find($user->added_by) ?? $user;
+            }
+
+            $query = Referrals::query();
             $query1 = clone $query;
             
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') 
-                && $user->user_type == 'Subscriber') {
-                $query = $query->where('userid', $user->id)->whereYear('created_at', '=', $currentYear);
+            if (($walletOwner->membership == 'Adwiseri' || $walletOwner->membership == 'Adwiseri+' || $walletOwner->membership == 'Enterprise')
+                && $walletOwner->user_type == 'Subscriber') {
+                $query = $query->where(function ($walletQuery) use ($walletOwner) {
+                    $walletQuery->where('userid', $walletOwner->id);
+
+                    if (!empty($walletOwner->referral)) {
+                        $walletQuery->orWhere('referral_code', $walletOwner->referral);
+                    }
+                })->whereYear('created_at', '=', $currentYear);
                 // $query1 = $query1->where('users.referral_code', $user->referral);;
-                $inspectionStartDate = $query1->where('userid', $user->id)->orderBy('created_at','asc')->first();
+                $inspectionStartDate = $query1->where(function ($walletQuery) use ($walletOwner) {
+                    $walletQuery->where('userid', $walletOwner->id);
+
+                    if (!empty($walletOwner->referral)) {
+                        $walletQuery->orWhere('referral_code', $walletOwner->referral);
+                    }
+                })->orderBy('created_at','asc')->first();
             }else{
                 $inspectionStartDate = $query1->orderBy('created_at','asc')->first();
             }
@@ -3395,18 +3482,17 @@ class SubscriberFilterController extends Controller
                 ->merge($lastWeekApplications)
                 ->merge($lastMonthApplications)
                 ->merge($lastQuarterApplications)
-                ->merge($weeklyApplications)
-                ->merge($quarterlyApplications)
-                ->merge($monthlyApplications)
                 ->merge($sinceInspectionData); // ✅ Replacing past year with "Since Inception"
             
             // 🔹 Format Data for Output
-            $formattedData = $formattedData->map(function ($item) {
+            $formattedData = $formattedData->filter(function ($item) {
+                return !empty($item['type']);
+            })->map(function ($item) {
                 return [
                     'type' => $item['type'],
                     'count' => $item['count'],
                 ];
-            });
+            })->values();
             
             return response()->json([
                 'status' => 'success',
