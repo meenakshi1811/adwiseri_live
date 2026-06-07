@@ -3260,17 +3260,41 @@ class SubscriberFilterController extends Controller
                 'data' => $formattedData
             ]);
         } elseif (request()->type == "byWalletTransactionType") {
-            $query = Referrals::where('type', 'Wallet Transaction')
-                ->whereBetween('created_at', [$startDate, $endDate]);
+            $walletOwner = $user;
 
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise")
-                && $user->user_type == 'Subscriber'
-            ) {
-                $query = $query->where('userid', $user->id);
+            if ($user->user_type !== 'Subscriber' && !empty($user->added_by)) {
+                $walletOwner = User::find($user->added_by) ?? $user;
             }
 
-            $transactions = $query->selectRaw("CASE WHEN debit_amount IS NOT NULL AND debit_amount > 0 THEN 'Debit' ELSE 'Credit' END AS transaction_type")
+            $query = Referrals::whereBetween('created_at', [$startDate, $endDate])
+                ->where(function ($walletQuery) {
+                    $walletQuery->where('type', 'Wallet Transaction')
+                        ->orWhereNotNull('amount_added')
+                        ->orWhereNotNull('debit_amount')
+                        ->orWhereColumn('wallet_balance', '<>', 'previous_balance');
+                });
+
+            if (($walletOwner->membership == 'Adwiseri' || $walletOwner->membership == "Adwiseri+" || $walletOwner->membership == "Enterprise")
+                && $walletOwner->user_type == 'Subscriber'
+            ) {
+                $query = $query->where(function ($walletOwnerQuery) use ($walletOwner) {
+                    $walletOwnerQuery->where('userid', $walletOwner->id);
+
+                    if (!empty($walletOwner->referral)) {
+                        $walletOwnerQuery->orWhere('referral_code', $walletOwner->referral);
+                    }
+                });
+            }
+
+            $transactionTypeExpression = "CASE
+                WHEN COALESCE(wallet_balance, 0) < COALESCE(previous_balance, 0) OR COALESCE(debit_amount, 0) > 0 THEN 'Debit'
+                WHEN COALESCE(wallet_balance, 0) > COALESCE(previous_balance, 0) OR COALESCE(amount_added, 0) > 0 THEN 'Credit'
+                ELSE NULL
+            END";
+
+            $transactions = $query->selectRaw("$transactionTypeExpression AS transaction_type")
                 ->selectRaw('COUNT(*) as transaction_count')
+                ->whereRaw("$transactionTypeExpression IS NOT NULL")
                 ->groupBy('transaction_type')
                 ->orderByRaw("FIELD(transaction_type, 'Credit', 'Debit')")
                 ->get();
