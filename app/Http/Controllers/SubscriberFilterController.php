@@ -3266,29 +3266,20 @@ class SubscriberFilterController extends Controller
                 $walletOwner = User::find($user->added_by) ?? $user;
             }
 
-            $query = Referrals::whereBetween('created_at', [$startDate, $endDate])
-                ->where(function ($walletQuery) {
-                    $walletQuery->where('type', 'Wallet Transaction')
-                        ->orWhereNotNull('amount_added')
-                        ->orWhereNotNull('debit_amount')
-                        ->orWhereColumn('wallet_balance', '<>', 'previous_balance');
-                });
+            $query = Referrals::where('type', 'Wallet Transaction')
+                ->whereBetween('created_at', [$startDate, $endDate]);
 
             if (($walletOwner->membership == 'Adwiseri' || $walletOwner->membership == "Adwiseri+" || $walletOwner->membership == "Enterprise")
                 && $walletOwner->user_type == 'Subscriber'
             ) {
-                $query = $query->where(function ($walletOwnerQuery) use ($walletOwner) {
-                    $walletOwnerQuery->where('userid', $walletOwner->id);
-
-                    if (!empty($walletOwner->referral)) {
-                        $walletOwnerQuery->orWhere('referral_code', $walletOwner->referral);
-                    }
-                });
+                $query = $query->where('userid', $walletOwner->id);
             }
 
             $transactionTypeExpression = "CASE
-                WHEN COALESCE(wallet_balance, 0) < COALESCE(previous_balance, 0) OR COALESCE(debit_amount, 0) > 0 THEN 'Debit'
-                WHEN COALESCE(wallet_balance, 0) > COALESCE(previous_balance, 0) OR COALESCE(amount_added, 0) > 0 THEN 'Credit'
+                WHEN COALESCE(amount_added, 0) > 0 THEN 'Credit'
+                WHEN COALESCE(debit_amount, 0) > 0 THEN 'Debit'
+                WHEN COALESCE(wallet_balance, 0) > COALESCE(previous_balance, 0) THEN 'Credit'
+                WHEN COALESCE(wallet_balance, 0) < COALESCE(previous_balance, 0) THEN 'Debit'
                 ELSE NULL
             END";
 
@@ -3304,9 +3295,15 @@ class SubscriberFilterController extends Controller
                 'data' => $transactions
             ]);
         } elseif (request()->type == "byWalletYear") {
-            $query = new Referrals();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query = $query->where('userid', $user->id);
+            $walletOwner = $user;
+
+            if ($user->user_type !== 'Subscriber' && !empty($user->added_by)) {
+                $walletOwner = User::find($user->added_by) ?? $user;
+            }
+
+            $query = Referrals::where('type', 'Wallet Transaction');
+            if (($walletOwner->membership == 'Adwiseri' || $walletOwner->membership == 'Adwiseri+' || $walletOwner->membership == 'Enterprise') && $walletOwner->user_type == 'Subscriber') {
+                $query = $query->where('userid', $walletOwner->id);
             }
 
             $byUserTimeline = $query
@@ -3333,15 +3330,20 @@ class SubscriberFilterController extends Controller
             // Get Inspection Start Date (modify this based on where the date is stored)
             
             // Base Query
-            $query =   new Referrals ();
-            
+            $walletOwner = $user;
+
+            if ($user->user_type !== 'Subscriber' && !empty($user->added_by)) {
+                $walletOwner = User::find($user->added_by) ?? $user;
+            }
+
+            $query = Referrals::where('type', 'Wallet Transaction');
             $query1 = clone $query;
             
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') 
-                && $user->user_type == 'Subscriber') {
-                $query = $query->where('userid', $user->id)->whereYear('created_at', '=', $currentYear);
+            if (($walletOwner->membership == 'Adwiseri' || $walletOwner->membership == 'Adwiseri+' || $walletOwner->membership == 'Enterprise')
+                && $walletOwner->user_type == 'Subscriber') {
+                $query = $query->where('userid', $walletOwner->id)->whereYear('created_at', '=', $currentYear);
                 // $query1 = $query1->where('users.referral_code', $user->referral);;
-                $inspectionStartDate = $query1->where('userid', $user->id)->orderBy('created_at','asc')->first();
+                $inspectionStartDate = $query1->where('userid', $walletOwner->id)->orderBy('created_at','asc')->first();
             }else{
                 $inspectionStartDate = $query1->orderBy('created_at','asc')->first();
             }
@@ -3419,18 +3421,17 @@ class SubscriberFilterController extends Controller
                 ->merge($lastWeekApplications)
                 ->merge($lastMonthApplications)
                 ->merge($lastQuarterApplications)
-                ->merge($weeklyApplications)
-                ->merge($quarterlyApplications)
-                ->merge($monthlyApplications)
                 ->merge($sinceInspectionData); // ✅ Replacing past year with "Since Inception"
             
             // 🔹 Format Data for Output
-            $formattedData = $formattedData->map(function ($item) {
+            $formattedData = $formattedData->filter(function ($item) {
+                return !empty($item['type']);
+            })->map(function ($item) {
                 return [
                     'type' => $item['type'],
                     'count' => $item['count'],
                 ];
-            });
+            })->values();
             
             return response()->json([
                 'status' => 'success',
