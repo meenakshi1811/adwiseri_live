@@ -17333,7 +17333,7 @@ numbers.push(currentElement.total_clients);
                                             const datasetLabel = tooltipItem[0].dataset.label ||
                                                 '';
                                             const dataLabel = tooltipItem[0].label || '';
-                                            return `Transaction Type: ${dataLabel}`;
+                                            return `Trans-Type: ${dataLabel}`;
                                         },
                                         afterBody: function(tooltipItem) {
                                             const dataValue = tooltipItem[0].raw || '';

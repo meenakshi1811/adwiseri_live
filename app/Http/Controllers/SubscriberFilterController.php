@@ -3280,20 +3280,58 @@ class SubscriberFilterController extends Controller
                 });
             }
 
-            $transactionTypeExpression = "CASE
-                WHEN COALESCE(amount_added, 0) > 0 THEN 'Credit'
-                WHEN COALESCE(debit_amount, 0) > 0 THEN 'Debit'
-                WHEN COALESCE(wallet_balance, 0) > COALESCE(previous_balance, 0) THEN 'Credit'
-                WHEN COALESCE(wallet_balance, 0) < COALESCE(previous_balance, 0) THEN 'Debit'
-                ELSE NULL
-            END";
+            $transactions = $query->whereNotNull('type')
+                ->get(['type'])
+                ->map(function ($walletTransaction) {
+                    $rawType = trim((string) $walletTransaction->type);
+                    $normalizedType = strtolower(str_replace([' ', '-'], '_', $rawType));
 
-            $transactions = $query->selectRaw("$transactionTypeExpression AS transaction_type")
-                ->selectRaw('COUNT(*) as transaction_count')
-                ->whereRaw("$transactionTypeExpression IS NOT NULL")
+                    switch ($normalizedType) {
+                        case 'cashback':
+                            $displayText = 'Cashback';
+                            break;
+                        case 'one_off':
+                        case 'one_off_credit':
+                            $displayText = 'One-off credit';
+                            break;
+                        case 'double_term':
+                            $displayText = 'Double the subscription term';
+                            break;
+                        case 'wallet_transaction':
+                        case 'purchase':
+                            $displayText = 'Purchase';
+                            break;
+                        case 'renewal':
+                            $displayText = 'Renewal';
+                            break;
+                        case 'upgrade':
+                            $displayText = 'Upgrade';
+                            break;
+                        case 'dispute':
+                        case 'dispute_resolution':
+                            $displayText = 'Dispute resolution';
+                            break;
+                        default:
+                            $displayText = $rawType;
+                            break;
+                    }
+
+                    return [
+                        'transaction_type' => $displayText,
+                    ];
+                })
+                ->filter(function ($walletTransaction) {
+                    return $walletTransaction['transaction_type'] !== '';
+                })
                 ->groupBy('transaction_type')
-                ->orderByRaw("FIELD(transaction_type, 'Credit', 'Debit')")
-                ->get();
+                ->map(function ($groupedTransactions, $transactionType) {
+                    return [
+                        'transaction_type' => $transactionType,
+                        'transaction_count' => $groupedTransactions->count(),
+                    ];
+                })
+                ->sortBy('transaction_type')
+                ->values();
 
             return response()->json([
                 'status' => 'success',
