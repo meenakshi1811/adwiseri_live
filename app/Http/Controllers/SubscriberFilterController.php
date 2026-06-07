@@ -3266,13 +3266,18 @@ class SubscriberFilterController extends Controller
                 $walletOwner = User::find($user->added_by) ?? $user;
             }
 
-            $query = Referrals::where('type', 'Wallet Transaction')
-                ->whereBetween('created_at', [$startDate, $endDate]);
+            $query = Referrals::whereBetween('created_at', [$startDate, $endDate]);
 
             if (($walletOwner->membership == 'Adwiseri' || $walletOwner->membership == "Adwiseri+" || $walletOwner->membership == "Enterprise")
                 && $walletOwner->user_type == 'Subscriber'
             ) {
-                $query = $query->where('userid', $walletOwner->id);
+                $query = $query->where(function ($walletQuery) use ($walletOwner) {
+                    $walletQuery->where('userid', $walletOwner->id);
+
+                    if (!empty($walletOwner->referral)) {
+                        $walletQuery->orWhere('referral_code', $walletOwner->referral);
+                    }
+                });
             }
 
             $transactionTypeExpression = "CASE
@@ -3301,9 +3306,15 @@ class SubscriberFilterController extends Controller
                 $walletOwner = User::find($user->added_by) ?? $user;
             }
 
-            $query = Referrals::where('type', 'Wallet Transaction');
+            $query = Referrals::query();
             if (($walletOwner->membership == 'Adwiseri' || $walletOwner->membership == 'Adwiseri+' || $walletOwner->membership == 'Enterprise') && $walletOwner->user_type == 'Subscriber') {
-                $query = $query->where('userid', $walletOwner->id);
+                $query = $query->where(function ($walletQuery) use ($walletOwner) {
+                    $walletQuery->where('userid', $walletOwner->id);
+
+                    if (!empty($walletOwner->referral)) {
+                        $walletQuery->orWhere('referral_code', $walletOwner->referral);
+                    }
+                });
             }
 
             $byUserTimeline = $query
@@ -3336,14 +3347,26 @@ class SubscriberFilterController extends Controller
                 $walletOwner = User::find($user->added_by) ?? $user;
             }
 
-            $query = Referrals::where('type', 'Wallet Transaction');
+            $query = Referrals::query();
             $query1 = clone $query;
             
             if (($walletOwner->membership == 'Adwiseri' || $walletOwner->membership == 'Adwiseri+' || $walletOwner->membership == 'Enterprise')
                 && $walletOwner->user_type == 'Subscriber') {
-                $query = $query->where('userid', $walletOwner->id)->whereYear('created_at', '=', $currentYear);
+                $query = $query->where(function ($walletQuery) use ($walletOwner) {
+                    $walletQuery->where('userid', $walletOwner->id);
+
+                    if (!empty($walletOwner->referral)) {
+                        $walletQuery->orWhere('referral_code', $walletOwner->referral);
+                    }
+                })->whereYear('created_at', '=', $currentYear);
                 // $query1 = $query1->where('users.referral_code', $user->referral);;
-                $inspectionStartDate = $query1->where('userid', $walletOwner->id)->orderBy('created_at','asc')->first();
+                $inspectionStartDate = $query1->where(function ($walletQuery) use ($walletOwner) {
+                    $walletQuery->where('userid', $walletOwner->id);
+
+                    if (!empty($walletOwner->referral)) {
+                        $walletQuery->orWhere('referral_code', $walletOwner->referral);
+                    }
+                })->orderBy('created_at','asc')->first();
             }else{
                 $inspectionStartDate = $query1->orderBy('created_at','asc')->first();
             }
