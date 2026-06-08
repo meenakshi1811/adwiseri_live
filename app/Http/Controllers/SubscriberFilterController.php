@@ -95,12 +95,36 @@ class SubscriberFilterController extends Controller
     }
 
 
+    private function resolveReportSubscriberId($user): ?int
+    {
+        if (request()->filled('subid')) {
+            return (int) request()->input('subid');
+        }
+
+        if ($user->user_type === 'Subscriber') {
+            return (int) $user->id;
+        }
+
+        if ($user->user_type !== 'admin' && !empty($user->added_by)) {
+            return (int) $user->added_by;
+        }
+
+        return null;
+    }
+
+    private function scopeQueryToSubscriber($query, ?int $subscriberId, string $column = 'subscriber_id')
+    {
+        return $subscriberId ? $query->where($column, $subscriberId) : $query;
+    }
+
+
     public function subscribersReport()
     {
         // This is for tabs
         $user = auth()->user();
         $startDate = $this->parseReportDate(request()->input('startDate'));
         $endDate = $this->parseReportDate(request()->input('endDate'), true);
+        $reportSubscriberId = $this->resolveReportSubscriberId($user);
         if (request()->type == "country") {
 
             if ($user->user_type == 'admin') {
@@ -692,9 +716,11 @@ class SubscriberFilterController extends Controller
                 ->get();
 
             // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData = clone $query1;
+            $sinceInspectionData = (clone $query1);
+            if ($inspectionStartDate) {
+                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
+            }
             $sinceInspectionData = $sinceInspectionData
-                ->whereDate('created_at', '>=', $inspectionStartDate->created_at) 
                 ->selectRaw("'Since Inception' as type, COUNT(*) as count")
                 ->get();
             
@@ -863,15 +889,32 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' => $byApplicationType]);
         } elseif (request()->type == "byApplicationStatus") {
 
-            $query = Applications::query();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', request()->subid);
-            }
+            $applicationStatusOrder = [
+                'Client Registered',
+                'Client Counselled',
+                'Preparation',
+                'Apointment Booked',
+                'Applied',
+                'Decision',
+                'Appeal Lodged',
+                'Appeal Decision',
+                'AR / JR Lodged',
+                'AR / JR Decision',
+                'Withdrawn',
+                'Cancelled',
+            ];
+
+            $query = $this->scopeQueryToSubscriber(Applications::query(), $reportSubscriberId);
 
             $byApplicationStatus = $query->whereBetween('created_at', [$startDate, $endDate])
-                ->selectRaw("COALESCE(NULLIF(application_status, ''), 'Not Set') as application_status, COUNT(*) as status_count")
+                ->whereIn('application_status', $applicationStatusOrder)
+                ->select('application_status')
+                ->selectRaw('COUNT(*) as status_count')
                 ->groupBy('application_status')
-                ->orderBy('status_count', 'desc')
+                ->orderByRaw(
+                    'FIELD(application_status, ' . implode(',', array_fill(0, count($applicationStatusOrder), '?')) . ')',
+                    $applicationStatusOrder
+                )
                 ->get();
 
             return response()->json(['data' => $byApplicationStatus]);
@@ -1145,9 +1188,11 @@ class SubscriberFilterController extends Controller
  
             
             // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData = clone $query1;
+            $sinceInspectionData = (clone $query1);
+            if ($inspectionStartDate) {
+                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
+            }
             $sinceInspectionData = $sinceInspectionData
-                ->whereDate('created_at', '>=', $inspectionStartDate->created_at) 
                 ->selectRaw("'Since Inception' as type, COUNT(*) as count")
                 ->get();
             
@@ -1683,10 +1728,10 @@ class SubscriberFilterController extends Controller
             ]);
         } elseif (request()->type == "byInvoiceAmountChart") {
 
-            $query = Internal_Invoices::whereBetween('created_at', [$startDate, $endDate]);
-            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', $user->id)->where('type', 'ar');
-            }
+            $query = $this->scopeQueryToSubscriber(
+                Internal_Invoices::whereBetween('created_at', [$startDate, $endDate])->where('type', 'ar'),
+                $reportSubscriberId
+            );
             $byInvoiceAmount = $query
                 ->selectRaw("
                 CASE 
@@ -1710,11 +1755,11 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $byInvoiceAmount]);
         } elseif (request()->type == "byInvoiceTypeChart") {
-            $query = Internal_Invoices::whereBetween('created_at', [$startDate, $endDate]);
-            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', $user->id)->where('type', 'ar');
-            }
-            $byInvoiceType = $query->whereBetween('created_at', [$startDate, $endDate])
+            $query = $this->scopeQueryToSubscriber(
+                Internal_Invoices::whereBetween('created_at', [$startDate, $endDate])->where('type', 'ar'),
+                $reportSubscriberId
+            );
+            $byInvoiceType = $query
                 ->select('status') // Include the `status` field
                 ->selectRaw('COUNT(*) as number_of_invoices') // Count invoices per status
                 ->selectRaw('SUM(total) as total_amount_sum') // Sum of `total` per status
@@ -1724,11 +1769,11 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $byInvoiceType]);
         } elseif (request()->type == "byInvoiceServiceOfferedChart") {
-            $query = Internal_Invoices::whereBetween('created_at', [$startDate, $endDate]);
-            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', $user->id)->where('type', 'ar');
-            }
-            $byInvoiceServiceOffered = $query->whereBetween('created_at', [$startDate, $endDate])
+            $query = $this->scopeQueryToSubscriber(
+                Internal_Invoices::whereBetween('created_at', [$startDate, $endDate])->where('type', 'ar'),
+                $reportSubscriberId
+            );
+            $byInvoiceServiceOffered = $query
                 ->select('detail') // Include the `status` field
                 ->selectRaw('COUNT(*) as number_of_invoices') // Count invoices per status
                 ->selectRaw('SUM(total) as total_amount_sum') // Sum of `total` per status
@@ -1739,10 +1784,10 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $byInvoiceServiceOffered]);
         } elseif (request()->type == "byInvoiceYear") {
-            $query = new Internal_Invoices ();
-            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', $user->id)->where('type', 'ar');
-            }
+            $query = $this->scopeQueryToSubscriber(
+                Internal_Invoices::where('type', 'ar'),
+                $reportSubscriberId
+            );
             $byInvoiceServiceOffered  = $query
          // ✅ Ensure correct filtering
             ->select(
@@ -1770,17 +1815,15 @@ class SubscriberFilterController extends Controller
             
             // Get Inspection Start Date (modify this based on where the date is stored)
             // Base Query
-            $query = new Internal_Invoices();
-            $query1 = clone $query;
-            
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') 
-                && $user->user_type == 'Subscriber') {
-                $query =   $query->where('subscriber_id', request()->subid)->whereYear('created_at', '=', $currentYear)->where('type', 'ar');
-                // $query1 = $query1->where('users.referral_code', $user->referral);;
-                $inspectionStartDate = $query1->where('subscriber_id', request()->subid)->orderBy('created_at', 'asc')->where('type', 'ar')->first();
-            }else{
-                $inspectionStartDate = $query1->orderBy('created_at', 'asc')->where('type', 'ar')->first();
-            }
+            $query = $this->scopeQueryToSubscriber(
+                Internal_Invoices::whereYear('created_at', '=', $currentYear)->where('type', 'ar'),
+                $reportSubscriberId
+            );
+            $query1 = $this->scopeQueryToSubscriber(
+                Internal_Invoices::where('type', 'ar'),
+                $reportSubscriberId
+            );
+            $inspectionStartDate = (clone $query1)->orderBy('created_at', 'asc')->first();
             // 🔹 Today's Applications
             $todayApplications = clone $query;
             $todayApplications = $todayApplications->whereDate('created_at', $currentDate)
@@ -1811,9 +1854,11 @@ class SubscriberFilterController extends Controller
                 ->get();
             
             // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData1 = clone $query1;
-            $sinceInspectionData = $sinceInspectionData1
-                ->whereDate('created_at', '>=', $inspectionStartDate->created_at) 
+            $sinceInspectionData = (clone $query1);
+            if ($inspectionStartDate) {
+                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
+            }
+            $sinceInspectionData = $sinceInspectionData
                 ->selectRaw("'Since Inception' as type, COUNT(*) as count")
                 ->get();
             
@@ -1879,10 +1924,10 @@ class SubscriberFilterController extends Controller
         }
         elseif (request()->type == "byInvoiceAPAmountChart") {
 
-            $query = Internal_Invoices::whereBetween('created_at', [$startDate, $endDate]);
-            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', $user->id)->where('type', 'ap');
-            }
+            $query = $this->scopeQueryToSubscriber(
+                Internal_Invoices::whereBetween('created_at', [$startDate, $endDate])->where('type', 'ap'),
+                $reportSubscriberId
+            );
             $byInvoiceAmount = $query
                 ->selectRaw("
                 CASE 
@@ -1906,11 +1951,11 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $byInvoiceAmount]);
         } elseif (request()->type == "byInvoiceAPTypeChart") {
-            $query = Internal_Invoices::whereBetween('created_at', [$startDate, $endDate]);
-            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', $user->id)->where('type', 'ap');
-            }
-            $byInvoiceType = $query->whereBetween('created_at', [$startDate, $endDate])
+            $query = $this->scopeQueryToSubscriber(
+                Internal_Invoices::whereBetween('created_at', [$startDate, $endDate])->where('type', 'ap'),
+                $reportSubscriberId
+            );
+            $byInvoiceType = $query
                 ->select('status') // Include the `status` field
                 ->selectRaw('COUNT(*) as number_of_invoices') // Count invoices per status
                 ->selectRaw('SUM(total) as total_amount_sum') // Sum of `total` per status
@@ -1920,11 +1965,11 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $byInvoiceType]);
         } elseif (request()->type == "byInvoiceAPServiceOfferedChart") {
-            $query = Internal_Invoices::whereBetween('created_at', [$startDate, $endDate]);
-            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', $user->id)->where('type', 'ap');
-            }
-            $byInvoiceServiceOffered = $query->whereBetween('created_at', [$startDate, $endDate])
+            $query = $this->scopeQueryToSubscriber(
+                Internal_Invoices::whereBetween('created_at', [$startDate, $endDate])->where('type', 'ap'),
+                $reportSubscriberId
+            );
+            $byInvoiceServiceOffered = $query
                 ->select('detail') // Include the `status` field
                 ->selectRaw('COUNT(*) as number_of_invoices') // Count invoices per status
                 ->selectRaw('SUM(total) as total_amount_sum') // Sum of `total` per status
@@ -1935,10 +1980,10 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $byInvoiceServiceOffered]);
         } elseif (request()->type == "byInvoiceAPYear") {
-            $query = new Internal_Invoices ();
-            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', $user->id)->where('type', 'ap');
-            }
+            $query = $this->scopeQueryToSubscriber(
+                Internal_Invoices::where('type', 'ap'),
+                $reportSubscriberId
+            );
             $byInvoiceServiceOffered  = $query
          // ✅ Ensure correct filtering
             ->select(
@@ -1966,17 +2011,15 @@ class SubscriberFilterController extends Controller
             
             // Get Inspection Start Date (modify this based on where the date is stored)
             // Base Query
-            $query = new Internal_Invoices();
-            $query1 = clone $query;
-            
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') 
-                && $user->user_type == 'Subscriber') {
-                $query =   $query->where('subscriber_id', request()->subid)->whereYear('created_at', '=', $currentYear)->where('type', 'ap');
-                // $query1 = $query1->where('users.referral_code', $user->referral);;
-                $inspectionStartDate = $query1->where('subscriber_id', request()->subid)->orderBy('created_at', 'asc')->where('type', 'ap')->first();
-            }else{
-                $inspectionStartDate = $query1->orderBy('created_at', 'asc')->where('type', 'ap')->first();
-            }
+            $query = $this->scopeQueryToSubscriber(
+                Internal_Invoices::whereYear('created_at', '=', $currentYear)->where('type', 'ap'),
+                $reportSubscriberId
+            );
+            $query1 = $this->scopeQueryToSubscriber(
+                Internal_Invoices::where('type', 'ap'),
+                $reportSubscriberId
+            );
+            $inspectionStartDate = (clone $query1)->orderBy('created_at', 'asc')->first();
             // 🔹 Today's Applications
             $todayApplications = clone $query;
             $todayApplications = $todayApplications->whereDate('created_at', $currentDate)
@@ -2007,9 +2050,11 @@ class SubscriberFilterController extends Controller
                 ->get();
             
             // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData1 = clone $query1;
-            $sinceInspectionData = $sinceInspectionData1
-                ->whereDate('created_at', '>=', $inspectionStartDate->created_at) 
+            $sinceInspectionData = (clone $query1);
+            if ($inspectionStartDate) {
+                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
+            }
+            $sinceInspectionData = $sinceInspectionData
                 ->selectRaw("'Since Inception' as type, COUNT(*) as count")
                 ->get();
             
@@ -2075,10 +2120,7 @@ class SubscriberFilterController extends Controller
         }
 
          elseif (request()->type == "byPaymentARChart") {
-            $query = new PaymentARs();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', request()->subid);
-            }
+            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
 
             $byPaymentAR = DB::table(DB::raw('(SELECT "1-99" AS amount_range UNION ALL
                         SELECT "100-249" UNION ALL
@@ -2116,10 +2158,7 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $byPaymentAR]);
         } elseif (request()->type == "byPaymentAPChart") {
-            $query = new PaymentARs();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', request()->subid);
-            }
+            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
 
             $byPaymentAP = DB::table(DB::raw('(SELECT "1-99" AS amount_range UNION ALL
                         SELECT "100-249" UNION ALL
@@ -2157,10 +2196,7 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $byPaymentAP]);
         } elseif (request()->type == "byPaymentModeChart") {
-            $query = new PaymentARs();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query =   $query->where('subscriber_id', request()->subid);
-            }
+            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
             $byPaymentMode = $query->whereBetween('created_at', [$startDate, $endDate])
                 ->selectRaw('payment_mode, COUNT(*) as number_of_invoices')
                 ->groupBy('payment_mode') // Group by payment mode
@@ -2168,10 +2204,7 @@ class SubscriberFilterController extends Controller
                 ->get();
             return response()->json(['data' => $byPaymentMode]);
         } elseif (request()->type == "byPaymentYearChart") {
-            $query = new PaymentARs();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query =   $query->where('subscriber_id', request()->subid);
-            }
+            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
             $byPaymentMode  =$query
            // ✅ Ensure correct filtering
             ->select(
@@ -2197,17 +2230,15 @@ class SubscriberFilterController extends Controller
             // Get Inspection Start Date (modify this based on where the date is stored)
             
             // Base Query
-            $query = new PaymentARs();
-            $query1 = clone $query;
-            
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') 
-                && $user->user_type == 'Subscriber') {
-                $query =  $query =   $query->where('subscriber_id', request()->subid)->whereYear('created_at', '=', $currentYear)->where('type', 'ar');
-                // $query1 = $query1->where('users.referral_code', $user->referral);;
-                $inspectionStartDate = $query1->where('subscriber_id', request()->subid)->orderBy('created_at','asc')->where('type', 'ar')->first();
-            }else{
-                $inspectionStartDate = $query1->orderBy('created_at','asc')->where('type', 'ar')->first();
-            }
+            $query = $this->scopeQueryToSubscriber(
+                PaymentARs::whereYear('created_at', '=', $currentYear)->where('type', 'ar'),
+                $reportSubscriberId
+            );
+            $query1 = $this->scopeQueryToSubscriber(
+                PaymentARs::where('type', 'ar'),
+                $reportSubscriberId
+            );
+            $inspectionStartDate = (clone $query1)->orderBy('created_at', 'asc')->first();
             
             // 🔹 Today's Applications
             $todayApplications = clone $query;
@@ -2238,9 +2269,11 @@ class SubscriberFilterController extends Controller
                 ->selectRaw("'Last Year' as type, COUNT(*) as count")
                 ->get();
             // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData = clone $query1;
+            $sinceInspectionData = (clone $query1);
+            if ($inspectionStartDate) {
+                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
+            }
             $sinceInspectionData = $sinceInspectionData
-                ->whereDate('created_at', '>=', $inspectionStartDate->created_at) 
                 ->selectRaw("'Since Inception' as type, COUNT(*) as count")
                 ->get();
             
@@ -2332,11 +2365,8 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byPaymentAmountChart") {
-            $query = new PaymentARs();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query =   $query->where('subscriber_id', request()->subid)->where('type', 'ar');
-            }
-            $byPaymentMode = $query->where('type', 'ap')->select(
+            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
+            $byPaymentMode = $query->where('type', 'ar')->select(
                 DB::raw('
                         CASE
                             WHEN amount BETWEEN 1 AND 99 THEN "1-99"
@@ -2357,10 +2387,10 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' =>  $byPaymentMode]);
         } elseif (request()->type == "byPaymentOutstandingAmout") {
 
-            $query = PaymentARs::where('type', 'ar');
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query =   $query->where('subscriber_id', request()->subid);
-            }
+            $outstandingSubquery = $this->scopeQueryToSubscriber(
+                PaymentARs::where('type', 'ar')->whereRaw('amount - paid_amount > 0'),
+                $reportSubscriberId
+            );
             $paymentOutstanding = PaymentARs::selectRaw("
         CASE 
             WHEN total_outstanding BETWEEN 1 AND 99 THEN '1-99'
@@ -2375,8 +2405,8 @@ class SubscriberFilterController extends Controller
         COUNT(*) as total_invoices
     ")
                 ->fromSub(
-                    PaymentARs::selectRaw('SUM(amount - paid_amount) as total_outstanding')
-                        ->whereRaw('amount - paid_amount > 0') // Ensures only unpaid invoices are considered
+                    $outstandingSubquery
+                        ->selectRaw('SUM(amount - paid_amount) as total_outstanding')
                         ->groupBy('client_id', 'application_id', 'service_description'),
                     'outstanding'
                 )
@@ -2416,10 +2446,7 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byPaymentModeChartAP") {
-            $query = new PaymentARs();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query =   $query->where('subscriber_id', request()->subid);
-            }
+            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
             $byPaymentMode = $query->whereBetween('created_at', [$startDate, $endDate])
                 ->selectRaw('payment_mode, COUNT(*) as number_of_invoices')
                 ->groupBy('payment_mode') // Group by payment mode
@@ -2427,10 +2454,7 @@ class SubscriberFilterController extends Controller
                 ->get();
             return response()->json(['data' => $byPaymentMode]);
         } elseif (request()->type == "byPaymentYearChartAP") {
-            $query = new PaymentARs();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query =   $query->where('subscriber_id', request()->subid);
-            }
+            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
             $byPaymentMode  =$query
            // ✅ Ensure correct filtering
             ->select(
@@ -2456,17 +2480,15 @@ class SubscriberFilterController extends Controller
             // Get Inspection Start Date (modify this based on where the date is stored)
             
             // Base Query
-            $query = new PaymentARs();
-            $query1 = clone $query;
-            
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') 
-                && $user->user_type == 'Subscriber') {
-                $query =  $query =   $query->where('subscriber_id', request()->subid)->whereYear('created_at', '=', $currentYear)->where('type', 'ap');
-                // $query1 = $query1->where('users.referral_code', $user->referral);;
-                $inspectionStartDate = $query1->where('subscriber_id', request()->subid)->orderBy('created_at','asc')->where('type', 'ap')->first();
-            }else{
-                $inspectionStartDate = $query1->orderBy('created_at','asc')->where('type', 'ap')->first();
-            }
+            $query = $this->scopeQueryToSubscriber(
+                PaymentARs::whereYear('created_at', '=', $currentYear)->where('type', 'ap'),
+                $reportSubscriberId
+            );
+            $query1 = $this->scopeQueryToSubscriber(
+                PaymentARs::where('type', 'ap'),
+                $reportSubscriberId
+            );
+            $inspectionStartDate = (clone $query1)->orderBy('created_at', 'asc')->first();
             
             // 🔹 Today's Applications
             $todayApplications = clone $query;
@@ -2497,9 +2519,11 @@ class SubscriberFilterController extends Controller
                 ->selectRaw("'Last Year' as type, COUNT(*) as count")
                 ->get();
             // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData = clone $query1;
+            $sinceInspectionData = (clone $query1);
+            if ($inspectionStartDate) {
+                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
+            }
             $sinceInspectionData = $sinceInspectionData
-                ->whereDate('created_at', '>=', $inspectionStartDate->created_at) 
                 ->selectRaw("'Since Inception' as type, COUNT(*) as count")
                 ->get();
             
@@ -2591,10 +2615,7 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byPaymentAmountChartAP") {
-            $query = new PaymentARs();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query =   $query->where('subscriber_id', request()->subid)->where('type', 'ap');
-            }
+            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
             $byPaymentMode = $query->where('type', 'ap')->select(
                 DB::raw('
                         CASE
@@ -2617,10 +2638,10 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' =>  $byPaymentMode]);
         } elseif (request()->type == "byPaymentOutstandingAmoutAP") {
 
-            $query = new PaymentARs();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query =   $query->where('subscriber_id', request()->subid)->where('type', 'ap');
-            }
+            $outstandingSubquery = $this->scopeQueryToSubscriber(
+                PaymentARs::where('type', 'ap')->whereRaw('amount - paid_amount > 0'),
+                $reportSubscriberId
+            );
             $paymentOutstanding = PaymentARs::selectRaw("
         CASE 
             WHEN total_outstanding BETWEEN 1 AND 99 THEN '1-99'
@@ -2635,14 +2656,13 @@ class SubscriberFilterController extends Controller
         COUNT(*) as total_invoices
     ")
                 ->fromSub(
-                    PaymentARs::selectRaw('SUM(amount - paid_amount) as total_outstanding')
-                        ->whereRaw('amount - paid_amount > 0') // Ensures only unpaid invoices are considered
+                    $outstandingSubquery
+                        ->selectRaw('SUM(amount - paid_amount) as total_outstanding')
                         ->groupBy('client_id', 'application_id', 'service_description'),
                     'outstanding'
                 )
                 ->groupBy('amount_range')
                 ->orderByRaw("FIELD(amount_range, '1-99', '100-249', '250-499', '500-999', '1000-2499', '2500-4999', '5000-9999', '10,000+') ASC")
-                ->where('type', 'ap')
                 ->get();
 
             return response()->json(['data' => $paymentOutstanding]);
@@ -2965,9 +2985,11 @@ class SubscriberFilterController extends Controller
                 ->get();
             
             // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData = clone $query1;
+            $sinceInspectionData = (clone $query1);
+            if ($inspectionStartDate) {
+                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
+            }
             $sinceInspectionData = $sinceInspectionData
-                ->whereDate('created_at', '>=', $inspectionStartDate->created_at) 
                 ->selectRaw("'Since Inception' as type, COUNT(*) as count")
                 ->get();
             
@@ -3286,6 +3308,12 @@ class SubscriberFilterController extends Controller
                     $rawType = trim((string) $walletTransaction->type);
                     $normalizedType = strtolower(str_replace([' ', '-'], '_', $rawType));
 
+                    if (in_array($normalizedType, ['double_term', 'double_term_subscription', 'double_the_subscription_term'], true)) {
+                        return [
+                            'transaction_type' => '',
+                        ];
+                    }
+
                     switch ($normalizedType) {
                         case 'cashback':
                             $displayText = 'Cashback';
@@ -3293,9 +3321,6 @@ class SubscriberFilterController extends Controller
                         case 'one_off':
                         case 'one_off_credit':
                             $displayText = 'One-off credit';
-                            break;
-                        case 'double_term':
-                            $displayText = 'Double the subscription term';
                             break;
                         case 'wallet_transaction':
                         case 'purchase':
@@ -3586,9 +3611,11 @@ class SubscriberFilterController extends Controller
                 ->get();
             
             // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData = clone $query1;
+            $sinceInspectionData = (clone $query1);
+            if ($inspectionStartDate) {
+                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
+            }
             $sinceInspectionData = $sinceInspectionData
-                ->whereDate('created_at', '>=', $inspectionStartDate->created_at) 
                 ->selectRaw("'Since Inception' as type, COUNT(*) as count")
                 ->get();
             
@@ -3933,9 +3960,11 @@ class SubscriberFilterController extends Controller
                 ->get();
             
             // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData = clone $query1;
+            $sinceInspectionData = (clone $query1);
+            if ($inspectionStartDate) {
+                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
+            }
             $sinceInspectionData = $sinceInspectionData
-                ->whereDate('created_at', '>=', $inspectionStartDate->created_at) 
                 ->selectRaw("'Since Inception' as type, COUNT(*) as count")
                 ->get();
             
@@ -4036,10 +4065,7 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $result]);
         } elseif (request()->type == "byPaymentModePaymentAmountChart") {
-            $query = new PaymentARs();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query =   $query->where('subscriber_id', request()->subid);
-            }
+            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
 
             if (!empty(request()->subid)) {
 
