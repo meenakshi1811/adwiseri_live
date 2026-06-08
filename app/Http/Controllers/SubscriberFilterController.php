@@ -889,15 +889,32 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' => $byApplicationType]);
         } elseif (request()->type == "byApplicationStatus") {
 
-            $query = Applications::query();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', request()->subid);
-            }
+            $applicationStatusOrder = [
+                'Client Registered',
+                'Client Counselled',
+                'Preparation',
+                'Apointment Booked',
+                'Applied',
+                'Decision',
+                'Appeal Lodged',
+                'Appeal Decision',
+                'AR / JR Lodged',
+                'AR / JR Decision',
+                'Withdrawn',
+                'Cancelled',
+            ];
+
+            $query = $this->scopeQueryToSubscriber(Applications::query(), $reportSubscriberId);
 
             $byApplicationStatus = $query->whereBetween('created_at', [$startDate, $endDate])
-                ->selectRaw("COALESCE(NULLIF(application_status, ''), 'Not Set') as application_status, COUNT(*) as status_count")
+                ->whereIn('application_status', $applicationStatusOrder)
+                ->select('application_status')
+                ->selectRaw('COUNT(*) as status_count')
                 ->groupBy('application_status')
-                ->orderBy('status_count', 'desc')
+                ->orderByRaw(
+                    'FIELD(application_status, ' . implode(',', array_fill(0, count($applicationStatusOrder), '?')) . ')',
+                    $applicationStatusOrder
+                )
                 ->get();
 
             return response()->json(['data' => $byApplicationStatus]);
