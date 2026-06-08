@@ -3286,6 +3286,12 @@ class SubscriberFilterController extends Controller
                     $rawType = trim((string) $walletTransaction->type);
                     $normalizedType = strtolower(str_replace([' ', '-'], '_', $rawType));
 
+                    if (in_array($normalizedType, ['double_term', 'double_term_subscription', 'double_the_subscription_term'], true)) {
+                        return [
+                            'transaction_type' => '',
+                        ];
+                    }
+
                     switch ($normalizedType) {
                         case 'cashback':
                             $displayText = 'Cashback';
@@ -3293,9 +3299,6 @@ class SubscriberFilterController extends Controller
                         case 'one_off':
                         case 'one_off_credit':
                             $displayText = 'One-off credit';
-                            break;
-                        case 'double_term':
-                            $displayText = 'Double the subscription term';
                             break;
                         case 'wallet_transaction':
                         case 'purchase':
