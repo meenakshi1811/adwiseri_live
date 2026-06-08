@@ -15226,7 +15226,7 @@ numbers.push(currentElement.total_clients);
 
                 data: {
                     payment_mode: paymentMode,
-                    type: 'byPaymentModeChart',
+                    type: 'byPaymentModeChartAP',
                     subid: subID,
 
                     startDate: startDate,
@@ -15633,7 +15633,7 @@ numbers.push(currentElement.total_clients);
 
                 data: {
                     payment_mode: paymentMode,
-                    type: 'byPaymentOutstandingAmout',
+                    type: 'byPaymentOutstandingAmoutAP',
                     subid: subID,
                     price: price,
                     startDate: startDate,
@@ -15838,7 +15838,7 @@ numbers.push(currentElement.total_clients);
 
                 data: {
                     payment_mode: paymentMode,
-                    type: 'byPaymentYearChart',
+                    type: 'byPaymentYearChartAP',
                     subid: subID,
                     startDate: startDate,
                     endDate: endDate
@@ -16043,7 +16043,7 @@ numbers.push(currentElement.total_clients);
 
                 data: {
                     payment_mode: paymentMode,
-                    type: 'byPaymentTimelineChart',
+                    type: 'byPaymentTimelineChartAP',
                     subid: subID,
                     startDate: startDate,
                     endDate: endDate
