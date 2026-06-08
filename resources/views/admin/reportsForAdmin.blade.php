@@ -6026,7 +6026,27 @@ function checkDataAndToggleButtons(table) {
                 },
                 {
                     data: 'user_name',
-                    name: 'user_name'
+                    name: 'user_name',
+                    render: function(data, type, row) {
+                        const fullSubscriberName = row.user_name_full || data || '';
+                        if (type !== 'display') {
+                            return fullSubscriberName;
+                        }
+
+                        const escapeHtml = function(value) {
+                            return String(value || '').replace(/[&<>'"]/g, function(character) {
+                                return {
+                                    '&': '&amp;',
+                                    '<': '&lt;',
+                                    '>': '&gt;',
+                                    "'": '&#39;',
+                                    '"': '&quot;'
+                                }[character];
+                            });
+                        };
+
+                        return '<span title="' + escapeHtml(fullSubscriberName) + '">' + escapeHtml(data || fullSubscriberName) + '</span>';
+                    }
                 },
                 {
                     data: 'TransactionType',

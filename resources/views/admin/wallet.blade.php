@@ -41,7 +41,10 @@
                            {{--  @if(in_array($ref->type, ['cashback', 'one_off', 'double_term']))
                            <td class="p-1 text-center">{{ $ref->user ? $ref->user->name.'('.$ref->user->id.')' :'' }}</td>
                             @else   --}}
-                            <td class="p-1 text-center">{{ $ref->getRefferedByUser ? $ref->getRefferedByUser->name .'('.$ref->getRefferedByUser->id.')' :''  }}</td>
+                            @php
+                                $subscriberName = $ref->getRefferedByUser ? $ref->getRefferedByUser->name . '(' . $ref->getRefferedByUser->id . ')' : '';
+                            @endphp
+                            <td class="p-1 text-center" title="{{ $subscriberName }}">{{ $subscriberName }}</td>
                            {{--   @endif  --}}
                             {{-- <td class="p-1" style="position: relative;">@if(strlen($ref->user_name) > 15){{ substr($ref->user_name, 0, 15) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$ref->user_name}} ({{$ref->userid}})</span> @else {{$ref->user_name}} ({{$ref->userid}})@endif</td> --}}
                             <td class="p-1 text-center">
@@ -75,7 +78,7 @@
                                             ? 'One-off (' .number_format( $ref->offer->discount_value,0) . ' USD)'
                                             : 'One-off';
                                 }elseif($ref->type ==   'double_term'){
-                                        $displayText = 'Double the subscription term';
+                                        $displayText = 'Double-Term Subscription';
                                 }else{
                                     $displayText = $ref->type;
                                 }

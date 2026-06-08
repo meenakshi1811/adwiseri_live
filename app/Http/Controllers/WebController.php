@@ -3814,6 +3814,10 @@ class WebController extends Controller
                                 return $row->user_name;
                             }
                         })
+                        ->addColumn('user_name_full', function ($row) {
+                            $subscriberName = $row->user_name ?? '';
+                            return $row->userid ? trim($subscriberName . ' (' . $row->userid . ')') : $subscriberName;
+                        })
 
                         ->addColumn('finalamount', function ($row) {
 
@@ -3847,7 +3851,7 @@ class WebController extends Controller
                                     $displayText = 'One-off credit';
                                     break;
                                 case 'double_term':
-                                    $displayText = 'Double the subscription term';
+                                    $displayText = 'Double-Term Subscription';
                                     break;
                                 default:
                                     $displayText = $row->type;
