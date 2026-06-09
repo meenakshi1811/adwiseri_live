@@ -1857,7 +1857,7 @@ class AdminController extends Controller
                 $assignment->client_id = $request['client_id'];
                 $assignment->application_id = $request['application_id'];
                 $assignment->user_id = $request['user_id'];
-                $assignment->subscriber_id = $u->added_by;
+                $assignment->subscriber_id = $u->user_type == "Subscriber" ? $u->id : $u->added_by;
                 $assignment->user_name = $u->name;
                 $assignment->save();
                 $app = Applications::where('application_id', '=', $request->application_id)->first();
@@ -1879,7 +1879,7 @@ class AdminController extends Controller
                     $assignment->client_id = $request['client_id'];
                     $assignment->application_id = $request['application_id'];
                     $assignment->user_id = $request['user_id'];
-                    $assignment->subscriber_id = $u->added_by;
+                    $assignment->subscriber_id = $u->user_type == "Subscriber" ? $u->id : $u->added_by;
                     $assignment->user_name = $u->name;
                     $assignment->save();
                     $app = Applications::where('application_id', '=', $request->application_id)->first();
@@ -3668,7 +3668,9 @@ class AdminController extends Controller
     {
         // print_r($request->all());
         $id = $request['id'];
-        $applications = Applications::where('client_id', '=', $id)->where('assign_to', '=', null)->get();
+        $applications = Applications::where('client_id', '=', $id)->where(function ($query) {
+            $query->whereNull('assign_to')->orWhere('assign_to', '');
+        })->whereDoesntHave('assignments')->get();
     ?>
         <option value="">Select Application</option>
         <?php

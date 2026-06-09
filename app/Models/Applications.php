@@ -35,6 +35,59 @@ class Applications extends Model
         return $this->hasMany(Client_Docs::class,'application_id','application_id');
     }
 
+    public function assignments(){
+        return $this->hasMany(Application_assignments::class,'application_id','application_id');
+    }
+
+    public function scopeVisibleToUser($query, $user)
+    {
+        if (!$user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if (in_array($user->user_type, ['admin', 'Subscriber'])) {
+            return $query;
+        }
+
+        return $query->where(function ($visibilityQuery) use ($user) {
+            $visibilityQuery->where('assign_to', $user->id)
+                ->orWhere(function ($unassignedQuery) {
+                    $unassignedQuery->where(function ($assignToQuery) {
+                        $assignToQuery->whereNull('assign_to')
+                            ->orWhere('assign_to', '');
+                    })->whereDoesntHave('assignments');
+                })
+                ->orWhereHas('assignments', function ($assignmentQuery) use ($user) {
+                    $assignmentQuery->where('user_id', $user->id);
+                });
+        });
+    }
+
+    public function isVisibleToUser($user)
+    {
+        if (!$user) {
+            return false;
+        }
+
+        if (in_array($user->user_type, ['admin', 'Subscriber'])) {
+            return true;
+        }
+
+        if ((string) $this->assign_to === (string) $user->id) {
+            return true;
+        }
+
+        $assignments = $this->relationLoaded('assignments') ? $this->assignments : $this->assignments()->get();
+
+        if ($assignments->contains('user_id', $user->id)) {
+            return true;
+        }
+
+        $hasNoAssignee = $this->assign_to === null || $this->assign_to === '';
+
+        return $hasNoAssignee && $assignments->isEmpty();
+    }
+
 
     public function getFormattedStartDateAttribute()
     {

@@ -1368,10 +1368,13 @@ class WebController extends Controller
         // dd($existingIds);
         $applications = '';
         if ($request->comm) {
-            $applications = Applications::where('client_id', $id)->get();
+            $applications = Applications::where('client_id', $id)->visibleToUser(Auth::user())->get();
         } else {
             $applications = Applications::where('client_id', $id)
-                ->whereNull('assign_to')
+                ->where(function ($query) {
+                    $query->whereNull('assign_to')->orWhere('assign_to', '');
+                })
+                ->whereDoesntHave('assignments')
                 ->get();
         }
 
@@ -1476,7 +1479,7 @@ class WebController extends Controller
         }
         $invoices = Invoices::get();
         $countries = Countries::all();
-        $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();
+        $applications = Applications::where('subscriber_id', '=', $subscriber->id)->visibleToUser($user)->get();
         $payments = Invoices::where('user_id', '=', $subscriber->id)->get();
         $total_countries = array();
         foreach ($applications as $apps) {
@@ -1527,7 +1530,7 @@ class WebController extends Controller
         $states = States::all();
         $page = "dashboard";
         $activities = Activities::where('subscriber_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->limit(15)->get();
-        $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();
+        $applications = Applications::where('subscriber_id', '=', $subscriber->id)->visibleToUser($user)->get();
         $invoices = Internal_Invoices::where('subscriber_id', '=', $subscriber->id)->get();
         $invoiceARCount = $invoices->filter(function ($invoice) {
             return strtolower((string) $invoice->type) === 'ar';
@@ -2634,7 +2637,7 @@ class WebController extends Controller
             $page = "clients";
             $roles = UserRoles::where('user_id', '=', $user->id)->first();
             $documents = Client_Docs::where('client_id', '=', $id)->get();
-            $applications = Applications::where('client_id', '=', $client->id)->get();
+            $applications = Applications::where('client_id', '=', $client->id)->visibleToUser($user)->get();
             $messages = Messages::where('client_id', '=', $client->id)->orderBy('created_at', 'desc')->get();
             $activities = Activities::where('client_id', '=', $client->id)->orderBy('created_at', 'desc')->get();
             return view('web.client_profile', compact('client', 'user', 'countries', 'states', 'page', 'documents', 'activities', 'messages', 'applications', 'roles'));
@@ -2946,7 +2949,7 @@ class WebController extends Controller
                 $applications = Applications::orderBy('created_at', 'desc')->get();
             } else {
                 $subscriber = User::find($user->added_by);
-                $applications = Applications::where('assign_to', '=', $user->id)->orwhere('assign_to', '=', null)->where('subscriber_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->get();
+                $applications = Applications::where('subscriber_id', '=', $subscriber->id)->visibleToUser($user)->orderBy('created_at', 'desc')->get();
             }
             $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
             $page = "applications";
@@ -3150,7 +3153,10 @@ class WebController extends Controller
         if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
             return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
         }
-        $application = Applications::find($id);
+        $application = Applications::with('assignments')->findOrFail($id);
+        if (!$application->isVisibleToUser($user)) {
+            abort(403);
+        }
         $countries = Countries::get();
         $client = Clients::find($application->client_id);
         $subscriber = User::find($client->subscriber_id);
@@ -3310,12 +3316,14 @@ class WebController extends Controller
 
     public function view_application($id)
     {
-        $application = Applications::find($id);
+        $application = Applications::with('assignments')->findOrFail($id);
         $user = Auth::user();
         if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
             return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
         }
-        $user = Auth::user();
+        if (!$application->isVisibleToUser($user)) {
+            abort(403);
+        }
         $page = "applications";
         return view('web.view_application', compact('application', 'user', 'page'));
     }
@@ -3673,7 +3681,7 @@ class WebController extends Controller
         }
 
         $clients = Clients::where('subscriber_id', $subscriber->id)->get();
-        $applications = Applications::where('subscriber_id', $subscriber->id)->get();
+        $applications = Applications::where('subscriber_id', $subscriber->id)->visibleToUser($user)->get();
         $users = User::where('added_by', $subscriber->id)->get();
         $invoices = Invoices::where('user_id', $subscriber->id)->get();
         $payments = PaymentARs::where('subscriber_id', $subscriber->id)->get();
@@ -5523,7 +5531,7 @@ class WebController extends Controller
         $law_categories = Subscriber_Sub_Categories::where('category_name', '=', 'Law Firm')->get();
         $travel_categories = Countries::get();
         $total_apps = array();
-        $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();
+        $applications = Applications::where('subscriber_id', '=', $subscriber->id)->visibleToUser($user)->get();
 
         foreach ($client_jobs as $job) {
             $categ = $job->job;
@@ -5902,7 +5910,7 @@ class WebController extends Controller
                 $clients = Clients::where('user_id', '=', $user->id)->get();
             }
             $roles = UserRoles::where('user_id', '=', $user->id)->first();
-            $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();
+            $applications = Applications::where('subscriber_id', '=', $subscriber->id)->visibleToUser($user)->get();
             $page = "communications";
             return view('web.client_discussion', compact('user', 'roles', 'page', 'discussions', 'subscriber', 'clients', 'applications'));
         } else {
@@ -5958,7 +5966,7 @@ class WebController extends Controller
             }
             $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
             $siteusers = User::where('designation', 'Consultant/Advisor')->where('added_by', '=', $subscriber->id)->get();
-            $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();
+            $applications = Applications::where('subscriber_id', '=', $subscriber->id)->visibleToUser($user)->get();
             $page = "applications";
             return view('web.user_applications', compact('roles', 'assignments', 'user', 'page', 'clients', 'siteusers', 'applications'));
         } else {
@@ -5997,7 +6005,7 @@ class WebController extends Controller
                 $u = User::find($request->user_id);
                 $assignment->client_id = $request['client_id'];
                 $assignment->application_id = $request['application_id'];
-                $assignment->subscriber_id = $u->added_by;
+                $assignment->subscriber_id = $u->user_type == "Subscriber" ? $u->id : $u->added_by;
                 $assignment->user_id = $request['user_id'];
                 $assignment->user_name = $u->name;
                 $assignment->save();
@@ -6025,7 +6033,7 @@ class WebController extends Controller
                     $assignment->client_id = $request['client_id'];
                     $assignment->application_id = $request['application_id'];
                     $assignment->user_id = $request['user_id'];
-                    $assignment->subscriber_id = $u->added_by;
+                    $assignment->subscriber_id = $u->user_type == "Subscriber" ? $u->id : $u->added_by;
                     $assignment->user_name = $u->name;
                     $assignment->save();
                     $app = Applications::where('application_id', '=', $request['application_id'])->first();
@@ -6076,7 +6084,7 @@ class WebController extends Controller
                 $applications = Applications::get();
                 $clients = Clients::get();
             } else {
-                $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();
+                $applications = Applications::where('subscriber_id', '=', $subscriber->id)->visibleToUser($user)->get();
                 $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
             }
             $page = "applications";
