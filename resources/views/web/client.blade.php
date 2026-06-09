@@ -415,7 +415,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         Dependants
                     </div>
                     <div class="col-4 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('enquiries') }}';">
-                        Enquries
+                        Enquiries
                     </div>
 
                   </div>
