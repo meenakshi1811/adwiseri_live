@@ -5602,10 +5602,11 @@ numbers.push(currentElement.total_clients);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
-                        if(currentElement.number_of_clients !== 0) { // Skip ONLY those with 0 count
+                        const applicationCount = currentElement.number_of_applications ?? currentElement.number_of_clients;
+                        if(applicationCount !== 0) { // Skip ONLY those with 0 count
                         labels.push(currentElement.application_name);
 
-                        numbers.push(currentElement.number_of_clients);
+                        numbers.push(applicationCount);
                         }
                     })
 

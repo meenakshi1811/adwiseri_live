@@ -858,26 +858,16 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' => $applicationByHomeCountry]);
         } elseif (request()->type == "byApplicationType") {
 
-            $query = new Applications();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', request()->subid);
-            }
-            // $byApplicationType = $query->whereBetween('created_at', [$startDate, $endDate])
-            //     ->whereNotNull('visa_country')  // Ensures visa_country is not null
-            //     ->groupBy('application_name')  // Group by visa_country
-            //     ->selectRaw(
-            //         'application_name,
-                    
-            //          COUNT(client_id) AS number_of_clients') // Count distinct clients per visa_country
-            //     ->get();
+            $query = $this->scopeQueryToSubscriber(Applications::query(), $reportSubscriberId);
 
             $byApplicationType = $query->whereBetween('created_at', [$startDate, $endDate])
-                ->whereNotNull('visa_country') // Ensures visa_country is not null
-                ->groupBy('application_id', 'application_name') // Group by application_id & application_name
-                ->selectRaw(
-                    "CONCAT(application_name, ' (', application_id, ')') as application_name, 
-                    COUNT(client_id) AS number_of_clients" // Count distinct clients per application
-                )
+                ->whereNotNull('application_name')
+                ->where('application_name', '!=', '')
+                ->whereRaw('LOWER(application_name) != ?', ['null'])
+                ->select('application_name')
+                ->selectRaw('COUNT(*) AS number_of_applications')
+                ->groupBy('application_name')
+                ->orderBy('number_of_applications', 'desc')
                 ->get();
 
             return response()->json(['data' => $byApplicationType]);
@@ -985,69 +975,54 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' => $byApplicationDependant]);
         } elseif (request()->type == 'byApplicationPaymentModeChart') {
 
-            if (!empty(request()->subid)) {
-                $applications = Applications::whereBetween('applications.created_at', [$startDate, $endDate])
-                    ->join('clients', 'clients.id', '=', 'applications.client_id')
-                    ->join('users', 'clients.subscriber_id', '=', 'users.id')
-                    ->join('invoices', 'users.id', '=', 'invoices.user_id')
-                    ->where('clients.subscriber_id', request()->subid)
-                    ->select(
-                        'invoices.payment_mode', // Group by payment mode
-                        DB::raw('COUNT(invoices.payment_mode) as payment_mode_count'), // Count of payment modes
-                        DB::raw('COUNT(applications.id) as no_of_applications'), // Count applications per payment mode
-                        DB::raw('GROUP_CONCAT(applications.application_name SEPARATOR ", ") as application_names') // Concatenate application names
-                    )
-                    ->groupBy('invoices.payment_mode') // Group only by payment mode
-                    ->havingRaw('COUNT(applications.id) > 0') // Only include payment modes with applications
-                    ->limit(10)
-                    ->get();
-            } else {
-                $applications = Applications::whereBetween('applications.created_at', [$startDate, $endDate])
-                    ->join('clients', 'clients.id', '=', 'applications.client_id')
-                    ->join('users', 'clients.subscriber_id', '=', 'users.id')
-                    ->join('invoices', 'users.id', '=', 'invoices.user_id')
-                    ->select(
-                        'invoices.payment_mode', // Group by payment mode
-                        DB::raw('COUNT(invoices.payment_mode) as payment_mode_count'), // Count of payment modes
-                        DB::raw('COUNT(applications.id) as no_of_applications'), // Count applications per payment mode
-                        DB::raw('GROUP_CONCAT(applications.application_name SEPARATOR ", ") as application_names') // Concatenate application names
-                    )
-                    ->groupBy('invoices.payment_mode') // Group only by payment mode
-                    ->havingRaw('COUNT(applications.id) > 0') // Only include payment modes with applications
-                    // ->limit(10)
-                    ->get();
-            }
-            // dd($applications);
+            $applications = $this->scopeQueryToSubscriber(
+                Applications::query(),
+                $reportSubscriberId,
+                'applications.subscriber_id'
+            )
+                ->whereBetween('applications.created_at', [$startDate, $endDate])
+                ->join('payment_ar', 'payment_ar.application_id', '=', 'applications.id')
+                ->where('payment_ar.type', 'ar')
+                ->whereNotNull('payment_ar.payment_mode')
+                ->where('payment_ar.payment_mode', '!=', '')
+                ->whereRaw('LOWER(payment_ar.payment_mode) != ?', ['null'])
+                ->select('payment_ar.payment_mode')
+                ->selectRaw('COUNT(DISTINCT applications.id) as no_of_applications')
+                ->selectRaw('GROUP_CONCAT(DISTINCT applications.application_name SEPARATOR ", ") as application_names')
+                ->groupBy('payment_ar.payment_mode')
+                ->havingRaw('COUNT(DISTINCT applications.id) > 0')
+                ->orderBy('no_of_applications', 'desc')
+                ->get();
+
             return  DataTables::of($applications)
                 ->addIndexColumn()
                 ->make(true);
         } elseif (request()->type == "byOutstandingAplicationPaymentsAmountChart") {
-            $query =  new PaymentARs();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                // Apply condition for 'Subscriber' user type and membership types
-                $query =   $query->where('payment_ar.subscriber_id', request()->subid);
-            }
-            $applicationOutstandingAmount = $query->whereBetween('payment_ar.created_at', [$startDate, $endDate])
-                ->whereNotNull('payment_ar.application_id') // Ensure there is a client_id
-                ->join('clients', 'clients.id', '=', 'payment_ar.client_id') // ✅ Properly join clients table
-                ->leftJoin('applications', 'applications.id', '=', 'payment_ar.application_id') // ✅ Join applications if needed
+            $query = $this->scopeQueryToSubscriber(
+                PaymentARs::query(),
+                $reportSubscriberId,
+                'payment_ar.subscriber_id'
+            );
+
+            $applicationOutstandingAmount = $query
+                ->join('applications', 'applications.id', '=', 'payment_ar.application_id')
+                ->whereBetween('applications.created_at', [$startDate, $endDate])
+                ->where('payment_ar.type', 'ar')
+                ->whereNotNull('payment_ar.application_id')
+                ->whereNotNull('applications.application_name')
+                ->where('applications.application_name', '!=', '')
                 ->select(
-                    'payment_ar.client_id',
                     'payment_ar.application_id',
-                    'payment_ar.service_description',
-                    'clients.name as client_name', // ✅ Properly select client name
-                    DB::raw("CONCAT(applications.application_name, ' (', applications.application_id, ')') as application_name"), // ✅ Concatenate app name & ID
+                    DB::raw("CONCAT(applications.application_name, ' (', COALESCE(applications.application_id, applications.id), ')') as application_name"),
                     DB::raw('MAX(payment_ar.created_at) as created_at'),
-                    DB::raw('SUM(payment_ar.amount - payment_ar.paid_amount) as amount_to_pay')
+                    DB::raw('SUM(COALESCE(payment_ar.amount, 0) - COALESCE(payment_ar.paid_amount, 0)) as amount_to_pay')
                 )
                 ->groupBy(
-                    'payment_ar.client_id',
                     'payment_ar.application_id',
-                    'payment_ar.service_description',
-                    DB::raw("CONCAT(applications.application_name, ' (', applications.application_id, ')')") // ✅ Ensure correct grouping
+                    DB::raw("CONCAT(applications.application_name, ' (', COALESCE(applications.application_id, applications.id), ')')")
                 )
-                ->havingRaw('SUM(payment_ar.amount - payment_ar.paid_amount) > 0')
-                ->orderBy('created_at', 'desc')
+                ->havingRaw('SUM(COALESCE(payment_ar.amount, 0) - COALESCE(payment_ar.paid_amount, 0)) > 0')
+                ->orderBy('amount_to_pay', 'desc')
                 ->get();
             return response()->json(['data' => $applicationOutstandingAmount]);
         } elseif (request()->type == "byNumberOfApplicationDocumentStoreChart") {
