@@ -243,6 +243,18 @@ function removeCircularChartAxes(config) {
     };
 }
 
+function applyLineChartAxisPadding(config) {
+    if (config.type !== 'line') {
+        return;
+    }
+
+    config.options.scales = config.options.scales || {};
+    config.options.scales.x = {
+        ...(config.options.scales.x || {}),
+        offset: true
+    };
+}
+
 function normalizeAnalyticsDatasetColors(config) {
     const labels = config.data?.labels || [];
     const datasets = config.data?.datasets || [];
@@ -336,6 +348,7 @@ function sanitizeAnalyticsChartConfig(config) {
     config.options.plugins = config.options.plugins || {};
 
     normalizeAnalyticsDatasetColors(config);
+    applyLineChartAxisPadding(config);
     removeCircularChartAxes(config);
     enableAnalyticsLegend(config);
 }
