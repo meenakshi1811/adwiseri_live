@@ -1312,6 +1312,13 @@ window.Chart = AnalyticsChart;
         var selectedAttribute = $('#selectAttribute').val() ?
             $('#selectAttribute').val() :
             $('#filters').val();
+        const analyticsModuleTitles = {
+            Invoices: 'Invoices (AR)',
+            Invoices_ap: 'Invoices (AP)',
+            Payments: 'Payments (AR)',
+            PaymentsAP: 'Payments (AP)'
+        };
+        var selectedAttributeTitle = analyticsModuleTitles[selectedAttribute] || selectedAttribute;
 
         var selectedDate = $('#custom_date_picker').val();
 
@@ -1325,7 +1332,7 @@ window.Chart = AnalyticsChart;
         var endDate = (selectedDateRange[1] || '').trim();
 
         let hasError = false;
-        let title = selectedAttribute + ' : ' + selectedFilterTitle + (!selectedFilterTitle.includes('By Timeline (Duration)') && !selectedFilterTitle.includes('By Year') ? ' (' + startDate + ' - ' + endDate + ')' : '');
+        let title = selectedAttributeTitle + ' : ' + selectedFilterTitle + (!selectedFilterTitle.includes('By Timeline (Duration)') && !selectedFilterTitle.includes('By Year') ? ' (' + startDate + ' - ' + endDate + ')' : '');
 
         if (!selectedAttribute) {
             // alert("Please Select Attribute");
@@ -5595,10 +5602,11 @@ numbers.push(currentElement.total_clients);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
-                        if(currentElement.number_of_clients !== 0) { // Skip ONLY those with 0 count
+                        const applicationCount = currentElement.number_of_applications ?? currentElement.number_of_clients;
+                        if(applicationCount !== 0) { // Skip ONLY those with 0 count
                         labels.push(currentElement.application_name);
 
-                        numbers.push(currentElement.number_of_clients);
+                        numbers.push(applicationCount);
                         }
                     })
 
