@@ -53,7 +53,7 @@ Clients
 Dependants
 </div>
 <div class="col-4 border p-1 text-center bg-info text-white">
-Enquries
+Enquiries
 </div>
 
 </div>
