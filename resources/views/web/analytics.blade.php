@@ -1312,6 +1312,13 @@ window.Chart = AnalyticsChart;
         var selectedAttribute = $('#selectAttribute').val() ?
             $('#selectAttribute').val() :
             $('#filters').val();
+        const analyticsModuleTitles = {
+            Invoices: 'Invoices (AR)',
+            Invoices_ap: 'Invoices (AP)',
+            Payments: 'Payments (AR)',
+            PaymentsAP: 'Payments (AP)'
+        };
+        var selectedAttributeTitle = analyticsModuleTitles[selectedAttribute] || selectedAttribute;
 
         var selectedDate = $('#custom_date_picker').val();
 
@@ -1325,7 +1332,7 @@ window.Chart = AnalyticsChart;
         var endDate = (selectedDateRange[1] || '').trim();
 
         let hasError = false;
-        let title = selectedAttribute + ' : ' + selectedFilterTitle + (!selectedFilterTitle.includes('By Timeline (Duration)') && !selectedFilterTitle.includes('By Year') ? ' (' + startDate + ' - ' + endDate + ')' : '');
+        let title = selectedAttributeTitle + ' : ' + selectedFilterTitle + (!selectedFilterTitle.includes('By Timeline (Duration)') && !selectedFilterTitle.includes('By Year') ? ' (' + startDate + ' - ' + endDate + ')' : '');
 
         if (!selectedAttribute) {
             // alert("Please Select Attribute");

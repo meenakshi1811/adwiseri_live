@@ -442,13 +442,12 @@ class SubscriberFilterController extends Controller
             }
             return response()->json(['data' => $client_docs]);
         } elseif (request()->type == "byClientHomeCountry") {
-            $query = new Clients();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                // Apply condition for 'Subscriber' user type and membership types
-                $query = $query->where('subscriber_id', request()->subid);
-            }
+            $query = $this->scopeQueryToSubscriber(Clients::query(), $reportSubscriberId);
 
             $clients = $query->whereBetween('created_at', [$startDate, $endDate])
+                ->whereNotNull('nationality')
+                ->where('nationality', '!=', '')
+                ->whereRaw('LOWER(nationality) != ?', ['null'])
                 ->select(
                     'nationality', // Select the country (nationality)
                     DB::raw('COUNT(*) AS No_of_clients') // Count the number of clients per country
@@ -672,19 +671,14 @@ class SubscriberFilterController extends Controller
             $lastYearEnd = now()->subYear()->endOfYear();
            
 
-            // Base query with date range
-            // $query =   Clients::whereBetween('created_at', [$startDate, $endDate])
-            //     ->whereYear('created_at', $currentYear);
-                $query =   new Clients();
-                $query1 = clone $query;
-                if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') 
-                && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', $user->id)->whereYear('created_at', '=', $currentYear);
-                // $query1 = $query1->where('users.referral_code', $user->referral);;
-                $inspectionStartDate = $query1->where('subscriber_id', $user->id)->orderBy('created_at','asc')->first();
-                }else{
-                    $inspectionStartDate = $query1->orderBy('created_at','asc')->first();
-                }
+            // Base query with subscriber scope. Keep the current-year filter only on relative duration buckets;
+            // the Since Inception bucket uses the same subscriber scope without the year limit.
+            $query = $this->scopeQueryToSubscriber(
+                Clients::whereYear('created_at', '=', $currentYear),
+                $reportSubscriberId
+            );
+            $query1 = $this->scopeQueryToSubscriber(Clients::query(), $reportSubscriberId);
+            $inspectionStartDate = (clone $query1)->orderBy('created_at', 'asc')->first();
             
             // 🔹 Today's Applications
             $todayApplications = clone $query;
