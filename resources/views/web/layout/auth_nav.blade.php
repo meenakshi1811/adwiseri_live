@@ -1,6 +1,7 @@
 <!---Navbar-->
 @php
 
+use App\Models\User;
 use App\Models\UserRoles;
 $client_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Clients')->first();
 $application_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Applications')->first();
@@ -11,6 +12,26 @@ $report_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','R
 $subscription_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Subscription')->first();
 $setting_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Settings')->first();
 $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Support')->first();
+$subscriber_user = ($user->user_type == 'Subscriber' || $user->user_type == 'admin') ? $user : User::find($user->added_by);
+$effective_membership = $subscriber_user->membership ?? $user->membership;
+$hasModuleAccess = function ($role) {
+    return $role && (
+        $role->read_only == 1 ||
+        $role->write_only == 1 ||
+        $role->update_only == 1 ||
+        $role->delete_only == 1 ||
+        $role->read_write_only == 1
+    );
+};
+$can_clients = $user->user_type == 'admin' || $hasModuleAccess($client_roles);
+$can_applications = $user->user_type == 'admin' || $hasModuleAccess($application_roles);
+$can_invoices = $user->user_type == 'admin' || $hasModuleAccess($invoice_roles);
+$can_payments = $user->user_type == 'admin' || $hasModuleAccess($payment_roles);
+$can_communications = $user->user_type == 'admin' || $hasModuleAccess($communication_roles);
+$can_reports = $user->user_type == 'admin' || $hasModuleAccess($report_roles);
+$can_subscription = $user->user_type == 'admin' || $hasModuleAccess($subscription_roles);
+$can_settings = $user->user_type == 'admin' || $hasModuleAccess($setting_roles);
+$can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
 @endphp
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
@@ -146,7 +167,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                   <a href="{{ route('demo_requests') }}" @if($page == "demo_request") style="font-weight:700;" @endif>Demo Requests</a>
                 </div>
               </div>
-                @if($user->user_type == "admin" || ($client_roles->read_only == 1 or $client_roles->read_write_only == 1))
+                @if($can_clients)
                 <a href="{{ route('client') }}" @if($page == "clients") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
                         <i class="fas fa-users"></i> <!-- Font Awesome icon -->
@@ -154,7 +175,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     Clients
                 </a>
                 @endif
-                @if($user->user_type == "admin" || ($application_roles->read_only == 1 or $application_roles->read_write_only == 1))
+                @if($can_applications)
                 <a href="{{ route('applications') }}" @if($page == "applications") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
                     <i class="fa-solid fa-window-restore"></i> <!-- Font Awesome icon -->
@@ -162,7 +183,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     Applications
                 </a>
                 @endif
-                @if($user->user_type == "admin" || ($invoice_roles->read_only == 1 or $invoice_roles->read_write_only == 1))
+                @if($can_invoices)
                 <a href="{{ route('invoices') }}" @if($page == "invoices") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
                         <i class="fas fa-file"></i> <!-- Font Awesome icon -->
@@ -170,7 +191,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     Invoices
                 </a>
                 @endif
-                @if($user->user_type == "admin" || ($payment_roles->read_only == 1 or $payment_roles->read_write_only == 1))
+                @if($can_payments)
                 <a href="{{ route('my_payments') }}" @if($page == "payments") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
                         <i class="fas fa-dollar"></i> <!-- Font Awesome icon -->
@@ -198,7 +219,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
 
 
-                @if($user->user_type == "admin" || ($communication_roles->read_only == 1 or $communication_roles->read_write_only == 1))
+                @if($can_communications)
                 <a href="{{ route('messaging') }}" @if($page == "messaging" || $page == 'communications') style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
                     <i class="fa-solid fa-comment"></i> <!-- Font Awesome icon -->
@@ -211,8 +232,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 </div> -->
                 @endif
 
-                @if($user->user_type == "admin" || $report_roles->read_only == 1 or $report_roles->read_write_only == 1)
-                @if ($user->membership == "Adwiseri" || $user->membership == "Adwiseri+" || $user->membership == "Enterprise" || $user->user_type == "admin")
+                @if($can_reports)
+                @if ($effective_membership == "Adwiseri" || $effective_membership == "Adwiseri+" || $effective_membership == "Enterprise" || $user->user_type == "admin")
                 <a href="{{ route('sub_reports') }}" @if($page == "reports") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
                     <i class="fa-solid fa-file-lines"></i> <!-- Font Awesome icon -->
@@ -282,7 +303,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     <a href="{{ route('wallet') }}" @if($page == "wallet") style="font-weight:700;" @endif>Wallet</a>
                 </div> -->
                 @endif
-                @if($user->user_type == "admin" || ($subscription_roles->read_only == 1 or $subscription_roles->read_write_only == 1))
+                @if($can_subscription)
                 <a href="{{ route('user_membership') }}" @if($page == "user_membership") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
                       <span class="sidebar-menu-icon">
                       <i class="fa-solid fa-money-bill-wave"></i> <!-- Font Awesome icon -->
@@ -294,7 +315,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     <a href="{{ route('user_membership') }}" @if($page == "user_membership") style="font-weight:700;" @endif>Subscription</a>
                 </div> -->
                 @endif
-                @if($user->user_type == "admin" || ($setting_roles->read_only == 1 or $setting_roles->read_write_only == 1))
+                @if($can_settings)
                 <a href="{{ route('my_settings') }}" @if($page == "settings") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
                       <span class="sidebar-menu-icon">
                           <i class="fa-solid fa-gear"></i> <!-- Font Awesome icon -->
@@ -307,7 +328,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 </div> -->
                 @endif
                 @endif
-                @if($user->user_type == "admin" || ($support_roles->read_only == 1 or $support_roles->read_write_only == 1))
+                @if($can_support)
                 <a href="{{ route('support') }}" @if($page == "support") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
                       <span class="sidebar-menu-icon">
                           <i class="fa-solid fa-circle-info"></i> <!-- Font Awesome icon -->
