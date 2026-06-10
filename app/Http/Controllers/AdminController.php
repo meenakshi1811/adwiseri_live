@@ -3653,7 +3653,21 @@ class AdminController extends Controller
         // print_r($request->all());
         $id = $request['id'];
         $client = Clients::find($id);
-        $applications = Applications::where('client_id', $client->id)->get();
+        $query = Applications::where('client_id', $client->id);
+        $user = Auth::user();
+
+        if ($user && $user->user_type != 'admin' && $user->user_type != 'Subscriber') {
+            $subscriber = User::find($user->added_by);
+            $assignedApplicationIds = Application_assignments::where('subscriber_id', '=', $subscriber ? $subscriber->id : 0)
+                ->where('user_id', '=', $user->id)
+                ->whereNotNull('application_id')
+                ->pluck('application_id')
+                ->toArray();
+            $query->where('subscriber_id', '=', $subscriber ? $subscriber->id : 0)
+                ->whereIn('application_id', $assignedApplicationIds);
+        }
+
+        $applications = $query->get();
         ?>
         <option value="">Select Application</option>
         <?php

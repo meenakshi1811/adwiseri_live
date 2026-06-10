@@ -1367,13 +1367,19 @@ class WebController extends Controller
         // Debug check (optional)
         // dd($existingIds);
         $applications = '';
-        if ($request->comm) {
-            $applications = Applications::where('client_id', $id)->get();
-        } else {
-            $applications = Applications::where('client_id', $id)
-                ->whereNull('assign_to')
-                ->get();
+        $query = Applications::where('client_id', $id);
+        $user = Auth::user();
+
+        if ($user && $user->user_type != 'admin' && $user->user_type != 'Subscriber') {
+            $subscriber = User::find($user->added_by);
+            $assignedApplicationIds = $this->assignedApplicationIdsFor($user, $subscriber);
+            $query->where('subscriber_id', '=', $subscriber ? $subscriber->id : 0)
+                ->whereIn('application_id', $assignedApplicationIds);
+        } elseif (!$request->comm) {
+            $query->whereNull('assign_to');
         }
+
+        $applications = $query->get();
 
         $html = '<option value="">Select Application</option>';
 
@@ -2928,6 +2934,45 @@ class WebController extends Controller
         }
     }
 
+
+    protected function assignedApplicationIdsFor(User $user, ?User $subscriber)
+    {
+        if (!$subscriber) {
+            return [];
+        }
+
+        return Application_assignments::where('subscriber_id', '=', $subscriber->id)
+            ->where('user_id', '=', $user->id)
+            ->whereNotNull('application_id')
+            ->pluck('application_id')
+            ->toArray();
+    }
+
+    protected function userCanAccessApplication(?User $user, ?Applications $application)
+    {
+        if (!$user || !$application) {
+            return false;
+        }
+
+        if ($user->user_type == 'admin') {
+            return true;
+        }
+
+        if ($user->user_type == 'Subscriber') {
+            return $application->subscriber_id == $user->id;
+        }
+
+        $subscriber = User::find($user->added_by);
+        if (!$subscriber || $application->subscriber_id != $subscriber->id) {
+            return false;
+        }
+
+        return Application_assignments::where('subscriber_id', '=', $subscriber->id)
+            ->where('user_id', '=', $user->id)
+            ->where('application_id', '=', $application->application_id)
+            ->exists();
+    }
+
     public function applications()
     {
         $user = $this->check_login();
@@ -2946,9 +2991,19 @@ class WebController extends Controller
                 $applications = Applications::orderBy('created_at', 'desc')->get();
             } else {
                 $subscriber = User::find($user->added_by);
-                $applications = Applications::where('assign_to', '=', $user->id)->orwhere('assign_to', '=', null)->where('subscriber_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->get();
+                $assignedApplicationIds = $this->assignedApplicationIdsFor($user, $subscriber);
+                $applications = Applications::where('subscriber_id', '=', $subscriber->id)
+                    ->whereIn('application_id', $assignedApplicationIds)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
             }
-            $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
+            if ($user->user_type == "Subscriber" || $user->user_type == "admin") {
+                $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
+            } else {
+                $clients = Clients::where('subscriber_id', '=', $subscriber->id)
+                    ->whereIn('id', $applications->pluck('client_id')->unique()->toArray())
+                    ->get();
+            }
             $page = "applications";
 
 
@@ -2983,7 +3038,7 @@ class WebController extends Controller
                     ->addColumn('action', function ($row) use ($application_roles, $user) {
                         $html = '';
                         $html .= '<a style="background:transparent;border:none;" class="p-0 m-0 text-dark" ';
-                        if ($user->user_type == 'admin' || $application_roles->read_only == 1 || $application_roles->read_write_only == 1) {
+                        if ($user->user_type == 'admin' || $user->user_type == 'Subscriber' || ($application_roles && ($application_roles->read_only == 1 || $application_roles->read_write_only == 1))) {
                             $html .= 'href="' . route('view_application', $row->id) . '">';
                         } else {
                             $html .= 'href="#">';
@@ -3019,11 +3074,23 @@ class WebController extends Controller
     public function user_application_tracking(){
 
         $user = Auth::user();
-        $clients = Clients::where('subscriber_id', '=', $user->id)->get();
+        $subscriber = $user->user_type == "Subscriber" ? $user : User::find($user->added_by);
+        $clients = collect();
         // $subscribers = User::where('user_type', '=', 'Subscriber')->get();
         if ($user) {
-            $subscriber = User::find($user->id);             
-            $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
+            if ($user->user_type == "Subscriber") {
+                $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
+            } else {
+                $assignedApplicationIds = $this->assignedApplicationIdsFor($user, $subscriber);
+                $clientIds = Applications::where('subscriber_id', '=', $subscriber ? $subscriber->id : 0)
+                    ->whereIn('application_id', $assignedApplicationIds)
+                    ->pluck('client_id')
+                    ->unique()
+                    ->toArray();
+                $clients = Clients::where('subscriber_id', '=', $subscriber ? $subscriber->id : 0)
+                    ->whereIn('id', $clientIds)
+                    ->get();
+            }
         }
         $countries = Countries::get();
         $page = "applications";
@@ -3033,15 +3100,42 @@ class WebController extends Controller
     }
 
     public function getClientsBySubscriber()
-    {   
+    {
         $user = Auth::user();
-        $clients = Clients::where('subscriber_id', $user->id)->get();
+
+        if ($user->user_type == 'admin') {
+            $clients = Clients::get();
+        } elseif ($user->user_type == 'Subscriber') {
+            $clients = Clients::where('subscriber_id', $user->id)->get();
+        } else {
+            $subscriber = User::find($user->added_by);
+            $assignedApplicationIds = $this->assignedApplicationIdsFor($user, $subscriber);
+            $clientIds = Applications::where('subscriber_id', '=', $subscriber ? $subscriber->id : 0)
+                ->whereIn('application_id', $assignedApplicationIds)
+                ->pluck('client_id')
+                ->unique()
+                ->toArray();
+            $clients = Clients::where('subscriber_id', $subscriber ? $subscriber->id : 0)
+                ->whereIn('id', $clientIds)
+                ->get();
+        }
+
         return response()->json($clients);
     }
 
     public function getApplicationsByClient($clientId)
     {
-        $applications = Applications::where('client_id', $clientId)->get(['id', 'application_name']);
+        $user = Auth::user();
+        $query = Applications::where('client_id', $clientId);
+
+        if ($user && $user->user_type != 'admin' && $user->user_type != 'Subscriber') {
+            $subscriber = User::find($user->added_by);
+            $assignedApplicationIds = $this->assignedApplicationIdsFor($user, $subscriber);
+            $query->where('subscriber_id', '=', $subscriber ? $subscriber->id : 0)
+                ->whereIn('application_id', $assignedApplicationIds);
+        }
+
+        $applications = $query->get(['id', 'application_name']);
         return response()->json($applications);
     }
 
@@ -3051,6 +3145,11 @@ class WebController extends Controller
 
         if (!$application) {
             return response()->json([]);
+        }
+
+        $user = Auth::user();
+        if (!$this->userCanAccessApplication($user, $application)) {
+            abort(403);
         }
 
         $timeline = ApplicationStatusTrack::where('application_id', $application->id)
@@ -3080,6 +3179,10 @@ class WebController extends Controller
         ]);
 
         $application = Applications::findOrFail($request->application_id);
+        $user = Auth::user();
+        if (!$this->userCanAccessApplication($user, $application)) {
+            abort(403);
+        }
         $currentStatus = $application->application_status ?: 'Client Registered';
         $newStatus = $request->status;
 
@@ -3106,7 +3209,6 @@ class WebController extends Controller
         $application->application_status = $newStatus;
         $application->save();
 
-        $user = Auth::user();
         ApplicationStatusTrack::create([
             'application_id' => $application->id,
             'status' => $newStatus,
@@ -3151,6 +3253,9 @@ class WebController extends Controller
             return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
         }
         $application = Applications::find($id);
+        if (!$this->userCanAccessApplication($user, $application)) {
+            abort(403);
+        }
         $countries = Countries::get();
         $client = Clients::find($application->client_id);
         $subscriber = User::find($client->subscriber_id);
@@ -3312,6 +3417,9 @@ class WebController extends Controller
     {
         $application = Applications::find($id);
         $user = Auth::user();
+        if (!$this->userCanAccessApplication($user, $application)) {
+            abort(403);
+        }
         if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
             return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
         }
@@ -5943,6 +6051,9 @@ class WebController extends Controller
     public function user_applications()
     {
         $user = $this->check_login();
+        if ($user->user_type != "Subscriber") {
+            abort(403);
+        }
         if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
             return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
         }
@@ -5969,6 +6080,9 @@ class WebController extends Controller
     public function update_application_assignment($id)
     {
         $user = Auth::user();
+        if ($user->user_type != "Subscriber") {
+            abort(403);
+        }
         if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
             return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
         }
@@ -5984,11 +6098,10 @@ class WebController extends Controller
     {
         $user = Auth::user();
         if ($user) {
-            if ($user->user_type == "Subscriber") {
-                $subscriber = $user;
-            } else {
-                $subscriber = User::find($user->added_by);
+            if ($user->user_type != "Subscriber") {
+                abort(403);
             }
+            $subscriber = $user;
             if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
                 return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
             }
@@ -5997,7 +6110,7 @@ class WebController extends Controller
                 $u = User::find($request->user_id);
                 $assignment->client_id = $request['client_id'];
                 $assignment->application_id = $request['application_id'];
-                $assignment->subscriber_id = $u->added_by;
+                $assignment->subscriber_id = $u->user_type == "Subscriber" ? $u->id : $u->added_by;
                 $assignment->user_id = $request['user_id'];
                 $assignment->user_name = $u->name;
                 $assignment->save();
@@ -6025,7 +6138,7 @@ class WebController extends Controller
                     $assignment->client_id = $request['client_id'];
                     $assignment->application_id = $request['application_id'];
                     $assignment->user_id = $request['user_id'];
-                    $assignment->subscriber_id = $u->added_by;
+                    $assignment->subscriber_id = $u->user_type == "Subscriber" ? $u->id : $u->added_by;
                     $assignment->user_name = $u->name;
                     $assignment->save();
                     $app = Applications::where('application_id', '=', $request['application_id'])->first();
@@ -6075,16 +6188,31 @@ class WebController extends Controller
 
                 $applications = Applications::get();
                 $clients = Clients::get();
-            } else {
+            } elseif ($user->user_type == "Subscriber") {
                 $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();
                 $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
+            } else {
+                $assignedApplicationIds = $this->assignedApplicationIdsFor($user, $subscriber);
+                $applications = Applications::where('subscriber_id', '=', $subscriber->id)
+                    ->whereIn('application_id', $assignedApplicationIds)
+                    ->get();
+                $clients = Clients::where('subscriber_id', '=', $subscriber->id)
+                    ->whereIn('id', $applications->pluck('client_id')->unique()->toArray())
+                    ->get();
             }
             $page = "applications";
             if ($user->user_type == "admin") {
                 $client_docs = Client_Docs::whereNotNull('application_id')->orderBy('created_at', 'desc')->get();
-            } else {
+            } elseif ($user->user_type == "Subscriber") {
 
                 $client_docs = Client_Docs::whereNotNull('application_id')->whereHas('application')->where('user_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->get();
+            } else {
+                $assignedApplicationIds = $this->assignedApplicationIdsFor($user, $subscriber);
+                $client_docs = Client_Docs::whereNotNull('application_id')
+                    ->whereHas('application')
+                    ->whereIn('application_id', $assignedApplicationIds)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
             }
 
             if (request()->ajax()) {
@@ -6129,8 +6257,11 @@ class WebController extends Controller
                 $subscriber = User::find($user->added_by);
             }
             $document = Client_docs::find($id);
-            $clients = Clients::get();
             $application  = Applications::where('application_id', $document->application_id)->first();
+            if (!$this->userCanAccessApplication($user, $application)) {
+                abort(403);
+            }
+            $clients = Clients::get();
             $page = "applications";
             return view('web.client_document_update', compact('document', 'user', 'page', 'clients', 'application'));
         } else {
@@ -6162,6 +6293,9 @@ class WebController extends Controller
             if ($document) {
                 $client = Clients::find($request->client_id);
                 $application = Applications::find($request->application_id);
+                if (!$this->userCanAccessApplication($user, $application)) {
+                    abort(403);
+                }
                 $subscriber = User::find($client->subscriber_id);
                 $document->client_id = $request['client_id'];
                 $document->application_id = $application->application_id;
@@ -6196,6 +6330,9 @@ class WebController extends Controller
                     $document = new Client_Docs();
                     $client = Clients::find($request->client_id);
                     $application = Applications::find($request->application_id);
+                    if (!$this->userCanAccessApplication($user, $application)) {
+                        abort(403);
+                    }
                     $subscriber = User::find($client->subscriber_id);
                     $document->client_id = $request['client_id'];
                     $document->application_id = $application->application_id;
