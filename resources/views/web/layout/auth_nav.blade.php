@@ -14,15 +14,24 @@ $setting_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Support')->first();
 $subscriber_user = ($user->user_type == 'Subscriber' || $user->user_type == 'admin') ? $user : User::find($user->added_by);
 $effective_membership = $subscriber_user->membership ?? $user->membership;
-$can_clients = $user->user_type == 'admin' || ($client_roles && ($client_roles->read_only == 1 || $client_roles->read_write_only == 1));
-$can_applications = $user->user_type == 'admin' || ($application_roles && ($application_roles->read_only == 1 || $application_roles->read_write_only == 1));
-$can_invoices = $user->user_type == 'admin' || ($invoice_roles && ($invoice_roles->read_only == 1 || $invoice_roles->read_write_only == 1));
-$can_payments = $user->user_type == 'admin' || ($payment_roles && ($payment_roles->read_only == 1 || $payment_roles->read_write_only == 1));
-$can_communications = $user->user_type == 'admin' || ($communication_roles && ($communication_roles->read_only == 1 || $communication_roles->read_write_only == 1));
-$can_reports = $user->user_type == 'admin' || ($report_roles && ($report_roles->read_only == 1 || $report_roles->read_write_only == 1));
-$can_subscription = $user->user_type == 'admin' || ($subscription_roles && ($subscription_roles->read_only == 1 || $subscription_roles->read_write_only == 1));
-$can_settings = $user->user_type == 'admin' || ($setting_roles && ($setting_roles->read_only == 1 || $setting_roles->read_write_only == 1));
-$can_support = $user->user_type == 'admin' || ($support_roles && ($support_roles->read_only == 1 || $support_roles->read_write_only == 1));
+$hasModuleAccess = function ($role) {
+    return $role && (
+        $role->read_only == 1 ||
+        $role->write_only == 1 ||
+        $role->update_only == 1 ||
+        $role->delete_only == 1 ||
+        $role->read_write_only == 1
+    );
+};
+$can_clients = $user->user_type == 'admin' || $hasModuleAccess($client_roles);
+$can_applications = $user->user_type == 'admin' || $hasModuleAccess($application_roles);
+$can_invoices = $user->user_type == 'admin' || $hasModuleAccess($invoice_roles);
+$can_payments = $user->user_type == 'admin' || $hasModuleAccess($payment_roles);
+$can_communications = $user->user_type == 'admin' || $hasModuleAccess($communication_roles);
+$can_reports = $user->user_type == 'admin' || $hasModuleAccess($report_roles);
+$can_subscription = $user->user_type == 'admin' || $hasModuleAccess($subscription_roles);
+$can_settings = $user->user_type == 'admin' || $hasModuleAccess($setting_roles);
+$can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
 @endphp
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 

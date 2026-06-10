@@ -20,7 +20,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 <div class="client-btn d-flex justify-content-between mb-3 px-2">
                     <div>
                         <h3 class="text-primary m-0">{{ $myplan->plan_name }} Plan @if((new DateTime("now")) > (new DateTime($subscriber->membership_expiry_date))) Plan Expired @endif</h3>
-                        <span class="p-0 m-0" style="font-size: 14px;">@if((new DateTime("now")) > (new DateTime($subscriber->membership_expiry_date))) Plan Expired @else Expires @endif on : {{ date("d-m-Y",strtotime($user->membership_expiry_date)) }}</span>
+                        <span class="p-0 m-0" style="font-size: 14px;">@if((new DateTime("now")) > (new DateTime($subscriber->membership_expiry_date))) Plan Expired @else Expires @endif on : {{ date("d-m-Y",strtotime($subscriber->membership_expiry_date)) }}</span>
                     </div>
                     <div>
                         @if($myplan->plan_name != "Enterprise")
@@ -133,8 +133,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                         <p style="font-weight:550;">Price(in USD)</p>
                                     </div>
                                     @php
-                                    $date1=date_create(date("Y-m-d",strtotime($user->membership_start_date)));
-                                    $date2=date_create(date("Y-m-d",strtotime($user->membership_expiry_date)));
+                                    $date1=date_create(date("Y-m-d",strtotime($subscriber->membership_start_date)));
+                                    $date2=date_create(date("Y-m-d",strtotime($subscriber->membership_expiry_date)));
                                     $diff=date_diff($date1,$date2);
                                     $validity = $diff->format("%y");
                                     if($validity < 1)
@@ -191,13 +191,13 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                         <p style="font-weight:550;">Subscription Start Date</p>
                                     </div>
                                     <div class="col-6">
-                                        <p>{{ $user->formatted_membership_start }}</p>
+                                        <p>{{ $subscriber->formatted_membership_start }}</p>
                                     </div>
                                     <div class="col-6">
                                         <p style="font-weight:550;">Subscription End Date</p>
                                     </div>
                                     <div class="col-6">
-                                        <p>{{  $user->formatted_membership_expiry }}</p>
+                                        <p>{{  $subscriber->formatted_membership_expiry }}</p>
                                     </div>
                                 </div>
                             </div>
