@@ -6,7 +6,7 @@
             <div class="client-dashboard">
                 @if(isset($update))
                 <div id="new_assignment" class="col">
-                  <h5>Update User Access</h5>
+                  <h5>Edit User Access Rights</h5>
                   <form id="user_role_form" class="register-box login-box" method="POST" action="{{ route('user_role_post') }}" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="local_time" class="localtime" />
