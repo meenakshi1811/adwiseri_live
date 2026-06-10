@@ -3664,7 +3664,12 @@ class AdminController extends Controller
                 ->pluck('application_id')
                 ->toArray();
             $query->where('subscriber_id', '=', $subscriber ? $subscriber->id : 0)
-                ->whereIn('application_id', $assignedApplicationIds);
+                ->where(function ($query) use ($assignedApplicationIds, $user) {
+                    $query->whereIn('application_id', $assignedApplicationIds)
+                        ->orWhere('assign_to', '=', $user->id)
+                        ->orWhereNull('assign_to')
+                        ->orWhere('assign_to', '=', '');
+                });
         }
 
         $applications = $query->get();

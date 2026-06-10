@@ -2941,10 +2941,26 @@ class WebController extends Controller
             return [];
         }
 
-        return Application_assignments::where('subscriber_id', '=', $subscriber->id)
+        $assignedApplicationIds = Application_assignments::where('subscriber_id', '=', $subscriber->id)
             ->where('user_id', '=', $user->id)
             ->whereNotNull('application_id')
             ->pluck('application_id')
+            ->toArray();
+
+        $directApplicationIds = Applications::where('subscriber_id', '=', $subscriber->id)
+            ->where(function ($query) use ($user) {
+                $query->where('assign_to', '=', $user->id)
+                    ->orWhereNull('assign_to')
+                    ->orWhere('assign_to', '=', '');
+            })
+            ->pluck('application_id')
+            ->toArray();
+
+        return collect($assignedApplicationIds)
+            ->merge($directApplicationIds)
+            ->filter()
+            ->unique()
+            ->values()
             ->toArray();
     }
 
@@ -2967,10 +2983,7 @@ class WebController extends Controller
             return false;
         }
 
-        return Application_assignments::where('subscriber_id', '=', $subscriber->id)
-            ->where('user_id', '=', $user->id)
-            ->where('application_id', '=', $application->application_id)
-            ->exists();
+        return in_array($application->application_id, $this->assignedApplicationIdsFor($user, $subscriber));
     }
 
     public function applications()
