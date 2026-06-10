@@ -3,15 +3,23 @@
 
 use App\Models\User;
 use App\Models\UserRoles;
-$client_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Clients')->first();
-$application_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Applications')->first();
-$communication_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Communication')->first();
-$invoice_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Invoices')->first();
-$payment_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Payments')->first();
-$report_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Reports')->first();
-$subscription_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Subscription')->first();
-$setting_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Settings')->first();
-$support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Support')->first();
+$user_roles = UserRoles::where('user_id', '=', $user->id)->get();
+$roleFor = function ($modules) use ($user_roles) {
+    $modules = array_map('strtolower', array_map('trim', (array) $modules));
+
+    return $user_roles->first(function ($role) use ($modules) {
+        return in_array(strtolower(trim($role->module)), $modules);
+    });
+};
+$client_roles = $roleFor(['Clients', 'Client']);
+$application_roles = $roleFor(['Applications', 'Application']);
+$communication_roles = $roleFor(['Communication', 'Communications']);
+$invoice_roles = $roleFor(['Invoices', 'Invoice']);
+$payment_roles = $roleFor(['Payments', 'Payment']);
+$report_roles = $roleFor(['Reports', 'Report']);
+$subscription_roles = $roleFor(['Subscription', 'Subscriptions']);
+$setting_roles = $roleFor(['Settings', 'Setting']);
+$support_roles = $roleFor(['Support', 'Supports']);
 $subscriber_user = ($user->user_type == 'Subscriber' || $user->user_type == 'admin') ? $user : User::find($user->added_by);
 $effective_membership = $subscriber_user->membership ?? $user->membership;
 $hasModuleAccess = function ($role) {
