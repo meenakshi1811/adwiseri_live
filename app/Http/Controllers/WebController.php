@@ -748,7 +748,7 @@ class WebController extends Controller
             $features = Features::get();
             if ($user->user_type == "Subscriber") {
                 $subscriber = $user;
-                $myplan = Membership::where('plan_name', '=', $user->membership)->first();
+                $myplan = Membership::where('plan_name', '=', $subscriber->membership)->first();
             } else {
                 $sid = $user->added_by;
                 $subscriber = User::find($sid);
@@ -1605,7 +1605,7 @@ class WebController extends Controller
             if ((new DateTime($subscriber->membership_expiry_date)) < (new DateTime("now"))) {
                 return redirect()->route('membership')->with('membership_expiry', 'Membership has expired.');
             }
-            $clients = Clients::withCount('dependants')->where('user_id', '=', $user->id)->orderBy('created_at', 'desc')->get();
+            $clients = Clients::withCount('dependants')->where('subscriber_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->get();
         }
         $countries = Countries::get();
         $page = "clients";
@@ -3682,7 +3682,7 @@ class WebController extends Controller
         if ($user) {
             if ($user->user_type == "Subscriber") {
                 $subscriber = $user;
-                $myplan = Membership::where('plan_name', '=', $user->membership)->first();
+                $myplan = Membership::where('plan_name', '=', $subscriber->membership)->first();
             } else {
                 $sid = $user->added_by;
                 $subscriber = User::find($sid);
@@ -3708,7 +3708,7 @@ class WebController extends Controller
         if ($user) {
             if ($user->user_type == "Subscriber") {
                 $subscriber = $user;
-                $myplan = Membership::where('plan_name', '=', $user->membership)->first();
+                $myplan = Membership::where('plan_name', '=', $subscriber->membership)->first();
             } else {
                 $sid = $user->added_by;
                 $subscriber = User::find($sid);
@@ -3740,7 +3740,7 @@ class WebController extends Controller
                 $sid = $user->added_by;
                 $subscriber = User::find($sid);
             }
-            $myplan = Membership::where('plan_name', '=', $user->membership)->first();
+            $myplan = Membership::where('plan_name', '=', $subscriber->membership)->first();
 
             $membership = Membership::get();
             $page = "user_membership";
@@ -4604,7 +4604,7 @@ class WebController extends Controller
             $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
         } else {
             $subscriber = User::find($user->added_by);
-            $clients = Clients::where('user_id', '=', $user->id)->get();
+            $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
         }
         if ($user->user_type == "admin") {
 
@@ -4677,7 +4677,7 @@ class WebController extends Controller
             $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
         } else {
             $subscriber = User::find($user->added_by);
-            $clients = Clients::where('user_id', '=', $user->id)->get();
+            $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
         }
         if ($user->user_type == "admin") {
 
@@ -4751,7 +4751,7 @@ class WebController extends Controller
             $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
         } else {
             $subscriber = User::find($user->added_by);
-            $clients = Clients::where('user_id', '=', $user->id)->get();
+            $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
         }
         if (count($clients) < 1) {
             return back()->with('noclient', 'no client exists');
@@ -4773,7 +4773,7 @@ class WebController extends Controller
             $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
         } else {
             $subscriber = User::find($user->added_by);
-            $clients = Clients::where('user_id', '=', $user->id)->get();
+            $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
         }
         if (count($clients) < 1) {
             return back()->with('noclient', 'no client exists');
@@ -6006,8 +6006,8 @@ class WebController extends Controller
                 $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
             } else {
                 $subscriber = User::find($user->added_by);
-                $discussions = Client_discussions::where('user_id', '=', $user->id)->orderBy('created_at', 'desc')->get();
-                $clients = Clients::where('user_id', '=', $user->id)->get();
+                $discussions = Client_discussions::where('subscriber_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->get();
+                $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
             }
             $roles = UserRoles::where('user_id', '=', $user->id)->first();
             $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();

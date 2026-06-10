@@ -240,29 +240,29 @@
                                   </tr>
                                   <tr>
                                     <td>Reports</td>
-                                    <td class="text-center"><input type="checkbox" class="report" name="reports_read_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="report" name="reports_write_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="report" name="reports_update_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="report" name="reports_delete_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="report" name="reports_read_write_only" value="1" /></td>
+                                    <td class="text-center"><input type="checkbox" class="report" checked name="reports_read_only" value="1" /></td>
+                                    <td class="text-center"><input type="checkbox" class="report" checked name="reports_write_only" value="1" /></td>
+                                    <td class="text-center"><input type="checkbox" class="report" checked name="reports_update_only" value="1" /></td>
+                                    <td class="text-center"><input type="checkbox" class="report" checked name="reports_delete_only" value="1" /></td>
+                                    <td class="text-center"><input type="checkbox" class="report" checked name="reports_read_write_only" value="1" /></td>
                                     {{-- <td class="text-center"><input type="checkbox" id="reportall" name="report_all" value="1" /></td> --}}
                                   </tr>
                                   <tr>
                                     <td>Subscription</td>
-                                    <td class="text-center"><input type="checkbox" class="subscription" name="subscription_read_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="subscription" name="subscription_write_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="subscription" name="subscription_update_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="subscription" name="subscription_delete_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="subscription" name="subscription_read_write_only" value="1" /></td>
+                                    <td class="text-center"><input type="checkbox" class="subscription" checked name="subscription_read_only" value="1" /></td>
+                                    <td class="text-center"><input type="checkbox" class="subscription" checked name="subscription_write_only" value="1" /></td>
+                                    <td class="text-center"><input type="checkbox" class="subscription" checked name="subscription_update_only" value="1" /></td>
+                                    <td class="text-center"><input type="checkbox" class="subscription" checked name="subscription_delete_only" value="1" /></td>
+                                    <td class="text-center"><input type="checkbox" class="subscription" checked name="subscription_read_write_only" value="1" /></td>
                                     {{-- <td class="text-center"><input type="checkbox" id="subscriptionall" name="subscription_all" value="1" /></td> --}}
                                   </tr>
                                   <tr>
                                     <td>Settings</td>
-                                    <td class="text-center"><input type="checkbox" class="setting" name="settings_read_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="setting" name="settings_write_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="setting" name="settings_update_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="setting" name="settings_delete_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="setting" name="settings_read_write_only" value="1" /></td>
+                                    <td class="text-center"><input type="checkbox" class="setting" checked name="settings_read_only" value="1" /></td>
+                                    <td class="text-center"><input type="checkbox" class="setting" checked name="settings_write_only" value="1" /></td>
+                                    <td class="text-center"><input type="checkbox" class="setting" checked name="settings_update_only" value="1" /></td>
+                                    <td class="text-center"><input type="checkbox" class="setting" checked name="settings_delete_only" value="1" /></td>
+                                    <td class="text-center"><input type="checkbox" class="setting" checked name="settings_read_write_only" value="1" /></td>
                                     {{-- <td class="text-center"><input type="checkbox" id="settingall" name="setting_all" value="1" /></td> --}}
                                   </tr>
                                   <tr>

@@ -156,7 +156,7 @@ class PaymentController extends Controller
                 $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
             } else {
                 $subscriber = User::find($user->added_by);
-                $clients = Clients::where('user_id', '=', $user->id)->get();
+                $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
             }
             $page = "payments";
             $users = User::where('user_type','Subscriber')->get();
@@ -224,7 +224,7 @@ class PaymentController extends Controller
             $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
         } else {
             $subscriber = User::find($user->added_by);
-            $clients = Clients::where('user_id', '=', $user->id)->get();
+            $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
         }
         $invoice = Internal_Invoices::where('subscriber_id', $subscriber->id)
             ->where('type', 'ap')
@@ -272,7 +272,7 @@ class PaymentController extends Controller
                 $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
             } else {
                 $subscriber = User::find($user->added_by);
-                $clients = Clients::where('user_id', '=', $user->id)->get();
+                $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
             }
             $page = "payments";
             $users = User::where('user_type','Subscriber')->get();
