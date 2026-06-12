@@ -658,7 +658,9 @@ class AdminController extends Controller
             // die();
             $data->save();
             $company = User::where('user_type', '=', 'admin')->first() ?: $user;
-            $subscriptionAmount = (float) ($membership->price_per_year ?? 0);
+            // New subscribers start on a free/no-payment registration flow.
+            // Keep the PDF invoice data at 0 and do not persist AP invoice/payment records.
+            $subscriptionAmount = 0.0;
             $internalInvoice = $this->createAdminApInvoiceAndPayment($data, $company, $subscriptionAmount, "Manual", "Subscription Fees ({$membership->plan_name})");
 
             $role = UserRoles::where('user_id', '=', $data->id)->get();
