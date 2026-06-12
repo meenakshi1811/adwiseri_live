@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToCurrentSubscriber;
 
 class Appointment extends Model
 {
+    use BelongsToCurrentSubscriber;
     protected $fillable = [
         'client_id',
         'subscriber_id',

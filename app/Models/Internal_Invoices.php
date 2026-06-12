@@ -5,10 +5,11 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToCurrentSubscriber;
 
 class Internal_Invoices extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToCurrentSubscriber;
     protected $table = "internal_invoices";
     protected $primaryKey = "id";
     protected $fillable = [
