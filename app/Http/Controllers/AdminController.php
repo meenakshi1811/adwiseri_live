@@ -135,7 +135,7 @@ class AdminController extends Controller
         return $token;
     }
 
-    private function createAdminApInvoiceAndPayment(User $subscriber, User $company, float $amount, string $paymentMode, string $detail = 'Subscription Fees'): Internal_Invoices
+    private function buildAdminApInvoice(User $subscriber, User $company, float $amount, string $detail = 'Subscription Fees'): Internal_Invoices
     {
         $amount = round(max(0, $amount), 2);
 
@@ -167,7 +167,21 @@ class AdminController extends Controller
         $internalInvoice->status = 'Paid';
         $internalInvoice->type = 'ap';
         $internalInvoice->due_date = date('Y-m-d');
+        $internalInvoice->created_at = now();
         $internalInvoice->token = $this->generateInternalInvoiceToken();
+
+        return $internalInvoice;
+    }
+
+    private function createAdminApInvoiceAndPayment(User $subscriber, User $company, float $amount, string $paymentMode, string $detail = 'Subscription Fees'): Internal_Invoices
+    {
+        $amount = round(max(0, $amount), 2);
+        $internalInvoice = $this->buildAdminApInvoice($subscriber, $company, $amount, $detail);
+
+        if ($amount <= 0) {
+            return $internalInvoice;
+        }
+
         $internalInvoice->save();
 
         PaymentARs::create([
@@ -644,7 +658,9 @@ class AdminController extends Controller
             // die();
             $data->save();
             $company = User::where('user_type', '=', 'admin')->first() ?: $user;
-            $subscriptionAmount = (float) ($membership->price_per_year ?? 0);
+            // New subscribers start on a free/no-payment registration flow.
+            // Keep the PDF invoice data at 0 and do not persist AP invoice/payment records.
+            $subscriptionAmount = 0.0;
             $internalInvoice = $this->createAdminApInvoiceAndPayment($data, $company, $subscriptionAmount, "Manual", "Subscription Fees ({$membership->plan_name})");
 
             $role = UserRoles::where('user_id', '=', $data->id)->get();

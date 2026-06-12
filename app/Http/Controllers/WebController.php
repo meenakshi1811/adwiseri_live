@@ -489,7 +489,13 @@ class WebController extends Controller
         $internalInvoice->status = 'Paid';
         $internalInvoice->type = 'ap';
         $internalInvoice->due_date = date('Y-m-d');
+        $internalInvoice->created_at = now();
         $internalInvoice->token = $this->generateInternalInvoiceToken();
+
+        if ($amount <= 0) {
+            return $internalInvoice;
+        }
+
         $internalInvoice->save();
 
         PaymentARs::create([
@@ -1053,9 +1059,9 @@ class WebController extends Controller
         $data->save();
 
         $company = User::where('user_type', '=', 'admin')->first();
-        $signupInvoiceAmount = strtolower((string) $plan->plan_name) === 'free'
-            ? 0.0
-            : (float) ($request['amount'] ?? $plan->price_per_year ?? 0);
+        // This no-payment registration path should only send the invoice PDF.
+        // Do not create AP invoice/payment records from the plan's configured price.
+        $signupInvoiceAmount = 0.0;
         $internalInvoice = null;
         if ($company) {
             $internalInvoice = $this->createAdminApInvoiceAndPayment(

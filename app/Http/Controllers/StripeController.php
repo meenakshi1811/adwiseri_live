@@ -100,7 +100,13 @@ class StripeController extends Controller
         $internalInvoice->status = "Paid";
         $internalInvoice->type = 'ap';
         $internalInvoice->due_date = date("Y-m-d");
+        $internalInvoice->created_at = now();
         $internalInvoice->token = $this->generateInternalInvoiceToken();
+
+        if ($amount <= 0) {
+            return $internalInvoice;
+        }
+
         $internalInvoice->save();
 
         PaymentARs::create([
