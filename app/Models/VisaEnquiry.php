@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToCurrentSubscriber;
 
 class VisaEnquiry extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToCurrentSubscriber;
 
     protected $table = 'visa_enquiries';
 

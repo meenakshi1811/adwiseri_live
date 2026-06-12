@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToCurrentSubscriber;
 
 class Client_discussions extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToCurrentSubscriber;
     protected $table = "client_discussions";
     protected $primaryKey = "id";
     protected $fillable = [
