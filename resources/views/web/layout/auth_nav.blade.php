@@ -1,7 +1,6 @@
 <!---Navbar-->
 @php
 
-use App\Models\Membership;
 use App\Models\User;
 use App\Models\UserRoles;
 $user_roles = UserRoles::where('user_id', '=', $user->id)->get();
@@ -23,14 +22,6 @@ $setting_roles = $roleFor(['Settings', 'Setting']);
 $support_roles = $roleFor(['Support', 'Supports']);
 $subscriber_user = ($user->user_type == 'Subscriber' || $user->user_type == 'admin') ? $user : User::find($user->added_by);
 $effective_membership = $subscriber_user->membership ?? $user->membership;
-$effective_plan = Membership::where('plan_name', '=', $effective_membership)->first();
-$membershipAllows = function ($feature, $allowedPlans = []) use ($effective_plan, $effective_membership) {
-    if ($effective_plan && strcasecmp(trim((string) $effective_plan->{$feature}), 'Yes') === 0) {
-        return true;
-    }
-
-    return in_array($effective_membership, $allowedPlans);
-};
 $hasModuleAccess = function ($role) {
     return $role && (
         $role->read_only == 1 ||
@@ -46,7 +37,6 @@ $can_invoices = $user->user_type == 'admin' || $hasModuleAccess($invoice_roles);
 $can_payments = $user->user_type == 'admin' || $hasModuleAccess($payment_roles);
 $can_communications = $user->user_type == 'admin' || $hasModuleAccess($communication_roles);
 $can_reports = $user->user_type == 'admin' || $hasModuleAccess($report_roles);
-$can_analytics = $user->user_type == 'admin' || (($user->user_type == 'Subscriber' || $hasModuleAccess($report_roles)) && $membershipAllows('analytics', ['Adwiseri', 'Adwiseri+', 'Enterprise']));
 $can_subscription = $user->user_type == 'admin' || $hasModuleAccess($subscription_roles);
 $can_settings = $user->user_type == 'admin' || $hasModuleAccess($setting_roles);
 $can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
@@ -217,14 +207,6 @@ $can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
                     Payments
                 </a>
                 @endif
-                @if($can_analytics)
-                <a href="{{ route('sub_analytics') }}" @if($page == "analytics") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
-                    <span class="sidebar-menu-icon">
-                        <i class="fa-solid fa-chart-simple"></i> <!-- Font Awesome icon -->
-                    </span>
-                    Analytics
-                </a>
-                @endif
                 @if(isset($user))
                   @if($user->user_type == "Subscriber" || $user->user_type == "admin")
                   <a href="{{ route('users') }}" @if($page == "users" || $page == 'user_role') style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
@@ -269,6 +251,16 @@ $can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
                   <!-- <div class="dashbox-btn d-flex">
                     <img src="{{ asset('web_assets/images/reports.png') }}" width="30" height="30" alt="">
                     <a href="{{ route('sub_reports') }}" @if($page == "reports") style="font-weight:700;" @endif>Reports</a>
+                  </div> -->
+                  <a href="{{ route('sub_analytics') }}" @if($page == "analytics") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                    <span class="sidebar-menu-icon">
+                        <i class="fa-solid fa-chart-simple"></i> <!-- Font Awesome icon -->
+                    </span>
+                    Analytics
+                </a>
+                  <!-- <div class="dashbox-btn d-flex">
+                    <img src="{{ asset('web_assets/images/analytics.png') }}" width="30" height="30" alt="">
+                    <a href="{{ route('sub_analytics') }}" @if($page == "analytics") style="font-weight:700;" @endif>Analytics</a>
                   </div> -->
                   @if ($user->user_type == "admin" || $user->user_type == "Affiliate")
                   <a href="{{ route('Affiliates') }}" @if($page == "Affiliates") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
