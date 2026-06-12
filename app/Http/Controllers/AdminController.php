@@ -135,7 +135,7 @@ class AdminController extends Controller
         return $token;
     }
 
-    private function createAdminApInvoiceAndPayment(User $subscriber, User $company, float $amount, string $paymentMode, string $detail = 'Subscription Fees'): Internal_Invoices
+    private function buildAdminApInvoice(User $subscriber, User $company, float $amount, string $detail = 'Subscription Fees'): Internal_Invoices
     {
         $amount = round(max(0, $amount), 2);
 
@@ -167,7 +167,21 @@ class AdminController extends Controller
         $internalInvoice->status = 'Paid';
         $internalInvoice->type = 'ap';
         $internalInvoice->due_date = date('Y-m-d');
+        $internalInvoice->created_at = now();
         $internalInvoice->token = $this->generateInternalInvoiceToken();
+
+        return $internalInvoice;
+    }
+
+    private function createAdminApInvoiceAndPayment(User $subscriber, User $company, float $amount, string $paymentMode, string $detail = 'Subscription Fees'): Internal_Invoices
+    {
+        $amount = round(max(0, $amount), 2);
+        $internalInvoice = $this->buildAdminApInvoice($subscriber, $company, $amount, $detail);
+
+        if ($amount <= 0) {
+            return $internalInvoice;
+        }
+
         $internalInvoice->save();
 
         PaymentARs::create([
