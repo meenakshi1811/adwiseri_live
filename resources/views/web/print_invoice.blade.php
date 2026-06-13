@@ -125,13 +125,19 @@
         $hasSubscriberLogo = false;
 
         if (!empty($invoice->logo)) {
-            if ($u->user_type === 'Subscriber' || $u->user_type === 'admin') {
-                $logoPath = public_path('web_assets/users/user' . $userid . '/' . $invoice->logo);
-            } else {
-                $logoPath = public_path('web_assets/users/user' . $u->added_by . '/' . $invoice->logo);
-            }
+            $logoUserIds = ($invoice->type ?? '') === 'ap'
+                ? array_unique(array_filter([1, $invoice->user_id, $invoice->subscriber_id]))
+                : array_unique(array_filter([$userid, $u->added_by ?? null, $invoice->subscriber_id]));
 
-            $hasSubscriberLogo = !empty($logoPath) && file_exists($logoPath);
+            foreach ($logoUserIds as $logoUserId) {
+                $candidateLogoPath = public_path('web_assets/users/user' . $logoUserId . '/' . $invoice->logo);
+
+                if (file_exists($candidateLogoPath)) {
+                    $logoPath = $candidateLogoPath;
+                    $hasSubscriberLogo = true;
+                    break;
+                }
+            }
         }
 
         $statusRaw = (string) ($invoice->status ?? '-');
@@ -141,6 +147,16 @@
         $taxable = $subtotal - $discountAmount;
         $taxAmount = $taxable * ((float) $invoice->tax / 100);
         $total = $taxable + $taxAmount;
+
+        $currencyValue = trim((string) ($user->currency ?? 'USD'));
+        $currencySymbols = ['USD' => '$', 'INR' => '₹', 'EUR' => '€', 'GBP' => '£', 'AUD' => 'A$', 'CAD' => 'C$', 'SGD' => 'S$', 'AED' => 'د.إ'];
+        if (preg_match('/\((.*?)\)/', $currencyValue, $currencyMatch)) {
+            $currency = $currencyMatch[1];
+        } else {
+            $currencyCode = strtoupper(preg_replace('/[^A-Za-z]/', '', $currencyValue));
+            $currency = $currencySymbols[$currencyCode] ?? $currencyValue;
+        }
+        $descriptionLabel = ($invoice->type ?? '') === 'ap' ? ($invoice->detail ?: 'Plan Purchase / Renewal / Upgrade') : 'Professional Fees (' . $invoice->detail . ')';
     @endphp
 
     <div class="sheet">
@@ -188,13 +204,13 @@
             <thead>
                 <tr>
                     <th style="width:72%;">Description</th>
-                    <th class="right" style="width:28%;">Amount ({{ $user->currency }})</th>
+                    <th class="right" style="width:28%;">Amount ({{ $currency }})</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td>Professional Fees ({{ $invoice->detail }})</td>
-                    <td class="right">{{ number_format($subtotal, 2) }}</td>
+                    <td>{{ $descriptionLabel }}</td>
+                    <td class="right">{{ $currency }} {{ number_format($subtotal, 2) }}</td>
                 </tr>
             </tbody>
         </table>
@@ -203,21 +219,21 @@
             <table class="totals">
                 <tr>
                     <td>Subtotal</td>
-                    <td class="right">{{ number_format($subtotal, 2) }}</td>
+                    <td class="right">{{ $currency }} {{ number_format($subtotal, 2) }}</td>
                 </tr>
                 @if((float) $invoice->discount > 0)
                     <tr>
                         <td>Discount ({{ number_format((float) $invoice->discount, 2) }}%)</td>
-                        <td class="right">-{{ number_format($discountAmount, 2) }}</td>
+                        <td class="right">-{{ $currency }} {{ number_format($discountAmount, 2) }}</td>
                     </tr>
                 @endif
                 <tr>
                     <td>Tax ({{ number_format((float) $invoice->tax, 2) }}%)</td>
-                    <td class="right">{{ number_format($taxAmount, 2) }}</td>
+                    <td class="right">{{ $currency }} {{ number_format($taxAmount, 2) }}</td>
                 </tr>
                 <tr class="grand">
                     <td>Total</td>
-                    <td class="right">{{ number_format($total, 2) }}</td>
+                    <td class="right">{{ $currency }} {{ number_format($total, 2) }}</td>
                 </tr>
             </table>
         </div>
