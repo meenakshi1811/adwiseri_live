@@ -620,6 +620,41 @@ window.onclick = function (event) {
             // Get the modal
             const endDateEditableStatuses = ["Decision", "Complete", "Withdrawn", "Cancelled"];
 
+            function parseClientDateValue(value) {
+                if (!value) {
+                    return null;
+                }
+
+                var parts;
+
+                if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                    parts = value.split('-');
+                    return new Date(parts[0], parts[1] - 1, parts[2]);
+                }
+
+                if (/^\d{2}-\d{2}-\d{4}$/.test(value)) {
+                    parts = value.split('-');
+                    return new Date(parts[2], parts[1] - 1, parts[0]);
+                }
+
+                var parsedDate = new Date(value);
+                return isNaN(parsedDate.getTime()) ? null : parsedDate;
+            }
+
+            function isFutureClientDate(value) {
+                var inputDate = parseClientDateValue(value);
+
+                if (!inputDate) {
+                    return false;
+                }
+
+                var today = new Date();
+                today.setHours(0, 0, 0, 0);
+                inputDate.setHours(0, 0, 0, 0);
+
+                return inputDate > today;
+            }
+
             function toggleApplicationEndDateReadonly() {
                 var currentStatus = $("#job_status").val();
                 var shouldEnableEndDate = endDateEditableStatuses.includes(currentStatus);
@@ -632,10 +667,18 @@ window.onclick = function (event) {
 
                 // Update the min attribute of the end date
                 $endDateInput.attr("min", startDate);
+                if ($endDateInput[0] && $endDateInput[0]._flatpickr) {
+                    $endDateInput[0]._flatpickr.set('minDate', startDate);
+                }
 
                 // If the current end date is less than the start date, clear it
-                if ($endDateInput.val() && $endDateInput.val() < startDate) {
+                var startDateValue = parseClientDateValue(startDate);
+                var endDateValue = parseClientDateValue($endDateInput.val());
+                if (startDateValue && endDateValue && endDateValue < startDateValue) {
                     $endDateInput.val("");
+                    if ($endDateInput[0] && $endDateInput[0]._flatpickr) {
+                        $endDateInput[0]._flatpickr.clear();
+                    }
                 }
              });
 
@@ -646,11 +689,8 @@ window.onclick = function (event) {
              toggleApplicationEndDateReadonly();
              document.getElementById('job_open_date').addEventListener('change', function () {
         var inputField = this;
-        var inputDate = new Date(inputField.value); // Get the selected date
-        var today = new Date(); // Current date
-
         // Check if the input date is in the future
-        if (inputDate > today) {
+        if (isFutureClientDate(inputField.value)) {
             inputField.value = ""; // Clear the invalid value
             inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
             inputField.classList.add('is-invalid'); // Add red border for invalid input
@@ -661,11 +701,8 @@ window.onclick = function (event) {
     });
      document.getElementById('job_completion_date').addEventListener('change', function () {
         var inputField = this;
-        var inputDate = new Date(inputField.value); // Get the selected date
-        var today = new Date(); // Current date
-
         // Check if the input date is in the future
-        if (inputDate > today) {
+        if (isFutureClientDate(inputField.value)) {
             inputField.value = ""; // Clear the invalid value
             inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
             inputField.classList.add('is-invalid'); // Add red border for invalid input
