@@ -23,16 +23,38 @@ else{
 }
 
 $subscriberLogoUrl = null;
-$subscriberLogoPath = null;
-$subscriberId = $invoice->subscriber_id ?: $userid;
+$logoUserIds = ($invoice->type ?? '') === 'ap'
+    ? array_unique(array_filter([1, $invoice->user_id, $invoice->subscriber_id]))
+    : array_unique(array_filter([$invoice->subscriber_id, $invoice->user_id, $userid]));
 
 if (!empty($invoice->logo)) {
-    $subscriberLogoPath = public_path('web_assets/users/user' . $subscriberId . '/' . $invoice->logo);
+    foreach ($logoUserIds as $logoUserId) {
+        $subscriberLogoPath = public_path('web_assets/users/user' . $logoUserId . '/' . $invoice->logo);
 
-    if (file_exists($subscriberLogoPath)) {
-        $subscriberLogoUrl = asset('web_assets/users/user' . $subscriberId . '/' . $invoice->logo);
+        if (file_exists($subscriberLogoPath)) {
+            $subscriberLogoUrl = asset('web_assets/users/user' . $logoUserId . '/' . $invoice->logo);
+            break;
+        }
     }
 }
+$currencyValue = trim((string) ($user->currency ?? 'USD'));
+$currencySymbols = ['USD' => '$', 'INR' => '₹', 'EUR' => '€', 'GBP' => '£', 'AUD' => 'A$', 'CAD' => 'C$', 'SGD' => 'S$', 'AED' => 'د.إ'];
+if (preg_match('/\((.*?)\)/', $currencyValue, $currencyMatch)) {
+    $currency = $currencyMatch[1];
+} else {
+    $currencyCode = strtoupper(preg_replace('/[^A-Za-z]/', '', $currencyValue));
+    $currency = $currencySymbols[$currencyCode] ?? $currencyValue;
+}
+$descriptionLabel = ($invoice->type ?? '') === 'ap' ? ($invoice->detail ?: 'Plan Purchase / Renewal / Upgrade') : 'Professional Fees (' . $invoice->detail . ')';
+$subtotal = (float) $invoice->amount;
+$discountAmount = $subtotal * ((float) $invoice->discount / 100);
+$taxable = $subtotal - $discountAmount;
+$taxAmount = $taxable * ((float) $invoice->tax / 100);
+$total = $taxable + $taxAmount;
+$formattedSubtotal = number_format($subtotal, 2);
+$formattedDiscountAmount = number_format($discountAmount, 2);
+$formattedTaxAmount = number_format($taxAmount, 2);
+$formattedTotal = number_format($total, 2);
 @endphp
 <style>
     .invoice-box {
@@ -199,30 +221,28 @@ if (!empty($invoice->logo)) {
             <thead>
                 <tr>
                     <th class="p-1 text-center">Description</th>
-                    <th class="p-1 text-center">Amount ({{ $user->currency }})</th>
+                    <th class="p-1 text-center">Amount ({{ $currency }})</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td class="p-1 text-center">Professional Fees ({{ $invoice->detail }})</td>
-                    <td class="p-1 text-center">{{ $invoice->amount }}</td>
+                    <td class="p-1 text-center">{{ $descriptionLabel }}</td>
+                    <td class="p-1 text-center">{{ $currency }} {{ $formattedSubtotal }}</td>
                 </tr>
                 @if($invoice->discount != 0)
                 <tr>
                     <td class="p-1 text-center">Discount ({{ $invoice->discount }}%)</td>
-                    <td class="p-1 text-center">-{{ number_format($invoice->amount * ($invoice->discount / 100), 2) }}</td>
+                    <td class="p-1 text-center">-{{ $currency }} {{ $formattedDiscountAmount }}</td>
                 </tr>
                 @endif
                 <tr>
                     <td class="p-1 text-center">Tax ({{ $invoice->tax }}%)</td>
-                    <td class="p-1 text-center">{{ number_format(($invoice->amount - ($invoice->amount * ($invoice->discount / 100))) * ($invoice->tax / 100), 2) }}</td>
+                    <td class="p-1 text-center">{{ $currency }} {{ $formattedTaxAmount }}</td>
                 </tr>
                 <tr class="total-row">
                     <td class="p-1 text-center" class="text-right">Total</td>
                     <td class="p-1 text-center">
-                        @php
-                           echo $total = $invoice->amount - ($invoice->amount * ($invoice->discount / 100)) + (($invoice->amount - ($invoice->amount * ($invoice->discount / 100))) * ($invoice->tax / 100));
-                        @endphp
+{{ $currency }} {{ $formattedTotal }}
                     </td>
                 </tr>
             </tbody>
