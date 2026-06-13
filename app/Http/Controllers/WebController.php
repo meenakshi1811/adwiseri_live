@@ -473,7 +473,7 @@ class WebController extends Controller
         $internalInvoice->pincode = $company->pincode;
         $internalInvoice->address = $company->address_line;
         $internalInvoice->logo = $company->organization_logo;
-        $internalInvoice->to_name = 'adwiseri.com';
+        $internalInvoice->to_name = $subscriber->name;
         $internalInvoice->to_email = $subscriber->email;
         $internalInvoice->to_phone = $subscriber->phone;
         $internalInvoice->to_country = $subscriber->country;
@@ -550,10 +550,15 @@ class WebController extends Controller
             'currency' => 'USD',
             'name' => $subscriber->name,
             'to_email' => $subscriber->email,
+            'to_address' => $subscriber->address_line,
+            'to_city' => $subscriber->city,
+            'to_state' => $subscriber->state,
+            'to_country' => $subscriber->country,
+            'to_pincode' => $subscriber->pincode,
             'company_name' => $company->organization ?: 'adwiseri',
             'from_email' => $company->email,
             'display_from_email' => $company->email,
-            'logo_path' => !empty($company->organization_logo) ? 'web_assets/users/logos/' . $company->organization_logo : null,
+            'logo_path' => !empty($company->organization_logo) ? 'web_assets/users/user' . $company->id . '/' . $company->organization_logo : null,
         ];
     }
 

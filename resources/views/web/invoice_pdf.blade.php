@@ -126,7 +126,14 @@
         $taxable = $amount - $discountAmount;
         $taxAmount = $taxable * ($taxPercent / 100);
         $total = (float) ($data->total ?? ($taxable + $taxAmount));
-        $currency = $data->currency ?? 'Rs.';
+        $currencyValue = trim((string) ($data->currency ?? 'USD'));
+        $currencySymbols = ['USD' => '$', 'INR' => '₹', 'EUR' => '€', 'GBP' => '£', 'AUD' => 'A$', 'CAD' => 'C$', 'SGD' => 'S$', 'AED' => 'د.إ'];
+        if (preg_match('/\((.*?)\)/', $currencyValue, $currencyMatch)) {
+            $currency = $currencyMatch[1];
+        } else {
+            $currencyCode = strtoupper(preg_replace('/[^A-Za-z]/', '', $currencyValue));
+            $currency = $currencySymbols[$currencyCode] ?? $currencyValue;
+        }
         $statusRaw = (string) ($data->status ?? '-');
         $statusLabel = $statusRaw === 'PartiallyPaid' ? 'Partially Paid' : ($statusRaw === 'UnPaid' ? 'Unpaid' : $statusRaw);
         $subscriberName = trim((string) ($data->company_name ?? $data->subscriber_name ?? $data->from_name ?? 'Adwiseri'));
@@ -207,6 +214,9 @@
                 <div class="section-title">Bill To</div>
                 <div class="box">
                     <strong>{{ $data->name ?? '-' }}</strong><br>
+                    @if(!empty($data->to_address)){{ $data->to_address }}<br>@endif
+                    @if(!empty($data->to_city) || !empty($data->to_state)){{ trim(($data->to_city ?? '') . ', ' . ($data->to_state ?? ''), ', ') }}<br>@endif
+                    @if(!empty($data->to_country) || !empty($data->to_pincode)){{ trim(($data->to_country ?? '') . ' - ' . ($data->to_pincode ?? ''), ' -') }}<br>@endif
                     {{ $data->to_email ?? '' }}
                 </div>
             </td>
@@ -228,13 +238,13 @@
         <thead>
             <tr>
                 <th style="width:72%;">Description</th>
-                <th class="right" style="width:28%;">Amount</th>
+                <th style="width:28%;">Amount</th>
             </tr>
         </thead>
         <tbody>
             <tr>
                 <td>{{ $detailText }}</td>
-                <td class="right">{{ $currency }} {{ number_format($amount, 2) }}</td>
+                <td>{{ $currency }} {{ number_format($amount, 2) }}</td>
             </tr>
         </tbody>
     </table>
