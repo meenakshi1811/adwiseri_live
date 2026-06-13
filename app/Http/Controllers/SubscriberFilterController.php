@@ -605,21 +605,21 @@ class SubscriberFilterController extends Controller
                 ->addIndexColumn()
                 ->make(true);
         } elseif (request()->type == "byPaymentModeClientChart") {
-            $query = new PaymentARs();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query = $query->where('payment_ar.subscriber_id', request()->subid);
-            }
+            $query = $this->scopeQueryToSubscriber(
+                PaymentARs::query(),
+                $reportSubscriberId,
+                'payment_ar.subscriber_id'
+            );
 
             $clientsPaymentMode = $query
                 ->whereBetween('payment_ar.created_at', [$startDate, $endDate])
                 ->whereNotNull('payment_ar.client_id')
-                ->join('clients', 'clients.id', '=', 'payment_ar.client_id')
-                ->leftJoin('applications', 'applications.id', '=', 'payment_ar.application_id')
-                ->select(
-                    'payment_ar.payment_mode', // ✅ Ensure this is included
-                    DB::raw('COUNT(payment_ar.id) as no_of_applications') // ✅ Count applications per mode
-                )
-                ->groupBy('payment_ar.payment_mode')
+                ->whereNotNull('payment_ar.payment_mode')
+                ->whereRaw("TRIM(payment_ar.payment_mode) != ''")
+                ->whereRaw('LOWER(TRIM(payment_ar.payment_mode)) != ?', ['null'])
+                ->selectRaw('TRIM(payment_ar.payment_mode) as payment_mode')
+                ->selectRaw('COUNT(payment_ar.id) as no_of_applications')
+                ->groupByRaw('TRIM(payment_ar.payment_mode)')
                 ->orderBy('no_of_applications', 'desc')
                 ->get();
 
@@ -981,8 +981,7 @@ class SubscriberFilterController extends Controller
                 'payment_ar.subscriber_id'
             )
                 ->whereBetween('payment_ar.created_at', [$startDate, $endDate])
-                ->where('payment_ar.type', 'ar')
-                ->whereNotNull('payment_ar.application_id')
+                ->whereNotNull('payment_ar.client_id')
                 ->whereNotNull('payment_ar.payment_mode')
                 ->whereRaw("TRIM(payment_ar.payment_mode) != ''")
                 ->whereRaw('LOWER(TRIM(payment_ar.payment_mode)) != ?', ['null'])
