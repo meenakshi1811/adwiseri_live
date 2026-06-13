@@ -35,8 +35,8 @@
         }
 
         .logo {
-            max-height: 55px;
-            max-width: 200px;
+            max-height: 38.5px;
+            max-width: 140px;
             margin-bottom: 6px;
         }
 
@@ -181,6 +181,13 @@
         $planLabel = strcasecmp($planName, 'free') === 0 ? 'FREE' : $planName;
         $detailText = trim((string) ($data->detail ?? 'Professional Services'));
         $detailText = preg_replace('/subscription fees\s*\(\s*free\s*\)/i', 'subscription fees(FREE Plan)', $detailText);
+
+        if (
+            preg_match('/subscription fees\s*\(\s*free\s*\)/i', $detailText) ||
+            (strcasecmp($planName, 'free') === 0 && stripos($detailText, 'subscription fees') !== false)
+        ) {
+            $detailText = 'Subscription (FREE Plan)';
+        }
 
         if (
             preg_match('/subscription fees\s*\(\s*free\s*\)/i', $detailText) ||
