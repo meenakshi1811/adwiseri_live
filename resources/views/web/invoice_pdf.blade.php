@@ -178,14 +178,16 @@
             }
         }
         $planName = trim((string) ($data->plan_name ?? ($data->subscription_type ?? ($data->membership ?? ''))));
+        $planLabel = strcasecmp($planName, 'free') === 0 ? 'FREE' : $planName;
         $detailText = trim((string) ($data->detail ?? 'Professional Services'));
+        $detailText = preg_replace('/subscription fees\s*\(\s*free\s*\)/i', 'subscription fees(FREE Plan)', $detailText);
 
         if (
             $planName !== '' &&
             stripos($detailText, 'subscription fees') !== false &&
             stripos($detailText, ' plan') === false
         ) {
-            $detailText .= ' (' . $planName . ' Plan)';
+            $detailText .= ' (' . $planLabel . ' Plan)';
         }
     @endphp
 
