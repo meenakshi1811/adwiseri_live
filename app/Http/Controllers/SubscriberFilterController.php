@@ -97,19 +97,19 @@ class SubscriberFilterController extends Controller
 
     private function resolveReportSubscriberId($user): ?int
     {
-        if (request()->filled('subid')) {
-            return (int) request()->input('subid');
+        if ($user->user_type === 'admin') {
+            return request()->filled('subid') ? (int) request()->input('subid') : null;
         }
 
         if ($user->user_type === 'Subscriber') {
             return (int) $user->id;
         }
 
-        if ($user->user_type !== 'admin' && !empty($user->added_by)) {
+        if (!empty($user->added_by)) {
             return (int) $user->added_by;
         }
 
-        return null;
+        return request()->filled('subid') ? (int) request()->input('subid') : null;
     }
 
     private function scopeQueryToSubscriber($query, ?int $subscriberId, string $column = 'subscriber_id')
