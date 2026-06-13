@@ -46,6 +46,15 @@ if (preg_match('/\((.*?)\)/', $currencyValue, $currencyMatch)) {
     $currency = $currencySymbols[$currencyCode] ?? $currencyValue;
 }
 $descriptionLabel = ($invoice->type ?? '') === 'ap' ? ($invoice->detail ?: 'Plan Purchase / Renewal / Upgrade') : 'Professional Fees (' . $invoice->detail . ')';
+$subtotal = (float) $invoice->amount;
+$discountAmount = $subtotal * ((float) $invoice->discount / 100);
+$taxable = $subtotal - $discountAmount;
+$taxAmount = $taxable * ((float) $invoice->tax / 100);
+$total = $taxable + $taxAmount;
+$formattedSubtotal = number_format($subtotal, 2);
+$formattedDiscountAmount = number_format($discountAmount, 2);
+$formattedTaxAmount = number_format($taxAmount, 2);
+$formattedTotal = number_format($total, 2);
 @endphp
 <style>
     .invoice-box {
@@ -218,22 +227,22 @@ $descriptionLabel = ($invoice->type ?? '') === 'ap' ? ($invoice->detail ?: 'Plan
             <tbody>
                 <tr>
                     <td class="p-1 text-center">{{ $descriptionLabel }}</td>
-                    <td class="p-1 text-center">{{ $currency }} {{ number_format((float) $invoice->amount, 2) }}</td>
+                    <td class="p-1 text-center">{{ $currency }} {{ $formattedSubtotal }}</td>
                 </tr>
                 @if($invoice->discount != 0)
                 <tr>
                     <td class="p-1 text-center">Discount ({{ $invoice->discount }}%)</td>
-                    <td class="p-1 text-center">-{{ $currency }} {{ number_format($invoice->amount * ($invoice->discount / 100), 2) }}</td>
+                    <td class="p-1 text-center">-{{ $currency }} {{ $formattedDiscountAmount }}</td>
                 </tr>
                 @endif
                 <tr>
                     <td class="p-1 text-center">Tax ({{ $invoice->tax }}%)</td>
-                    <td class="p-1 text-center">{{ $currency }} {{ number_format(($invoice->amount - ($invoice->amount * ($invoice->discount / 100))) * ($invoice->tax / 100), 2) }}</td>
+                    <td class="p-1 text-center">{{ $currency }} {{ $formattedTaxAmount }}</td>
                 </tr>
                 <tr class="total-row">
                     <td class="p-1 text-center" class="text-right">Total</td>
                     <td class="p-1 text-center">
-{{ $currency }} {{ number_format($invoice->amount - ($invoice->amount * ($invoice->discount / 100)) + (($invoice->amount - ($invoice->amount * ($invoice->discount / 100))) * ($invoice->tax / 100), 2) }}
+{{ $currency }} {{ $formattedTotal }}
                     </td>
                 </tr>
             </tbody>
