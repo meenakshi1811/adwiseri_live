@@ -9,6 +9,15 @@
         else{
           $userid = $invoice->user_id;
         }
+        $currencyValue = trim((string) ($user->currency ?? 'USD'));
+        $currencySymbols = ['USD' => '$', 'INR' => '₹', 'EUR' => '€', 'GBP' => '£', 'AUD' => 'A$', 'CAD' => 'C$', 'SGD' => 'S$', 'AED' => 'د.إ'];
+        if (preg_match('/\((.*?)\)/', $currencyValue, $currencyMatch)) {
+            $currency = $currencyMatch[1];
+        } else {
+            $currencyCode = strtoupper(preg_replace('/[^A-Za-z]/', '', $currencyValue));
+            $currency = $currencySymbols[$currencyCode] ?? $currencyValue;
+        }
+        $descriptionLabel = ($invoice->type ?? '') === 'ap' ? ($invoice->detail ?: 'Plan Purchase / Renewal / Upgrade') : 'Professional Fees (' . $invoice->detail . ')';
         @endphp
         <style>
     .invoice-box {
@@ -155,30 +164,28 @@
             <thead>
                 <tr>
                     <th class="p-1 text-center">Description</th>
-                    <th class="p-1 text-center">Amount ({{ $user->currency }})</th>
+                    <th class="p-1 text-center">Amount ({{ $currency }})</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td class="p-1 text-center">Professional Fees ({{ $invoice->detail }})</td>
-                    <td class="p-1 text-center">{{ $invoice->amount }}</td>
+                    <td class="p-1 text-center">{{ $descriptionLabel }}</td>
+                    <td class="p-1 text-center">{{ $currency }} {{ number_format((float) $invoice->amount, 2) }}</td>
                 </tr>
                 @if($invoice->discount != 0)
                 <tr>
                     <td class="p-1 text-center">Discount ({{ $invoice->discount }}%)</td>
-                    <td class="p-1 text-center">-{{ number_format($invoice->amount * ($invoice->discount / 100), 2) }}</td>
+                    <td class="p-1 text-center">-{{ $currency }} {{ number_format($invoice->amount * ($invoice->discount / 100), 2) }}</td>
                 </tr>
                 @endif
                 <tr>
                     <td class="p-1 text-center">Tax ({{ $invoice->tax }}%)</td>
-                    <td class="p-1 text-center">{{ number_format(($invoice->amount - ($invoice->amount * ($invoice->discount / 100))) * ($invoice->tax / 100), 2) }}</td>
+                    <td class="p-1 text-center">{{ $currency }} {{ number_format(($invoice->amount - ($invoice->amount * ($invoice->discount / 100))) * ($invoice->tax / 100), 2) }}</td>
                 </tr>
                 <tr class="total-row">
                     <td class="p-1 text-center" class="text-right">Total</td>
                     <td class="p-1 text-center">
-                        @php
-                           echo $total = $invoice->amount - ($invoice->amount * ($invoice->discount / 100)) + (($invoice->amount - ($invoice->amount * ($invoice->discount / 100))) * ($invoice->tax / 100));
-                        @endphp
+{{ $currency }} {{ number_format($invoice->amount - ($invoice->amount * ($invoice->discount / 100)) + (($invoice->amount - ($invoice->amount * ($invoice->discount / 100))) * ($invoice->tax / 100), 2) }}
                     </td>
                 </tr>
             </tbody>
