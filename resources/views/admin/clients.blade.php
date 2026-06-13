@@ -186,7 +186,7 @@
                                                     class="form-control date @error('job_completion_date') is-invalid @enderror"
                                                     id="job_completion_date"
                                                     aria-describedby="emailHelp"
-                                                    value="{{ old('job_completion_date') ? date('Y-m-d', strtotime(old('job_completion_date'))) : date('Y-m-d') }}"
+                                                    value="{{ old('job_completion_date') ? date('Y-m-d', strtotime(old('job_completion_date'))) : null }}"
 
                                                     placeholder="Application End Date"
                                                     autocomplete="job_completion_date"
