@@ -980,15 +980,28 @@ class SubscriberFilterController extends Controller
                 $reportSubscriberId,
                 'payment_ar.subscriber_id'
             )
+                ->leftJoin('applications', function ($join) {
+                    $join->on('applications.subscriber_id', '=', 'payment_ar.subscriber_id')
+                        ->on(function ($applicationJoin) {
+                            $applicationJoin->on('applications.id', '=', 'payment_ar.application_id')
+                                ->orOn('applications.application_id', '=', 'payment_ar.application_id');
+                        });
+                })
                 ->whereBetween('payment_ar.created_at', [$startDate, $endDate])
-                ->whereNotNull('payment_ar.client_id')
+                ->whereNotNull('payment_ar.application_id')
                 ->whereNotNull('payment_ar.payment_mode')
                 ->whereRaw("TRIM(payment_ar.payment_mode) != ''")
                 ->whereRaw('LOWER(TRIM(payment_ar.payment_mode)) != ?', ['null'])
+                ->where(function ($query) {
+                    $query->where('payment_ar.type', 'ar')
+                        ->orWhereNull('payment_ar.type')
+                        ->orWhereRaw("TRIM(payment_ar.type) = ''");
+                })
                 ->selectRaw('TRIM(payment_ar.payment_mode) as payment_mode')
-                ->selectRaw('COUNT(*) as no_of_applications')
+                ->selectRaw('COUNT(DISTINCT COALESCE(applications.id, payment_ar.application_id)) as no_of_applications')
+                ->selectRaw("GROUP_CONCAT(DISTINCT COALESCE(CONCAT(applications.application_name, ' (', applications.application_id, ')'), payment_ar.application_id) SEPARATOR ', ') as application_names")
                 ->groupByRaw('TRIM(payment_ar.payment_mode)')
-                ->havingRaw('COUNT(*) > 0')
+                ->havingRaw('COUNT(DISTINCT COALESCE(applications.id, payment_ar.application_id)) > 0')
                 ->orderBy('no_of_applications', 'desc')
                 ->get();
 
