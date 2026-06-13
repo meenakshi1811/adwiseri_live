@@ -181,8 +181,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                                     autocomplete="job_open_date"
                                                     {{-- max={{ date('Y-m-d')}} --}}
                                                     required
-                                                   onfocus="(this.type='date')"
-                                                    onblur="(this.type='text')"
                                                       max="{{date('Y-m-d')}}"
                                                       {{-- max="{{ date('Y-m-d', strtotime('+2 years')) }}" --}}
                                                     />
@@ -204,8 +202,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
                                                     placeholder="Application End Date"
                                                     autocomplete="job_completion_date"
-                                                   onfocus="(this.type='date')"
-                                                    onblur="(this.type='text')"
                                                       max="{{date('Y-m-d')}}"
                                                     />
                                                 @error('job_completion_date')
@@ -368,8 +364,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                                     autocomplete="dob"
                                                     max={{ date('Y-m-d')}}
                                                     required
-                                                   onfocus="(this.type='date')"
-                                                    onblur="(this.type='text')"
                                                     />
                                                 @error('dob')
                                                 <span class="invalid-feedback">
@@ -583,6 +577,41 @@ window.onclick = function (event) {
 
         $(document).ready(function() {
             // Get the modal
+            function parseClientDateValue(value) {
+                if (!value) {
+                    return null;
+                }
+
+                var parts;
+
+                if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                    parts = value.split('-');
+                    return new Date(parts[0], parts[1] - 1, parts[2]);
+                }
+
+                if (/^\d{2}-\d{2}-\d{4}$/.test(value)) {
+                    parts = value.split('-');
+                    return new Date(parts[2], parts[1] - 1, parts[0]);
+                }
+
+                var parsedDate = new Date(value);
+                return isNaN(parsedDate.getTime()) ? null : parsedDate;
+            }
+
+            function isFutureClientDate(value) {
+                var inputDate = parseClientDateValue(value);
+
+                if (!inputDate) {
+                    return false;
+                }
+
+                var today = new Date();
+                today.setHours(0, 0, 0, 0);
+                inputDate.setHours(0, 0, 0, 0);
+
+                return inputDate > today;
+            }
+
             $("#job_open_date").on("change", function () {
                 var startDate = $(this).val(); // Get the selected start date
                 var $endDateInput = $("#job_completion_date");
@@ -590,29 +619,25 @@ window.onclick = function (event) {
                 // Update the min attribute of the end date
                 $endDateInput.attr("min", startDate);
 
-                // Calculate the max date (startDate + 2 years)
-                    var maxDate = new Date(startDate);
-                    maxDate.setFullYear(maxDate.getFullYear()); // Add 2 years
-
-                    // Format the maxDate to YYYY-MM-DD
-                    var formattedMaxDate = maxDate.toISOString().split("T")[0];
-
-                    // Update the max attribute of the end date
-                    $endDateInput.attr("max", formattedMaxDate);
+                if ($endDateInput[0] && $endDateInput[0]._flatpickr) {
+                    $endDateInput[0]._flatpickr.set('minDate', startDate);
+                }
 
                 // If the current end date is less than the start date, clear it
-                if ($endDateInput.val() && $endDateInput.val() < startDate) {
+                var startDateValue = parseClientDateValue(startDate);
+                var endDateValue = parseClientDateValue($endDateInput.val());
+                if (startDateValue && endDateValue && endDateValue < startDateValue) {
                     $endDateInput.val("");
+                    if ($endDateInput[0] && $endDateInput[0]._flatpickr) {
+                        $endDateInput[0]._flatpickr.clear();
+                    }
                 }
              });
             // Close Modal on "Close" button or when clicking outside
             document.getElementById('job_open_date').addEventListener('change', function () {
         var inputField = this;
-        var inputDate = new Date(inputField.value); // Get the selected date
-        var today = new Date(); // Current date
-
         // Check if the input date is in the future
-        if (inputDate > today) {
+        if (isFutureClientDate(inputField.value)) {
             inputField.value = ""; // Clear the invalid value
             inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
             inputField.classList.add('is-invalid'); // Add red border for invalid input
@@ -623,11 +648,8 @@ window.onclick = function (event) {
     });
      document.getElementById('job_completion_date').addEventListener('change', function () {
         var inputField = this;
-        var inputDate = new Date(inputField.value); // Get the selected date
-        var today = new Date(); // Current date
-
         // Check if the input date is in the future
-        if (inputDate > today) {
+        if (isFutureClientDate(inputField.value)) {
             inputField.value = ""; // Clear the invalid value
             inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
             inputField.classList.add('is-invalid'); // Add red border for invalid input
