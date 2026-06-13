@@ -183,6 +183,13 @@
         $detailText = preg_replace('/subscription fees\s*\(\s*free\s*\)/i', 'subscription fees(FREE Plan)', $detailText);
 
         if (
+            preg_match('/subscription fees\s*\(\s*free\s*\)/i', $detailText) ||
+            (strcasecmp($planName, 'free') === 0 && stripos($detailText, 'subscription fees') !== false)
+        ) {
+            $detailText = 'Subscription (FREE Plan)';
+        }
+
+        if (
             $planName !== '' &&
             stripos($detailText, 'subscription fees') !== false &&
             stripos($detailText, ' plan') === false
