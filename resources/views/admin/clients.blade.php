@@ -170,8 +170,6 @@
                                                     autocomplete="job_open_date"
                                                     {{-- max={{ date('Y-m-d')}} --}}
                                                     required
-                                                   onfocus="(this.type='date')"
-                                                    onblur="(this.type='text')"
                                                     max="{{date('Y-m-d')}}"
                                                     />
                                                 @error('job_open_date')
@@ -192,8 +190,6 @@
 
                                                     placeholder="Application End Date"
                                                     autocomplete="job_completion_date"
-                                                   onfocus="(this.type='date')"
-                                                    onblur="(this.type='text')"
                                                      max="{{date('Y-m-d')}}"
                                                     readonly
                                                     />

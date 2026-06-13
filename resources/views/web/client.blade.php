@@ -181,8 +181,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                                     autocomplete="job_open_date"
                                                     {{-- max={{ date('Y-m-d')}} --}}
                                                     required
-                                                   onfocus="(this.type='date')"
-                                                    onblur="(this.type='text')"
                                                       max="{{date('Y-m-d')}}"
                                                       {{-- max="{{ date('Y-m-d', strtotime('+2 years')) }}" --}}
                                                     />
@@ -204,8 +202,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
                                                     placeholder="Application End Date"
                                                     autocomplete="job_completion_date"
-                                                   onfocus="(this.type='date')"
-                                                    onblur="(this.type='text')"
                                                       max="{{date('Y-m-d')}}"
                                                     />
                                                 @error('job_completion_date')
@@ -368,8 +364,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                                     autocomplete="dob"
                                                     max={{ date('Y-m-d')}}
                                                     required
-                                                   onfocus="(this.type='date')"
-                                                    onblur="(this.type='text')"
                                                     />
                                                 @error('dob')
                                                 <span class="invalid-feedback">
