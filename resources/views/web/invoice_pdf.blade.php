@@ -180,25 +180,18 @@
         $planName = trim((string) ($data->plan_name ?? ($data->subscription_type ?? ($data->membership ?? ''))));
         $planLabel = strcasecmp($planName, 'free') === 0 ? 'FREE' : $planName;
         $detailText = trim((string) ($data->detail ?? 'Professional Services'));
-        $detailText = preg_replace('/subscription fees\s*\(\s*free\s*\)/i', 'subscription fees(FREE Plan)', $detailText);
+        $hasSubscriptionFeesDetail = preg_match('/subscri[pb]tion fees/i', $detailText) === 1;
 
         if (
-            preg_match('/subscription fees\s*\(\s*free\s*\)/i', $detailText) ||
-            (strcasecmp($planName, 'free') === 0 && stripos($detailText, 'subscription fees') !== false)
-        ) {
-            $detailText = 'Subscription (FREE Plan)';
-        }
-
-        if (
-            preg_match('/subscription fees\s*\(\s*free\s*\)/i', $detailText) ||
-            (strcasecmp($planName, 'free') === 0 && stripos($detailText, 'subscription fees') !== false)
+            preg_match('/subscri[pb]tion fees\s*\(\s*free(?:\s+plan)?\s*\)/i', $detailText) ||
+            (strcasecmp($planName, 'free') === 0 && $hasSubscriptionFeesDetail)
         ) {
             $detailText = 'Subscription (FREE Plan)';
         }
 
         if (
             $planName !== '' &&
-            stripos($detailText, 'subscription fees') !== false &&
+            $hasSubscriptionFeesDetail &&
             stripos($detailText, ' plan') === false
         ) {
             $detailText .= ' (' . $planLabel . ' Plan)';
