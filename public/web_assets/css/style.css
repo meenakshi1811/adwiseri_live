@@ -259,7 +259,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     top: 0;
     bottom: 0;
     left: 34%;
-    right: 34%;
+    //right: 34%;
     transform: none;
     color: #fff;
     display: flex;
@@ -274,7 +274,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     line-height: 1.25;
     word-break: break-word;
     overflow-wrap: anywhere;
-    font-size: clamp(14px, 2.2vw, 24px);
+    font-size: 12px;
 }
 
 .affiliate-copy-text a {
@@ -286,7 +286,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 @media (max-width: 991px) {
     .affiliate-copy-wrap {
         left: 30%;
-        right: 30%;
+        //right: 30%;
     }
 }
 

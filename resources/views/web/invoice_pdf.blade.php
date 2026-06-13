@@ -244,7 +244,7 @@
         <tbody>
             <tr>
                 <td>{{ $detailText }}</td>
-                <td class="right">{{ $currency }} {{ number_format($amount, 2) }}</td>
+                <td>{{ $currency }} {{ number_format($amount, 2) }}</td>
             </tr>
         </tbody>
     </table>

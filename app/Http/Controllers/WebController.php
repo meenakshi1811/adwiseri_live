@@ -1306,6 +1306,7 @@ class WebController extends Controller
         // $phone_otp = $request->phone_otp;
         // $email_otp = $request->email_otp;
         // return view('web.otp',compact('phone_otp','email_otp'));
+        die();
         return redirect()->route('otp', $email);
     }
 
