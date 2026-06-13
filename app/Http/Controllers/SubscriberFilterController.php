@@ -982,6 +982,7 @@ class SubscriberFilterController extends Controller
             )
                 ->whereBetween('payment_ar.created_at', [$startDate, $endDate])
                 ->where('payment_ar.type', 'ar')
+                ->whereNotNull('payment_ar.application_id')
                 ->whereNotNull('payment_ar.payment_mode')
                 ->whereRaw("TRIM(payment_ar.payment_mode) != ''")
                 ->whereRaw('LOWER(TRIM(payment_ar.payment_mode)) != ?', ['null'])
