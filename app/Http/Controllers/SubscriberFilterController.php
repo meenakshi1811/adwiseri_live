@@ -976,21 +976,19 @@ class SubscriberFilterController extends Controller
         } elseif (request()->type == 'byApplicationPaymentModeChart') {
 
             $applications = $this->scopeQueryToSubscriber(
-                Applications::query(),
+                PaymentARs::query(),
                 $reportSubscriberId,
-                'applications.subscriber_id'
+                'payment_ar.subscriber_id'
             )
-                ->whereBetween('applications.created_at', [$startDate, $endDate])
-                ->join('payment_ar', 'payment_ar.application_id', '=', 'applications.id')
+                ->whereBetween('payment_ar.created_at', [$startDate, $endDate])
                 ->where('payment_ar.type', 'ar')
                 ->whereNotNull('payment_ar.payment_mode')
-                ->where('payment_ar.payment_mode', '!=', '')
-                ->whereRaw('LOWER(payment_ar.payment_mode) != ?', ['null'])
-                ->select('payment_ar.payment_mode')
-                ->selectRaw('COUNT(DISTINCT applications.id) as no_of_applications')
-                ->selectRaw('GROUP_CONCAT(DISTINCT applications.application_name SEPARATOR ", ") as application_names')
-                ->groupBy('payment_ar.payment_mode')
-                ->havingRaw('COUNT(DISTINCT applications.id) > 0')
+                ->whereRaw("TRIM(payment_ar.payment_mode) != ''")
+                ->whereRaw('LOWER(TRIM(payment_ar.payment_mode)) != ?', ['null'])
+                ->selectRaw('TRIM(payment_ar.payment_mode) as payment_mode')
+                ->selectRaw('COUNT(*) as no_of_applications')
+                ->groupByRaw('TRIM(payment_ar.payment_mode)')
+                ->havingRaw('COUNT(*) > 0')
                 ->orderBy('no_of_applications', 'desc')
                 ->get();
 
@@ -1005,23 +1003,28 @@ class SubscriberFilterController extends Controller
             );
 
             $applicationOutstandingAmount = $query
-                ->join('applications', 'applications.id', '=', 'payment_ar.application_id')
-                ->whereBetween('applications.created_at', [$startDate, $endDate])
+                ->leftJoin('applications', 'applications.id', '=', 'payment_ar.application_id')
+                ->leftJoin('clients', 'clients.id', '=', 'payment_ar.client_id')
+                ->whereBetween('payment_ar.created_at', [$startDate, $endDate])
                 ->where('payment_ar.type', 'ar')
-                ->whereNotNull('payment_ar.application_id')
-                ->whereNotNull('applications.application_name')
-                ->where('applications.application_name', '!=', '')
+                ->whereNotNull('payment_ar.client_id')
                 ->select(
+                    'payment_ar.client_id',
                     'payment_ar.application_id',
-                    DB::raw("CONCAT(applications.application_name, ' (', COALESCE(applications.application_id, applications.id), ')') as application_name"),
+                    'payment_ar.service_description',
+                    DB::raw("CONCAT(COALESCE(clients.name, 'Unknown Client'), ' - ', COALESCE(NULLIF(CONCAT(applications.application_name, ' (', applications.application_id, ')'), ' ()'), NULLIF(payment_ar.service_description, ''), 'N/A')) as application_name"),
                     DB::raw('MAX(payment_ar.created_at) as created_at'),
-                    DB::raw('SUM(COALESCE(payment_ar.amount, 0) - COALESCE(payment_ar.paid_amount, 0)) as amount_to_pay')
+                    DB::raw('MAX(COALESCE(payment_ar.amount, 0)) - SUM(COALESCE(payment_ar.paid_amount, 0)) as amount_to_pay')
                 )
                 ->groupBy(
+                    'payment_ar.client_id',
                     'payment_ar.application_id',
-                    DB::raw("CONCAT(applications.application_name, ' (', COALESCE(applications.application_id, applications.id), ')')")
+                    'payment_ar.service_description',
+                    'clients.name',
+                    'applications.application_name',
+                    'applications.application_id'
                 )
-                ->havingRaw('SUM(COALESCE(payment_ar.amount, 0) - COALESCE(payment_ar.paid_amount, 0)) > 0')
+                ->havingRaw('MAX(COALESCE(payment_ar.amount, 0)) - SUM(COALESCE(payment_ar.paid_amount, 0)) > 0')
                 ->orderBy('amount_to_pay', 'desc')
                 ->get();
             return response()->json(['data' => $applicationOutstandingAmount]);
