@@ -5584,7 +5584,11 @@ class WebController extends Controller
             $maildata->subscriber_id = $data['subscriber_id'];
             $maildata->support = $data['support'];
             $maildata->department = $data['support'];
-            $maildata->ticket_raiser = $subscriber->name . ' (' . $subscriber->id . ') - ' . $user->name . ' (' . $user->id . ')';
+            if ($subscriber->id == $user->id) {
+                $maildata->ticket_raiser = $subscriber->name . ' (' . $subscriber->id . ')';
+            } else {
+                $maildata->ticket_raiser = $subscriber->name . ' (' . $subscriber->id . ') - ' . $user->name . ' (' . $user->id . ')';
+            }
             $maildata->date = $data['created_at'];
             $maildata->issue = $data['issue'];
             $maildata->attachment = $data['attachment'];
