@@ -292,7 +292,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                         <!-- Application Type -->
                                         <div class="mb-3">
                                             <label for="name" class="form-label">Name <span class="text-danger" style="font-size: 18px;">*</span></label>
-                                            <input name="name" type="text" id="app_end_date" placeholder="Dependant Name"
+                                            <input name="name" type="text" id="app_end_date" placeholder="Spouse/Dependant Name"
                                                     class="form-control @error('name') is-invalid @enderror">
                                             @error('name')
                                             <span class="invalid-feedback">

@@ -97,7 +97,7 @@
                 <thead>
                     <tr>
                         <th  class="p-1 text-center">Sr No.</th>
-                        <th  class="p-1 text-center">Dependant (ID)</th>
+                        <th  class="p-1 text-center">Spouse/Dependant (ID)</th>
                         <th  class="p-1 text-center">Client(ID)</th>
                         {{-- <th  class="p-1 text-center">Sub(ID)</th> --}}
                         <th  class="p-1 text-center">Gender</th>
@@ -171,7 +171,7 @@
                             <!-- Application Type -->
                             <div class="mb-3">
                                 <label for="name" class="form-label">Name <span class="text-danger" style="font-size: 18px;">*</span></label>
-                                <input name="name" type="text" id="app_end_date" placeholder="Dependant Name"
+                                <input name="name" type="text" id="app_end_date" placeholder="Spouse/Dependant Name"
                                     class="form-control @error('name') is-invalid @enderror">
                                 @error('name')
                                 <span class="invalid-feedback">
@@ -288,7 +288,7 @@
                 <div class="modal-content">
                     <!-- Modal Header -->
                     <div class="modal-header">
-                        <h5 class="modal-title text-primary">Edit Dependant</h5>
+                        <h5 class="modal-title text-primary">Edit Spouse/Dependant</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
 
@@ -319,10 +319,10 @@
                                 </span>
                                 @enderror
                             </div>
-                            <!-- Dependent Name -->
+                            <!-- Spouse/Dependant Name -->
                             <div class="mb-3">
                                 <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
-                                <input name="name" type="text" id="edit-name" placeholder="Dependent Name"
+                                <input name="name" type="text" id="edit-name" placeholder="Spouse/Dependant Name"
                                     class="form-control @error('name') is-invalid @enderror">
                                 @error('name')
                                 <span class="invalid-feedback">
@@ -413,7 +413,7 @@
 
                             <!-- Submit Button -->
                             <div class="d-grid">
-                                <button type="submit" class="btn btn-success">Update Dependant</button>
+                                <button type="submit" class="btn btn-success">Update Spouse/Dependant</button>
                             </div>
                         </form>
                         <input type="hidden" id="edit-dependant" />
