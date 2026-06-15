@@ -68,7 +68,7 @@
                     {{-- <a href="{{ route('clients_export') }}" class="m-0">Export</a> --}}
                     <a href="{{ route('new_client') }}" class="m-0">Add Client</a>
                     <a href="javascript:void(0)" id="AddApplication" class="btn btn-primary">Add Application</a>
-                    <a href="javascript:void(0)" id="AddDependent" class="m-0">Add Dependent</a>
+                    <a href="javascript:void(0)" id="AddDependent" class="m-0">Add Spouse/Dependant</a>
                 </p>
 
 
@@ -79,7 +79,7 @@
                         Clients
                     </div>
                     <div class="col-6 border p-1 text-center tab-anchor" onclick="window.location.href = '{{ route('manage_dependents') }}';">
-                        Dependants
+                        Spouse/Dependants
                     </div>
 
                   </div>
@@ -251,7 +251,7 @@
                             <div class="modal-content">
                                 <!-- Modal Header -->
                                 <div class="modal-header">
-                                    <h5 class="modal-title text-primary">Add Dependant</h5>
+                                    <h5 class="modal-title text-primary">Add Spouse/Dependant</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
 
@@ -292,7 +292,7 @@
                                         <!-- Application Type -->
                                         <div class="mb-3">
                                             <label for="name" class="form-label">Name <span class="text-danger" style="font-size: 18px;">*</span></label>
-                                            <input name="name" type="text" id="app_end_date" placeholder="Dependant Name"
+                                            <input name="name" type="text" id="app_end_date" placeholder="Spouse/Dependant Name"
                                                     class="form-control @error('name') is-invalid @enderror">
                                             @error('name')
                                             <span class="invalid-feedback">
@@ -385,7 +385,7 @@
 
                                         <!-- Submit Button -->
                                         <div class="d-grid">
-                                            <button type="submit" class="btn btn-success">Add Dependant</button>
+                                            <button type="submit" class="btn btn-success">Add Spouse/Dependant</button>
                                         </div>
                                     </form>
                                 </div>

@@ -97,7 +97,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                       @if($user->user_type == "Subscriber")
                         {{-- <a href="{{ route('export_clients') }}" class="btn btn-secondary btn-sm">Export</a> --}}
                         <a href="javascript:void(0)" id="AddApplication" class="btn btn-primary">Add Application</a>
-                        <a href="javascript:void(0)" id="AddDependent" class="m-0">Add Dependant</a>
+                        <a href="javascript:void(0)" id="AddDependent" class="m-0">Add Spouse/Dependant</a>
                       @endif
                     @endif
                     </div>
@@ -262,7 +262,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <div class="modal-content">
                                 <!-- Modal Header -->
                                 <div class="modal-header">
-                                    <h5 class="modal-title text-primary">Add Dependant</h5>
+                                    <h5 class="modal-title text-primary">Add Spouse/Dependant</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
 
@@ -292,7 +292,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                         <!-- Application Type -->
                                         <div class="mb-3">
                                             <label for="name" class="form-label">Name <span class="text-danger" style="font-size: 18px;">*</span></label>
-                                            <input name="name" type="text" id="app_end_date" placeholder="Dependant Name"
+                                            <input name="name" type="text" id="app_end_date" placeholder="Spouse/Dependant Name"
                                                     class="form-control @error('name') is-invalid @enderror">
                                             @error('name')
                                             <span class="invalid-feedback">
@@ -389,7 +389,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
                                         <!-- Submit Button -->
                                         <div class="d-grid">
-                                            <button type="submit" class="btn btn-success">Add Dependant</button>
+                                            <button type="submit" class="btn btn-success">Add Spouse/Dependant</button>
                                         </div>
                                     </form>
                                 </div>
@@ -406,7 +406,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         Clients
                     </div>
                     <div class="col-4 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('subscriber_dependents') }}';">
-                        Dependants
+                        Spouse/Dependants
                     </div>
                     <div class="col-4 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('enquiries') }}';">
                         Enquiries
