@@ -21,6 +21,7 @@ use App\Models\ReportSetting;
 
 use App\Mail\Invoicemail;
 use App\Mail\PlanSubscriptionMail;
+use App\Mail\SupportTicketClosureMail;
 use App\Models\User;
 use App\Models\Clients;
 use App\Models\Currency;
@@ -3565,12 +3566,28 @@ class AdminController extends Controller
         if ($user) {
             if ($id) {
                 $query = Tickets::find($id);
-                if ($query->status == "Open") {
+                $wasOpen = $query->status == "Open";
+                if ($wasOpen) {
                     $query->status = "Closed";
                 } else {
                     $query->status = "Open";
                 }
                 $query->save();
+
+                if ($wasOpen) {
+                    $ticketUserEmail = optional($query->user)->email ?? optional($query->subscriber)->email;
+                    if ($ticketUserEmail) {
+                        $maildata = new \stdClass();
+                        $maildata->ticket_id = $query->ticket_no;
+                        $maildata->department = $query->support;
+                        $maildata->issue = $query->issue;
+                        $maildata->response = $query->response;
+
+                        Mail::to('care@adwiseri.com')
+                            ->bcc($ticketUserEmail)
+                            ->send(new SupportTicketClosureMail($maildata));
+                    }
+                }
                 return back()->with('status_changed', 'query status changed.');
             }
         } else {

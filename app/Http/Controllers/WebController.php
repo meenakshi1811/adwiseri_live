@@ -5594,7 +5594,11 @@ class WebController extends Controller
             $maildata->attachment = $data['attachment'];
             $maildata->attachment_label = $data['attachment'] ? ('Attached (' . $data['attachment'] . ')') : 'No attachment';
             $maildata->contact = "True";
-            Mail::to("seimpex1@gmail.com")->send(new SupportMail($maildata));
+            $ticketNotification = Mail::to("seimpex1@gmail.com");
+            if (!empty($user->email)) {
+                $ticketNotification->bcc($user->email);
+            }
+            $ticketNotification->send(new SupportMail($maildata));
             if (Mail::failures()) {
                 echo 'Sorry! Please try again latter';
             } else {
