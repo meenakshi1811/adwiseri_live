@@ -63,13 +63,13 @@
         <div class="client-btn d-flex mb-2 ">
             {{-- <form class="form-inline d-flex justify-content-between w-100"> --}}
             {{-- <h3 class="text-primary">Clients</h3> --}}
-            <h3 class="text-primary text-center flex-grow-1 text-center m-0">Dependants</h3>
+            <h3 class="text-primary text-center flex-grow-1 text-center m-0">Spouse/Dependants</h3>
             <p>
 
                 {{-- <a href="{{ route('clients_export') }}" class="m-0">Export</a> --}}
                 <!-- <a href="{{ route('new_client') }}" class="m-0">Add New</a>
                     <a href="javascript:void(0)" id="AddApplication" class="btn btn-primary">Add Application</a> -->
-                <a href="javascript:void(0)" id="AddDependent" class="m-0">Add Dependants</a>
+                <a href="javascript:void(0)" id="AddDependent" class="m-0">Add Spouse/Dependant</a>
             </p>
 
             {{-- <div class="d-flex ">
@@ -84,7 +84,7 @@
                 Clients
             </div>
             <div class="col-4 border p-1 text-center bg-info text-white">
-                Dependants
+                Spouse/Dependants
             </div>
             <div class="col-4 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('enquiries') }}';">
                 Enquiries
@@ -141,7 +141,7 @@
                 <div class="modal-content">
                     <!-- Modal Header -->
                     <div class="modal-header">
-                        <h5 class="modal-title text-primary">Add Dependant</h5>
+                        <h5 class="modal-title text-primary">Add Spouse/Dependant</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
 
@@ -272,7 +272,7 @@
 
                             <!-- Submit Button -->
                             <div class="d-grid">
-                                <button type="submit" class="btn btn-success">Add Dependant</button>
+                                <button type="submit" class="btn btn-success">Add Spouse/Dependant</button>
                             </div>
                         </form>
                     </div>
