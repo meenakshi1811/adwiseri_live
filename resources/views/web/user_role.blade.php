@@ -4,6 +4,13 @@
 
         <div class="col-lg-10 column-client">
             <div class="client-dashboard">
+                <div class="col-12 d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="text-primary text-center flex-grow-1 text-center m-0">User Access Rights</h3>
+                    <p class="m-0">
+                        <a href="{{ route('add_user_role') }}">Add Access Rights+</a>
+                    </p>
+                </div>
+
               <div class="row m-0 pb-2">
                 <div class="col-6 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('users') }}';">
                   Users
@@ -12,10 +19,6 @@
                   User Access Rights
                 </div>
               </div>
-                <div class="client-btn d-flex justify-content-between mb-4">
-                    <h3 class="text-primary">User Access Rights</h3>
-                    <a href="{{ route('add_user_role') }}">Add Access Rights+</a>
-                </div>
                 @if(count($roles) != 0)
                 <div class="table-wrapper">
                     <table class="fl-table table table-hover p-0 m-0" id="clientTable">
