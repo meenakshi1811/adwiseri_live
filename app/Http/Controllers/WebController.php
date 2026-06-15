@@ -2640,11 +2640,17 @@ class WebController extends Controller
         }
         if (!empty($id)) { //edit the page.
             $client  = Clients::find($id);
+            if (!$client) {
+                return back()->with('error', 'Client not found.');
+            }
+
             $this->set_timezone();
             $countries = Countries::get();
+            $states = collect();
             foreach ($countries as $country) {
                 if ($country->country_name == $client->country) {
                     $states = States::where('country_id', '=', $country->id)->get();
+                    break;
                 }
             }
             // $states = States::get();
