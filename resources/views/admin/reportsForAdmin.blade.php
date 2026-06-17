@@ -909,11 +909,11 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         <div style="display: flex; justify-content: center; align-items: center; text-align: center;" class="row">
                             <div class="col-4 my-3 d-flex align-items-center">
                                 <label class="mr-4 w-50 fw-bold" for="">Filter By Attribute</label>
-                                <select id="" class="form-select" name=""
+                                <select id="supportFilter" class="form-select" name=""
                                     onchange="onchangeSupportReport(this.value,this.options[this.selectedIndex].text)">
-                                    <option selected>Select Attribute</option>
+                                    <option value="" selected>Select Attribute</option>
                                     <option value="byTicketType">By Ticket Type</option>
-                                    <option value="byTime">By Time</option>
+                                    <option value="byTime">By Timeline (Duration)</option>
                                     <option value="byTimeTaken">By Time Taken</option>
                                     <option value="bySupportStaff">By Support Staff</option>
                                 </select>
@@ -1103,7 +1103,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
     Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'User deleted successfully.'
     })
 </script>
 @endif
@@ -1203,6 +1203,15 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         ActivityLog1 = false;
         Affiliates1 = false;
         demoRequest1 = false;
+    }
+
+
+    function activateReportTab(tabSelector, paneSelector) {
+        $('#myTab .nav-link').removeClass('active').attr('aria-selected', 'false');
+        $('#myTabContent .tab-pane').removeClass('show active');
+
+        $(tabSelector).addClass('active').attr('aria-selected', 'true');
+        $(paneSelector).addClass('show active');
     }
 
 
@@ -1445,7 +1454,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
     function deleteclient(id) {
         var localtime = new Date();
-        var conf = confirm('Delete Client');
+        var conf = confirm('Are you sure you want to delete this client?');
         if (conf == true) {
             window.location.href = "delete_client/" + id + "/" + localtime.toString() + "";
         }
@@ -1463,7 +1472,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 </script>
 <script>
     function deleteuser(id) {
-        var conf = confirm('Delete User');
+        var conf = confirm('Are you sure you want to delete this user?');
         if (conf == true) {
             window.location.href = "delete_user/" + id + "";
         }
@@ -6613,6 +6622,8 @@ function checkDataAndToggleButtons(table) {
 
     function onClickSupportTickets() {
 
+        activateReportTab('#SupportTickets-tab', '#SupportTickets');
+
         var result = getStartAndEndDate('Support');
         let currentDate = `${result.startDate} - ${result.endDate}`
 
@@ -6874,9 +6885,9 @@ function checkDataAndToggleButtons(table) {
         };
         // Configure DataTable based on report type
         if (type == 'byTicketType') {
-            $('#clientReportTitle7').html('Tickets By Types');
+            $('#clientReportTitle7').html('Tickets By Type');
             dataTableSettings.columns = [{
-                    title: "Support Type",
+                    title: "Ticket Type",
                     data: 'support',
                     name: 'support'
                 },
@@ -6902,7 +6913,7 @@ function checkDataAndToggleButtons(table) {
         } else if (type == 'byTimeTaken') {
             $('#clientReportTitle7').html('Tickets By Time Taken');
             dataTableSettings.columns = [{
-                    title: "Duration",
+                    title: "Time Taken (Duration)",
                     data: 'time_interval',
                     name: 'time_interval'
                 },
@@ -6915,14 +6926,14 @@ function checkDataAndToggleButtons(table) {
         } else if (type == 'bySupportStaff') {
             $('#clientReportTitle7').html('Tickets Solved');
             dataTableSettings.columns = [{
-                    title: "Username",
+                    title: "Support Staff Name",
                     data: 'username',
                     name: 'username'
                 },
                 {
-                    title: "User_id",
-                    data: 'user_id',
-                    name: 'user_id'
+                    title: "Support User (Staff ID)",
+                    data: 'support_user_id',
+                    name: 'support_user_id'
                 },
                 {
                     title: "Avg Time",
@@ -7277,6 +7288,8 @@ function checkDataAndToggleButtons(table) {
 
     function onClickActivityLogs() {
 
+        activateReportTab('#ActivityLog-tab', '#ActivityLog');
+
         // This arrangement can be altered based on how we want the date's format to appear.
         var result = getStartAndEndDate('Activity');
         let currentDate = `${result.startDate} - ${result.endDate}`
@@ -7520,8 +7533,10 @@ function checkDataAndToggleButtons(table) {
                 url: "{{ route('activityReport') }}",
                 data: function(d) {
                     d.type = type;
-                    d.startDate = result.startDate;
-                    d.endDate = result.endDate;
+                    if (result.startDate && result.endDate) {
+                        d.startdate = result.startDate;
+                        d.enddate = result.endDate;
+                    }
 
                 }
             },
@@ -7564,11 +7579,11 @@ function checkDataAndToggleButtons(table) {
                 }
             ];
         } else if (type == 'bySubscribers') {
-            $('#clientReportTitle8').html('Activity By Subscribers');
+            $('#clientReportTitle8').html('Activities by Top 10 Users');
             dataTableSettings.columns = [{
-                    title: "Subscribers",
-                    data: 'subscriber_id',
-                    name: 'subscriber_id',
+                    title: "UserName (ID)",
+                    data: 'user_name_id',
+                    name: 'user_name_id',
                     orderable: false,
                     searchable: false
                 },
@@ -7597,7 +7612,7 @@ function checkDataAndToggleButtons(table) {
 
 
     function deleteapplication(id) {
-        var conf = confirm('Delete Application');
+        var conf = confirm('Are you sure you want to delete this application?');
         if (conf == true) {
             window.location.href = "delete_application/" + id + "";
         }
@@ -7628,7 +7643,7 @@ function checkDataAndToggleButtons(table) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Success',
-                        text: 'Invoice Status Updated Successfully!'
+                        text: 'Invoice status updated successfully.'
                     })
                 }
             }
@@ -7772,6 +7787,11 @@ function checkDataAndToggleButtons(table) {
                     }
                 } else if (SupportTickets1 == true) {
                     onClickSupportTickets();
+                    var type = $('#supportFilter').val();
+                    let selectedText = $('#supportFilter').find('option:selected').text();
+                    if (type.trim() !== '') {
+                        onchangeSupportReport(type, selectedText);
+                    }
                 } else if (ActivityLog1 == true) {
                     onClickActivityLogs();
 

@@ -49,7 +49,7 @@
             if(email == ""){
                 Swal.fire({
                 icon: 'error',
-                title: 'Oops..',
+                title: 'Oops!',
                 text: 'Please Enter Email.'
                 });
             }
@@ -87,7 +87,7 @@
   <script>
     Swal.fire({
       icon: 'error',
-      title: 'Oops..',
+      title: 'Oops!',
       text: 'No user found.'
     })
   </script>

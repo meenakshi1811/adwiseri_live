@@ -68,7 +68,7 @@
             window.location.href = "delete_clients/"+id+"";
           }
         })
-          // var conf = confirm('Delete Client');
+          // var conf = confirm('Are you sure you want to delete this client?');
           // if(conf == true){
           //     window.location.href = "delete_clients/"+id+"";
           // }
@@ -76,7 +76,7 @@
       function updateclient(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to update record!",
+          text: "Do you want to update this record?",
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#3085d6',
@@ -95,7 +95,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Client Deleted Successfully!'
+        text: 'Client deleted successfully.'
       })
     </script>
 
@@ -105,7 +105,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'New Client Added Successfully!'
+        text: 'Client added successfully.'
       })
     </script>
 
@@ -115,7 +115,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Client Updated Successfully!'
+        text: 'Client updated successfully.'
       })
     </script>
 

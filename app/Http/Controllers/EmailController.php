@@ -34,7 +34,7 @@ class EmailController extends Controller
         //     if (Mail::failures()) {
         //         echo 'Sorry! Please try again latter';
         //     }else{
-        //         echo 'Great! Successfully send in your mail';
+        //         echo 'Your email was sent successfully.';
         //     }
     }
 

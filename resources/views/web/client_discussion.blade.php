@@ -28,21 +28,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 @endif
                 <button type="button" id="back" class="btn btn-info text-white" style="display: none;">Back</button>
             </div>
-            <div class="row m-0 pb-2">
-
-
-                <div class="col-4 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('messaging') }}';">
-                  Messaging
-                </div>
-
-
-                  <div class="col-4 border p-1 text-center bg-info text-white top_modules">
-                    Meeting Notes (Clients)
-                  </div>
-                  <div class="col-4 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('communications') }}';">
-                    Communication
-                  </div>
-              </div>
+            @include('partials.communication_tabs', ['activeTab' => 'meeting_notes'])
 
             <div style="display: none;" id="new_discussion" class="col">
                 <form id="registration_form" class="register-box login-box" method="POST" action="{{ route('post_client_discussion') }}">
@@ -99,7 +85,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <label>Communication Date<span class="text-danger" style="font-size: 18px;">*</span></label>
                         </div>
                         <div class="col-md-8 p-1">
-                            <input type="datetime-local" id="comm_date" max="" onfocus="set_max()" name="communication_date" class="form-control date" required />
+                            <input type="datetime-local" id="comm_date" max="{{ now()->format('Y-m-d\TH:i') }}" value="{{ now()->format('Y-m-d\TH:i') }}" onfocus="set_max()" name="communication_date" class="form-control date" autocomplete="off" required />
                             @error('communication_date')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -198,31 +184,35 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         var maxdate = ""+y+"-"+m+"-"+dd+"T"+hh+":"+mm+":"+ss+"";
         $("#comm_date").attr('max',maxdate);
     }
+    function setCurrentCommunicationDate(){
+        let now = new Date();
+        let year = now.getFullYear();
+        let month = String(now.getMonth() + 1).padStart(2, '0');
+        let day = String(now.getDate()).padStart(2, '0');
+        let hours = String(now.getHours()).padStart(2, '0');
+        let minutes = String(now.getMinutes()).padStart(2, '0');
+        let localDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+        let commDateInput = document.getElementById("comm_date");
+        commDateInput.value = localDateTime;
+        commDateInput.max = localDateTime;
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
-    let now = new Date();
-    
-    // Get local date and time in YYYY-MM-DDTHH:MM format
-    let year = now.getFullYear();
-    let month = String(now.getMonth() + 1).padStart(2, '0'); // Ensure 2-digit format
-    let day = String(now.getDate()).padStart(2, '0');
-    let hours = String(now.getHours()).padStart(2, '0');
-    let minutes = String(now.getMinutes()).padStart(2, '0');
-
-    let localDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
-
-    document.getElementById("comm_date").value = localDateTime;
-});
+        setCurrentCommunicationDate();
+    });
       $(document).ready(() => {
 
         $("#add_new_zero").click(function(){
             Swal.fire({
             icon: 'info',
-            title: 'Oops...',
+            title: 'Oops!',
             text: "Either no clients are added yet or you haven't been assigned any application(s)."
             });
         });
 
         $("#add_new").click(function(){
+            setCurrentCommunicationDate();
             $("#add_new").css('display','none');
             $("#back").css('display','block');
             $("#new_discussion").css('display','block');
@@ -260,8 +250,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'User Added Successfully.'
+      title: 'Success',
+      text: 'Message sent successfully.'
     })
   </script>
 

@@ -388,9 +388,9 @@
                       @if(isset($myplan))
                         @if($plan->plan_order < $myplan->plan_order)
                           @if($plan->plan_name == "Free" or $plan->plan_name == "Free Plan")
-                          <button class="subscribe-btn" onclick="Swal.fire({ icon: 'warning', title: 'New Subscriber Only', html: 'FREE plan is available to new subscribers only.' });">Free</button>
+                          <button class="subscribe-btn" onclick="Swal.fire({ icon: 'warning', title: 'New subscribers only', html: 'The free plan is available to new subscribers only.' });">Free</button>
                           @elseif(count($total_users)>$plan->no_of_users or count($total_clients)>$plan->client_limit)
-                          <button class="subscribe-btn" onclick="Swal.fire({ icon: 'warning', title: 'User/Client Limit', text: 'User/Client limit of this plan is less than your registered no. of users/clients.' });">Downgrade</button>
+                          <button class="subscribe-btn" onclick="Swal.fire({ icon: 'warning', title: 'User/Client Limit', text: 'This plan's user/client limit is lower than your current number of users and clients.' });">Downgrade</button>
                           @elseif((new DateTime("now")) > (new DateTime($subscriber->membership_expiry_date)))
                           <button class="subscribe-btn" @if($user->user_type == "Subscriber") @endif >
                             Downgrade
@@ -573,21 +573,19 @@
         </div> -->
     </div>
 
-        <div class="collab-box" id="affiliates">
-    <div class="Affiliates-banner" style="position: relative;">
-        <img src="web_assets/images/collbcopy.jpg" alt="Affiliate Background" width="100%" height="auto">
-        
-        
-        <!-- Right-aligned Text -->
-        <div style="position: absolute; top: 44%; left: 35%; color: white; text-align: left;">
-            <p class="item-font-fix" style="">
-                Want to earn extra from referrals?<br>
-                Join our Affiliate Program by clicking 
-                <a href="{{ url('/') }}/Affiliates_Reg" >here</a>
-            </p>
+    <div class="collab-box" id="affiliates">
+        <div class="Affiliates-banner">
+            <img src="web_assets/images/collbcopy.jpg" alt="Affiliate Background" width="100%" height="auto">
+
+            <div class="affiliate-copy-wrap">
+                <p class="item-font-fix affiliate-copy-text">
+                    Want to earn extra from referrals?<br>
+                    Join our Affiliate Program by clicking
+                    <a href="{{ url('/') }}/Affiliates_Reg">here</a>
+                </p>
+            </div>
         </div>
     </div>
-</div>
 
 
         {{-- <div class="container faq-section my-5">

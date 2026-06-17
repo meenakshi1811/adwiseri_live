@@ -128,7 +128,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
         icon: 'success',
         title: 'Congratulations',
-        text: 'Profile Updated Successfully.'
+        text: 'Profile updated successfully. successfully.'
     })
 </script>
 @endif
@@ -136,8 +136,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     <script>
       Swal.fire({
         icon: 'warning',
-        title: 'Membership Expired!',
-        text: 'Please Renew or Upgrade Your Membership!'
+        title: 'Membership expired',
+        text: 'Please renew or upgrade your membership.'
       })
     </script>
 

@@ -68,6 +68,19 @@ class EmailVerification extends Mailable
             }
         }
 
+        // Backward-compatible aliases for Contact Us template placeholders.
+        if (isset($map['phone']) && !isset($map['contact_no'])) {
+            $content = str_replace('{{contact_no}}', (string) $map['phone'], $content);
+        }
+
+        if (isset($map['country']) && !isset($map['country_name'])) {
+            $content = str_replace('{{country_name}}', (string) $map['country'], $content);
+        }
+
+        if (isset($map['message']) && !isset($map['query'])) {
+            $content = str_replace('{{query}}', (string) $map['message'], $content);
+        }
+
         return $content;
     }
 }

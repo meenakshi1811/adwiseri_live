@@ -54,7 +54,7 @@
   </div>
   <script>
       function deletefaq(id){
-          var conf = confirm('Delete FAQ');
+          var conf = confirm('Are you sure you want to delete this FAQ?');
           if(conf == true){
               window.location.href = "delete_faq/"+id+"";
           }
@@ -66,7 +66,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'FAQ Deleted Successfully!'
+        text: 'FAQ deleted successfully.'
       })
     </script>
   
@@ -76,8 +76,8 @@
     <script>
       Swal.fire({
         icon: 'success',
-        title: 'Congratulations',
-        text: 'FAQ Updated Successfully!'
+        title: 'Success',
+        text: 'FAQ updated successfully.'
       })
     </script>
   
@@ -86,8 +86,8 @@
     <script>
       Swal.fire({
         icon: 'success',
-        title: 'Congratulations',
-        text: 'New FAQ Added Successfully!'
+        title: 'Success',
+        text: 'FAQ added successfully.'
       })
     </script>
   

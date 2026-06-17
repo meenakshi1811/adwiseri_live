@@ -55,8 +55,8 @@
 
     <div class="col-lg-10 column-client">
         <div class="client-dashboard">
-            <div class="client-btn d-flex mb-2">
-                <h3 class="text-primary">Settings</h3>
+            <div class="client-btn d-flex justify-content-center mb-2">
+                <h3 class="text-primary text-center">Settings</h3>
             </div>
 
             <ul class="nav nav-tabs border" id="settingsTab" role="tablist">
@@ -74,7 +74,7 @@
                 </li>
                 <li class="nav-item">
                     <button class="nav-link" id="service-tab" data-bs-toggle="tab" href="#service" role="tab"
-                        aria-controls="service" aria-selected="false">Add New Service</button>
+                        aria-controls="service" aria-selected="false">Services</button>
                 </li>
                 <li class="nav-item">
                     <button class="nav-link" id="payment-reminder-tab" data-bs-toggle="tab" href="#payment-reminder" role="tab"
@@ -134,8 +134,8 @@
                             </div>
                             <div class="row p-1 m-0">
                                 <div class="col-6"></div>
-                                <div class="col-6 text-end">
-                                    <button type="button" class="btn btn-primary" id="save-general-settings">Apply/Send</button>
+                                <div class="col-6 text-right">
+                                    <button type="button" class="btn btn-primary" id="save-general-settings">Save</button>
                                 </div>
                             </div>
                         </form>
@@ -174,22 +174,22 @@
                             </div>
                             <div class="col-6">
                                 <input type="url"   value="{{  !empty($inv_setting) ? $inv_setting->payment_link : '' }}"
-                                    id="discount" name="payment_link" class="form-control" placeholder="Payment Link" >
+                                    id="payment_link" name="payment_link" class="form-control" placeholder="Payment Link" >
                             </div>
                         </div>
                         <div class="row p-1 m-0">
                             <div class="col-6"></div>
-                            <div class="col-6 text-end">
-                                <button type="button" class="btn btn-primary" id="save-invoice-settings">Apply/Send</button>
+                            <div class="col-6 text-right">
+                                <button type="button" class="btn btn-primary" id="save-invoice-settings">Save</button>
                             </div>
                         </div>
                     </form>
                 </div>
 
-                <!-- Add New Service Tab -->
+                <!-- Services Tab -->
                 <div class="tab-pane fade" id="service" role="tabpanel" aria-labelledby="service-tab">
                     <div class="row p-1 m-0">
-                        <p class="m-0 p-1" style="font-size:18px;font-weight: 550;">Add New Service</p>
+                        <p class="m-0 p-1" style="font-size:18px;font-weight: 550;">Services</p>
                     </div>
                     <form  id="add-service">
                         <input type="hidden" name="id" value=""  id="serviceId"/>
@@ -208,14 +208,14 @@
                                 <label>Fees (Amount)</label>
                             </div>
                             <div class="col-6">
-                                <input type="number" id="serviceFee" name="fees" class="form-control"
+                                <input type="number" min="0" id="serviceFee" name="fees" class="form-control"
                                     placeholder="Fees(Amount)">
                             </div>
                         </div>
                         <div class="row p-1 mb-3 align-items-center">
                             <div class="col-6"></div>
-                            <div class="col-6 text-end">
-                                <button type="button" class="btn btn-primary" id="save-add-service">Apply/Send</button>
+                            <div class="col-6 text-right">
+                                <button type="button" class="btn btn-primary" id="save-add-service">Add New Service</button>
                             </div>
                         </div>
                     </form>
@@ -304,7 +304,7 @@
                         </div>
                         <div class="row p-1 mb-3 align-items-center">
                             <div class="col-6"></div>
-                            <div class="col-6 text-end">
+                            <div class="col-6 text-right">
                                 <button type="button" class="btn btn-primary" id="save-payment-reminder">Apply</button>
                                 <button type="button" class="btn btn-outline-secondary" id="cancel-payment-reminder">Cancel</button>
                             </div>
@@ -321,7 +321,7 @@
                         @csrf
                         <input type="hidden" id="emailAudience" name="audience" value="{{ $emailTemplateAudience }}">
                         <div class="row p-1 mb-3 align-items-center">
-                            <div class="col-6"><label>Audience</label></div>
+                            <div class="col-6"><label>Template Audience</label></div>
                             <div class="col-6">
                                 <input type="text" class="form-control" value="{{ $emailTemplateAudience === 'admin' ? 'Admin Mail Templates' : 'Subscriber Mail Templates' }}" readonly>
                             </div>
@@ -345,7 +345,10 @@
                             <div class="col-6"><textarea id="emailTemplateBody" name="body" class="form-control" rows="8"></textarea></div>
                         </div>
                         <div class="row p-1 m-0">
-                            <div class="col-12 text-end">
+                            <div class="col-6">
+
+                            </div>
+                            <div class="col-6 text-right">
                                 <button type="button" class="btn btn-primary" id="save-email-template">Save</button>
                                 <button type="button" class="btn btn-outline-secondary" id="reset-email-template">Reset</button>
                             </div>
@@ -373,15 +376,17 @@
 
                             <div class="col-6">
                                 @php
-                                    $selectedModules = [];
+                                    $selectedModules = old('modules', optional($reportSetting)->modules ?? []);
+                                    $reportDefaultEmail = trim((string) (optional($reportSetting)->emails ?? $user->email ?? ''));
                                 @endphp
                                 @foreach ($reportModules as $moduleKey => $moduleLabel)
                                     <div class="form-check">
-                                        <input type="checkbox" name="modules[]" value="{{ $moduleKey }}" class="form-check-input"
+                                        <input type="checkbox" name="modules[]" value="{{ $moduleKey }}" class="form-check-input report-module-checkbox"
                                             {{ in_array($moduleKey, $selectedModules) ? 'checked' : '' }}>
                                         <label class="form-check-label">{{ $moduleLabel }}</label>
                                     </div>
                                 @endforeach
+                                <div class="invalid-feedback d-block" id="reports-modules-error" style="display:none;"></div>
                             </div>
                         </div>
 
@@ -393,9 +398,9 @@
 
                             <div class="col-6">
                                 <select name="frequency" class="form-control form-select">
-                                    @php
-                                        $selectedFrequency = 'daily';
-                                    @endphp
+                                @php
+                                    $selectedFrequency = old('frequency', optional($reportSetting)->frequency ?? 'daily');
+                                @endphp
                                     <option value="daily" {{ $selectedFrequency == 'daily' ? 'selected' : '' }}>Daily</option>
                                     <option value="weekly" {{ $selectedFrequency == 'weekly' ? 'selected' : '' }}>Weekly</option>
                                     <option value="monthly" {{ $selectedFrequency == 'monthly' ? 'selected' : '' }}>Monthly</option>
@@ -412,7 +417,7 @@
 
                             <div class="col-6">
                                 @php
-                                    $selectedDeliveryMode = 'attachment';
+                                    $selectedDeliveryMode = old('delivery_mode', optional($reportSetting)->delivery_mode ?? 'attachment');
                                 @endphp
                                 <select name="delivery_mode" class="form-control form-select">
                                     <option value="attachment" {{ $selectedDeliveryMode == 'attachment' ? 'selected' : '' }}>Reports as PDF in Email Attachment</option>
@@ -429,7 +434,8 @@
 
                             <div class="col-6">
                                 <textarea name="emails" class="form-control"
-                                    placeholder="Enter upto 5 emails separated by comma"></textarea>
+                                    placeholder="Enter upto 5 emails separated by comma">{{ old('emails', $reportDefaultEmail) }}</textarea>
+                                <div class="invalid-feedback" id="reports-emails-error"></div>
                                 <small class="text-muted">Example: test1@gmail.com, test2@gmail.com</small>
                             </div>
                         </div>
@@ -439,7 +445,7 @@
                         <div class="row p-1 m-0">
                         <div class="col-6"></div>
 
-                        <div class="col-6 text-end">
+                        <div class="col-6 text-right">
 
                         <button type="button" class="btn btn-primary"
                         id="save-reports-settings">
@@ -494,15 +500,6 @@
                             </div>
                         </div>
 
-                        <div class="row p-1 mb-3 align-items-center">
-                            <div class="col-6">
-                                <label>Client Phone (for SMS)</label>
-                            </div>
-                            <div class="col-6">
-                                <input type="text" name="client_phone" id="appointment-client-phone" class="form-control" placeholder="Phone number with country code">
-                            </div>
-                        </div>
-
                         <!-- Description -->
                         <div class="row p-1 mb-3 align-items-center">
                             <div class="col-6">
@@ -520,7 +517,7 @@
                                 <label>Select Date</label>
                             </div>
                             <div class="col-6">
-                                <input type="date" name="appointment_date" class="form-control">
+                                <input type="date" name="appointment_date" class="form-control" min="{{ now()->toDateString() }}">
                             </div>
                         </div>
 
@@ -547,25 +544,13 @@
                                     <label class="form-check-label">Email</label>
                                 </div>
 
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="send_via"
-                                        value="sms">
-                                    <label class="form-check-label">SMS</label>
-                                </div>
-
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="send_via"
-                                        value="both">
-                                    <label class="form-check-label">Both</label>
-                                </div>
-
                             </div>
                         </div>
 
                     <!-- Buttons -->
                     <div class="row p-1 m-0">
                         <div class="col-6"></div>
-                        <div class="col-6 text-end">
+                        <div class="col-6 text-right">
 
                             <button type="button" class="btn btn-primary"
                                 id="save-appointment">
@@ -592,15 +577,56 @@
 
     <script>
 
+        function clearReportSettingsInlineErrors() {
+            const emailField = $('#reports-settings-form textarea[name="emails"]');
+            emailField.removeClass('is-invalid');
+            $('#reports-emails-error').text('');
+            $('#reports-modules-error').text('').hide();
+        }
+
+        function setReportSettingsInlineError(field, message) {
+            if (field === 'modules') {
+                $('#reports-modules-error').text(message).show();
+                return;
+            }
+
+            if (field === 'emails') {
+                const emailField = $('#reports-settings-form textarea[name="emails"]');
+                emailField.addClass('is-invalid');
+                $('#reports-emails-error').text(message);
+            }
+        }
+
         $('#save-reports-settings').click(function () {
 
             const $saveReportsButton = $('#save-reports-settings');
             const defaultButtonText = ($saveReportsButton.data('default-text') || $.trim($saveReportsButton.text()) || 'Apply');
+            clearReportSettingsInlineErrors();
 
             $saveReportsButton
                 .data('default-text', defaultButtonText)
                 .prop('disabled', true)
                 .text('Submitting...');
+
+            const emailField = $('#reports-settings-form textarea[name="emails"]');
+            const emails = $.trim(emailField.val());
+            const selectedModulesCount = $('#reports-settings-form input[name="modules[]"]:checked').length;
+
+            if (!selectedModulesCount) {
+                setReportSettingsInlineError('modules', 'Please select at least one module.');
+                $saveReportsButton
+                    .prop('disabled', false)
+                    .text(defaultButtonText);
+                return;
+            }
+
+            if (!emails) {
+                setReportSettingsInlineError('emails', 'Please enter at least one recipient email.');
+                $saveReportsButton
+                    .prop('disabled', false)
+                    .text(defaultButtonText);
+                return;
+            }
 
             let formData = $('#reports-settings-form').serialize();
 
@@ -616,9 +642,6 @@
                         title: 'Success',
                         text: response.message
                     });
-
-                    $('#reports-settings-form')[0].reset();
-
                 },
 
                 error:function(xhr){
@@ -630,6 +653,12 @@
                         }
 
                         if (xhr.responseJSON.errors) {
+                            Object.entries(xhr.responseJSON.errors).forEach(function([field, messages]) {
+                                const inlineField = field === 'modules.0' ? 'modules' : field;
+                                if (messages && messages[0]) {
+                                    setReportSettingsInlineError(inlineField, messages[0]);
+                                }
+                            });
                             const firstErrorKey = Object.keys(xhr.responseJSON.errors)[0];
                             if (firstErrorKey && xhr.responseJSON.errors[firstErrorKey][0]) {
                                 message = xhr.responseJSON.errors[firstErrorKey][0];
@@ -637,11 +666,13 @@
                         }
                     }
 
-                    Swal.fire({
-                        icon:'error',
-                        title:'Error',
-                        text: message
-                    });
+                    if (xhr.status !== 422) {
+                        Swal.fire({
+                            icon:'error',
+                            title:'Error',
+                            text: message
+                        });
+                    }
 
                 },
 
@@ -699,7 +730,57 @@
             $('#reminder-email-to').val(paymentReminderDefaults.email_to);
         });
 
+
+        const appointmentDateField = $('#appointment-form input[name="appointment_date"]');
+        const todayIso = new Date().toISOString().split('T')[0];
+        appointmentDateField.attr('min', todayIso);
+
         $('#save-appointment').click(function () {
+            const clientId = $('#appointment-client').val();
+            const clientEmail = $.trim($('#appointment-client-email').val());
+            const remarks = $.trim($('#appointment-form input[name="remarks"]').val());
+            const appointmentDateField = $('#appointment-form input[name="appointment_date"]');
+            const appointmentDate = appointmentDateField.val();
+            const appointmentTime = $('#appointment-form input[name="appointment_time"]').val();
+
+            if (!clientId) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please select a client.' });
+                return;
+            }
+
+            if (!clientEmail) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please enter the client email.' });
+                return;
+            }
+
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailPattern.test(clientEmail)) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please enter a valid client email address.' });
+                return;
+            }
+
+            if (!remarks) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please enter the meeting purpose.' });
+                return;
+            }
+
+            if (!appointmentDate) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please select an appointment date.' });
+                return;
+            }
+
+            const selectedDate = new Date(`${appointmentDate}T00:00:00`);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (selectedDate < today) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'The appointment date cannot be in the past.' });
+                return;
+            }
+
+            if (!appointmentTime) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please select an appointment time.' });
+                return;
+            }
 
             let formData = $('#appointment-form').serialize();
 
@@ -739,7 +820,6 @@
         $('#appointment-client').on('change', function () {
             const selected = $(this).find(':selected');
             $('#appointment-client-email').val(selected.data('email') || '');
-            $('#appointment-client-phone').val(selected.data('phone') || '');
         });
         function deleteapplication(id) {
             Swal.fire({
@@ -760,7 +840,7 @@
         function updateapplication(id) {
             Swal.fire({
                 title: 'Are you sure?',
-                text: "You want to update this record!",
+                text: "Do you want to update this record?",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
@@ -808,7 +888,7 @@
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Currency Updated Successfully!'
+                                text: 'Currency updated successfully.'
                             })
                         }
                     }
@@ -830,7 +910,7 @@
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Settings Updated Successfully!'
+                                text: 'Settings updated successfully.'
                             })
                         }
                     }
@@ -852,7 +932,7 @@
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Settings Updated Successfully!'
+                                text: 'Settings updated successfully.'
                             })
                         }
                     }
@@ -874,7 +954,7 @@
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Timezone Updated Successfully!'
+                                text: 'Timezone updated successfully.'
                             })
                         }
                     }
@@ -960,19 +1040,31 @@
                             _token: "{{ csrf_token() }}" // Include CSRF token
                         },
                         success: function(response) {
-                            Swal.fire('Deleted!', response.message, 'success');
+                            Swal.fire({ icon: 'success', title: 'Success', text: response.message });
                             // Refresh the DataTable or remove the row
                             $('#serviceTable').DataTable().ajax.reload(null, false);
                         },
                         error: function(xhr) {
-                            Swal.fire('Error!', 'An error occurred while deleting the service.',
-                                'error');
+                            Swal.fire({ icon: 'error', title: 'Error', text: 'An error occurred while deleting the service.' });
                         }
                     });
                 }
             });
         }
         $('#save-general-settings').click(function () {
+                const timezone = $('#timezone1').val();
+                const currency = $('#currenc').val();
+
+                if (!timezone) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'Please select a timezone.' });
+                    return;
+                }
+
+                if (!currency) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'Please select a currency.' });
+                    return;
+                }
+
                 let formData = $('#general-settings-form').serialize();
 
                 $.ajax({
@@ -983,19 +1075,43 @@
                         Swal.fire({
                             icon: 'success',
                             title: 'Success',
-                            text: 'General Settings Updated Successfully!!',
+                            text: 'General Settings updated successfully.!',
                         });
                     },
                     error: function (xhr) {
+                        const errorText = xhr?.responseJSON?.message || 'Failed to update settings!';
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: 'Failed to update settings!',
+                            text: errorText,
                         });
                     },
                 });
             });
             $('#save-invoice-settings').click(function () {
+                    const tax = $('input[name="tax"]').val();
+                    const discount = $('input[name="discount"]').val();
+                    const paymentLink = $.trim($('#payment_link').val());
+
+                    if (tax !== '' && (isNaN(tax) || Number(tax) < 0 || Number(tax) > 100)) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Tax must be between 0 and 100.' });
+                        return;
+                    }
+
+                    if (discount !== '' && (isNaN(discount) || Number(discount) < 0 || Number(discount) > 100)) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Discount must be between 0 and 100.' });
+                        return;
+                    }
+
+                    if (paymentLink) {
+                        try {
+                            new URL(paymentLink);
+                        } catch (e) {
+                            Swal.fire({ icon: 'error', title: 'Error', text: 'Please enter a valid payment link URL.' });
+                            return;
+                        }
+                    }
+
                     let formData = $('#invoice-settings-form').serialize();
 
                     $.ajax({
@@ -1010,15 +1126,29 @@
                             });
                         },
                         error: function (xhr) {
+                            const errorText = xhr?.responseJSON?.message || 'Failed to update invoice settings!';
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Error',
-                                text: 'Failed to update invoice settings!',
+                                text: errorText,
                             });
                         },
                     });
             });
             $('#save-add-service').click(function () {
+                    const serviceName = $.trim($('#serviceName').val());
+                    const serviceFee = $('#serviceFee').val();
+
+                    if (!serviceName) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Service name is required.' });
+                        return;
+                    }
+
+                    if (serviceFee === '' || isNaN(serviceFee) || Number(serviceFee) < 0) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Fees are required and must be 0 or greater.' });
+                        return;
+                    }
+
                     let formData = $('#add-service').serialize();
 
                     $.ajax({
@@ -1035,10 +1165,11 @@
                             $('#serviceTable').DataTable().ajax.reload(null, false);
                         },
                         error: function (xhr) {
+                            const errorText = xhr?.responseJSON?.message || 'Failed to update service settings!';
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Error',
-                                text: 'Failed to update invoice settings!',
+                                text: errorText,
                             });
                         },
                     });
@@ -1118,7 +1249,7 @@
                         Swal.fire({ icon: 'success', title: 'Success', text: response.message });
                     },
                     error: function () {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to save email template!' });
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to save email template.' });
                     }
                 });
             });
@@ -1134,7 +1265,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Application Deleted Successfully!'
+                text: 'Application deleted successfully..'
             })
         </script>
     @endif
@@ -1143,7 +1274,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Invoice Settings Updated Successfully!'
+                text: 'Invoice Settings updated successfully.'
             })
         </script>
     @endif
@@ -1152,7 +1283,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'General Settings Updated Successfully!'
+                text: 'General Settings updated successfully.'
             })
         </script>
     @endif
@@ -1161,7 +1292,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Application Updated Successfully!'
+                text: 'Service updated successfully.'
             })
         </script>
     @endif

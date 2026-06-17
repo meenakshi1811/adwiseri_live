@@ -81,7 +81,7 @@
       // }, 1000);
     }
       function deleteclient(id){
-          var conf = confirm('Delete Client');
+          var conf = confirm('Are you sure you want to delete this client?');
           if(conf == true){
               window.location.href = "delete_clients/"+id+"";
           }
@@ -93,7 +93,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Client Deleted Successfully!'
+        text: 'Client deleted successfully.'
       })
     </script>
 

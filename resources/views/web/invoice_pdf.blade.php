@@ -105,11 +105,15 @@
         }
 
         .footer {
-            margin-top: 50px;
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 20px;
             text-align: center;
             font-size: 12px;
             color: #4b5563;
         }
+
     </style>
 </head>
 
@@ -125,17 +129,71 @@
         $currency = $data->currency ?? 'Rs.';
         $statusRaw = (string) ($data->status ?? '-');
         $statusLabel = $statusRaw === 'PartiallyPaid' ? 'Partially Paid' : ($statusRaw === 'UnPaid' ? 'Unpaid' : $statusRaw);
-        $logoPath = !empty($data->logo_path) ? public_path($data->logo_path) : null;
+        $subscriberName = trim((string) ($data->company_name ?? $data->subscriber_name ?? $data->from_name ?? 'Adwiseri'));
+        $subscriberName = preg_replace('/^Sent on behalf of\s+/i', '', $subscriberName) ?: 'Adwiseri';
+        $subscriberEmail = trim((string) ($data->display_from_email ?? $data->subscriber_email ?? $data->email ?? $data->reply_to_email ?? $data->from_email ?? ''));
+        $subscriberLogoCandidates = [];
+
+        if (!empty($data->logo_path)) {
+            $subscriberLogoCandidates[] = public_path($data->logo_path);
+        }
+
+        if (!empty($data->logo)) {
+            foreach (array_filter([$data->subscriber_id ?? null, $data->user_id ?? null, $data->added_by ?? null]) as $logoUserId) {
+                $subscriberLogoCandidates[] = public_path('web_assets/users/user' . $logoUserId . '/' . $data->logo);
+            }
+
+            $subscriberLogoCandidates[] = public_path('web_assets/users/logos/' . $data->logo);
+        }
+
+        $fallbackLogoCandidates = [
+            public_path('web_assets/images/Style2_blue.png'),
+            public_path('web_assets/images/Style2.png'),
+            public_path('web_assets/images/default_logo.png'),
+        ]);
+        $logoPath = null;
+        $hasSubscriberLogo = false;
+
+        foreach (array_unique($subscriberLogoCandidates) as $logoCandidate) {
+            if (!empty($logoCandidate) && file_exists($logoCandidate)) {
+                $logoPath = $logoCandidate;
+                $hasSubscriberLogo = true;
+                break;
+            }
+        }
+
+        if (empty($logoPath)) {
+            foreach ($fallbackLogoCandidates as $logoCandidate) {
+                if (!empty($logoCandidate) && file_exists($logoCandidate)) {
+                    $logoPath = $logoCandidate;
+                    break;
+                }
+            }
+        }
+        $planName = trim((string) ($data->plan_name ?? ($data->subscription_type ?? ($data->membership ?? ''))));
+        $detailText = trim((string) ($data->detail ?? 'Professional Services'));
+
+        if (
+            $planName !== '' &&
+            stripos($detailText, 'subscription fees') !== false &&
+            stripos($detailText, ' plan') === false
+        ) {
+            $detailText .= ' (' . $planName . ' Plan)';
+        }
     @endphp
 
     <table class="header">
         <tr>
             <td>
-                @if(!empty($logoPath) && file_exists($logoPath))
+                @if(!empty($logoPath))
                     <img class="logo" src="{{ $logoPath }}" alt="Logo">
                 @endif
-                <div class="company">{{ $data->company_name ?? 'Adwiseri' }}</div>
-                <div>{{ $data->display_from_email ?? ($data->from_email ?? '') }}</div>
+                @if(empty($hasSubscriberLogo))
+                    <div class="company">{{ $subscriberName }}</div>
+                @endif
+                @if(!empty($subscriberEmail))
+                    <div>{{ $subscriberEmail }}</div>
+                @endif
             </td>
             <td class="title">
                 INVOICE
@@ -175,7 +233,7 @@
         </thead>
         <tbody>
             <tr>
-                <td>{{ $data->detail ?? 'Professional Services' }}</td>
+                <td>{{ $detailText }}</td>
                 <td class="right">{{ $currency }} {{ number_format($amount, 2) }}</td>
             </tr>
         </tbody>
@@ -186,10 +244,12 @@
             <td>Subtotal</td>
             <td class="right">{{ $currency }} {{ number_format($amount, 2) }}</td>
         </tr>
-        <tr>
-            <td>Discount ({{ number_format($discountPercent, 2) }}%)</td>
-            <td class="right">- {{ $currency }} {{ number_format($discountAmount, 2) }}</td>
-        </tr>
+        @if($discountPercent > 0)
+            <tr>
+                <td>Discount ({{ number_format($discountPercent, 2) }}%)</td>
+                <td class="right">- {{ $currency }} {{ number_format($discountAmount, 2) }}</td>
+            </tr>
+        @endif
         <tr>
             <td>Tax ({{ number_format($taxPercent, 2) }}%)</td>
             <td class="right">{{ $currency }} {{ number_format($taxAmount, 2) }}</td>
@@ -200,7 +260,9 @@
         </tr>
     </table>
 
-    <div class="footer">Thanks for your business !</div>
+    <div class="footer">
+        <div>Thanks for your business !</div>
+    </div>
 </body>
 
 </html>

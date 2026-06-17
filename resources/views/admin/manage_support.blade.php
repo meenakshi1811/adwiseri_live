@@ -22,6 +22,7 @@
                     <th class="text-center">Status</th>
                     <th class="text-center">UserName(UserID)</th>
                     <th class="text-center">Date</th>
+                    <th class="text-center">Attachment</th>
                     <th class="text-center">Action</th>
                 </tr>
                 </thead>
@@ -37,6 +38,15 @@
                     {{-- <td><a style="background:none;border:none;padding:0px;" onclick="{{ route('update_query_status', $tic->id) }}">{{ $tic->status }}</a></td> --}}
                     <td class="text-center">{{ $tic->served_by ? $tic->servedBy->name .'('.$tic->served_by.')' : "" }}</td>
                     <td class="text-center">{{ $tic->created_at }}</td>
+                    <td class="text-center">
+                        @if($tic->attachment && file_exists("web_assets/users/ticket_images/".$tic->attachment))
+                            <a href="{{ asset("web_assets/users/ticket_images/".$tic->attachment) }}" target="_blank" download="{{ $tic->attachment }}">View/Download</a>
+                        @elseif($tic->attachment)
+                            File missing
+                        @else
+                            N/A
+                        @endif
+                    </td>
                     <td class="text-center">
                         <a style="background:none; border:none;" onclick="window.location.href = '{{ route('view_query', $tic->id) }}';" class="m-0 p-0"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>
                         <i class="fa-solid fa-edit btn p-1 text-success" onclick="queryresponse({{ $tic->id }})" style="font-size:14px;"></i>
@@ -98,7 +108,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Query Deleted Successfully!'
+        text: 'Query deleted successfully.'
       })
     </script>
 
@@ -137,7 +147,7 @@
       function queryresponse(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to response this record!",
+          text: "Do you want to respond to this record?",
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#3085d6',

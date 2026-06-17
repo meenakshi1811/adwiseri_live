@@ -335,7 +335,7 @@
     </script>
     <script>
         function deleteuser(id) {
-            var conf = confirm('Delete User');
+            var conf = confirm('Are you sure you want to delete this payment?');
             if (conf == true) {
                 window.location.href = "delete_user/" + id + "";
             }
@@ -347,7 +347,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'User Deleted Successfully!'
+                text: 'Payment deleted successfully.'
             })
         </script>
     @endif

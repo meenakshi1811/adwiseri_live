@@ -396,9 +396,9 @@
                 var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.JPG|\.JPEG|\.PNG)$/i;
                 if (!allowedExtensions.exec(filepath)) {
                     Swal.fire({
-                        title: "Oops..",
+                        title: "Oops!",
                         icon: "info",
-                        html: "Please select valid file format <br>( jpg, jpeg, png )"
+                        html: "Please select a valid file format.<br>(jpg, jpeg, png)"
                     });
                     $(this).val("");
                     return false;
@@ -406,9 +406,9 @@
                 const size = (this.files[0].size / 1024 / 1024).toFixed(2);
                 if (size > 4) {
                     Swal.fire({
-                        title: "Oops..",
+                        title: "Oops!",
                         icon: "info",
-                        html: "Please select file upto 4MB"
+                        html: "Please select a file up to 4 MB."
                     });
                     $(this).val("");
                     return false;
@@ -428,9 +428,9 @@
                 var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.JPG|\.JPEG|\.PNG)$/i;
                 if (!allowedExtensions.exec(filepath)) {
                     Swal.fire({
-                        title: "Oops..",
+                        title: "Oops!",
                         icon: "info",
-                        html: "Please select valid file format <br>( jpg, jpeg, png )"
+                        html: "Please select a valid file format.<br>(jpg, jpeg, png)"
                     });
                     $(this).val("");
                     return false;
@@ -438,9 +438,9 @@
                 const size = (this.files[0].size / 1024 / 1024).toFixed(2);
                 if (size > 4) {
                     Swal.fire({
-                        title: "Oops..",
+                        title: "Oops!",
                         icon: "info",
-                        html: "Please select file upto 4MB"
+                        html: "Please select a file up to 4 MB."
                     });
                     $(this).val("");
                     return false;
@@ -511,8 +511,8 @@
             Swal.fire({
 
                 icon: 'error',
-                title: 'Oops...',
-                text: 'Please select valid Image!'
+                title: 'Oops!',
+                text: 'Please select a valid image.'
             })
         </script>
     @enderror
@@ -539,8 +539,8 @@
   <script>
     Swal.fire({
       icon: 'warning',
-      title: 'Your Subscription Plan has Expired',
-      html: 'Please <a @if($user->user_type == "Subscriber") href="{{ route('membership') }}" @else href="#" @endif>Renew/Upgrade</a> to Continue!'
+      title: 'Your subscription plan has expired',
+      html: 'Please <a @if($user->user_type == "Subscriber") href="{{ route('membership') }}" @else href="#" @endif>renew or upgrade</a> your plan to continue.'
     })
   </script>
 

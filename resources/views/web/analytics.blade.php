@@ -20,7 +20,7 @@
 </style>
 <div class="col-lg-10 column-client">
     <div class="client-dashboard">
-        <div class="client-btn d-flex justify-content-between mb-4">
+        <div class="client-btn d-flex justify-content-center mb-4">
             <h3 class="text-primary px-3 text-center">Analytics</h3>
         </div>
     </div>
@@ -166,10 +166,10 @@
     <label class="fw-bold" >Select Chart Type</label>
     <select id="chartType" class="form-select" aria-label="Default select example">
         <option value="" selected>Select Chart Type</option>
-        <option value="bar">Bar</option>
         <option value="line">Line</option>
-        <option value="doughnut">Doughnut</option>
+        <option value="bar">Bar</option>
         <option value="pie">Pie</option>
+        <option value="doughnut">Doughnut</option>
     </select>
 </div>
 </div>
@@ -198,6 +198,157 @@
 <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+<script>
+Chart.defaults.scales.category.offset = false;
+
+const analyticsChartPalette = [
+    '#2563eb', '#dc2626', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2',
+    '#db2777', '#65a30d', '#ea580c', '#4f46e5', '#0f766e', '#be123c',
+    '#9333ea', '#0284c7', '#ca8a04', '#15803d', '#c026d3', '#0369a1'
+];
+
+function getAnalyticsColor(index, alpha = 1) {
+    const hex = analyticsChartPalette[index % analyticsChartPalette.length];
+    const value = hex.replace('#', '');
+    const r = parseInt(value.substring(0, 2), 16);
+    const g = parseInt(value.substring(2, 4), 16);
+    const b = parseInt(value.substring(4, 6), 16);
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getAnalyticsColors(count, alpha = 0.8) {
+    return Array.from({ length: count }, (_, index) => {
+        if (index < analyticsChartPalette.length) {
+            return getAnalyticsColor(index, alpha);
+        }
+
+        const hue = Math.round((index * 137.508) % 360);
+        return `hsla(${hue}, 72%, 48%, ${alpha})`;
+    });
+}
+
+function isCircularAnalyticsChart(type) {
+    return ['pie', 'doughnut'].includes(type);
+}
+
+function removeCircularChartAxes(config) {
+    if (!isCircularAnalyticsChart(config.type)) {
+        return;
+    }
+
+    config.options.scales = {
+        x: { display: false, grid: { display: false }, ticks: { display: false }, border: { display: false } },
+        y: { display: false, grid: { display: false }, ticks: { display: false }, border: { display: false } }
+    };
+}
+
+function normalizeAnalyticsDatasetColors(config) {
+    const labels = config.data?.labels || [];
+    const datasets = config.data?.datasets || [];
+
+    datasets.forEach((dataset, datasetIndex) => {
+        const dataLength = Array.isArray(dataset.data) ? dataset.data.length : labels.length;
+
+        if (isCircularAnalyticsChart(config.type) || datasets.length === 1) {
+            const colors = getAnalyticsColors(dataLength, isCircularAnalyticsChart(config.type) ? 0.85 : 0.75);
+            dataset.backgroundColor = colors;
+            dataset.hoverBackgroundColor = getAnalyticsColors(dataLength, 0.95);
+
+            if (isCircularAnalyticsChart(config.type)) {
+                dataset.borderColor = 'transparent';
+                dataset.borderWidth = 0;
+                dataset.hoverBorderWidth = 0;
+            }
+
+            if (config.type === 'line') {
+                dataset.borderColor = getAnalyticsColor(0, 1);
+                dataset.pointBackgroundColor = colors;
+                dataset.pointBorderColor = colors;
+                dataset.tension = dataset.tension ?? 0.35;
+            } else if (config.type === 'bar') {
+                dataset.borderColor = getAnalyticsColors(dataLength, 1);
+            }
+        } else {
+            const color = getAnalyticsColor(datasetIndex, 0.75);
+            dataset.backgroundColor = color;
+            dataset.borderColor = getAnalyticsColor(datasetIndex, 1);
+
+            if (config.type === 'line') {
+                dataset.pointBackgroundColor = getAnalyticsColor(datasetIndex, 1);
+                dataset.pointBorderColor = getAnalyticsColor(datasetIndex, 1);
+                dataset.tension = dataset.tension ?? 0.35;
+            }
+        }
+    });
+}
+
+function enableAnalyticsLegend(config) {
+    config.options.plugins.legend = {
+        ...(config.options.plugins.legend || {}),
+        display: true,
+        position: 'bottom',
+        labels: {
+            ...((config.options.plugins.legend || {}).labels || {}),
+            padding: 16,
+            usePointStyle: true,
+            generateLabels: function(chart) {
+                const defaultGenerator = Chart.defaults.plugins.legend.labels.generateLabels;
+
+                if (chart.data.datasets.length === 1) {
+                    const dataset = chart.data.datasets[0];
+                    return chart.data.labels.map((label, index) => {
+                        const backgroundColor = Array.isArray(dataset.backgroundColor)
+                            ? dataset.backgroundColor[index]
+                            : dataset.backgroundColor;
+
+                        return {
+                            text: label,
+                            fillStyle: backgroundColor,
+                            strokeStyle: backgroundColor,
+                            lineWidth: 0,
+                            pointStyle: 'circle',
+                            hidden: !chart.getDataVisibility(index),
+                            index
+                        };
+                    });
+                }
+
+                return defaultGenerator(chart);
+            }
+        },
+        onClick: function(event, legendItem, legend) {
+            const chart = legend.chart;
+
+            if (chart.data.datasets.length === 1) {
+                chart.toggleDataVisibility(legendItem.index);
+                chart.update();
+                return;
+            }
+
+            Chart.defaults.plugins.legend.onClick.call(this, event, legendItem, legend);
+        }
+    };
+}
+
+function sanitizeAnalyticsChartConfig(config) {
+    config.options = config.options || {};
+    config.options.plugins = config.options.plugins || {};
+
+    normalizeAnalyticsDatasetColors(config);
+    removeCircularChartAxes(config);
+    enableAnalyticsLegend(config);
+}
+
+const NativeAnalyticsChart = Chart;
+function AnalyticsChart(ctx, config) {
+    sanitizeAnalyticsChartConfig(config);
+    return new NativeAnalyticsChart(ctx, config);
+}
+Object.setPrototypeOf(AnalyticsChart, NativeAnalyticsChart);
+AnalyticsChart.prototype = NativeAnalyticsChart.prototype;
+window.Chart = AnalyticsChart;
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
 
@@ -260,12 +411,12 @@
             Swal.fire({
                 icon: 'warning',
                 title: 'No Data Available',
-                text: 'No Data found for Report : ' + title,
+                text: 'No Data found for chart : ' + title,
                 confirmButtonText: 'OK'
             });
-            return true; // Returns true if data is empty
+            return true;
         }
-        return false; // Returns false if data is not empty
+        return false;
     }
 
     function formatBytes(bytes, decimals = 2) {
@@ -416,6 +567,10 @@
                     value: "ByApplicationType"
                 },
                 {
+                    text: "By Application Status",
+                    value: "ByApplicationStatus"
+                },
+                {
                     text: "By Clients' Home Country",
                     value: "ByApplicationHomeCountry"
                 },
@@ -433,8 +588,8 @@
                 },
 
                 {
-                    text: "By No. of Applicants per Application (Single/Joint)",
-                    value: "ByNo.ofApplicantsperApplication"
+                    text: "By Application Counts By No. of Dependants",
+                    value: "ByApplicationCountsByDependants"
                 },
 
 
@@ -1113,6 +1268,56 @@
     }
 
 
+    function getChartSortValue(value) {
+        if (value === null || value === undefined) {
+            return null;
+        }
+
+        const normalizedValue = String(value).trim();
+        if (!normalizedValue) {
+            return null;
+        }
+
+        const lowerValue = normalizedValue.toLowerCase();
+        if (lowerValue.includes('under')) {
+            return 0;
+        }
+
+        const numericMatch = normalizedValue.replace(/,/g, '').match(/\d+(?:\.\d+)?/);
+        return numericMatch ? Number(numericMatch[0]) : null;
+    }
+
+    function sortChartResult(result) {
+        if (!Array.isArray(result)) {
+            return result;
+        }
+
+        const sortableKeys = [
+            'year',
+            'age_group',
+            'amount_range',
+            'price_range',
+            'range',
+            'timeline',
+            'duration',
+            'type'
+        ];
+
+        const sortableKey = sortableKeys.find(function(key) {
+            return result.length > 1 && result.every(function(item) {
+                return item && Object.prototype.hasOwnProperty.call(item, key) && getChartSortValue(item[key]) !== null;
+            });
+        });
+
+        if (!sortableKey) {
+            return result;
+        }
+
+        return result.slice().sort(function(firstItem, secondItem) {
+            return getChartSortValue(firstItem[sortableKey]) - getChartSortValue(secondItem[sortableKey]);
+        });
+    }
+
     function onClickGetReport() {
 
 
@@ -1138,10 +1343,10 @@
         var dateForTitle = selectedDate;
         var chartType = $('#chartType').val();
 
-        selectedDate = selectedDate.split("-")
+        const selectedDateRange = (selectedDate || '').split(' - ');
 
-        var startDate = selectedDate[0].trim();
-        var endDate = selectedDate[1].trim();
+        var startDate = (selectedDateRange[0] || '').trim();
+        var endDate = (selectedDateRange[1] || '').trim();
 
         let hasError = false;
         let title = selectedAttribute + ' : ' + selectedFilterTitle + (!selectedFilterTitle.includes('By Timeline (Duration)') && !selectedFilterTitle.includes('By Year') ? ' (' + startDate + ' - ' + endDate + ')' : '');
@@ -1247,124 +1452,6 @@
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // GLOBAL CHART FIX – resolves 3 known bugs for ALL chart instances:
-        //
-        // BUG A – Legend color indicators: single-dataset charts (pie/doughnut/
-        //         bar/line) use labels[] for data points, not separate datasets,
-        //         so Chart.js only renders ONE legend item. We override
-        //         generateLabels to produce one coloured box per data label.
-        //
-        // BUG B – Pie/Doughnut extra C-shaped border: borderWidth on single-
-        //         dataset pie/doughnut draws an outer rectangle around the whole
-        //         dataset. Removed by setting borderWidth:0 at dataset level and
-        //         suppressing the legend fillStyle border box.
-        //
-        // BUG C – Line chart coloured dots per sub-category: single-dataset
-        //         line charts use borderColor:'black' globally. We override
-        //         pointBackgroundColor & pointBorderColor per-point so every
-        //         dot matches its legend colour.
-        // ─────────────────────────────────────────────────────────────────────
-        (function patchChartDefaults() {
-
-            // ── Intercept every new Chart() call ──────────────────────────────
-            const OriginalChart = Chart;
-
-            window.Chart = function(ctx, config) {
-
-                const type   = config.type;
-                const data   = config.data;
-                const opts   = config.options = config.options || {};
-                const plugins = opts.plugins  = opts.plugins  || {};
-
-                // ── Collect dataset colours for legend ───────────────────────
-                const isSingleDataset = data.datasets && data.datasets.length === 1;
-                const isMultiColor    = isSingleDataset &&
-                    Array.isArray(data.datasets[0].backgroundColor);
-
-                // ── BUG B fix: strip segment border on pie / doughnut ────────
-                if ((type === 'pie' || type === 'doughnut') && isSingleDataset) {
-                    data.datasets[0].borderWidth = 0;
-                    data.datasets[0].hoverBorderWidth = 1;
-                }
-
-                // ── BUG C fix: coloured dots on line charts ───────────────────
-                if (type === 'line' && isSingleDataset && isMultiColor) {
-                    const ds     = data.datasets[0];
-                    const colors = ds.backgroundColor; // array of per-point colours
-                    // Override borderColor for the line itself (neutral)
-                    ds.borderColor = ds.borderColor || 'rgba(100,100,100,0.4)';
-                    // Per-point colours
-                    ds.pointBackgroundColor = colors;
-                    ds.pointBorderColor     = colors;
-                    ds.pointRadius          = ds.pointRadius          || 6;
-                    ds.pointHoverRadius     = ds.pointHoverRadius     || 9;
-                    ds.pointBorderWidth     = ds.pointBorderWidth     || 2;
-                }
-
-                // ── BUG A fix: one legend item per label with correct colour ──
-                if (isSingleDataset && isMultiColor) {
-                    const legendPlugin = plugins.legend = plugins.legend || {};
-                    legendPlugin.display  = true;
-                    legendPlugin.position = legendPlugin.position || 'bottom';
-
-                    const existingLabels = legendPlugin.labels || {};
-                    legendPlugin.labels = Object.assign({}, existingLabels, {
-                        padding: existingLabels.padding || 20,
-                        // ── Generate one item per data-point label ────────────
-                        generateLabels: function(chart) {
-                            const dataset = chart.data.datasets[0];
-                            const labels  = chart.data.labels || [];
-                            const bgColors = Array.isArray(dataset.backgroundColor)
-                                ? dataset.backgroundColor
-                                : labels.map(() => dataset.backgroundColor);
-
-                            return labels.map(function(lbl, i) {
-                                const isPieDoughnut =
-                                    chart.config.type === 'pie' ||
-                                    chart.config.type === 'doughnut';
-
-                                return {
-                                    text            : lbl,
-                                    fillStyle       : bgColors[i] || '#ccc',
-                                    strokeStyle     : isPieDoughnut
-                                                        ? bgColors[i] || '#ccc'
-                                                        : 'transparent',
-                                    lineWidth       : isPieDoughnut ? 1 : 0,
-                                    // For line charts show a circle dot
-                                    pointStyle      : chart.config.type === 'line'
-                                                        ? 'circle'
-                                                        : 'rect',
-                                    hidden          : false,
-                                    // datasetIndex + index needed for toggle
-                                    datasetIndex    : 0,
-                                    index           : i
-                                };
-                            });
-                        }
-                    });
-                }
-
-                // ── Delegate to real Chart constructor ────────────────────────
-                return new OriginalChart(ctx, config);
-            };
-
-            // Copy all static properties (Chart.register, Chart.getChart, etc.)
-            Object.setPrototypeOf(window.Chart, OriginalChart);
-            Object.keys(OriginalChart).forEach(function(key) {
-                window.Chart[key] = OriginalChart[key];
-            });
-
-        })();
-
-
-
-
-
-
-
-
-
-
         if (selectedFilter == "By Subscriber Country") {
             let chartStatus = Chart.getChart("myChart"); // <canvas> id
             if (chartStatus != undefined) {
@@ -1383,12 +1470,12 @@
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found')
+                        alert('No data found.')
                         return
 
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -1551,11 +1638,11 @@
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found')
+                        alert('No data found.')
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -1717,11 +1804,11 @@
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found')
+                        alert('No data found.')
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -1883,11 +1970,11 @@
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found')
+                        alert('No data found.')
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -2044,11 +2131,11 @@
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found')
+                        alert('No data found.')
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -2203,11 +2290,11 @@
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found')
+                        alert('No data found.')
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -2363,11 +2450,11 @@
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found')
+                        alert('No data found.')
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
 
@@ -2523,11 +2610,11 @@
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found')
+                        alert('No data found.')
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -2682,11 +2769,11 @@
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found')
+                        alert('No data found.')
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -2841,11 +2928,11 @@
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found')
+                        alert('No data found.')
                         return
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -3010,7 +3097,7 @@
                 $('#downloadPdf').prop('disabled', false);
                 $('#downloadPdf').show();
 
-                var result = data.data;
+                var result = sortChartResult(data.data);
                 var labels = [];
                 var numbers = [];
 
@@ -3224,7 +3311,7 @@
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
 
@@ -3408,7 +3495,7 @@
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
 
@@ -3595,7 +3682,7 @@
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -3797,7 +3884,7 @@
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -3997,7 +4084,7 @@
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
 
@@ -4178,7 +4265,7 @@
 
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -4386,7 +4473,7 @@
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -4592,7 +4679,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -4799,7 +4886,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -5006,7 +5093,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -5212,7 +5299,7 @@ numbers.push(currentElement.total_clients);
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -5397,6 +5484,119 @@ numbers.push(currentElement.total_clients);
                     }, 1000); // Small delay to ensure smooth UX
                 });
             });
+        } else if (selectedFilter == "ByApplicationStatus") {
+            let chartStatus = Chart.getChart("myChart"); // <canvas> id
+            if (chartStatus != undefined) {
+                chartStatus.destroy();
+            }
+            $.ajax({
+                type: 'GET',
+                url: "{{ route('subscribersReport') }}",
+
+                data: {
+                    type: 'byApplicationStatus',
+                    subid: subID,
+                    startDate: startDate,
+                    endDate: endDate
+                },
+                success: function(data) {
+                    if (checkIfDataIsEmpty(data, title)) {
+                        return;
+                    }
+                    $('#downloadPdf').prop('disabled', false);
+                    $('#downloadPdf').show();
+                    var result = sortChartResult(data.data);
+                    var labels = [];
+                    var numbers = [];
+                    result.forEach(function(currentElement) {
+                        if (currentElement.status_count !== 0) {
+                            labels.push(currentElement.application_status);
+                            numbers.push(currentElement.status_count);
+                        }
+                    });
+
+                    const ctx = document.getElementById('myChart');
+                    const dynamicColors = generateDistinctColors(labels.length);
+
+                    new Chart(ctx, {
+                        type: chartType,
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: '',
+                                data: numbers,
+                                borderWidth: 2,
+                                borderColor: 'black',
+                                backgroundColor: dynamicColors,
+                            }]
+                        },
+                        options: {
+                            responsive: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1,
+                                        precision: 0
+                                    }
+                                }
+                            },
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: title,
+                                    font: { size: 20, weight: 800 },
+                                    padding: { bottom: 50 },
+                                    color: 'black',
+                                    align: 'center'
+                                },
+                                legend: { display: true, position: 'bottom', labels: { padding: 30 } },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(tooltipItem) {
+                                            const dataValue = tooltipItem.raw || '';
+                                            return `No. Of Applications: ${dataValue}`;
+                                        }
+                                    }
+                                },
+                                datalabels: {
+                                    anchor: 'end', align: 'top', formatter: (value) => value,
+                                    font: { size: 14, weight: 300 }, color: 'black', offset: 15,
+                                }
+                            }
+                        },
+                        plugins: [ChartDataLabels]
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error occurred: " + status + " - " + error);
+                }
+            });
+            document.getElementById('downloadPdf').addEventListener('click', function(event) {
+                event.preventDefault();
+                let downloadButton = this;
+                if (downloadButton.getAttribute('data-downloading') === 'true') return;
+                downloadButton.setAttribute('data-downloading', 'true');
+                downloadButton.disabled = true;
+                html2canvas(document.getElementById('myChart')).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [595, 842] });
+                    const canvasWidth = canvas.width, canvasHeight = canvas.height;
+                    const scaleFactor = Math.min(595 / canvasWidth, 842 / canvasHeight);
+                    const imgWidth = canvasWidth * scaleFactor, imgHeight = canvasHeight * scaleFactor;
+                    const xOffset = (595 - imgWidth) / 2;
+                    pdf.addImage(imgData, 'PNG', xOffset, 20, imgWidth, imgHeight);
+                    pdf.save(title + '.pdf');
+                }).catch(error => {
+                    console.error("Error generating PDF: ", error);
+                }).finally(() => {
+                    setTimeout(() => {
+                        downloadButton.removeAttribute('data-downloading');
+                        downloadButton.disabled = false;
+                    }, 1000);
+                });
+            });
         } else if (selectedFilter == "ByApplicationType") {
             let chartStatus = Chart.getChart("myChart"); // <canvas> id
             if (chartStatus != undefined) {
@@ -5418,7 +5618,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -5601,7 +5801,7 @@ numbers.push(currentElement.total_clients);
                     }, 1000); // Small delay to ensure smooth UX
                 });
             });
-        } else if (selectedFilter == "ByNo.ofApplicantsperApplication") {
+        } else if (selectedFilter == "ByApplicationCountsByDependants") {
 
             let chartStatus = Chart.getChart("myChart"); // <canvas> id
             if (chartStatus != undefined) {
@@ -5612,7 +5812,7 @@ numbers.push(currentElement.total_clients);
                 type: 'GET',
                 url: "{{ route('subscribersReport') }}",
                 data: {
-                    type: 'byNoofApplicantsPerApplicationChart',
+                    type: 'byApplicationCountsByDependantsChart',
                     subid: subID,
                     startDate: startDate,
                     endDate: endDate
@@ -5625,18 +5825,13 @@ numbers.push(currentElement.total_clients);
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
-                    var singleCounts = [];
-                    var jointCounts = [];
+                    var numbers = [];
 
                     result.forEach(function (item) {
-                        // Optional: Skip zero-value records for cleaner chart
-                        if (item.single_clients !== 0 || item.joint_clients !== 0) {
-                            labels.push(item.application_name);
-                            singleCounts.push(item.single_clients);
-                            jointCounts.push(item.joint_clients);
-                        }
+                        labels.push(item.dependant_bucket);
+                        numbers.push(item.application_count);
                     });
 
                     const ctx = document.getElementById('myChart');
@@ -5645,22 +5840,13 @@ numbers.push(currentElement.total_clients);
                     new Chart(ctx, {
                         type: chartType,
                         data: {
-                            
                             labels: labels,
-                            datasets: [
-                                {
-                                    label: 'Single Clients',
-                                    data: singleCounts,
-                                    borderWidth: 3,
-                                    backgroundColor: 'rgba(54, 162, 235, 0.6)' // Blue
-                                },
-                                {
-                                    label: 'Joint Clients',
-                                    data: jointCounts,
-                                    borderWidth: 3,
-                                    backgroundColor: 'rgba(255, 99, 132, 0.6)' // Red
-                                }
-                            ]
+                            datasets: [{
+                                label: selectedAttribute + ' ' + $('#filters option:selected').text(),
+                                data: numbers,
+                                borderWidth: 1,
+                                backgroundColor: dynamicColors,
+                            }]
                         },
                         options: {
                             responsive: false,
@@ -5802,7 +5988,7 @@ numbers.push(currentElement.total_clients);
                     $('#downloadPdf').show();
 
                     console.log(data);
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -6009,7 +6195,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement) {
@@ -6200,7 +6386,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement) {
@@ -6397,20 +6583,29 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     console.log(result);
-                    var labels = [];
-                    var numbers = [];
 
-                    result.forEach(function(currentElement, index) {
-                        if(currentElement.count !== 0) { // Skip ONLY those with 0 count
-                        labels.push(currentElement.type);
+                    const timelineOrder = ['Today', 'Last Week', 'Last Month', 'Last Quarter', 'Last Year', 'Since Inception'];
+                    const timelineCounts = {
+                        'Today': 0,
+                        'Last Week': 0,
+                        'Last Month': 0,
+                        'Last Quarter': 0,
+                        'Last Year': 0,
+                        'Since Inception': 0
+                    };
 
-                        numbers.push(currentElement.count);
+                    result.forEach(function(currentElement) {
+                        if (Object.prototype.hasOwnProperty.call(timelineCounts, currentElement.type)) {
+                            timelineCounts[currentElement.type] = currentElement.count;
                         }
-                    })
+                    });
 
-
+                    const labels = timelineOrder;
+                    const numbers = timelineOrder.map(function(label) {
+                        return timelineCounts[label];
+                    });
 
                     const ctx = document.getElementById('myChart');
                     const dynamicColors = generateDistinctColors(labels.length);
@@ -6583,7 +6778,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -6775,7 +6970,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
 
                     var labels = [];
                     var numbers = [];
@@ -6981,7 +7176,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
 
                     var labels = [];
                     var numbers = [];
@@ -7187,7 +7382,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     console.log(result);
@@ -7399,7 +7594,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
 
@@ -7585,7 +7780,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -7789,7 +7984,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -7998,7 +8193,7 @@ numbers.push(currentElement.total_clients);
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -8203,7 +8398,7 @@ numbers.push(currentElement.total_clients);
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -8410,7 +8605,7 @@ numbers.push(currentElement.total_clients);
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -8614,7 +8809,7 @@ numbers.push(currentElement.total_clients);
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -8821,7 +9016,7 @@ numbers.push(currentElement.total_clients);
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
                     console.log('hi');
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
                     result.forEach(function(currentElement, index) {
@@ -9024,7 +9219,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -9231,7 +9426,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -9435,7 +9630,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -9642,7 +9837,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -9849,7 +10044,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -10054,7 +10249,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -10260,7 +10455,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -10466,7 +10661,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -10673,7 +10868,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -10879,7 +11074,7 @@ numbers.push(currentElement.total_clients);
                         }
                         $('#downloadPdf').prop('disabled', false);
                         $('#downloadPdf').show();
-                        var result = data.data;
+                        var result = sortChartResult(data.data);
                         //console.log(result);
                         var labels = [];
                         var numbers = [];
@@ -11084,7 +11279,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -11295,7 +11490,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -11510,7 +11705,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -11724,7 +11919,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -11939,7 +12134,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -12154,7 +12349,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -12374,7 +12569,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -12590,7 +12785,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -12805,7 +13000,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -13020,7 +13215,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -13235,7 +13430,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -13453,7 +13648,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -13658,7 +13853,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -13861,7 +14056,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -14065,7 +14260,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -14268,7 +14463,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -14472,7 +14667,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -14677,7 +14872,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -14883,7 +15078,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -15086,7 +15281,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -15290,7 +15485,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -15493,7 +15688,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -15697,7 +15892,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -15902,7 +16097,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -16109,7 +16304,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -16311,7 +16506,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -16491,7 +16686,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -16692,7 +16887,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -16895,7 +17090,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -17097,7 +17292,7 @@ numbers.push(currentElement.total_clients);
                     if (checkIfDataIsEmpty(data, title)) {
                         return; // Exit if data is empty and alert is shown
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     // Prepare labels and numbers
                     var labels = [];
                     var numbers = [];
@@ -17288,7 +17483,7 @@ numbers.push(currentElement.total_clients);
                     if (checkIfDataIsEmpty(data, title)) {
                         return; // Exit if data is empty and alert is shown
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -17494,7 +17689,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -17694,10 +17889,10 @@ numbers.push(currentElement.total_clients);
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found')
+                        alert('No data found.')
                         return
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     // Prepare labels and numbers
                     var labels = [];
                     var numbers = [];
@@ -17846,10 +18041,10 @@ numbers.push(currentElement.total_clients);
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found')
+                        alert('No data found.')
                         return
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -18007,10 +18202,10 @@ numbers.push(currentElement.total_clients);
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found')
+                        alert('No data found.')
                         return
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -18164,10 +18359,10 @@ numbers.push(currentElement.total_clients);
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found')
+                        alert('No data found.')
                         return
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -18324,10 +18519,10 @@ numbers.push(currentElement.total_clients);
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found')
+                        alert('No data found.')
                         return
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -18484,10 +18679,10 @@ numbers.push(currentElement.total_clients);
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found')
+                        alert('No data found.')
                         return
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -18647,7 +18842,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -18850,7 +19045,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -19054,7 +19249,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -19260,7 +19455,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -19458,10 +19653,10 @@ numbers.push(currentElement.total_clients);
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found')
+                        alert('No data found.')
                         return
                     }
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -19619,11 +19814,11 @@ numbers.push(currentElement.total_clients);
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found');
+                        alert('No data found.');
                         return;
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var totalTickets = [];
                     var openTickets = [];
@@ -19789,11 +19984,11 @@ numbers.push(currentElement.total_clients);
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found');
+                        alert('No data found.');
                         return;
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
 
@@ -19947,11 +20142,11 @@ numbers.push(currentElement.total_clients);
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found');
+                        alert('No data found.');
                         return;
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
 
@@ -20103,11 +20298,11 @@ numbers.push(currentElement.total_clients);
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found');
+                        alert('No data found.');
                         return;
                     }
 
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     var labels = [];
                     var numbers = [];
 
@@ -20259,7 +20454,7 @@ numbers.push(currentElement.total_clients);
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found');
+                        alert('No data found.');
                         return;
                     }
                     var result = data
@@ -20426,7 +20621,7 @@ numbers.push(currentElement.total_clients);
                 },
                 success: function(data) {
                     if (data.data.length === 0) {
-                        alert('No data found');
+                        alert('No data found.');
                         return;
                     }
                     var result = data
@@ -20596,7 +20791,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -20800,7 +20995,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -21004,7 +21199,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     //console.log(result);
                     var labels = [];
                     var numbers = [];
@@ -21209,7 +21404,7 @@ numbers.push(currentElement.total_clients);
                     }
                     $('#downloadPdf').prop('disabled', false);
                     $('#downloadPdf').show();
-                    var result = data.data;
+                    var result = sortChartResult(data.data);
                     console.log(result);
                     var labels = [];
                     var numbers = [];

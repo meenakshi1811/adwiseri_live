@@ -52,12 +52,55 @@ use DB;
 
 class SubscriberFilterController extends Controller
 {
+    private function parseReportDate(?string $value, bool $isEndDate = false): Carbon
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return $isEndDate ? Carbon::now()->endOfDay() : Carbon::now()->startOfDay();
+        }
+
+        $normalizedValue = str_replace(['/', '.'], '-', $value);
+
+        $supportedFormats = [
+            'd-m-Y',
+            'Y-m-d',
+            'm-d-Y',
+            'Y-n-j',
+            'j-n-Y',
+            'n-j-Y',
+        ];
+
+        foreach ($supportedFormats as $format) {
+            try {
+                $date = Carbon::createFromFormat($format, $normalizedValue);
+                if ($date !== false) {
+                    return $isEndDate ? $date->endOfDay() : $date->startOfDay();
+                }
+            } catch (\Throwable $e) {
+                // Try next format.
+            }
+        }
+
+        if (preg_match('/^\d{1,2}$/', $normalizedValue)) {
+            $month = (int) $normalizedValue;
+            if ($month >= 1 && $month <= 12) {
+                $date = Carbon::create(Carbon::now()->year, $month, 1);
+                return $isEndDate ? $date->endOfMonth()->endOfDay() : $date->startOfMonth()->startOfDay();
+            }
+        }
+
+        $date = Carbon::parse($value);
+        return $isEndDate ? $date->endOfDay() : $date->startOfDay();
+    }
+
+
     public function subscribersReport()
     {
         // This is for tabs
         $user = auth()->user();
-        $startDate = Carbon::createFromFormat('d-m-Y', request()->input('startDate'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d-m-Y', request()->input('endDate'))->endOfDay();
+        $startDate = $this->parseReportDate(request()->input('startDate'));
+        $endDate = $this->parseReportDate(request()->input('endDate'), true);
         if (request()->type == "country") {
 
             if ($user->user_type == 'admin') {
@@ -662,8 +705,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -674,8 +717,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -686,8 +729,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -726,7 +769,7 @@ class SubscriberFilterController extends Controller
                 DB::raw('COUNT(*) AS count') // Count referrals per year
             )
                 ->groupBy(DB::raw('YEAR(created_at)')) // Group by year
-                ->orderBy('year', 'desc') // Order from newest to oldest
+                ->orderBy('year', 'asc') // Order from oldest to newest
                 ->get();
 
             return response()->json(['data' => $clients]);
@@ -817,6 +860,67 @@ class SubscriberFilterController extends Controller
                 ->get();
 
             return response()->json(['data' => $byApplicationType]);
+        } elseif (request()->type == "byApplicationStatus") {
+
+            $query = Applications::query();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query = $query->where('subscriber_id', request()->subid);
+            }
+
+            $byApplicationStatus = $query->whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw("COALESCE(NULLIF(application_status, ''), 'Not Set') as application_status, COUNT(*) as status_count")
+                ->groupBy('application_status')
+                ->orderBy('status_count', 'desc')
+                ->get();
+
+            return response()->json(['data' => $byApplicationStatus]);
+        } elseif (request()->type == "byApplicationCountsByDependantsChart") {
+
+            $dependantBuckets = [
+                0 => '0 Dependant',
+                1 => '1 Dependant',
+                2 => '2 Dependants',
+                3 => '3 Dependants',
+                4 => '4 Dependants',
+                5 => '5+ Dependants',
+            ];
+            $applicationCounts = [];
+            foreach ($dependantBuckets as $bucket => $label) {
+                $applicationCounts[$bucket] = [
+                    'dependant_bucket' => $label,
+                    'dependant_count' => $bucket,
+                    'application_count' => 0,
+                ];
+            }
+
+            $dependantCounts = Dependants::select('client_id', DB::raw('COUNT(*) as dependant_count'))
+                ->groupBy('client_id');
+
+            $query = Applications::query()
+                ->leftJoinSub($dependantCounts, 'dependant_counts', function ($join) {
+                    $join->on('applications.client_id', '=', 'dependant_counts.client_id');
+                })
+                ->whereBetween('applications.created_at', [$startDate, $endDate]);
+
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query = $query->where('applications.subscriber_id', request()->subid);
+            }
+
+            $query->selectRaw(
+                "CASE
+                    WHEN COALESCE(dependant_counts.dependant_count, 0) >= 5 THEN 5
+                    ELSE COALESCE(dependant_counts.dependant_count, 0)
+                END as dependant_bucket_key,
+                COUNT(DISTINCT applications.id) as application_count"
+            )
+                ->groupBy('dependant_bucket_key')
+                ->get()
+                ->each(function ($row) use (&$applicationCounts) {
+                    $bucket = (int) $row->dependant_bucket_key;
+                    $applicationCounts[$bucket]['application_count'] = (int) $row->application_count;
+                });
+
+            return response()->json(['data' => array_values($applicationCounts)]);
         } elseif (request()->type == "byNoofApplicantsPerApplicationChart") {
 
             $query = new Applications();
@@ -979,7 +1083,7 @@ class SubscriberFilterController extends Controller
                 DB::raw('COUNT(*) AS count') // Count referrals per year
             )
                 ->groupBy(DB::raw('YEAR(created_at)')) // Group by year
-                ->orderBy('year', 'asc') // Order from newest to oldest
+                ->orderBy('year', 'asc') // Order from oldest to newest
                 ->get();
 
             return response()->json(['data' => $clients]);
@@ -1054,8 +1158,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -1066,8 +1170,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -1078,8 +1182,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
                 // dd($monthlyApplications);
             // 🔹 Merge All Data
@@ -1139,8 +1243,8 @@ class SubscriberFilterController extends Controller
                     
             return response()->json(['data' => $byDocumentNoofApplications]);
         } elseif (request()->type == "byNoofApplicantsChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
             if (!empty(request()->subid)) {
                 // Filter by specific subscriber ID
                 $data = Applications::whereBetween('created_at', [$startDate, $endDate]) // Explicitly specify the table for created_at
@@ -1169,7 +1273,7 @@ class SubscriberFilterController extends Controller
                     DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
                 )
                 ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-                ->orderBy('year', 'desc') // ✅ Sort by newest first
+                ->orderBy('year', 'asc') // ✅ Sort by oldest first
                 ->get();
 
             return response()->json(['data' => $byUserTimeline]);
@@ -1240,8 +1344,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year_num', 'week_num')
-            ->orderBy('year_num', 'desc')
-            ->orderBy('week_num', 'desc')
+            ->orderBy('year_num', 'asc')
+            ->orderBy('week_num', 'asc')
             ->get();
         
         // 🔹 Quarterly Applications
@@ -1252,8 +1356,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year', 'quarter')
-            ->orderBy('year', 'desc')
-            ->orderBy('quarter', 'desc')
+            ->orderBy('year', 'asc')
+            ->orderBy('quarter', 'asc')
             ->get();
         
         // 🔹 Monthly Applications
@@ -1264,8 +1368,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year', 'month')
-            ->orderBy('year', 'desc')
-            ->orderBy('month', 'desc')
+            ->orderBy('year', 'asc')
+            ->orderBy('month', 'asc')
             ->get();
         
         // 🔹 Merge All Data
@@ -1486,7 +1590,7 @@ class SubscriberFilterController extends Controller
                 DB::raw('COUNT(*) AS count') // Count referrals per year
             )
                 ->groupBy('gender') // Group by year
-                ->orderBy('count', 'desc') // Order from newest to oldest
+                ->orderBy('count', 'desc') // Order by count, highest to lowest
                 ->get();
             return response()->json(['data' => $byUserGender]);
         } elseif (request()->type == "byUserApplicationProcessedChart") {
@@ -1556,7 +1660,7 @@ class SubscriberFilterController extends Controller
                 DB::raw('COUNT(*) AS count') // Count referrals per year
             )
                 ->groupBy(DB::raw('YEAR(created_at)')) // Group by year
-                ->orderBy('year', 'desc') // Order from newest to oldest
+                ->orderBy('year', 'asc') // Order from oldest to newest
                 ->get();
 
 
@@ -1628,8 +1732,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year_num', 'week_num')
-            ->orderBy('year_num', 'desc')
-            ->orderBy('week_num', 'desc')
+            ->orderBy('year_num', 'asc')
+            ->orderBy('week_num', 'asc')
             ->get();
         
         // 🔹 Quarterly Applications
@@ -1640,8 +1744,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year', 'quarter')
-            ->orderBy('year', 'desc')
-            ->orderBy('quarter', 'desc')
+            ->orderBy('year', 'asc')
+            ->orderBy('quarter', 'asc')
             ->get();
         
         // 🔹 Monthly Applications
@@ -1652,8 +1756,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year', 'month')
-            ->orderBy('year', 'desc')
-            ->orderBy('month', 'desc')
+            ->orderBy('year', 'asc')
+            ->orderBy('month', 'asc')
             ->get();
         
         // 🔹 Merge All Data
@@ -1752,7 +1856,7 @@ class SubscriberFilterController extends Controller
                 DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
             )
             ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-            ->orderBy('year', 'desc') // ✅ Sort by newest first
+            ->orderBy('year', 'asc') // ✅ Sort by oldest first
             ->get();
 
 
@@ -1827,8 +1931,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -1839,8 +1943,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -1851,8 +1955,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -1948,7 +2052,7 @@ class SubscriberFilterController extends Controller
                 DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
             )
             ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-            ->orderBy('year', 'desc') // ✅ Sort by newest first
+            ->orderBy('year', 'asc') // ✅ Sort by oldest first
             ->get();
 
 
@@ -2023,8 +2127,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -2035,8 +2139,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -2047,8 +2151,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -2149,7 +2253,7 @@ class SubscriberFilterController extends Controller
                 DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
             )
             ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-            ->orderBy('year', 'desc') // ✅ Sort by newest first
+            ->orderBy('year', 'asc') // ✅ Sort by oldest first
             ->where('type', 'ar')
             ->get();
             return response()->json(['data' => $byPaymentMode]);
@@ -2222,8 +2326,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -2234,8 +2338,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -2246,8 +2350,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -2274,8 +2378,8 @@ class SubscriberFilterController extends Controller
                 'data' => $formattedData
             ]);
         } elseif (request()->type == "byPaymentVisaCountryChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
             $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
             if (!empty(request()->subid)) {
                 $data = PaymentARs::whereBetween('payment_ar.created_at', [$startDate, $endDate])
@@ -2358,8 +2462,8 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' => $paymentOutstanding]);
             return response()->json(['data' =>  $paymentOutstanding]);
         } elseif (request()->type == "byPaymentApplicationTypeChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
             $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
             if (!empty(request()->subid)) {
                 $data = PaymentARs::whereBetween('payment_ar.created_at', [$startDate, $endDate])
@@ -2408,7 +2512,7 @@ class SubscriberFilterController extends Controller
                 DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
             )
             ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-            ->orderBy('year', 'desc') // ✅ Sort by newest first
+            ->orderBy('year', 'asc') // ✅ Sort by oldest first
             ->where('type', 'ap')
             ->get();
             return response()->json(['data' => $byPaymentMode]);
@@ -2481,8 +2585,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -2493,8 +2597,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -2505,8 +2609,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -2533,8 +2637,8 @@ class SubscriberFilterController extends Controller
                 'data' => $formattedData
             ]);
         } elseif (request()->type == "byPaymentVisaCountryChartAP") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
             $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
             if (!empty(request()->subid)) {
                 $data = PaymentARs::whereBetween('payment_ar.created_at', [$startDate, $endDate])
@@ -2618,8 +2722,8 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' => $paymentOutstanding]);
             return response()->json(['data' =>  $paymentOutstanding]);
         } elseif (request()->type == "byPaymentApplicationTypeChartAP") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
             $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
             if (!empty(request()->subid)) {
                 $data = PaymentARs::whereBetween('payment_ar.created_at', [$startDate, $endDate])
@@ -2723,7 +2827,7 @@ class SubscriberFilterController extends Controller
                     DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
                 )
                 ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-                ->orderBy('year', 'desc') // ✅ Sort by newest first
+                ->orderBy('year', 'asc') // ✅ Sort by oldest first
                 ->get();
 
             return response()->json(['data' => $byUserTimeline]);
@@ -2788,8 +2892,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year_num', 'week_num')
-            ->orderBy('year_num', 'desc')
-            ->orderBy('week_num', 'desc')
+            ->orderBy('year_num', 'asc')
+            ->orderBy('week_num', 'asc')
             ->get();
         
         // 🔹 Quarterly Applications
@@ -2800,8 +2904,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year', 'quarter')
-            ->orderBy('year', 'desc')
-            ->orderBy('quarter', 'desc')
+            ->orderBy('year', 'asc')
+            ->orderBy('quarter', 'asc')
             ->get();
         
         // 🔹 Monthly Applications
@@ -2812,8 +2916,8 @@ class SubscriberFilterController extends Controller
             COUNT(*) as count
         ")
             ->groupBy('year', 'month')
-            ->orderBy('year', 'desc')
-            ->orderBy('month', 'desc')
+            ->orderBy('year', 'asc')
+            ->orderBy('month', 'asc')
             ->get();
         
         // 🔹 Merge All Data
@@ -2857,7 +2961,7 @@ class SubscriberFilterController extends Controller
                     DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
                 )
                 ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-                ->orderBy('year', 'desc') // ✅ Sort by newest first
+                ->orderBy('year', 'asc') // ✅ Sort by oldest first
                 ->get();
 
             return response()->json(['data' => $byUserTimeline]);
@@ -2873,7 +2977,7 @@ class SubscriberFilterController extends Controller
                     DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
                 )
                 ->groupBy(DB::raw('YEAR(communication_date)')) // ✅ Group by extracted year
-                ->orderBy('year', 'desc') // ✅ Sort by newest first
+                ->orderBy('year', 'asc') // ✅ Sort by oldest first
                 ->get();
             return response()->json(['data' =>  $byCommunicationMeetingNoteType]);
         } elseif (request()->type == "byCommunicationMeetingNotesByTimeline(Duration)") {
@@ -2948,8 +3052,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -2960,8 +3064,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -2972,8 +3076,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -3098,7 +3202,7 @@ class SubscriberFilterController extends Controller
                     DB::raw('COUNT(users.id) AS count') // ✅ Count based on users.id
                 )
                 ->groupBy(DB::raw('YEAR(users.created_at)')) // ✅ Group by extracted year
-                ->orderBy('year', 'desc') // ✅ Sort by newest first
+                ->orderBy('year', 'asc') // ✅ Sort by oldest first
                 ->get();
 
             return response()->json(['data' => $byUserTimeline]);
@@ -3177,8 +3281,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -3189,8 +3293,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -3201,8 +3305,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -3276,7 +3380,7 @@ class SubscriberFilterController extends Controller
                     DB::raw('COUNT(id) AS count') // ✅ Count based on users.id
                 )
                 ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-                ->orderBy('year', 'desc') // ✅ Sort by newest first
+                ->orderBy('year', 'asc') // ✅ Sort by oldest first
                 ->get();
 
             return response()->json(['data' => $byUserTimeline]);
@@ -3345,8 +3449,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -3357,8 +3461,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -3369,8 +3473,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -3430,7 +3534,7 @@ class SubscriberFilterController extends Controller
                     DB::raw('COUNT(id) AS count') // ✅ Count based on users.id
                 )
                 ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-                ->orderBy('year', 'desc') // ✅ Sort by newest first
+                ->orderBy('year', 'asc') // ✅ Sort by oldest first
                 ->get();
 
             return response()->json(['data' => $byUserTimeline]);
@@ -3498,8 +3602,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -3510,8 +3614,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -3522,8 +3626,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -3551,8 +3655,8 @@ class SubscriberFilterController extends Controller
             ]);
             
         } elseif (request()->type == "bySupportStaffChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
             if (!empty(request()->subid)) {
                 $cd = Tickets::select(
@@ -3584,8 +3688,8 @@ class SubscriberFilterController extends Controller
             });
             return response()->json(['data' => $data]);
         } elseif (request()->type == "bySupportStaffNameChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
             $searchUsername = request()->username; // Get the search username from the request
 
@@ -3617,8 +3721,8 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byDemoRequestStatusChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
             $searchUsername = request()->username; // Get the search username from the request
 
@@ -3639,8 +3743,8 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byCounrtyDemoRequestChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
             $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
 
             if (!empty(request()->subid)) {
@@ -3661,8 +3765,8 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "bytimelineDemoRequestChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
             $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
 
             if (!empty(request()->subid)) {
@@ -3685,8 +3789,8 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "bytimeTakenDemoRequestChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
             if (!empty(request()->subid)) {
                 $cd = Tickets::select(
@@ -3746,6 +3850,7 @@ class SubscriberFilterController extends Controller
                         'users.name as user_name', // ✅ Fetch user name
                         DB::raw('COUNT(activities.id) as activity_count') // ✅ Count activities per user
                     )
+                    ->whereIn('users.user_type', ['Subscriber', 'User'])
                     ->groupBy('activities.user_id', 'users.name') // ✅ Group by user ID and name
                     ->orderBy('activity_count', 'desc') // ✅ Sort by highest activity count
                     ->limit(10); // ✅ Get top 10 users
@@ -3775,7 +3880,7 @@ class SubscriberFilterController extends Controller
                     DB::raw('COUNT(id) AS count') // ✅ Count based on users.id
                 )
                 ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-                ->orderBy('year', 'desc') // ✅ Sort by newest first
+                ->orderBy('year', 'asc') // ✅ Sort by oldest first
                 ->get();
 
             return response()->json(['data' => $byUserTimeline]);
@@ -3849,8 +3954,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'desc')
-                ->orderBy('week_num', 'desc')
+                ->orderBy('year_num', 'asc')
+                ->orderBy('week_num', 'asc')
                 ->get();
             
             // 🔹 Quarterly Applications
@@ -3861,8 +3966,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'quarter')
-                ->orderBy('year', 'desc')
-                ->orderBy('quarter', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('quarter', 'asc')
                 ->get();
             
             // 🔹 Monthly Applications
@@ -3873,8 +3978,8 @@ class SubscriberFilterController extends Controller
                 COUNT(*) as count
             ")
                 ->groupBy('year', 'month')
-                ->orderBy('year', 'desc')
-                ->orderBy('month', 'desc')
+                ->orderBy('year', 'asc')
+                ->orderBy('month', 'asc')
                 ->get();
             
             // 🔹 Merge All Data
@@ -3903,8 +4008,8 @@ class SubscriberFilterController extends Controller
         } 
         
         elseif (request()->type == "byTop10SubscribersChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
 
             if (!empty(request()->subid)) {
@@ -3988,8 +4093,8 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' => $applications]);
         } elseif (request()->type == "byNoOfTransactionDatesChart") {
 
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
             if (!empty(request()->subid)) {
             } else {
 
@@ -4024,8 +4129,8 @@ class SubscriberFilterController extends Controller
             }
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byAffiliatesNoofSubscribersReferredsChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
             if (!empty(request()->subid)) {
                 $data = DB::table('users as referrer')
@@ -4054,8 +4159,8 @@ class SubscriberFilterController extends Controller
             }
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byAmountOfCommissionsEarntChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
             if (!empty(request()->subid)) {
 
@@ -4092,8 +4197,8 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byAffiliateCountryChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
             $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
 
@@ -4163,8 +4268,8 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byAffiliateCurrentWalletCreditsChart") {
-            $startDate = Carbon::createFromFormat('d-m-Y', request()->start)->startOfDay();
-            $endDate = Carbon::createFromFormat('d-m-Y', request()->end)->endOfDay();
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
             if (!empty(request()->subid)) {
                 $referralsPerWalletBalance = DB::table('referrals')

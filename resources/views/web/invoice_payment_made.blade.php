@@ -100,7 +100,11 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 <td class="p-1 text-center">{{ $invoice->formatted_due_date }} </td>
                                 <td class="p-1 text-center"><a style="background:none; border:none;" @if($invoice_roles->read_only == 1 or $invoice_roles->read_write_only == 1)
                                         href="{{ route('view_invoice', $invoice->id) }}" @else href="#" @endif class="m-0 p-0"><i
-                                            class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a></td>
+                                            class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>
+                                    @if($invoice_roles->write_only == 1 or $invoice_roles->read_write_only == 1)
+                                        <a style="background:none; border:none;" href="{{ route('edit_invoice_ap', $invoice->id) }}" class="m-0 p-0" title="Edit Invoice"><i class="fa-solid fa-pen-to-square p-1 text-primary" style="font-size:14px;"></i></a>
+                                    @endif
+                                </td>
                             </tr>
                         @endforeach
 
@@ -140,7 +144,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 });
         function deleteinvoice(id) {
             var localtime = new Date();
-            var conf = confirm('Delete Invoice');
+            var conf = confirm('Are you sure you want to delete this invoice?');
             if (conf == true) {
                 window.location.href = "delete_invoice/" + id + "/" + localtime.toString() + "";
             }
@@ -167,7 +171,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Invoice Status Updated Successfully!'
+                                text: 'Invoice status updated successfully.'
                             })
                         }
                     }
@@ -179,8 +183,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         <script>
             Swal.fire({
                 icon: 'success',
-                title: 'Congratulations',
-                text: 'User Added Successfully.'
+                title: 'Success',
+                text: 'Invoice created successfully.'
             })
         </script>
     @endif
@@ -189,7 +193,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'User Deleted Successfully!'
+                text: 'Invoice deleted successfully.'
             })
         </script>
     @endif
@@ -197,7 +201,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         <script>
             Swal.fire({
                 icon: 'warning',
-                title: 'Oops...',
+                title: 'Oops!',
                 text: 'No clients found.'
             })
         </script>

@@ -20,7 +20,7 @@ class SendPaymentReminderEmails extends Command
     public function handle()
     {
         $settings = PaymentReminderSetting::all();
-
+        
         foreach ($settings as $setting) {
             if (!$this->shouldRunForFrequency($setting)) {
                 continue;
@@ -32,6 +32,8 @@ class SendPaymentReminderEmails extends Command
             }
 
             $rows = $this->outstandingRowsForSubscriber($subscriber->id, $setting->client_group);
+                // echo'<pre>';print_r($rows);exit();
+
             $invoiceSetting = Invoice_settings::where('user_id', $subscriber->id)->first();
             $paymentLink = trim((string) ($invoiceSetting?->payment_link ?? ''));
 
@@ -46,6 +48,7 @@ class SendPaymentReminderEmails extends Command
                 if ($dueDateObject && $dueDateObject->isFuture()) {
                     continue;
                 }
+                // echo'<pre>';print_r($row);exit();
 
                 $outstandingAmount = number_format((float) $row->outstanding_amount, 2, '.', '');
                 $serviceDescription = (string) ($row->service_description ?: '-');
@@ -68,6 +71,7 @@ class SendPaymentReminderEmails extends Command
                     'payment_link' => $paymentLink,
                 ];
 
+                // $mail = Mail::to("nanta1811@gmail.com");
                 $mail = Mail::to($row->client_email);
                 if ($setting->email_to === 'client_bcc_subscriber' && !empty($subscriber->email)) {
                     $mail->bcc($subscriber->email);
@@ -75,6 +79,7 @@ class SendPaymentReminderEmails extends Command
 
                 $mail->send(new PaymentReminderMail($subscriber, $payload));
                 $sentCount++;
+                exit();
             }
 
             $setting->last_sent_at = now();
@@ -121,15 +126,17 @@ class SendPaymentReminderEmails extends Command
         }
 
         if ($setting->email_frequency === 'daily') {
-            return $lastSentAt->lte(now()->subDay());
+            return $lastSentAt->startOfDay()->lte(now()->subDay()->startOfDay());
         }
 
         if ($setting->email_frequency === 'weekly') {
-            return $lastSentAt->lte(now()->subWeek());
+            // Compare start of last sent week vs start of last week
+            return $lastSentAt->startOfWeek()->lte(now()->subWeek()->startOfWeek());
         }
 
         if ($setting->email_frequency === 'monthly') {
-            return $lastSentAt->lte(now()->subMonth());
+            // Compare start of last sent month vs start of last month
+            return $lastSentAt->startOfMonth()->lte(now()->subMonth()->startOfMonth());
         }
 
         return $lastSentAt->lte(now()->subMonths(3));

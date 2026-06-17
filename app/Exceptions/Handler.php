@@ -7,6 +7,7 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Session\TokenMismatchException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -57,6 +58,16 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $e)
     {
+        if ($e instanceof TokenMismatchException && !$request->expectsJson()) {
+            Auth::logout();
+
+            return redirect()
+                ->route('login')
+                ->withErrors([
+                    'login_error' => 'Your session has expired or changed due to another login. Please log in again.',
+                ]);
+        }
+
         $statusCode = $this->resolveStatusCode($e);
         $message = $this->resolveErrorMessage($e, $statusCode);
 

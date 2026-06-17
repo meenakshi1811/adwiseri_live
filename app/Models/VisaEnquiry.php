@@ -19,6 +19,8 @@ class VisaEnquiry extends Model
         'contact_no',
         'marital_status',
         'address',
+        'postcode',
+        'country',
         'country_pref_1',
         'country_pref_2',
         'country_pref_3',
@@ -31,13 +33,20 @@ class VisaEnquiry extends Model
         'overall_score',
         'test_date',
         'spouse_name',
+        'spouse_apply_together',
+        'spouse_age',
+        'spouse_qualification',
+        'spouse_work_experience_years',
         'spouse_email',
         'spouse_dob',
         'spouse_contact',
         'funding',
+        'form_date',
         'place',
         'sign_name',
-        'signature'
+        'print_name',
+        'signature',
+        'consent_to_store_data'
     ];
 
     public function residencyHistory()

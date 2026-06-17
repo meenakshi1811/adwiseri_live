@@ -67,7 +67,7 @@ Route::post('/update_siteuser', [App\Http\Controllers\WebController::class, 'upd
 Route::post('/update_client', [App\Http\Controllers\WebController::class, 'update_client'])->name('update_client')->middleware(['auth','check.device']);
 Route::get('/logout', [App\Http\Controllers\HomeController::class, 'logout'])->name('logout');
 Route::get('/thanks', [App\Http\Controllers\WebController::class, 'thanks'])->name('thanks');
-Route::post('/moredetails', [App\Http\Controllers\WebController::class, 'moredetails'])->name('moredetails')->middleware(['auth','check.device']);
+Route::get('/moredetails', [App\Http\Controllers\WebController::class, 'moredetails'])->name('moredetails')->middleware(['auth','check.device']);
 Route::get('/otp/{email?}', [App\Http\Controllers\WebController::class, 'otp'])->name('otp');
 Route::post('/verify_otp', [App\Http\Controllers\WebController::class, 'verify_otp'])->name('verify_otp');
 Route::post('/verify_password_otp', [App\Http\Controllers\WebController::class, 'verify_password_otp'])->name('verify_password_otp');
@@ -86,6 +86,9 @@ Route::delete('/visa-enquiries/delete/{id}', [App\Http\Controllers\WebController
 Route::get('/visa-enquiries/view/{id}', [App\Http\Controllers\WebController::class, 'viewEnquiry'])->name('visa_enquiries.view')->middleware(['auth','check.device']);
 Route::get('/visa-enquiries/edit/{id}', [App\Http\Controllers\WebController::class, 'editEnquiry'])->name('visa_enquiries.edit')->middleware(['auth','check.device']);
 Route::post('/visa-enquiries/update/{id}', [App\Http\Controllers\WebController::class, 'updateEnquiry'])->name('visa_enquiries.update')->middleware(['auth','check.device']);
+/* Backward-compatible enquiry edit/update routes */
+Route::get('/edit-enquiry/{id}', [App\Http\Controllers\WebController::class, 'editEnquiry'])->middleware(['auth','check.device']);
+Route::post('/update-enquiry/{id}', [App\Http\Controllers\WebController::class, 'updateEnquiry'])->middleware(['auth','check.device']);
 Route::post('/save-appointment',[App\Http\Controllers\WebController::class,'storeAppointment'])->name('save_appointment');
 Route::get('/appointment/{appointment}/{action}', [App\Http\Controllers\WebController::class, 'respondToAppointment'])->name('appointment.respond')->middleware('signed');
 Route::post('/save-report-settings',[App\Http\Controllers\WebController::class,'saveReportSettings'])->name('save_report_settings');
@@ -95,7 +98,7 @@ Route::post('/save-email-template', [App\Http\Controllers\WebController::class, 
 Route::get('/scheduled-report-download/{file}', [App\Http\Controllers\WebController::class, 'downloadScheduledReport'])->name('scheduled_report_download')->middleware('signed');
 
 Route::get('/aboutadwiseri', [App\Http\Controllers\WebController::class, 'aboutadvisori'])->name('aboutadvisori');
-Route::get('/userprofile', [App\Http\Controllers\WebController::class, 'userprofile'])->name('userprofile')->middleware(['auth','check.device']);
+Route::get('/userprofile', [App\Http\Controllers\WebController::class, 'userprofile'])->name('userprofile')->middleware(['auth','check.device','throttle:30,1']);
 Route::post('/get_states', [App\Http\Controllers\WebController::class, 'get_states'])->name('get_states');
 Route::post('/get_timezone', [App\Http\Controllers\WebController::class, 'get_timezone'])->name('get_timezone');
 Route::post('/get_application', [App\Http\Controllers\WebController::class, 'get_application'])->name('get_application');
@@ -160,6 +163,10 @@ Route::get('/new_invoice', [App\Http\Controllers\WebController::class, 'new_invo
 Route::get('/new_invoice_ap', [App\Http\Controllers\WebController::class, 'new_invoice_ap'])->name('new_invoice_ap')->middleware(['auth','check.device']);
 Route::post('/create_new_invoice', [App\Http\Controllers\WebController::class, 'create_new_invoice'])->name('create_new_invoice')->middleware(['auth','check.device']);
 Route::post('/create_new_invoice_ap', [App\Http\Controllers\WebController::class, 'create_new_invoice_ap'])->name('create_new_invoice_ap')->middleware(['auth','check.device']);
+Route::get('/edit_invoice/{id}', [App\Http\Controllers\WebController::class, 'edit_invoice'])->name('edit_invoice')->middleware(['auth','check.device']);
+Route::post('/update_invoice/{id}', [App\Http\Controllers\WebController::class, 'update_invoice'])->name('update_invoice')->middleware(['auth','check.device']);
+Route::get('/edit_invoice_ap/{id}', [App\Http\Controllers\WebController::class, 'edit_invoice_ap'])->name('edit_invoice_ap')->middleware(['auth','check.device']);
+Route::post('/update_invoice_ap/{id}', [App\Http\Controllers\WebController::class, 'update_invoice_ap'])->name('update_invoice_ap')->middleware(['auth','check.device']);
 
 Route::get('/view_invoice/{id?}', [App\Http\Controllers\WebController::class, 'view_invoice'])->name('view_invoice')->middleware(['auth','check.device']);
 Route::get('/invoice_preview/{id?}/{token?}', [App\Http\Controllers\WebController::class, 'invoice_preview'])->name('invoice_preview');
@@ -185,6 +192,7 @@ Route::get('/faqs', [App\Http\Controllers\WebController::class, 'faqs'])->name('
 Route::get('/ask_support', [App\Http\Controllers\WebController::class, 'ask_support'])->name('ask_support')->middleware(['auth','check.device']);
 Route::post('/ask_new_question', [App\Http\Controllers\WebController::class, 'ask_new_question'])->name('ask_new_question');
 Route::get('/applications', [App\Http\Controllers\WebController::class, 'applications'])->name('applications')->middleware(['auth','check.device']);
+Route::post('/applications/update-status', [App\Http\Controllers\WebController::class, 'updateApplicationStatus'])->name('applications.update_status')->middleware(['auth','check.device']);
 Route::get('/user_application_tracking', [App\Http\Controllers\WebController::class, 'user_application_tracking'])->name('user_application_tracking')->middleware(['auth','check.device']);
 Route::get('/clients/by-subscriber', [App\Http\Controllers\WebController::class, 'getClientsBySubscriber'])->name('clients.bySubscriber')->middleware(['auth','check.device']);
 Route::get('/get-applications-by-client/{clientId}', [App\Http\Controllers\WebController::class, 'getApplicationsByClient'])->name('applications.byClient')->middleware(['auth','check.device']);
@@ -195,8 +203,12 @@ Route::get('/update_application/{id?}', [App\Http\Controllers\WebController::cla
 Route::get('/view_application/{id?}', [App\Http\Controllers\WebController::class, 'view_application'])->name('view_application')->middleware(['auth','check.device']);
 Route::post('/add_new_application', [App\Http\Controllers\WebController::class, 'add_new_application'])->name('add_new_application');
 Route::get('/sub_reports', [App\Http\Controllers\WebController::class, 'sub_reports'])->name('sub_reports')->middleware(['auth','check.device']);
+Route::get('/sub_reports/support_tickets', [App\Http\Controllers\WebController::class, 'sub_reports_support_tickets'])->name('sub_reports_support_tickets')->middleware(['auth','check.device']);
+Route::get('/sub_reports/activity_log', [App\Http\Controllers\WebController::class, 'sub_reports_activity_log'])->name('sub_reports_activity_log')->middleware(['auth','check.device']);
 Route::get('/sub_analytics', [App\Http\Controllers\WebController::class, 'analytics'])->name('sub_analytics')->middleware(['auth','check.device']);
 
+Route::get('/email_broadcast', [App\Http\Controllers\WebController::class, 'email_broadcast'])->name('email_broadcast')->middleware(['auth','check.device']);
+Route::post('/send_email_broadcast', [App\Http\Controllers\WebController::class, 'send_email_broadcast'])->name('send_email_broadcast')->middleware(['auth','check.device']);
 Route::get('/communications', [App\Http\Controllers\WebController::class, 'communications'])->name('communications')->middleware(['auth','check.device']);
 Route::get('/messaging', [App\Http\Controllers\WebController::class, 'messaging'])->name('messaging')->middleware(['auth','check.device']);
 Route::post('/communicate', [App\Http\Controllers\WebController::class, 'communicate'])->name('communicate');
@@ -324,6 +336,8 @@ Route::get('/communication', [App\Http\Controllers\AdminController::class, 'comm
 Route::post('/offers_store', [App\Http\Controllers\AdminController::class, 'applyOffer'])->name('offers_store')->middleware('admin_auth');
 
 Route::get('/manage_report_communications', [App\Http\Controllers\AdminController::class, 'manage_report_communications'])->name('manage_report_communications')->middleware('admin_auth');
+Route::get('/admin_email_broadcast', [App\Http\Controllers\AdminController::class, 'admin_email_broadcast'])->name('admin_email_broadcast')->middleware('admin_auth');
+Route::post('/admin_send_email_broadcast', [App\Http\Controllers\AdminController::class, 'admin_send_email_broadcast'])->name('admin_send_email_broadcast')->middleware('admin_auth');
 Route::get('/admin_messaging', [App\Http\Controllers\AdminController::class, 'admin_messaging'])->name('admin_messaging')->middleware('admin_auth');
 Route::post('/admin_communicate', [App\Http\Controllers\AdminController::class, 'admin_communicate'])->name('admin_communicate')->middleware('admin_auth');
 Route::get('/view_communication/{id?}', [App\Http\Controllers\AdminController::class, 'view_communication'])->name('view_communication')->middleware('admin_auth');
@@ -373,6 +387,8 @@ Route::post('/get_applications', [App\Http\Controllers\AdminController::class, '
 Route::post('/get_user', [App\Http\Controllers\AdminController::class, 'get_user'])->name('get_user');
 Route::get('/admin_new_invoice', [App\Http\Controllers\AdminController::class, 'admin_new_invoice'])->name('admin_new_invoice')->middleware('admin_auth');
 Route::post('/admin_new_invoice_post', [App\Http\Controllers\AdminController::class, 'admin_new_invoice_post'])->name('admin_new_invoice_post');
+Route::get('/admin_edit_invoice/{id}', [App\Http\Controllers\AdminController::class, 'admin_edit_invoice'])->name('admin_edit_invoice')->middleware('admin_auth');
+Route::post('/admin_update_invoice/{id}', [App\Http\Controllers\AdminController::class, 'admin_update_invoice'])->name('admin_update_invoice')->middleware('admin_auth');
 Route::get('/invoice_detail/{id?}', [App\Http\Controllers\AdminController::class, 'invoice_detail'])->name('invoice_detail')->middleware('admin_auth');
 Route::get('/print_invoice_detail/{id?}', [App\Http\Controllers\AdminController::class, 'print_invoice_detail'])->name('print_invoice_detail')->middleware('admin_auth');
 Route::get('/reports', [App\Http\Controllers\AdminController::class, 'reports'])->name('reports')->middleware('admin_auth');

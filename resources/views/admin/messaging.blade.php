@@ -21,19 +21,7 @@
                         <h3 class="text-primary text-center flex-grow-1 text-center m-0">Messaging</h3>
                     {{-- </form> --}}
                 </div>
-                <div class="row m-0 pb-2">
-                    <div class="col-4 border p-1 text-center bg-info text-white top_modules tab-anchor">
-                        Messaging
-                      </div>
-
-                  <div class="col-4 border p-1 text-center top_modules tab-anchor" style="cursor: pointer;" onclick="window.location.href = '{{ route('meetings') }}';">
-                    Meeting Notes (Clients)
-                  </div>
-                  <div class="col-4 border p-1 text-center top_modules tab-anchor" style="cursor: pointer;" onclick="window.location.href = '{{ route('communication') }}';">
-                  Communications
-                  </div>
-
-                </div>
+                @include('partials.admin_communication_tabs', ['activeTab' => 'messaging'])
 
                 <div class="col mt-3 p-2" style="border: 2px solid lightgrey; border-radius:7px;">
                   <h4 class="text-center pb-3">Send Message</h4>
@@ -184,7 +172,7 @@
         $('.userCheckbox').prop('checked', this.checked);
     });
       function deleteclient(id){
-          var conf = confirm('Delete Client');
+          var conf = confirm('Are you sure you want to delete this client?');
           if(conf == true){
               window.location.href = "delete_clients/"+id+"";
           }
@@ -300,7 +288,7 @@
           Swal.fire({
               icon: 'success',
               title: 'Success',
-              text: 'Message Sent Successfully.'
+              text: 'Message sent successfully.'
           })
       </script>
     @endif
@@ -312,7 +300,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Client Deleted Successfully!'
+        text: 'Message deleted successfully.'
       })
     </script>
 
@@ -322,7 +310,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Message Sent Successfully!'
+        text: 'Message sent successfully.'
       })
     </script>
 

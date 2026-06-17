@@ -218,15 +218,17 @@
             event.preventDefault(); // Prevent form submission
             checkbox.setCustomValidity(checkbox.getAttribute('data-error')); // Set error message
             checkbox.reportValidity(); // Display the error message
-        }else if (!recaptchaResponse) {
-            event.preventDefault(); // Prevent form submission
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops!',
-                text: 'Please complete the reCAPTCHA to proceed.',
-            });
-            return false; // Stop form submission
-        }else {
+        }
+        // else if (!recaptchaResponse) {
+        //     event.preventDefault(); // Prevent form submission
+        //     Swal.fire({
+        //         icon: 'error',
+        //         title: 'Oops!',
+        //         text: 'Please complete the reCAPTCHA to proceed.',
+        //     });
+        //     return false; // Stop form submission
+        // }
+        else {
             checkbox.setCustomValidity(''); // Clear the error message
             checkbox.reportValidity(); // Ensure no residual error message
         }

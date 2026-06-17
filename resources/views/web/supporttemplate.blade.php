@@ -45,6 +45,7 @@
                     <p>Department : {{$data->support}}</p>
                     <p>Date : {{date("d-m-Y H:i:s", strtotime($data->date))}}</p>
                     <p>Issue : {{$data->issue}}</p>
+                    <p>Attachment : {{$data->attachment_label ?? 'No attachment'}}</p>
                 </div>
                 {{-- <div class="col text-center mb-5">
                                 <button class="btn btn-primary">Login to your Account</button>

@@ -108,7 +108,10 @@
         }
 
         .footer {
-            margin-top: 50px;
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 20px;
             text-align: center;
             font-size: 12px;
         }
@@ -119,6 +122,7 @@
     @php
         $userid = $invoice->user_id ?? 1;
         $logoPath = null;
+        $hasSubscriberLogo = false;
 
         if (!empty($invoice->logo)) {
             if ($u->user_type === 'Subscriber' || $u->user_type === 'admin') {
@@ -126,6 +130,8 @@
             } else {
                 $logoPath = public_path('web_assets/users/user' . $u->added_by . '/' . $invoice->logo);
             }
+
+            $hasSubscriberLogo = !empty($logoPath) && file_exists($logoPath);
         }
 
         $statusRaw = (string) ($invoice->status ?? '-');
@@ -141,11 +147,15 @@
         <table class="header">
             <tr>
                 <td>
-                    @if(!empty($logoPath) && file_exists($logoPath))
+                    @if(!empty($logoPath) && $hasSubscriberLogo)
                         <img class="logo" src="{{ $logoPath }}" alt="Logo">
                     @endif
-                    <div class="company">{{ $invoice->name ?? 'Adwiseri' }}</div>
-                    <div>{{ $invoice->email ?? '' }}</div>
+                    @if(empty($hasSubscriberLogo))
+                        <div class="company">{{ $invoice->name ?? 'Adwiseri' }}</div>
+                    @endif
+                    @if(!empty($invoice->email))
+                        <div>{{ $invoice->email }}</div>
+                    @endif
                 </td>
                 <td class="title">INVOICE</td>
             </tr>
@@ -195,10 +205,12 @@
                     <td>Subtotal</td>
                     <td class="right">{{ number_format($subtotal, 2) }}</td>
                 </tr>
-                <tr>
-                    <td>Discount ({{ number_format((float) $invoice->discount, 2) }}%)</td>
-                    <td class="right">-{{ number_format($discountAmount, 2) }}</td>
-                </tr>
+                @if((float) $invoice->discount > 0)
+                    <tr>
+                        <td>Discount ({{ number_format((float) $invoice->discount, 2) }}%)</td>
+                        <td class="right">-{{ number_format($discountAmount, 2) }}</td>
+                    </tr>
+                @endif
                 <tr>
                     <td>Tax ({{ number_format((float) $invoice->tax, 2) }}%)</td>
                     <td class="right">{{ number_format($taxAmount, 2) }}</td>

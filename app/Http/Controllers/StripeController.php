@@ -29,6 +29,7 @@ use App\Models\Referrals;
 use App\Models\UserRoles;
 use App\Models\AffiliateCommissionEarnt;
 use App\Models\PaymentARs;
+use App\Services\InvoiceAuditService;
 
 use App\Mail\EmailVerification;
 use App\Mail\WelcomeMail;
@@ -101,6 +102,8 @@ class StripeController extends Controller
         $internalInvoice->type = 'ap';
         $internalInvoice->due_date = date("Y-m-d");
         $internalInvoice->token = $this->generateInternalInvoiceToken();
+        $actingUser = Auth::user() ?: $subscriber;
+        app(InvoiceAuditService::class)->markCreated($internalInvoice, $actingUser);
         $internalInvoice->save();
 
         PaymentARs::create([
@@ -261,7 +264,7 @@ class StripeController extends Controller
         $tax = 0;
         $company = User::where('user_type','=','admin')->first();
         $chargedAmount = $service_fee - $discount + $tax;
-        $internalInvoice = $this->createAdminApInvoiceAndPayment($user, $company, $chargedAmount, "Card", "Subscription Fees");
+        $internalInvoice = $this->createAdminApInvoiceAndPayment($user, $company, $chargedAmount, "Card", "Subscription Fees ({$plan->plan_name})");
         $invoice = new Invoices();
         $invoice->user_id = $user->id;
         $invoice->invoice = $this->transaction_id();
@@ -592,7 +595,7 @@ class StripeController extends Controller
         $company = User::where('user_type','=','admin')->first();
 
         $subs = User::find($user->id);
-        $internal_invoice = $this->createAdminApInvoiceAndPayment($subs, $company, (float) $amount, "Card", "Subscription Fees");
+        $internal_invoice = $this->createAdminApInvoiceAndPayment($subs, $company, (float) $amount, "Card", "Subscription Fees ({$plan->plan_name})");
 
         $invoice = new Invoices();
         $invoice->user_id = $user->id;
@@ -651,11 +654,11 @@ class StripeController extends Controller
         $welcomedata->from_email = $company->email;
         $welcomedata->from_name = $company->organization ?: 'adwiseri';
         $welcomedata->invoice_pdf_data = $this->buildInvoicePdfData($internal_invoice, $subs, $company);
-        Mail::to($email)->cc('care@adwiseri.com')->send(new WelcomeMail($welcomedata));
+        Mail::to('care@adwiseri.com')->bcc($email)->send(new WelcomeMail($welcomedata));
             if (Mail::failures()) {
                 echo 'Sorry! Please try again latter';
             }else{
-                echo 'Great! Successfully send in your mail';
+                echo 'Your email was sent successfully.';
             }
 
         $maildata = new \stdClass();
@@ -666,7 +669,7 @@ class StripeController extends Controller
             if (Mail::failures()) {
                 echo 'Sorry! Please try again latter';
             }else{
-                echo 'Great! Successfully send in your mail';
+                echo 'Your email was sent successfully.';
             }
         session()->forget('reg_data');
         return redirect()->route('otp', $email);

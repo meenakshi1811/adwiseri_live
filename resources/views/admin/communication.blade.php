@@ -18,18 +18,7 @@
                         <h3 class="text-primary text-center flex-grow-1 text-center m-0">Communication</h3>
                     {{-- </form> --}}
                 </div>
-                <div class="row m-0 pb-2">
-                    <div class="col-4 border p-1 text-center top_modules tab-anchor" style="cursor: pointer;" onclick="window.location.href = '{{ route('admin_messaging') }}';">
-                        Messaging
-                      </div>
-                  <div class="col-4 border p-1 text-center top_modules tab-anchor" style="cursor: pointer;" onclick="window.location.href = '{{ route('meetings') }}';">
-                    Meeting Notes (Clients)
-                  </div>
-
-                  <div class="col-4 border p-1 text-center bg-info text-white top_modules tab-anchor">
-                    Communication
-                  </div>
-                </div>
+                @include('partials.admin_communication_tabs', ['activeTab' => 'communication'])
 
                 <div class="table-wrapper m-0">
                     <table class="fl-table table table-hover p-0 m-0" id="clientTable" style="table-layout: fixed; width: 100%;">
@@ -105,7 +94,7 @@
 
 
       function deleteclient(id){
-          var conf = confirm('Delete Client');
+          var conf = confirm('Are you sure you want to delete this client?');
           if(conf == true){
               window.location.href = "delete_clients/"+id+"";
           }
@@ -160,7 +149,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Client Deleted Successfully!'
+        text: 'Client deleted successfully.'
       })
     </script>
 
@@ -170,7 +159,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Message Sent Successfully!'
+        text: 'Message sent successfully.'
       })
     </script>
 

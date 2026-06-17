@@ -1286,3 +1286,8 @@
 [06-Mar-2026 12:36:38 UTC] PHP Fatal error:  Cannot use "::class" on value of type string in /home/adwiseri/demo.adwiseri.com/routes/web.php on line 86
 [06-Mar-2026 12:36:39 UTC] PHP Fatal error:  Cannot use "::class" on value of type string in /home/adwiseri/demo.adwiseri.com/routes/web.php on line 86
 [06-Mar-2026 12:36:52 UTC] PHP Fatal error:  Cannot use "::class" on value of type string in /home/adwiseri/demo.adwiseri.com/routes/web.php on line 86
+[25-Apr-2026 18:25:29 UTC] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.34. in /home/adwiseri/demo.adwiseri.com/vendor/composer/platform_check.php on line 24
+[25-Apr-2026 18:29:11 UTC] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.34. in /home/adwiseri/demo.adwiseri.com/vendor/composer/platform_check.php on line 24
+[18-May-2026 13:18:39 Asia/Kolkata] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/adwiseri/demo.adwiseri.com/vendor/symfony/polyfill-mbstring/Mbstring.php on line 667
+[01-Jun-2026 19:14:54 Asia/Kolkata] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/adwiseri/demo.adwiseri.com/vendor/symfony/polyfill-mbstring/Mbstring.php on line 522
+[01-Jun-2026 19:15:11 Asia/Kolkata] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in /home/adwiseri/demo.adwiseri.com/vendor/symfony/polyfill-mbstring/Mbstring.php on line 667

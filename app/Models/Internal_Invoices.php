@@ -36,6 +36,17 @@ class Internal_Invoices extends Model
         'type',
         'uploaded_invoice',
         'vendor_id',
+        'subscriber_id',
+        'user_id',
+        'address',
+        'logo',
+        'detail',
+        'token',
+        'to_address',
+        'created_by',
+        'created_by_name',
+        'updated_by',
+        'updated_by_name',
     ];
     public function getFormattedDueDateAttribute()
     {

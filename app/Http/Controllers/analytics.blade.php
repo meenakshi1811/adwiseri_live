@@ -1073,7 +1073,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
 
                         }
@@ -1214,7 +1214,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -1351,7 +1351,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -1488,7 +1488,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -1620,7 +1620,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -1752,7 +1752,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -1884,7 +1884,7 @@
                     success: function(data) {
                         console.log(data.data);
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -2017,7 +2017,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -2149,7 +2149,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -2280,7 +2280,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -9286,7 +9286,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -9418,7 +9418,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -9549,7 +9549,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -9684,7 +9684,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -9814,7 +9814,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -9934,7 +9934,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10054,7 +10054,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10186,7 +10186,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10314,7 +10314,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10446,7 +10446,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10578,7 +10578,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10710,7 +10710,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10841,7 +10841,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10974,7 +10974,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -11102,7 +11102,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -11234,7 +11234,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
 
@@ -11375,7 +11375,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
 
@@ -11500,7 +11500,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
 
@@ -11625,7 +11625,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
 
@@ -11750,7 +11750,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
                         var result = data
@@ -11888,7 +11888,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
                         var result = data
@@ -12025,7 +12025,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -12157,7 +12157,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -12289,7 +12289,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;

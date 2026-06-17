@@ -103,7 +103,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 });
         function deleteinvoice(id) {
             var localtime = new Date();
-            var conf = confirm('Delete Invoice');
+            var conf = confirm('Are you sure you want to delete this invoice?');
             if (conf == true) {
                 window.location.href = "delete_invoice/" + id + "/" + localtime.toString() + "";
             }
@@ -130,7 +130,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Invoice Status Updated Successfully!'
+                                text: 'Invoice status updated successfully.'
                             })
                         }
                     }
@@ -142,8 +142,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         <script>
             Swal.fire({
                 icon: 'success',
-                title: 'Congratulations',
-                text: 'User Added Successfully.'
+                title: 'Success',
+                text: 'Invoice created successfully.'
             })
         </script>
     @endif
@@ -152,7 +152,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'User Deleted Successfully!'
+                text: 'Invoice deleted successfully.'
             })
         </script>
     @endif
@@ -160,7 +160,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         <script>
             Swal.fire({
                 icon: 'warning',
-                title: 'Oops...',
+                title: 'Oops!',
                 text: 'No clients found.'
             })
         </script>

@@ -180,7 +180,7 @@
     <script>
          document.addEventListener("DOMContentLoaded", function () {
             flatpickr(".datepicker", {
-                dateFormat: "d-m-y",
+                dateFormat: "d-m-Y",
                 defaultDate: document.querySelector('input[name="due_date"]').value || "today",
                 allowInput: true,
                 clickOpens: true
@@ -238,7 +238,7 @@
     </script>
     <script>
         function deleteuser(id) {
-            var conf = confirm('Delete User');
+            var conf = confirm('Are you sure you want to delete this invoice?');
             if (conf == true) {
                 window.location.href = "delete_user/" + id + "";
             }
@@ -250,7 +250,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'User Deleted Successfully!'
+                text: 'Invoice deleted successfully.'
             })
         </script>
     @endif

@@ -66,7 +66,7 @@
   </div>
   <script>
     function deleteapplication(id){
-        var conf = confirm('Delete Application');
+        var conf = confirm('Are you sure you want to delete this application?');
         if(conf == true){
             window.location.href = "delete_application/"+id+"";
         }
@@ -78,7 +78,7 @@
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Application Deleted Successfully!'
+      text: 'Application deleted successfully..'
     })
   </script>
 
@@ -88,7 +88,7 @@
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'New Application Added Successfully!'
+      text: 'Application added successfully.'
     })
   </script>
 
@@ -98,7 +98,7 @@
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Application Updated Successfully!'
+      text: 'Application updated successfully.'
     })
   </script>
 

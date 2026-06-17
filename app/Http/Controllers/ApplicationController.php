@@ -45,7 +45,7 @@ class ApplicationController extends Controller
         $activity->activity_detail = "New Application of " . $request->job_role . " added by " . $user->name . " at " . date('d M, Y H:i:s');
         $activity->activity_icon = "user.png";
         $activity->save();
-        return response()->json(['success' => true, 'message' => 'New Application Added Successfully']);
+        return response()->json(['success' => true, 'message' => 'Application added successfully.']);
     }
     public function job_id()
     {
@@ -85,7 +85,7 @@ class ApplicationController extends Controller
         $activity->activity_detail = "New Dependent of " . $client->name . " added by " . $user->name . " at " . date('d M, Y H:i:s');
         $activity->activity_icon = "user.png";
         $activity->save();
-        return response()->json(['success' => true, 'message' => 'New Dependant Added Successfully']);
+        return response()->json(['success' => true, 'message' => 'Dependant added successfully.']);
     }
     public function manage_dependants()
     {
@@ -161,7 +161,7 @@ class ApplicationController extends Controller
         // Return success response
         return response()->json([
             'status' => 'success',
-            'message' => 'Dependant updated successfully',
+            'message' => 'Dependant updated successfully.',
             'data' => $dependant
         ]);
     }

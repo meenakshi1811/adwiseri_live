@@ -24,7 +24,7 @@ class PaymentReminderMail extends Mailable
     {
         $template = app(EmailTemplateService::class)->getTemplateForUser($this->subscriber, 'subscriber', 'payment_reminder');
 
-        $defaultSubject = 'Sent on behalf of {{subscriber_name}} - Outstanding Payment Reminder - {{client_name}} (Invoice {{invoice_no}})';
+        $defaultSubject = 'Outstanding Payment Reminder - {{client_name}} (Invoice {{invoice_no}})';
         $defaultBody = '<p>Dear {{client_name}},</p>' .
             '<p>This is a friendly reminder for outstanding payment for the invoice {{invoice_id}}.</p>' .
             '<p><strong>Application/Service :</strong> {{application_service}}<br>' .

@@ -12,18 +12,7 @@
                 @endif --}}
                 <button type="button" id="back" class="btn btn-info text-white" style="display: none;">Back</button>
               </div>
-            <div class="row m-0 pb-2">
-                <div class="col-4 border p-1 text-center top_modules tab-anchor" style="cursor: pointer;" onclick="window.location.href = '{{ route('admin_messaging') }}';">
-                    Messaging
-                  </div>
-                <div class="col-4 border p-1 text-center bg-info text-white top_modules tab-anchor">
-                  Meeting Notes (Clients)
-                </div>
-
-                <div class="col-4 border p-1 text-center top_modules tab-anchor" style="cursor: pointer;" onclick="window.location.href = '{{ route('communication') }}';">
-                    Communication
-                  </div>
-              </div>
+            @include('partials.admin_communication_tabs', ['activeTab' => 'meeting_notes'])
 
 
               <div class="table-wrapper">
@@ -86,8 +75,8 @@
         $("#add_new_zero").click(function(){
             Swal.fire({
             icon: 'info',
-            title: 'Oops...',
-            text: 'There is no client created.'
+            title: 'Oops!',
+            text: 'No clients have been created yet.'
             });
         });
 
@@ -129,8 +118,8 @@
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'User Added Successfully.'
+      title: 'Success',
+      text: 'Meeting scheduled successfully.'
     })
   </script>
 

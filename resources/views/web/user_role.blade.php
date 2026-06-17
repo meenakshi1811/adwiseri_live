@@ -66,7 +66,7 @@
 <script>
   function deleteuser(id){
       var localtime = new Date();
-      var conf = confirm('Delete User');
+      var conf = confirm('Are you sure you want to delete this user?');
       if(conf == true){
           window.location.href = "delete_role/"+id+"/"+localtime.toString()+"";
       }
@@ -83,7 +83,7 @@
   <script>
     Swal.fire({
       icon: 'info',
-      title: 'Oops..',
+      title: 'Oops!',
       text: 'All users have assigned their access rights.'
     })
   </script>
@@ -93,7 +93,7 @@
   <script>
     Swal.fire({
       icon: 'info',
-      title: 'Oops..',
+      title: 'Oops!',
       text: 'There is no user created yet.'
     })
   </script>
@@ -104,7 +104,7 @@
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'User Deleted Successfully!'
+      text: 'User deleted successfully.'
     })
   </script>
 
@@ -114,7 +114,7 @@
     Swal.fire({
       icon: 'warning',
       title: 'User Limit Reached!',
-      text: 'Upgrade membership to add more Users!',
+      text: 'Upgrade your membership to add more users.',
       showCancelButton: true,
       confirmButtonText: 'Upgrade',
       cancelButtonText: 'Will do it later',
@@ -133,7 +133,7 @@
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'User Status Changed Successfully!'
+      text: 'User status changed successfully.'
     })
   </script>
 

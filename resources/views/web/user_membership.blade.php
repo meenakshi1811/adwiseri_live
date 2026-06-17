@@ -246,7 +246,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'User Deleted Successfully!'
+      text: 'User deleted successfully.'
     })
   </script>
 
@@ -255,8 +255,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
   <script>
     Swal.fire({
       icon: 'warning',
-      title: 'Your Subscription Plan has Expired',
-      html: 'Please <a @if($user->user_type == "Subscriber") href="{{ route('membership') }}" @else href="#" @endif>Renew/Upgrade</a> to Continue!'
+      title: 'Your subscription plan has expired',
+      html: 'Please <a @if($user->user_type == "Subscriber") href="{{ route('membership') }}" @else href="#" @endif>renew or upgrade</a> your plan to continue.'
     })
   </script>
 
@@ -265,8 +265,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'Payment Done Successfully! Your subscription updated successfully!'
+      title: 'Success',
+      text: @json(session('payment_success'))
     })
   </script>
 

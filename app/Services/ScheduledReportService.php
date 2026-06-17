@@ -15,6 +15,7 @@ use App\Mail\ScheduledReportMail;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use DateTimeZone;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
@@ -50,14 +51,21 @@ class ScheduledReportService
         $subscriberId = (strtolower($user->user_type) === 'subscriber' || strtolower($user->user_type) === 'admin') ? $user->id : $user->added_by;
         $reportData = $this->buildReportData($setting->modules, $subscriberId, $startDate, $endDate, $user);
 
-        $fileName = 'scheduled_report_' . $setting->user_id . '_' . now()->format('Ymd_His') . '.pdf';
+        $storageFileName = 'scheduled_report_' . $setting->user_id . '_' . now()->format('Ymd_His') . '.pdf';
+        $attachmentFileName = 'Adwiseri Scheduled Report ' . ucfirst($setting->frequency) . ' ' . $startDate->format('d M Y');
+
+        if ($setting->frequency !== 'daily') {
+            $attachmentFileName .= ' To ' . $endDate->format('d M Y');
+        }
+
+        $attachmentFileName .= '.pdf';
         $reportDir = storage_path('app/reports');
 
         if (!file_exists($reportDir)) {
             mkdir($reportDir, 0755, true);
         }
 
-        $filePath = $reportDir . '/' . $fileName;
+        $filePath = $reportDir . '/' . $storageFileName;
         $pdf = PDF::loadView('reports.scheduled_report_pdf', [
             'reportData' => $reportData,
             'startDate' => $startDate,
@@ -70,10 +78,14 @@ class ScheduledReportService
         $pdf->save($filePath);
 
         $recipients = $this->extractRecipients($setting->emails, $user->email);
-        $downloadLink = URL::temporarySignedRoute('scheduled_report_download', now()->addDays(7), ['file' => $fileName]);
+        $downloadLink = URL::temporarySignedRoute('scheduled_report_download', now()->addDays(7), ['file' => $storageFileName]);
 
         try {
-            $subject = 'Adwiseri Scheduled Report (' . $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y') . ')';
+            $subject = 'Adwiseri Scheduled Report for ' . $startDate->format('d M Y');
+
+            if ($setting->frequency !== 'daily') {
+                $subject = 'Adwiseri Scheduled Report (' . $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y') . ')';
+            }
             $sentRecipients = [];
             $failedRecipients = [];
 
@@ -83,11 +95,13 @@ class ScheduledReportService
                     'recipient_name' => $user->name ?? 'User',
                     'start_date' => $startDate->format('d M Y'),
                     'end_date' => $endDate->format('d M Y'),
+                    'frequency' => $setting->frequency,
                     'download_link' => $downloadLink,
+                    'modules' => (array) $setting->modules,
                 ];
 
                 try {
-                    Mail::to($recipient)->send(new ScheduledReportMail($mailData, $filePath, $fileName));
+                    Mail::to($recipient)->send(new ScheduledReportMail($mailData, $filePath, $attachmentFileName));
                     $sentRecipients[] = $recipient;
                 } catch (\Exception $mailException) {
                     $failedRecipients[] = $recipient;
@@ -108,7 +122,7 @@ class ScheduledReportService
                     'modules_hash' => $modulesHash,
                     'period_start' => $startDate->toDateString(),
                     'period_end' => $endDate->toDateString(),
-                    'file_name' => $fileName,
+                    'file_name' => $storageFileName,
                     'recipients' => json_encode($recipients),
                     'status' => 'sent',
                     'triggered_by' => $trigger,
@@ -119,10 +133,10 @@ class ScheduledReportService
                 $setting->last_sent_at = $log->sent_at;
                 $setting->last_sent_status = empty($failedRecipients) ? 'sent' : 'partial';
                 $setting->last_sent_message = $statusMessage;
-                $setting->last_file_name = $fileName;
+                $setting->last_file_name = $storageFileName;
                 $setting->save();
 
-                return ['status' => empty($failedRecipients) ? 'sent' : 'partial', 'message' => $statusMessage, 'file' => $fileName];
+                return ['status' => empty($failedRecipients) ? 'sent' : 'partial', 'message' => $statusMessage, 'file' => $storageFileName];
             }
 
             $failedMessage = 'Report could not be sent to recipients. Please verify recipient emails and SMTP configuration.';
@@ -135,7 +149,7 @@ class ScheduledReportService
                 'modules_hash' => $modulesHash,
                 'period_start' => $startDate->toDateString(),
                 'period_end' => $endDate->toDateString(),
-                'file_name' => $fileName,
+                'file_name' => $storageFileName,
                 'recipients' => json_encode($recipients),
                 'status' => 'failed',
                 'triggered_by' => $trigger,
@@ -156,7 +170,7 @@ class ScheduledReportService
                 'modules_hash' => $modulesHash,
                 'period_start' => $startDate->toDateString(),
                 'period_end' => $endDate->toDateString(),
-                'file_name' => $fileName,
+                'file_name' => $storageFileName,
                 'recipients' => json_encode($recipients),
                 'status' => 'failed',
                 'triggered_by' => $trigger,
@@ -176,7 +190,7 @@ class ScheduledReportService
         $timezone = $this->resolveTimezone($setting);
         $now = now($timezone);
 
-        if ((int) $now->format('G') !== 8 || (int) $now->format('i') >= 30) {
+        if ((int) $now->format('G') !== 8 || (int) $now->format('i') !== 0) {
             return false;
         }
 
@@ -233,11 +247,72 @@ class ScheduledReportService
     private function resolveTimezone(ReportSetting $setting): string
     {
         $user = User::find($setting->user_id);
-        $timezone = $user?->timezone ?: config('app.timezone', 'UTC');
+        $timezone = $this->normalizeTimezone($user?->timezone);
 
-        return in_array($timezone, timezone_identifiers_list(), true)
-            ? $timezone
-            : config('app.timezone', 'UTC');
+        if ($timezone !== null) {
+            return $timezone;
+        }
+
+        return $this->normalizeTimezone(config('app.timezone', 'UTC')) ?? 'UTC';
+    }
+
+    private function normalizeTimezone($timezone): ?string
+    {
+        $timezone = is_string($timezone) ? trim($timezone) : '';
+
+        if ($timezone === '') {
+            return null;
+        }
+
+        if ($this->isValidTimezone($timezone)) {
+            return $timezone;
+        }
+
+        if (preg_match('/\((?:GMT|UTC)\s*([+\-]\d{1,2}:?\d{2})\)/i', $timezone, $offsetMatch)) {
+            $normalizedOffset = $this->normalizeOffset($offsetMatch[1]);
+
+            if ($normalizedOffset !== null) {
+                return $normalizedOffset;
+            }
+        }
+
+        if (preg_match('/(Asia\/[A-Za-z_]+|Europe\/[A-Za-z_]+|America\/[A-Za-z_]+|Africa\/[A-Za-z_]+|Australia\/[A-Za-z_]+|Pacific\/[A-Za-z_]+|Atlantic\/[A-Za-z_]+|Indian\/[A-Za-z_]+)/', $timezone, $identifierMatch)) {
+            $identifier = $identifierMatch[1];
+
+            if ($this->isValidTimezone($identifier)) {
+                return $identifier;
+            }
+        }
+
+        if (preg_match('/^(?:GMT|UTC)?\s*([+\-]\d{1,2}:?\d{2})$/i', $timezone, $offsetOnlyMatch)) {
+            return $this->normalizeOffset($offsetOnlyMatch[1]);
+        }
+
+        return null;
+    }
+
+    private function normalizeOffset(string $offset): ?string
+    {
+        $offset = str_replace(' ', '', $offset);
+
+        if (!preg_match('/^([+\-])(\d{1,2}):?(\d{2})$/', $offset, $match)) {
+            return null;
+        }
+
+        $hours = str_pad($match[2], 2, '0', STR_PAD_LEFT);
+        $minutes = $match[3];
+
+        return $match[1] . $hours . ':' . $minutes;
+    }
+
+    private function isValidTimezone(string $timezone): bool
+    {
+        try {
+            new DateTimeZone($timezone);
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 
     private function buildReportData($modules, $subscriberId, $startDate, $endDate, $user)

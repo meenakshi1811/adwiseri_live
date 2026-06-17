@@ -156,7 +156,7 @@
                             @enderror
                         </div>
 
-                        <div class="col text-start p-1">
+                        <div class="col text-start p-1 adwiseri-form-actions">
                             <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                         </div>
                     </div>
@@ -172,8 +172,8 @@
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'User Added Successfully.'
+      title: 'Success',
+      text: 'Staff member added successfully.'
     })
   </script>
 
@@ -192,7 +192,7 @@
                 // Get the date of birth value
                 const dob = $('input[name="dob"]').val();
                 if (!dob) {
-                    alert('Please select your Date of Birth.');
+                    alert('Please select your date of birth.');
                     return; // Exit if DOB is not provided
                 }
 
@@ -212,7 +212,7 @@
                     Swal.fire({
                         icon: 'warning', // Warning icon
                         title: 'Oops!',
-                        text: 'Admin Staff seems to be younger than 18. Do you want to proceed?',
+                        text: 'This staff member appears to be under 18. Do you want to proceed?',
                         showCancelButton: true,
                         confirmButtonText: 'Yes, proceed',
                         cancelButtonText: 'No, cancel'

@@ -120,7 +120,7 @@
       function updateuser(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to update this record!",
+          text: "Do you want to update this record?",
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#3085d6',
@@ -139,7 +139,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'User deleted successfully.'
       })
     </script>
 
@@ -149,7 +149,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Status Changed Successfully!'
+        text: 'User status changed successfully.'
       })
     </script>
 
@@ -158,8 +158,8 @@
     <script>
       Swal.fire({
         icon: 'success',
-        title: 'Congratulations',
-        text: 'User Data Updated Successfully!'
+        title: 'Success',
+        text: 'User updated successfully.'
       })
     </script>
 
@@ -168,8 +168,8 @@
     <script>
       Swal.fire({
         icon: 'success',
-        title: 'Congratulations',
-        text: 'New User Added Successfully!'
+        title: 'Success',
+        text: 'User added successfully.'
       })
     </script>
 

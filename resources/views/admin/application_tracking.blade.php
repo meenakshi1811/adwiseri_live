@@ -127,9 +127,7 @@
                                 @enderror
                             </div>
                            
-                            <div class="col-md-3 p-1">
-                            </div>
-                            <div class="col-md-12 p-3 text-center">
+                            <div class="col-12 p-3 adwiseri-form-actions">
                                 <button type="button" id="view_report" class="form-control btn btn-primary" style="width: fit-content;" onclick="viewReport(); verifyDropDowns();">View Report</button>
                                 <button type="button" id="view_chart" class="form-control btn btn-primary" style="width: fit-content;" onclick="viewChart(); verifyDropDowns();">View Chart</button>
                             </div>
@@ -313,7 +311,7 @@
                           renderFlowChart(data);
                       },
                       error: function () {
-                          alert('Failed to fetch application data.');
+                          alert('Failed to fetch application data. Please try again.');
                           $('#application_table_body').html('');
                           $('#tracking_id').text('Error loading application data');  // Fallback text in case of error
                       }
@@ -367,7 +365,7 @@
       function updateapplication(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to update this record!",
+          text: "Do you want to update this record?",
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#3085d6',
@@ -386,7 +384,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Application Deleted Successfully!'
+        text: 'Application deleted successfully..'
       })
     </script>
 
@@ -396,7 +394,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'New Application Added Successfully!'
+        text: 'Application added successfully.'
       })
     </script>
 
@@ -406,7 +404,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Application Updated Successfully!'
+        text: 'Application updated successfully.'
       })
     </script>
 

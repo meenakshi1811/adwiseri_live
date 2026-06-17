@@ -433,7 +433,7 @@
     Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Client Deleted Successfully!'
+        text: 'Client deleted successfully.'
     })
 </script>
 @endif
@@ -442,7 +442,7 @@
     Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'New Client Added Successfully!'
+        text: 'Client added successfully.'
     })
 </script>
 @endif
@@ -451,7 +451,7 @@
     Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Client Updated Successfully!'
+        text: 'Client updated successfully.'
     })
 </script>
 @endif
@@ -589,7 +589,7 @@ function validateInput(input) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: 'Failed to add client application !',
+                        text: 'Failed to save dependant details.',
                     });
                 },
             });
@@ -612,7 +612,7 @@ function validateInput(input) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Success',
-                        text: 'Dependant Updated Successfully!'
+                        text: 'Dependant updated successfully.'
                     })
                     setTimeout(function() {
                         location.reload();
@@ -623,7 +623,7 @@ function validateInput(input) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: 'Failed to add client application !',
+                        text: 'Failed to save dependant details.',
                     });
                 },
             });
@@ -684,7 +684,7 @@ function validateInput(input) {
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Dependant Deleted Successfully!'
+                                text: 'Dependant deleted successfully.'
                             });
 
                             // Optionally, remove the row from the UI or reload the page

@@ -211,6 +211,8 @@
                                             <select name="job_status" id="job_status" required
                                                 class="form-control form-select @error('job_status') is-invalid @enderror">
                                                 <option value="">Select Application Status</option>
+                                                <option {{ (old('job_status') == "Registration") ? 'selected':'' }} value="Registration">Registration</option>
+                                                <option {{ (old('job_status') == "Applied") ? 'selected':'' }} value="Applied">Applied</option>
                                                 <option {{ (old('job_status') == "Pending") ? 'selected':'' }} value="Pending">Pending (For submission)</option>
                                                 <option {{ (old('job_status') == "In Process") ? 'selected':'' }} value="In Process">In Process (Waiting for decision)</option>
                                                 <option {{ (old('job_status') == "Complete") ? 'selected':'' }} value="Complete">Completed (Application/Appeal decision received)</option>
@@ -479,7 +481,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Client Deleted Successfully!'
+                text: 'Client deleted successfully.'
             })
         </script>
     @endif
@@ -488,7 +490,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'New Client Added Successfully!'
+                text: 'Client added successfully.'
             })
         </script>
     @endif
@@ -497,7 +499,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Client Updated Successfully!'
+                text: 'Client updated successfully.'
             })
         </script>
     @endif
@@ -530,7 +532,7 @@ function validateInput(input) {
                     window.location.href = "delete_clients/" + id + "";
                 }
             })
-            // var conf = confirm('Delete Client');
+            // var conf = confirm('Are you sure you want to delete this client?');
             // if(conf == true){
             //     window.location.href = "delete_clients/"+id+"";
             // }
@@ -539,7 +541,7 @@ function validateInput(input) {
         function updateclient(id) {
             Swal.fire({
                 title: 'Are you sure?',
-                text: "You want to update record!",
+                text: "Do you want to update this record?",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
@@ -620,10 +622,18 @@ window.onclick = function (event) {
 
         $(document).ready(function() {
             // Get the modal
+            const endDateEditableStatuses = ["Decision", "Complete", "Withdrawn", "Cancelled"];
+
+            function toggleApplicationEndDateReadonly() {
+                var currentStatus = $("#job_status").val();
+                var shouldEnableEndDate = endDateEditableStatuses.includes(currentStatus);
+                $("#job_completion_date").prop("readonly", !shouldEnableEndDate);
+            }
+
             $("#job_open_date").on("change", function () {
                 var startDate = $(this).val(); // Get the selected start date
                 var $endDateInput = $("#job_completion_date");
-                $endDateInput.prop("readonly", false);
+
                 // Update the min attribute of the end date
                 $endDateInput.attr("min", startDate);
 
@@ -632,6 +642,12 @@ window.onclick = function (event) {
                     $endDateInput.val("");
                 }
              });
+
+             $("#job_status").on("change", function () {
+                toggleApplicationEndDateReadonly();
+             });
+
+             toggleApplicationEndDateReadonly();
              document.getElementById('job_open_date').addEventListener('change', function () {
         var inputField = this;
         var inputDate = new Date(inputField.value); // Get the selected date
@@ -694,8 +710,8 @@ window.onclick = function (event) {
                         if (data.limit == 'full') {
                             Swal.fire({
                                 icon: 'warning',
-                                title: 'Oops..',
-                                text: 'Client limit reached for this Subscriber!'
+                                title: 'Oops!',
+                                text: 'Client limit reached for this subscriber.'
                             });
                             setTimeout(function() {
                                 window.location.reload();
@@ -784,7 +800,7 @@ window.onclick = function (event) {
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: 'Failed to add client application !',
+                            text: 'Failed to save dependant details.',
                         });
                     },
                 });
@@ -813,7 +829,7 @@ window.onclick = function (event) {
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: 'Failed to add client application !',
+                            text: 'Failed to save dependant details.',
                         });
                     },
                 });

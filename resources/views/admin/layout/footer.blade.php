@@ -55,31 +55,53 @@
       });
   </script>
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
+  document.addEventListener('DOMContentLoaded', function () {
       const dateInputs = document.querySelectorAll('input.date, input.datepicker, input[type="date"]');
+
       dateInputs.forEach((input) => {
-        if (input.dataset.calendarInit === '1') return;
-        const minDate = input.getAttribute('min') || null;
-        const maxDate = input.getAttribute('max') || null;
-        const currentValue = input.value || null;
+          if (input.dataset.calendarInit === '1') return;
 
-        if (input.type === 'date') {
-          input.type = 'text';
-        }
+          const minDate = input.getAttribute('min') || null;
+          const maxDate = input.getAttribute('max') || null;
+          const currentValue = input.value || null;
 
-        flatpickr(input, {
-          dateFormat: "d-m-Y",
-          defaultDate: currentValue,
-          allowInput: true,
-          clickOpens: true,
-          disableMobile: true,
-          minDate: minDate,
-          maxDate: maxDate
-        });
+          if (input.type === 'date') {
+              input.type = 'text';
+          }
 
-        input.dataset.calendarInit = '1';
+          flatpickr(input, {
+              dateFormat: "d-m-Y",
+              altInput: false,
+              defaultDate: currentValue,
+              allowInput: true,
+              clickOpens: true,
+              disableMobile: true,
+              minDate: minDate,
+              maxDate: maxDate,
+
+              // This helps flatpickr read database date format
+              parseDate: function(dateStr) {
+                  if (!dateStr) return null;
+
+                  // If value is yyyy-mm-dd
+                  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                      const parts = dateStr.split('-');
+                      return new Date(parts[0], parts[1] - 1, parts[2]);
+                  }
+
+                  // If value is dd-mm-yyyy
+                  if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+                      const parts = dateStr.split('-');
+                      return new Date(parts[2], parts[1] - 1, parts[0]);
+                  }
+
+                  return new Date(dateStr);
+              }
+          });
+
+          input.dataset.calendarInit = '1';
       });
-    });
+  });
   </script>
 
 

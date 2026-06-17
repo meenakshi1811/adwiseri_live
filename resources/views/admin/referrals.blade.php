@@ -77,7 +77,7 @@ use App\Models\User;
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Client Deleted Successfully!'
+      text: 'Referral deleted successfully.'
     })
   </script>
 

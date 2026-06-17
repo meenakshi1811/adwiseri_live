@@ -15,6 +15,9 @@ $subscription_roles = UserRoles::where('user_id','=',$user->id)->where('module',
 $setting_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Settings')->first();
 $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Support')->first();
 @endphp
+@php
+    $statusFlow = ['Client Registered', 'Client Counselled', 'Preparation', 'Apointment Booked', 'Applied', 'Decision', 'Appeal Lodged', 'Appeal Decision', 'AR / JR Lodged', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
+@endphp
 
 
 
@@ -24,16 +27,16 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 <div class="col-12 d-flex justify-content-between align-items-center mt-3  mb-3">
                     <h3 class="text-primary text-center flex-grow-1 text-center m-0">Applications</h3>
                     <p>
+                        @if(count($clients) > 0)
+                        <a @if($application_roles->write_only == 1 or $application_roles->read_write_only == 1) href="{{ route('add_application') }}" @else href="#" @endif>Add New</a>
+                        @else
+                        <a @if($application_roles->write_only == 1 or $application_roles->read_write_only == 1) href="{{ route('add_client') }}" @else href="#" @endif>Add New</a>
+                        @endif
                         <a href="{{ route('export_applications') }}">Export</a>
-                  @if(count($clients) > 0)
-                  <a @if($application_roles->write_only == 1 or $application_roles->read_write_only == 1) href="{{ route('add_application') }}" @else href="#" @endif>Add New</a>
-                  @else
-                  <a @if($application_roles->write_only == 1 or $application_roles->read_write_only == 1) href="{{ route('add_client') }}" @else href="#" @endif>Add New</a>
-                  @endif
-                  @if($user->user_type == 'Subscriber')
+                        @if($user->user_type == 'Subscriber')
 
-                  @endif
-                </p>
+                        @endif
+                    </p>
                 </div>
               <div class="row m-0 pb-2">
                 <div class="col-3 border p-1 text-center bg-info text-white">
@@ -76,9 +79,28 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <td class="p-1 text-center">{{ $key+1}}</td>
                             <td class="p-1 text-center">{{ $app->client ? $app->client->name .'('.$app->client_id.')' :  '' }}</td>
                             <td class="p-1 text-center">{{  $app->application_name  .'('.$app->application_id.')'}}</td>
-                            <td class="p-1 text-center">{{ $app->visa_country }}</td>
+                            <td class="p-1 text-center">{{ $app->visa_country ?: ($app->client->visa_country ?? '') }}</td>
                             <td class="p-1 text-center">{{ $app->application_country }}</td>
-                            <td class="p-1 text-center">{{ $app->application_status }}</td>
+                            @php
+                                $currentStatus = $app->application_status ?: 'Client Registered';
+                                $currentIndex = array_search($currentStatus, $statusFlow, true);
+                                $currentIndex = $currentIndex === false ? 0 : $currentIndex;
+                                $isTerminalStatus = in_array($currentStatus, ['Withdrawn', 'Cancelled'], true);
+                            @endphp
+                            <td class="p-1 text-center">
+                                <select class="form-control form-select application-status-select"
+                                        data-application-id="{{ $app->id }}"
+                                        @if(!($application_roles->update_only == 1 || $application_roles->read_write_only == 1)) disabled @endif>
+                                    @foreach($statusFlow as $statusOption)
+                                        @php $optionIndex = array_search($statusOption, $statusFlow, true); @endphp
+                                        <option value="{{ $statusOption }}"
+                                            @if($currentStatus === $statusOption) selected @endif
+                                            @if($optionIndex < $currentIndex || ($isTerminalStatus && $statusOption !== $currentStatus)) disabled @endif>
+                                            {{ $statusOption }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </td>
                             <td class="p-1 text-center">{{ $app->formatted_start_date }}</td>
                             <td class="p-1 text-center">@if($app->end_date != null){{ $app->formatted_end_date }}@endif</td>
                             <td class="p-1 text-center">
@@ -106,7 +128,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
   </script>
   <script>
     function deleteapplication(id){
-        var conf = confirm('Delete Application');
+        var conf = confirm('Are you sure you want to delete this application?');
         if(conf == true){
             window.location.href = "delete_application/"+id+"";
         }
@@ -114,11 +136,35 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
   </script>
   <script>
       $(document).ready(() => {
+        $('.application-status-select').on('change', function () {
+            const selectEl = $(this);
+            const applicationId = selectEl.data('application-id');
+            const selectedStatus = selectEl.val();
+
+            $.ajax({
+                url: "{{ route('applications.update_status') }}",
+                method: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    application_id: applicationId,
+                    status: selectedStatus
+                },
+                success: function(response) {
+                    Swal.fire({ icon: 'success', title: 'Success', text: response.message || 'Status updated successfully.' })
+                        .then(() => window.location.reload());
+                },
+                error: function(xhr) {
+                    const message = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Unable to update status.';
+                    Swal.fire({ icon: 'error', title: 'Error', text: message });
+                    window.location.reload();
+                }
+            });
+        });
 
         $("#add_new_zero").click(function(){
             Swal.fire({
             icon: 'info',
-            title: 'Oops...',
+            title: 'Oops!',
             text: 'There is no applications created.'
             });
         });
@@ -130,7 +176,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Application Deleted Successfully!'
+      text: 'Application deleted successfully..'
     })
   </script>
 
@@ -140,7 +186,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'New Application Added Successfully!'
+      text: 'Application added successfully.'
     })
   </script>
 
@@ -150,7 +196,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Application Updated Successfully!'
+      text: 'Application updated successfully.'
     })
   </script>
 

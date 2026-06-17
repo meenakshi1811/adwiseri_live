@@ -190,7 +190,7 @@
                                     </span>
                                 @enderror
                             </div>
-                            <div class="col text-start p-1">
+                            <div class="col text-start p-1 adwiseri-form-actions">
                                 <button type="submit" class="form-control btn btn-primary"
                                     style="width: fit-content;">Submit</button>
                             </div>
@@ -538,6 +538,10 @@
                                         value="{{ old('job_status') }}" required>
                                         <option value="">Select Application Status
                                         </option>
+                                        <option {{ old('job_status') == 'Registration' ? 'selected' : '' }} value="Registration">
+                                            Registration</option>
+                                        <option {{ old('job_status') == 'Applied' ? 'selected' : '' }} value="Applied">
+                                            Applied</option>
                                         <option {{ old('job_status') == 'Pending' ? 'selected' : '' }} value="Pending">
                                             Pending</option>
                                         <option {{ old('job_status') == 'In Process' ? 'selected' : '' }}
@@ -546,6 +550,8 @@
                                             Complete</option>
                                         <option {{ old('job_status') == 'Cancelled' ? 'selected' : '' }}
                                             value="Cancelled">Cancelled</option>
+                                        <option {{ old('job_status') == 'Withdrawn' ? 'selected' : '' }}
+                                            value="Withdrawn">Withdrawn</option>
                                     </select>
                                     @error('job_status')
                                         <span class="invalid-feedback" role="alert">
@@ -579,7 +585,7 @@
 
 
                            
-                            <div class="col text-start p-1">
+                            <div class="col text-start p-1 adwiseri-form-actions">
                                 <button type="submit" class="form-control btn btn-primary"
                                     style="width: fit-content;">Submit</button>
                             </div>
@@ -604,7 +610,7 @@
                 // Get the date of birth value
                 const dob = $('input[name="dob"]').val();
                 if (!dob) {
-                    alert('Please select your Date of Birth.');
+                    alert('Please select your date of birth.');
                     return; // Exit if DOB is not provided
                 }
 
@@ -624,7 +630,7 @@
                     Swal.fire({
                         icon: 'warning', // Warning icon
                         title: 'Oops!',
-                        text: 'Client seems to be younger than 18. Do you want to proceed?',
+                        text: 'This client appears to be under 18. Do you want to proceed?',
                         showCancelButton: true,
                         confirmButtonText: 'Yes, proceed',
                         cancelButtonText: 'No, cancel'
@@ -659,8 +665,8 @@
                         if (data.limit == 'full') {
                             Swal.fire({
                                 icon: 'warning',
-                                title: 'Oops..',
-                                text: 'Client limit reached for this Subscriber!'
+                                title: 'Oops!',
+                                text: 'Client limit reached for this subscriber.'
                             });
                             setTimeout(function() {
                                 window.location.reload();
@@ -709,7 +715,7 @@
     </script>
     <script>
         function deleteuser(id) {
-            var conf = confirm('Delete User');
+            var conf = confirm('Are you sure you want to delete this client?');
             if (conf == true) {
                 window.location.href = "delete_user/" + id + "";
             }
@@ -721,7 +727,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'User Deleted Successfully!'
+                text: 'Client deleted successfully.'
             })
         </script>
     @endif

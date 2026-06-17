@@ -18,6 +18,10 @@ class Activities extends Model
     ];
 
     public function user(){
+        return $this->belongsTo(User::class,'user_id');
+    }
+
+    public function subscriber(){
         return $this->belongsTo(User::class,'subscriber_id');
     }
 }

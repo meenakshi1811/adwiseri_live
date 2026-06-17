@@ -140,7 +140,7 @@
         function updatedocument(id) {
             Swal.fire({
                 title: 'Are you sure?',
-                text: "You want to update this record!",
+                text: "Do you want to update this record?",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
@@ -159,7 +159,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Application Deleted Successfully!'
+                text: 'Application deleted successfully..'
             })
         </script>
     @endif
@@ -168,7 +168,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'New Document Added Successfully!'
+                text: 'Document added successfully.'
             })
         </script>
     @endif
@@ -177,7 +177,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Document Updated Successfully!'
+                text: 'Document updated successfully.'
             })
         </script>
     @endif

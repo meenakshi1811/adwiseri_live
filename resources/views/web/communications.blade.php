@@ -21,19 +21,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     <h3 class="text-primary text-center flex-grow-1 text-center m-0">Communications</h3>
               </div>
             <div class="client-dashboard">
-              <div class="row m-0 pb-2">
-                <div class="col-4 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('messaging') }}';">
-                    Messaging
-                  </div>
-
-                <div class="col-4 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('client_discussion') }}';">
-                  Meeting Notes (Clients)
-                </div>
-                <div class="col-4 border p-1 text-center bg-info text-white top_modules">
-                    Communication
-                  </div>
-
-              </div>
+              @include('partials.communication_tabs', ['activeTab' => 'communication'])
 
               <div class="table-wrapper m-0 communication">
                 <table class="fl-table table table-hover p-0 m-0" id="clientTable">
@@ -120,7 +108,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 </script>
   <script>
     function deleteapplication(id){
-        var conf = confirm('Delete Application');
+        var conf = confirm('Are you sure you want to delete this application?');
         if(conf == true){
             window.location.href = "delete_application/"+id+"";
         }
@@ -132,7 +120,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Application Deleted Successfully!'
+      text: 'Application deleted successfully..'
     })
   </script>
 
@@ -142,7 +130,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Message Sent Successfully!'
+      text: 'Message sent successfully.'
     })
   </script>
 
@@ -152,7 +140,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Application Updated Successfully!'
+      text: 'Application updated successfully.'
     })
   </script>
 

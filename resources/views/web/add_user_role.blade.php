@@ -353,7 +353,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Application Assignment Deleted Successfully!'
+        text: 'Application Assignment deleted successfully..'
       })
     </script>
 
@@ -363,7 +363,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'New Assignment Added Successfully!'
+        text: 'Assignment added successfully..'
       })
     </script>
 
@@ -373,7 +373,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Assignment Updated Successfully!'
+        text: 'Assignment updated successfully.'
       })
     </script>
 
