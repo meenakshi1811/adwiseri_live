@@ -248,7 +248,7 @@
                     // appDropdown.removeAttribute("readonly");
                     appDropdown.value = data.applicationID || "";
                     document.getElementById("service_description").value = data.service;
-                    document.getElementById("amount").value = data.amount;
+                    document.getElementById("amount").value = data.amount.toFixed(2);
                     document.getElementById("amount_paid_existing").value = data.paidAmmount.toFixed(2);
                     document.getElementById("paid_amount").value = "";
                     document.getElementById("outstanding_amount").value = data.outstandingAmount.toFixed(2);
