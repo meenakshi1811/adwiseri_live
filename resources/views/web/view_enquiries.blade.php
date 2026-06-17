@@ -17,6 +17,24 @@
 <div class="card shadow-sm border-0">
 <div class="card-body">
 
+@php
+    $formatSubscriberDate = function ($value) {
+        if (empty($value)) {
+            return '-';
+        }
+
+        try {
+            return \Carbon\Carbon::createFromFormat('d-m-Y', $value)->format('m-d-Y');
+        } catch (\Exception $exception) {
+            try {
+                return \Carbon\Carbon::parse($value)->format('m-d-Y');
+            } catch (\Exception $e) {
+                return $value;
+            }
+        }
+    };
+@endphp
+
 
 {{-- PERSONAL DETAILS --}}
 
@@ -32,7 +50,7 @@
 
 <div class="col-md-4">
 <label class="field-label">DOB</label>
-<div class="field-value">{{ $enquiry->dob ?? '-' }}</div>
+<div class="field-value">{{ $formatSubscriberDate($enquiry->dob ?? null) }}</div>
 </div>
 
 <div class="col-md-4">
@@ -53,6 +71,16 @@
 <div class="col-md-12">
 <label class="field-label">Address</label>
 <div class="field-value">{{ $enquiry->address ?? '-' }}</div>
+</div>
+
+<div class="col-md-4">
+<label class="field-label">Postcode</label>
+<div class="field-value">{{ $enquiry->postcode ?? '-' }}</div>
+</div>
+
+<div class="col-md-4">
+<label class="field-label">Home Country</label>
+<div class="field-value">{{ $enquiry->country ?? '-' }}</div>
 </div>
 
 </div>
@@ -88,6 +116,41 @@
 
 </div>
 </div>
+
+{{-- SPOUSE DETAILS --}}
+
+@if(!empty($enquiry->spouse_name))
+<div class="mb-5">
+<h5 class="section-title">Spouse Personal Details</h5>
+
+<div class="row g-3">
+<div class="col-md-3">
+<label class="field-label">Name</label>
+<div class="field-value">{{ $enquiry->spouse_name ?? '-' }}</div>
+</div>
+
+<div class="col-md-3">
+<label class="field-label">Age</label>
+<div class="field-value">{{ $enquiry->spouse_age ?? '-' }}</div>
+</div>
+
+<div class="col-md-3">
+<label class="field-label">Applying Together?</label>
+<div class="field-value">{{ (int) ($enquiry->spouse_apply_together ?? 0) === 1 ? 'Yes' : 'No' }}</div>
+</div>
+
+<div class="col-md-3">
+<label class="field-label">Qualification</label>
+<div class="field-value">{{ $enquiry->spouse_qualification ?? '-' }}</div>
+</div>
+
+<div class="col-md-3">
+<label class="field-label">Work Experience (Years)</label>
+<div class="field-value">{{ $enquiry->spouse_work_experience_years ?? '-' }}</div>
+</div>
+</div>
+</div>
+@endif
 
 
 {{-- RESIDENCY HISTORY --}}
@@ -184,7 +247,8 @@
 <th>Job Title</th>
 <th>Employer</th>
 <th>Country</th>
-<th>Joining Date</th>
+<th>From (Date)</th>
+<th>To (Date)</th>
 </tr>
 </thead>
 
@@ -196,12 +260,13 @@
 <td>{{ $row->job_title }}</td>
 <td>{{ $row->employer }}</td>
 <td>{{ $row->work_country }}</td>
-<td>{{ $row->joining_date }}</td>
+<td>{{ $formatSubscriberDate($row->joining_date ?? null) }}</td>
+<td>{{ $formatSubscriberDate($row->to_date ?? null) }}</td>
 </tr>
 
 @empty
 <tr>
-<td colspan="4" class="text-center text-muted">No records</td>
+<td colspan="5" class="text-center text-muted">No records</td>
 </tr>
 @endforelse
 
@@ -240,12 +305,12 @@
 <td>{{ $child->child_name }}</td>
 <td>{{ $child->child_age }}</td>
 <td>{{ $child->child_gender }}</td>
-<td>{{ $child->child_dob }}</td>
+<td>{{ $formatSubscriberDate($child->child_dob ?? null) }}</td>
 </tr>
 
 @empty
 <tr>
-<td colspan="4" class="text-center text-muted">No records</td>
+<td colspan="5" class="text-center text-muted">No records</td>
 </tr>
 @endforelse
 
@@ -268,7 +333,7 @@
 
 <div class="col-md-3">
 <label class="field-label">Date</label>
-<div class="field-value">{{ $enquiry->form_date }}</div>
+<div class="field-value">{{ $formatSubscriberDate($enquiry->form_date ?? null) }}</div>
 </div>
 
 <div class="col-md-3">
@@ -278,7 +343,7 @@
 
 <div class="col-md-3">
 <label class="field-label">Print Name</label>
-<div class="field-value">{{ $enquiry->print_name }}</div>
+<div class="field-value">{{ $enquiry->print_name ?? $enquiry->sign_name ?? '-' }}</div>
 </div>
 
 <div class="col-md-3">

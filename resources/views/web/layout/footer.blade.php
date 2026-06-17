@@ -67,7 +67,7 @@
 
       <!-- Bottom Footer -->
       <div class="text-center mt-3">
-        <p class="mb-0">&copy; {{ date('Y') }} adwiseri.&nbsp;All rights reserved.</p>
+        <p class="mb-0">&copy; 2023-{{ date('Y') }} adwiseri.&nbsp;All rights reserved.</p>
       </div>
     </div>
   </footer>
@@ -76,14 +76,14 @@
 @auth
 
 <footer class="mt-2 last-footer">
-    <p>&copy; {{ date('Y') }}  adwiseri.&nbsp;All rights reserved.</p>
+    <p>&copy; 2023-{{ date('Y') }}  adwiseri.&nbsp;All rights reserved.</p>
   </footer>
   
 @endauth
 
 
 {{-- <footer class="mt-2 last-footer mb-0">
-  <p>&copy; {{ date('Y') }} |  adwiseri &nbsp;&nbsp;|&nbsp;&nbsp;   </p>
+  <p>&copy; 2023-{{ date('Y') }} |  adwiseri &nbsp;&nbsp;|&nbsp;&nbsp;   </p>
 </footer> --}}
 
 <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
@@ -96,6 +96,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <script>
   var local_time = new Date();
@@ -150,6 +151,55 @@
 
 
     });
+</script>
+<script>
+ document.addEventListener('DOMContentLoaded', function () {
+      const dateInputs = document.querySelectorAll('input.date, input.datepicker, input[type="date"]');
+
+      dateInputs.forEach((input) => {
+          if (input.dataset.calendarInit === '1') return;
+
+          const minDate = input.getAttribute('min') || null;
+          const maxDate = input.getAttribute('max') || null;
+          const currentValue = input.value || null;
+
+          if (input.type === 'date') {
+              input.type = 'text';
+          }
+
+          flatpickr(input, {
+              dateFormat: "d-m-Y",
+              altInput: false,
+              defaultDate: currentValue,
+              allowInput: true,
+              clickOpens: true,
+              disableMobile: true,
+              minDate: minDate,
+              maxDate: maxDate,
+
+              // This helps flatpickr read database date format
+              parseDate: function(dateStr) {
+                  if (!dateStr) return null;
+
+                  // If value is yyyy-mm-dd
+                  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                      const parts = dateStr.split('-');
+                      return new Date(parts[0], parts[1] - 1, parts[2]);
+                  }
+
+                  // If value is dd-mm-yyyy
+                  if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+                      const parts = dateStr.split('-');
+                      return new Date(parts[2], parts[1] - 1, parts[0]);
+                  }
+
+                  return new Date(dateStr);
+              }
+          });
+
+          input.dataset.calendarInit = '1';
+      });
+  });
 </script>
 <style>
   @media screen and (max-width: 767px){
@@ -242,10 +292,18 @@ $('#star-rating .star').on('click', function() {
             },
             success: function (response) {
                 $('#feedbackModal').modal('hide');
-                Swal.fire('Thank You!', response.message, 'success');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Thank you',
+                    text: response.message
+                });
             },
             error: function (errors) {
-                Swal.fire('Oops!', errors.responseJSON.errors.rating[0], 'error');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops!',
+                    text: errors.responseJSON.errors.rating[0]
+                });
             }
         });
     });

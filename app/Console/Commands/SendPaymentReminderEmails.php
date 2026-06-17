@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Mail\PaymentReminderMail;
+use App\Models\Invoice_settings;
 use App\Models\PaymentARs;
 use App\Models\PaymentReminderSetting;
 use App\Models\User;
@@ -19,7 +20,7 @@ class SendPaymentReminderEmails extends Command
     public function handle()
     {
         $settings = PaymentReminderSetting::all();
-
+        
         foreach ($settings as $setting) {
             if (!$this->shouldRunForFrequency($setting)) {
                 continue;
@@ -31,35 +32,60 @@ class SendPaymentReminderEmails extends Command
             }
 
             $rows = $this->outstandingRowsForSubscriber($subscriber->id, $setting->client_group);
+                // echo'<pre>';print_r($rows);exit();
+
+            $invoiceSetting = Invoice_settings::where('user_id', $subscriber->id)->first();
+            $paymentLink = trim((string) ($invoiceSetting?->payment_link ?? ''));
+
+            $sentCount = 0;
 
             foreach ($rows as $row) {
-                if (empty($row->client_email)) {
+                if (empty($row->client_email) || (float) $row->outstanding_amount <= 0) {
                     continue;
                 }
+
+                $dueDateObject = $row->due_date ? Carbon::parse($row->due_date) : null;
+                if ($dueDateObject && $dueDateObject->isFuture()) {
+                    continue;
+                }
+                // echo'<pre>';print_r($row);exit();
+
+                $outstandingAmount = number_format((float) $row->outstanding_amount, 2, '.', '');
+                $serviceDescription = (string) ($row->service_description ?: '-');
+                $dueDate = $dueDateObject ? $dueDateObject->format('d-m-Y') : '-';
 
                 $payload = [
                     'subscriber_name' => (string) $subscriber->name,
                     'client_first_name' => $this->firstName((string) $row->client_name),
+                    'client_name' => (string) $row->client_name,
+                    'name' => (string) $row->client_name,
                     'currency_symbol' => $this->currencySymbol((string) $subscriber->currency),
-                    'amount' => number_format((float) $row->outstanding_amount, 2, '.', ''),
+                    'amount' => $outstandingAmount,
+                    'outstanding_amount' => $outstandingAmount,
                     'invoice_no' => (string) $row->invoice_no,
                     'invoice_id' => (string) $row->invoice_no,
-                    'service_description' => (string) ($row->service_description ?: '-'),
-                    'payment_due_date' => $row->due_date ? Carbon::parse($row->due_date)->format('d-m-Y') : '-',
+                    'service_description' => $serviceDescription,
+                    'application_service' => $serviceDescription,
+                    'payment_due_date' => $dueDate,
+                    'due_date' => $dueDate,
+                    'payment_link' => $paymentLink,
                 ];
 
+                // $mail = Mail::to("nanta1811@gmail.com");
                 $mail = Mail::to($row->client_email);
                 if ($setting->email_to === 'client_bcc_subscriber' && !empty($subscriber->email)) {
                     $mail->bcc($subscriber->email);
                 }
 
                 $mail->send(new PaymentReminderMail($subscriber, $payload));
+                $sentCount++;
+                exit();
             }
 
             $setting->last_sent_at = now();
             $setting->save();
 
-            $this->info('Processed payment reminders for subscriber_id ' . $subscriber->id . ' (' . $rows->count() . ' invoice reminders).');
+            $this->info('Processed payment reminders for subscriber_id ' . $subscriber->id . ' (' . $sentCount . ' overdue outstanding invoice reminders sent).');
         }
 
         return Command::SUCCESS;
@@ -99,12 +125,18 @@ class SendPaymentReminderEmails extends Command
             return true;
         }
 
+        if ($setting->email_frequency === 'daily') {
+            return $lastSentAt->startOfDay()->lte(now()->subDay()->startOfDay());
+        }
+
         if ($setting->email_frequency === 'weekly') {
-            return $lastSentAt->lte(now()->subWeek());
+            // Compare start of last sent week vs start of last week
+            return $lastSentAt->startOfWeek()->lte(now()->subWeek()->startOfWeek());
         }
 
         if ($setting->email_frequency === 'monthly') {
-            return $lastSentAt->lte(now()->subMonth());
+            // Compare start of last sent month vs start of last month
+            return $lastSentAt->startOfMonth()->lte(now()->subMonth()->startOfMonth());
         }
 
         return $lastSentAt->lte(now()->subMonths(3));

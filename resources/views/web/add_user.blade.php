@@ -155,8 +155,8 @@
                                 </span>
                             @enderror
                         </div>
-                        <div class="col text-end p-1">
-                            <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
+                        <div class="col-md-12 p-1 text-center">
+                            <button type="submit" class="btn btn-primary px-4">Submit</button>
                         </div>
                     </div>
                 </form>
@@ -210,8 +210,8 @@
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'User Added Successfully.'
+      title: 'Success',
+      text: 'User added successfully.'
     })
   </script>
 

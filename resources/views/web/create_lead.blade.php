@@ -24,12 +24,27 @@
 </div>
 
 @endif
-<form method="POST" action="{{ route('visa.enquiry.store') }}">
+
+@if($errors->any())
+<div class="alert alert-danger">
+    <strong>Please correct the highlighted enquiry form fields.</strong>
+    <ul class="mb-0 mt-2">
+        @foreach($errors->all() as $error)
+        <li>{{ $error }}</li>
+        @endforeach
+    </ul>
+</div>
+@endif
+@php
+$isEdit = $isEdit ?? false;
+$homeCountryOptions = $allCountries ?? $countries;
+@endphp
+<form method="POST" id="enquiry_form" action="{{ $isEdit ? route('visa_enquiries.update', $enquiry->id) : route('visa.enquiry.store') }}">
 @csrf
 
 <input type="hidden" name="subscriber_id" value="{{ $subscriberId }}">
 
-<h3 class="mb-4 text-center">Visa / Immigration Enquiry Form</h3>
+<h3 class="mb-4 text-center">Enquiry Form</h3>
 
 <h5 class="mt-3">1. Personal Details</h5>
 
@@ -37,39 +52,64 @@
 
 <div class="col-md-6 mb-3">
 <label>Full Name *</label>
-<input type="text" name="full_name" class="form-control" required>
+<input type="text" id="full_name" name="full_name" class="form-control" placeholder="Full Name" value="{{ old('full_name', $enquiry->full_name ?? '') }}" required>
 </div>
 
 <div class="col-md-6 mb-3">
 <label>DOB</label>
-<input type="text" name="dob" class="form-control datepicker">
+<input type="text" name="dob" id="dob" class="form-control datepicker" placeholder="DD-MM-YYYY" autocomplete="off" value="{{ old('dob', $enquiry->dob ?? '') }}">
 </div>
 
 <div class="col-md-6 mb-3">
 <label>Email *</label>
-<input type="email" name="email" class="form-control" required>
+<input type="email" name="email" class="form-control" placeholder="Email Address" value="{{ old('email', $enquiry->email ?? '') }}" required>
 </div>
 
 <div class="col-md-6 mb-3">
-<label>Contact No</label>
-<input type="text" name="contact_no" class="form-control">
+<label>Contact Number *</label>
+<input type="text" name="contact_no" class="form-control" placeholder="Contact Number" value="{{ old('contact_no', $enquiry->contact_no ?? '') }}" required>
 </div>
 
 <div class="col-md-6 mb-3">
 <label>Marital Status</label>
 <select name="marital_status" id="marital_status" class="form-control">
 <option value="">Select</option>
-<option>Single</option>
-<option>Engaged</option>
-<option>Married</option>
-<option>Divorced</option>
-<option>Widowed</option>
+<option {{ old('marital_status', $enquiry->marital_status ?? '') == 'Single' ? 'selected' : '' }}>Single</option>
+<option {{ old('marital_status', $enquiry->marital_status ?? '') == 'Engaged' ? 'selected' : '' }}>Engaged</option>
+<option {{ old('marital_status', $enquiry->marital_status ?? '') == 'Married' ? 'selected' : '' }}>Married</option>
+<option {{ old('marital_status', $enquiry->marital_status ?? '') == 'Divorced' ? 'selected' : '' }}>Divorced</option>
+<option {{ old('marital_status', $enquiry->marital_status ?? '') == 'Widowed' ? 'selected' : '' }}>Widowed</option>
 </select>
 </div>
 
 <div class="col-md-12 mb-3">
 <label>Address *</label>
-<textarea name="address" class="form-control"></textarea>
+<textarea name="address" id="address" class="form-control @error('address') is-invalid @enderror" required minlength="3" maxlength="1000" data-required-message="Please enter the client address before submitting the enquiry.">{{ old('address', $enquiry->address ?? '') }}</textarea>
+@error('address')
+<div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
+<div id="address_required_alert" class="alert alert-danger mt-2 py-2" style="display:none;">Please enter the client address before submitting the enquiry.</div>
+</div>
+
+<div class="col-md-6 mb-3">
+<label>Postcode</label>
+<input type="text" name="postcode" class="form-control @error('postcode') is-invalid @enderror" placeholder="Postcode" value="{{ old('postcode', $enquiry->postcode ?? '') }}">
+@error('postcode')
+<div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
+</div>
+
+<div class="col-md-6 mb-3">
+<label>Home Country *</label>
+<select name="country" class="form-control form-select @error('country') is-invalid @enderror" required>
+<option value="">Select Home Country</option>
+@foreach($homeCountryOptions as $country)
+<option value="{{ $country->country_name }}" {{ old('country', $enquiry->country ?? '') == $country->country_name ? 'selected' : '' }}>{{ $country->country_name }}</option>
+@endforeach
+</select>
+@error('country')
+<div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
 </div>
 
 </div>
@@ -78,30 +118,50 @@
 
 <div class="row">
 
+<div class="col-12 mb-3">
+<label>COP (Country of preference) *</label>
+<div class="row g-2 mt-0">
 <div class="col-md-4">
-<input type="text" name="country_pref[]" class="form-control" placeholder="1st Preference">
+<select name="country_pref[]" id="country_pref_1" class="form-control form-select country-pref-select" data-placeholder="1st Preference" required>
+<option value="">1st Preference</option>
+@foreach($countries as $country)
+<option value="{{ $country->country_name }}" {{ old('country_pref.0', $enquiry->country_pref_1 ?? '') == $country->country_name ? 'selected' : '' }}>{{ $country->country_name }}</option>
+@endforeach
+</select>
 </div>
 
 <div class="col-md-4">
-<input type="text" name="country_pref[]" class="form-control" placeholder="2nd Preference">
+<select name="country_pref[]" id="country_pref_2" class="form-control form-select country-pref-select" data-placeholder="2nd Preference">
+<option value="">2nd Preference</option>
+@foreach($countries as $country)
+<option value="{{ $country->country_name }}" {{ old('country_pref.1', $enquiry->country_pref_2 ?? '') == $country->country_name ? 'selected' : '' }}>{{ $country->country_name }}</option>
+@endforeach
+</select>
 </div>
 
 <div class="col-md-4">
-<input type="text" name="country_pref[]" class="form-control" placeholder="3rd Preference">
+<select name="country_pref[]" id="country_pref_3" class="form-control form-select country-pref-select" data-placeholder="3rd Preference">
+<option value="">3rd Preference</option>
+@foreach($countries as $country)
+<option value="{{ $country->country_name }}" {{ old('country_pref.2', $enquiry->country_pref_3 ?? '') == $country->country_name ? 'selected' : '' }}>{{ $country->country_name }}</option>
+@endforeach
+</select>
+</div>
+</div>
 </div>
 
 <div class="col-md-6 mt-3">
-<label>Visa Category</label>
-<select name="visa_category" id="visa_category" class="form-control">
-<option value="">Select</option>
-<option value="Visit">Visit</option>
-<option value="Training">Training</option>
-<option value="Study">Study</option>
-<option value="Work">Work</option>
-<option value="Dependent">Dependent</option>
-<option value="PR">PR</option>
-<option value="Business">Business</option>
-<option value="Investor">Investor</option>
+<label>Preferred Visa Category *</label>
+<select name="visa_category" id="visa_category" class="form-control" required>
+<option value="">Visa Category</option>
+<option value="Visit" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Visit' ? 'selected' : '' }}>Visit</option>
+<option value="Training" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Training' ? 'selected' : '' }}>Training</option>
+<option value="Study" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Study' ? 'selected' : '' }}>Study</option>
+<option value="Work" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Work' ? 'selected' : '' }}>Work</option>
+<option value="Dependent" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Dependent' ? 'selected' : '' }}>Dependent</option>
+<option value="PR" {{ old('visa_category', $enquiry->visa_category ?? '') == 'PR' ? 'selected' : '' }}>PR</option>
+<option value="Business" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Business' ? 'selected' : '' }}>Business</option>
+<option value="Investor" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Investor' ? 'selected' : '' }}>Investor</option>
 </select>
 </div>
 
@@ -110,126 +170,131 @@
 <h5 class="mt-4">3. Abroad Residency History</h5>
 
 <div id="residency_history">
-
-<div class="row residency-row">
-
+@php $resRows = old('res_country') ? collect(old('res_country'))->map(fn($_, $i) => ['country' => old('res_country.'.$i), 'duration' => old('res_duration.'.$i), 'visa_category' => old('res_visa.'.$i)]) : ($enquiry->residencyHistory ?? collect([[]])); @endphp
+@foreach($resRows as $idx => $row)
+<div class="row residency-row {{ $idx > 0 ? 'mt-2' : '' }}">
 <div class="col-md-3">
-<input type="text" name="res_country[]" class="form-control" placeholder="Country">
+<input type="text" name="res_country[]" class="form-control" placeholder="Country" value="{{ $row['country'] ?? $row->country ?? '' }}">
 </div>
-
 <div class="col-md-3">
-<input type="text" name="res_duration[]" class="form-control" placeholder="Duration">
+<input type="text" name="res_duration[]" class="form-control" placeholder="Duration" value="{{ $row['duration'] ?? $row->duration ?? '' }}">
 </div>
-
 <div class="col-md-3">
-<input type="text" name="res_visa[]" class="form-control" placeholder="Visa Category">
+<input type="text" name="res_visa[]" class="form-control" placeholder="Visa Category" value="{{ $row['visa_category'] ?? $row->visa_category ?? '' }}">
 </div>
-
 <div class="col-md-3">
+@if($idx === 0)
 <button type="button" class="btn btn-success addResidency">+</button>
+@else
+<button type="button" class="btn btn-danger remove">-</button>
+@endif
 </div>
-
 </div>
+@endforeach
 
 </div>
 
 <h5 class="mt-4">4. Travel History</h5>
 
 <div id="travel_history">
-
-<div class="row travel-row">
-
+@php $travelRows = old('travel_country') ? collect(old('travel_country'))->map(fn($_, $i) => ['country' => old('travel_country.'.$i), 'duration' => old('travel_duration.'.$i)]) : ($enquiry->travelHistory ?? collect([[]])); @endphp
+@foreach($travelRows as $idx => $row)
+<div class="row travel-row {{ $idx > 0 ? 'mt-2' : '' }}">
 <div class="col-md-4">
-<input type="text" name="travel_country[]" class="form-control" placeholder="Country">
+<input type="text" name="travel_country[]" class="form-control" placeholder="Country" value="{{ $row['country'] ?? $row->country ?? '' }}">
 </div>
-
 <div class="col-md-4">
-<input type="text" name="travel_duration[]" class="form-control" placeholder="Duration">
+<input type="text" name="travel_duration[]" class="form-control" placeholder="Duration" value="{{ $row['duration'] ?? $row->duration ?? '' }}">
 </div>
-
 <div class="col-md-4">
+@if($idx === 0)
 <button type="button" class="btn btn-success addTravel">+</button>
+@else
+<button type="button" class="btn btn-danger remove">-</button>
+@endif
 </div>
-
 </div>
+@endforeach
 
 </div>
 
 <h5 class="mt-4">5. Visa Refusal History</h5>
 
 <div id="refusal_history">
-
-<div class="row refusal-row">
-
+@php $refusalRows = old('refusal_country') ? collect(old('refusal_country'))->map(fn($_, $i) => ['country' => old('refusal_country.'.$i), 'refusal_date' => old('refusal_date.'.$i), 'refusal_reason' => old('refusal_reason.'.$i)]) : ($enquiry->refusalHistory ?? collect([[]])); @endphp
+@foreach($refusalRows as $idx => $row)
+<div class="row refusal-row {{ $idx > 0 ? 'mt-2' : '' }}">
 <div class="col-md-3">
-<input type="text" name="refusal_country[]" class="form-control" placeholder="Country">
+<input type="text" name="refusal_country[]" class="form-control" placeholder="Country" value="{{ $row['country'] ?? $row->country ?? '' }}">
 </div>
-
 <div class="col-md-3">
-<input type="text" name="refusal_date[]" class="form-control datepicker">
+<input type="text" name="refusal_date[]" class="form-control datepicker" placeholder="Refusal Date" value="{{ $row['refusal_date'] ?? $row->refusal_date ?? '' }}">
 </div>
-
 <div class="col-md-4">
-<input type="text" name="refusal_reason[]" class="form-control" placeholder="Reason">
+<input type="text" name="refusal_reason[]" class="form-control" placeholder="Reason" value="{{ $row['refusal_reason'] ?? $row->refusal_reason ?? '' }}">
 </div>
-
 <div class="col-md-2">
+@if($idx === 0)
 <button type="button" class="btn btn-success addRefusal">+</button>
+@else
+<button type="button" class="btn btn-danger remove">-</button>
+@endif
 </div>
+</div>
+@endforeach
 
 </div>
 
-</div>
-
-<h5 class="mt-4">6. Educational Qualifications</h5>
+<h5 class="mt-4">6. Highest Qualification</h5>
 
 <div class="row">
 
 <div class="col-md-3">
 <select name="qualification" class="form-control">
-<option>10th</option>
-<option>12th</option>
-<option>Diploma</option>
-<option>Bachelor’s Degree</option>
-<option>Master’s Degree</option>
-<option>PhD</option>
+<option value="" disabled {{ old('qualification', $enquiry->qualification ?? '') ? '' : 'selected' }}>School/Diploma/Bachelors/Masters/PhD</option>
+<option {{ old('qualification', $enquiry->qualification ?? '') == '10th' ? 'selected' : '' }}>10th</option>
+<option {{ old('qualification', $enquiry->qualification ?? '') == '12th' ? 'selected' : '' }}>12th</option>
+<option {{ old('qualification', $enquiry->qualification ?? '') == 'Diploma' ? 'selected' : '' }}>Diploma</option>
+<option {{ old('qualification', $enquiry->qualification ?? '') == 'Bachelor’s Degree' ? 'selected' : '' }}>Bachelor’s Degree</option>
+<option {{ old('qualification', $enquiry->qualification ?? '') == 'Master’s Degree' ? 'selected' : '' }}>Master’s Degree</option>
+<option {{ old('qualification', $enquiry->qualification ?? '') == 'PhD' ? 'selected' : '' }}>PhD</option>
 </select>
 </div>
 
 <div class="col-md-4">
-<input type="text" name="institution" class="form-control" placeholder="Institution Name">
+<input type="text" name="institution" class="form-control" placeholder="Institution Name" value="{{ old('institution', $enquiry->institution ?? '') }}">
 </div>
 
 <div class="col-md-2">
-<input type="text" name="passing_year" class="form-control" placeholder="Year">
+<input type="text" name="passing_year" class="form-control" placeholder="Year" value="{{ old('passing_year', $enquiry->passing_year ?? '') }}">
 </div>
 
 <div class="col-md-3">
-<input type="text" name="grade" class="form-control" placeholder="Result / Grade">
+<input type="text" name="grade" class="form-control" placeholder="Result / Grade" value="{{ old('grade', $enquiry->grade ?? '') }}">
 </div>
 
 </div>
 
-<h5 class="mt-4">7. English Language Competency</h5>
+<h5 class="mt-4">7. English Language Proficiency</h5>
 
 <div class="row">
 
 <div class="col-md-4">
 <select name="english_test" class="form-control">
-<option>IELTS</option>
-<option>TOEFL</option>
-<option>TOEIC</option>
-<option>PTE</option>
-<option>DuoLingo</option>
+<option {{ old('english_test', $enquiry->english_test ?? '') == 'IELTS' ? 'selected' : '' }}>IELTS</option>
+<option {{ old('english_test', $enquiry->english_test ?? '') == 'TOEFL' ? 'selected' : '' }}>TOEFL</option>
+<option {{ old('english_test', $enquiry->english_test ?? '') == 'TOEIC' ? 'selected' : '' }}>TOEIC</option>
+<option {{ old('english_test', $enquiry->english_test ?? '') == 'PTE' ? 'selected' : '' }}>PTE</option>
+<option {{ old('english_test', $enquiry->english_test ?? '') == 'DuoLingo' ? 'selected' : '' }}>DuoLingo</option>
 </select>
 </div>
 
 <div class="col-md-4">
-<input type="text" name="overall_score" class="form-control" placeholder="Overall Score">
+<input type="text" name="overall_score" class="form-control" placeholder="Overall Score" value="{{ old('overall_score', $enquiry->overall_score ?? '') }}">
 </div>
 
 <div class="col-md-4">
-<input type="text" name="test_date" class="form-control datepicker">
+<input type="text" name="test_date" class="form-control datepicker" placeholder="Score Date" value="{{ old('test_date', $enquiry->test_date ?? '') }}">
 </div>
 
 </div>
@@ -237,97 +302,118 @@
 <h5 class="mt-4">8. Work Experience</h5>
 
 <div id="work_experience">
-
-<div class="row work-row">
-
+@php $workRows = old('job_title') ? collect(old('job_title'))->map(fn($_, $i) => ['job_title' => old('job_title.'.$i), 'employer' => old('employer.'.$i), 'work_country' => old('work_country.'.$i), 'joining_date' => old('joining_date.'.$i), 'to_date' => old('to_date.'.$i)]) : ($enquiry->workExperience ?? collect([[]])); @endphp
+@foreach($workRows as $idx => $row)
+<div class="row work-row {{ $idx > 0 ? 'mt-2' : '' }}">
 <div class="col-md-3">
-<input type="text" name="job_title[]" class="form-control" placeholder="Job Title">
+<input type="text" name="job_title[]" class="form-control" placeholder="Job Title" value="{{ $row['job_title'] ?? $row->job_title ?? '' }}">
 </div>
-
-<div class="col-md-3">
-<input type="text" name="employer[]" class="form-control" placeholder="Employer Name">
-</div>
-
 <div class="col-md-2">
-<input type="text" name="work_country[]" class="form-control" placeholder="Country">
+<input type="text" name="employer[]" class="form-control" placeholder="Employer Name" value="{{ $row['employer'] ?? $row->employer ?? '' }}">
 </div>
-
 <div class="col-md-2">
-<input type="text" name="joining_date[]" class="form-control datepicker">
+<input type="text" name="work_country[]" class="form-control" placeholder="Country" value="{{ $row['work_country'] ?? $row->work_country ?? '' }}">
 </div>
-
 <div class="col-md-2">
+<input type="text" name="joining_date[]" class="form-control datepicker" placeholder="From (Date)" value="{{ $row['joining_date'] ?? $row->joining_date ?? '' }}">
+</div>
+<div class="col-md-2">
+<input type="text" name="to_date[]" class="form-control datepicker" placeholder="To (Date)" value="{{ $row['to_date'] ?? $row->to_date ?? '' }}">
+</div>
+<div class="col-md-1">
+@if($idx === 0)
 <button type="button" class="btn btn-success addWork">+</button>
+@else
+<button type="button" class="btn btn-danger remove">-</button>
+@endif
 </div>
-
 </div>
+@endforeach
 
 </div>
 
 <div id="spouse_section" style="display:none">
 
-<h5 class="mt-4">9. Spouse Personal Details</h5>
+<h5 class="mt-4" id="spouse_section_title">9. Spouse Personal Details</h5>
 
 <div class="row">
 
-<div class="col-md-6 mb-3">
-<input type="text" name="spouse_name" class="form-control" placeholder="Spouse Name">
+<div class="col-md-8 mb-3">
+<label>Spouse Name</label>
+<input type="text" name="spouse_name" class="form-control" placeholder="Spouse Name" value="{{ old('spouse_name', $enquiry->spouse_name ?? '') }}">
+</div>
+
+<div class="col-md-4 mb-3">
+<label>Age</label>
+<input type="number" name="spouse_age" class="form-control @error('spouse_age') is-invalid @enderror" min="0" max="120" placeholder="Age" value="{{ old('spouse_age', $enquiry->spouse_age ?? '') }}">
+@error('spouse_age')
+<div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
 </div>
 
 <div class="col-md-6 mb-3">
-<input type="email" name="spouse_email" class="form-control" placeholder="Spouse Email">
+<label>Qualification</label>
+<input type="text" name="spouse_qualification" class="form-control @error('spouse_qualification') is-invalid @enderror" maxlength="255" placeholder="Qualification" value="{{ old('spouse_qualification', $enquiry->spouse_qualification ?? '') }}">
+@error('spouse_qualification')
+<div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
 </div>
 
 <div class="col-md-6 mb-3">
-<input type="text" name="spouse_dob" class="form-control datepicker">
+<label>Work Experience (Years)</label>
+<input type="number" name="spouse_work_experience_years" class="form-control @error('spouse_work_experience_years') is-invalid @enderror" min="0" max="80" step="0.1" placeholder="Work Experience (Years)" value="{{ old('spouse_work_experience_years', $enquiry->spouse_work_experience_years ?? '') }}">
+@error('spouse_work_experience_years')
+<div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
+</div>
+<div class="col-md-6 mb-3 d-flex align-items-center">
+<div class="form-check">
+<input type="checkbox" class="form-check-input" name="spouse_apply_together" id="spouse_apply_together" value="1" {{ old('spouse_apply_together', $enquiry->spouse_apply_together ?? 0) ? 'checked' : '' }}>
+<label class="form-check-label" for="spouse_apply_together">Applying together?</label>
+</div>
 </div>
 
-<div class="col-md-6 mb-3">
-<input type="text" name="spouse_contact" class="form-control" placeholder="Contact No">
 </div>
 
 </div>
 
-</div>
+<h5 class="mt-4" id="children_section_title">10. How many children you have?</h5>
 
-<h5 class="mt-4">Do you have Children?</h5>
-
-<select id="children_option" class="form-control mb-3">
-<option value="no">No</option>
-<option value="yes">Yes</option>
+<select id="children_count" name="children_count" class="form-control form-control-sm d-inline-block w-auto mb-3">
+@for($childCount = 0; $childCount <= 6; $childCount++)
+<option value="{{ $childCount }}" {{ (int) old('children_count', isset($enquiry) ? ($enquiry->children->count() ?? 0) : 0) === $childCount ? 'selected' : '' }}>{{ $childCount }}</option>
+@endfor
 </select>
 
 <div id="children_section" style="display:none">
 
 <div id="children_rows">
-
-<div class="row child-row">
-
+@php $childrenRows = old('child_name') ? collect(old('child_name'))->map(fn($_, $i) => ['child_name' => old('child_name.'.$i), 'child_age' => old('child_age.'.$i), 'child_relation' => old('child_relation.'.$i), 'child_dob' => old('child_dob.'.$i), 'child_apply_together' => old('child_apply_together.'.$i)]) : ($enquiry->children ?? collect()); @endphp
+@foreach($childrenRows as $idx => $row)
+<div class="row child-row {{ $idx > 0 ? 'mt-2' : '' }}">
 <div class="col-md-3">
-<input type="text" name="child_name[]" class="form-control" placeholder="Name">
+<input type="text" name="child_name[]" class="form-control" placeholder="Name" value="{{ $row['child_name'] ?? $row->child_name ?? '' }}">
 </div>
-
 <div class="col-md-2">
-<input type="number" name="child_age[]" class="form-control" placeholder="Age">
+<input type="number" name="child_age[]" class="form-control" placeholder="Age" value="{{ $row['child_age'] ?? $row->child_age ?? '' }}">
 </div>
-
 <div class="col-md-2">
-<select name="child_gender[]" class="form-control">
-<option>M</option>
-<option>F</option>
-<option>PNTS</option>
+<select name="child_relation[]" class="form-control">
+<option value="Son" {{ ($row['child_relation'] ?? $row->child_gender ?? '') == 'Son' ? 'selected' : '' }}>Son</option>
+<option value="Daughter" {{ ($row['child_relation'] ?? $row->child_gender ?? '') == 'Daughter' ? 'selected' : '' }}>Daughter</option>
 </select>
 </div>
-
 <div class="col-md-3">
-<input type="text" name="child_dob[]" class="form-control datepicker">
+<input type="text" name="child_dob[]" class="form-control datepicker" placeholder="Date of Birth" value="{{ $row['child_dob'] ?? $row->child_dob ?? '' }}">
 </div>
-
 <div class="col-md-2">
-<button type="button" class="btn btn-success addChild">+</button>
+<div class="form-check mt-2">
+<input type="checkbox" class="form-check-input" name="child_apply_together[{{ $idx }}]" value="1" {{ !empty($row['child_apply_together'] ?? $row->apply_together ?? null) ? 'checked' : '' }}>
+<label class="form-check-label">Applying together?</label>
 </div>
-
 </div>
+</div>
+@endforeach
 
 </div>
 
@@ -340,23 +426,23 @@
 <h5 class="mt-4">What is the prime source of funding for your abroad study?</h5>
 
 <div class="form-check">
-<input class="form-check-input" type="checkbox" name="funding[]" value="Own Savings"> Own Savings
+<input class="form-check-input" type="checkbox" name="funding[]" value="Own Savings" {{ in_array('Own Savings', old('funding', isset($enquiry) ? $enquiry->fundingSources->pluck('funding_source')->toArray() : [])) ? 'checked' : '' }}> Own Savings
 </div>
 
 <div class="form-check">
-<input class="form-check-input" type="checkbox" name="funding[]" value="Bank Finance"> Bank Finance
+<input class="form-check-input" type="checkbox" name="funding[]" value="Bank Finance" {{ in_array('Bank Finance', old('funding', isset($enquiry) ? $enquiry->fundingSources->pluck('funding_source')->toArray() : [])) ? 'checked' : '' }}> Bank Finance
 </div>
 
 <div class="form-check">
-<input class="form-check-input" type="checkbox" name="funding[]" value="Family"> Sponsored by Family
+<input class="form-check-input" type="checkbox" name="funding[]" value="Family" {{ in_array('Family', old('funding', isset($enquiry) ? $enquiry->fundingSources->pluck('funding_source')->toArray() : [])) ? 'checked' : '' }}> Sponsored by Family
 </div>
 
 <div class="form-check">
-<input class="form-check-input" type="checkbox" name="funding[]" value="Employer"> Sponsored by Employer
+<input class="form-check-input" type="checkbox" name="funding[]" value="Employer" {{ in_array('Employer', old('funding', isset($enquiry) ? $enquiry->fundingSources->pluck('funding_source')->toArray() : [])) ? 'checked' : '' }}> Sponsored by Employer
 </div>
 
 <div class="form-check">
-<input class="form-check-input" type="checkbox" name="funding[]" value="Government"> Sponsored by Institution/Government
+<input class="form-check-input" type="checkbox" name="funding[]" value="Government" {{ in_array('Government', old('funding', isset($enquiry) ? $enquiry->fundingSources->pluck('funding_source')->toArray() : [])) ? 'checked' : '' }}> Sponsored by Institution/Government
 </div>
 
 </div>
@@ -368,17 +454,17 @@
 <div class="col-md-3">
 <label>Date</label>
 <div class="input-group">
-<input type="text" name="form_date" class="form-control datepicker">
+<input type="text" name="form_date" class="form-control datepicker" placeholder="Form Date" value="{{ old('form_date', $enquiry->form_date ?? now()->format('d-m-Y')) }}">
 </div>
 </div>
 <div class="col-md-3">
 <label>Place</label>
-<input type="text" name="place" class="form-control">
+<input type="text" name="place" class="form-control" placeholder="Place" value="{{ old('place', $enquiry->place ?? ($defaultPlace ?? '')) }}">
 </div>
 
 <div class="col-md-3">
 <label>Print Name</label>
-<input type="text" name="print_name" class="form-control">
+<input type="text" name="print_name" id="print_name" class="form-control" placeholder="Print Name" value="{{ old('print_name', $enquiry->print_name ?? $enquiry->sign_name ?? '') }}">
 </div>
 <div class="col-md-6">
 <label>Signature</label>
@@ -400,29 +486,51 @@
 
 </div>
 
+@if(!$isEdit)
+<div class="mt-3">
+    <div class="form-check">
+        <input
+            class="form-check-input"
+            type="checkbox"
+            id="consent_to_store_data"
+            name="consent_to_store_data"
+            value="1"
+            {{ old('consent_to_store_data') ? 'checked' : '' }}
+            required
+        >
+        <label class="form-check-label" for="consent_to_store_data">
+            I consent Adwiseri to store and process my submitted personal data, including my signature, for application related counselling and processing.
+        </label>
+    </div>
+    @error('consent_to_store_data')
+        <div class="text-danger small mt-1">{{ $message }}</div>
+    @enderror
+</div>
+@endif
+
 <!-- CAPTCHA -->
 
 <div class="mt-4">
 
+@if(!$isEdit)
 {!! NoCaptcha::display() !!}
+@endif
 
 </div>
 
 <div class="mt-4">
-
-<label>
-<input type="checkbox" required> I agree to <a href="/privacy_policy" target="_blank">Privacy Policy</a>
+@if(!$isEdit)
+<div class="form-check">
+<input class="form-check-input" type="checkbox" id="agree_policy_terms" required>
+<label class="form-check-label" for="agree_policy_terms">
+I agree to <a href="/privacy_policy" target="_blank">Privacy Policy</a> &amp; <a href="/terms_of_use" target="_blank">Terms of Service</a>
 </label>
-
-<br>
-
-<label>
-<input type="checkbox" required> I agree to <a href="/terms_of_use" target="_blank">Terms of Service</a>
-</label>
+</div>
+@endif
 
 </div>
 
-<button class="btn btn-primary mt-4 w-100">Submit Enquiry</button>
+<button class="btn btn-primary mt-4 w-100">{{ $isEdit ? 'Update Enquiry' : 'Submit Enquiry' }}</button>
 
 </form>
 
@@ -437,17 +545,119 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+@if(!$isEdit)
 {!! NoCaptcha::renderJs() !!}
+@endif
 
 <script>
 
-document.addEventListener("DOMContentLoaded", function () {
 
-    flatpickr(".datepicker", {
-        dateFormat: "Y-m-d",
-        allowInput: true
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById('enquiry_form');
+    const addressField = document.getElementById('address');
+    const addressAlert = document.getElementById('address_required_alert');
+
+    if (!form || !addressField) {
+        return;
+    }
+
+    const addressMessage = addressField.dataset.requiredMessage || 'Please enter the client address before submitting the enquiry.';
+
+    function showAddressAlert() {
+        if (addressAlert) {
+            addressAlert.textContent = addressMessage;
+            addressAlert.style.display = 'block';
+        }
+    }
+
+    function hideAddressAlert() {
+        if (addressAlert) {
+            addressAlert.style.display = 'none';
+        }
+        addressField.setCustomValidity('');
+    }
+
+    addressField.addEventListener('invalid', function () {
+        addressField.setCustomValidity(addressMessage);
+        showAddressAlert();
     });
 
+    addressField.addEventListener('input', hideAddressAlert);
+
+    form.addEventListener('submit', function (event) {
+        const trimmedAddress = addressField.value.trim();
+
+        if (!trimmedAddress) {
+            event.preventDefault();
+            addressField.value = '';
+            addressField.setCustomValidity(addressMessage);
+            showAddressAlert();
+            alert(addressMessage);
+            addressField.reportValidity();
+            addressField.focus();
+            return false;
+        }
+
+        addressField.value = trimmedAddress;
+        hideAddressAlert();
+    });
+});
+
+function initDatepickers(context) {
+    const scope = context || document;
+    const elements = scope.querySelectorAll ? scope.querySelectorAll(".datepicker") : [];
+
+    elements.forEach(function (element) {
+        if (element._flatpickr) return;
+
+        flatpickr(element, {
+            dateFormat: "d-m-Y",
+            allowInput: true,
+            disableMobile: true,
+            maxDate: new Date(),
+
+            onReady: function(selectedDates, dateStr, instance) {
+                element.setAttribute('max', new Date().toISOString().split('T')[0]);
+            },
+
+            onChange: function(selectedDates, dateStr, instance) {
+                validatePastDate(instance);
+            },
+
+            onClose: function(selectedDates, dateStr, instance) {
+                validatePastDate(instance);
+            }
+        });
+
+        element.addEventListener('blur', function () {
+            if (element._flatpickr) {
+                element._flatpickr.setDate(element.value, true, "d-m-Y");
+                validatePastDate(element._flatpickr);
+            }
+        });
+    });
+}
+
+function validatePastDate(instance) {
+    if (!instance.input.value) return;
+
+    const selectedDate = instance.parseDate(instance.input.value, "d-m-Y");
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (selectedDate) {
+        selectedDate.setHours(0, 0, 0, 0);
+
+        if (selectedDate > today) {
+            instance.clear();
+            alert("Future date is not allowed.");
+        }
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    initDatepickers(document);
 });
 $(document).ready(function(){
 
@@ -473,7 +683,24 @@ signaturePad.clear();
 $('#signature').val('');
 });
 
-$('form').on('submit', function(){
+$('#enquiry_form').on('submit', function(){
+const dateInputs = Array.from(document.querySelectorAll('.datepicker'));
+const today = new Date();
+today.setHours(0,0,0,0);
+
+for (let i = 0; i < dateInputs.length; i++) {
+const input = dateInputs[i];
+if (!input.value) {
+continue;
+}
+const picker = input._flatpickr || null;
+const parsedDate = picker ? picker.parseDate(input.value, "d-m-Y") : null;
+if (parsedDate && parsedDate > today) {
+alert('Future dates are not allowed. Please select today or an earlier date.');
+input.focus();
+return false;
+}
+}
 
 if(!signaturePad.isEmpty()){
 var dataURL = signaturePad.toDataURL();
@@ -482,17 +709,33 @@ $('#signature').val(dataURL);
 
 });
 
+
 }
 
 $('#marital_status').change(function(){
 if($(this).val()=='Married'){ $('#spouse_section').show(); }
 else{ $('#spouse_section').hide(); }
+updateSectionNumbers();
 });
+if($('#marital_status').val()=='Married'){ $('#spouse_section').show(); }
+function updateSectionNumbers(){
+const isMarried = $('#marital_status').val()=='Married';
+$('#spouse_section_title').text('9. Spouse Personal Details');
+$('#children_section_title').text((isMarried ? '10' : '9') + '. How many children you have?');
+}
+updateSectionNumbers();
 
-$('#children_option').change(function(){
-if($(this).val()=='yes'){ $('#children_section').show(); }
-else{ $('#children_section').hide(); }
+function renderChildrenRows() {
+const count = parseInt($('#children_count').val() || '0', 10);
+const rows = $('#children_rows .child-row');
+rows.each(function(index){
+    $(this).toggle(index < count);
 });
+if (count > 0) { $('#children_section').show(); } else { $('#children_section').hide(); }
+}
+
+$('#children_count').change(renderChildrenRows);
+renderChildrenRows();
 
 $('#visa_category').change(function(){
 
@@ -504,15 +747,31 @@ $('#student_funding_section').hide();
 }
 
 });
+if($('#visa_category').val()=='Study'){ $('#student_funding_section').show(); }
 
-function addRow(container,html){ $(container).append(html); }
+let printNameTouched = $('#print_name').val().trim().length > 0;
+$('#print_name').on('input', function(){ printNameTouched = $(this).val().trim().length > 0; });
+if(!$('#print_name').val()){
+    $('#print_name').val($('#full_name').val());
+}
+$('#full_name').on('input', function(){
+    if(!printNameTouched){
+        $('#print_name').val($(this).val());
+    }
+});
+
+function addRow(container,html){
+const newRow = $(html);
+$(container).append(newRow);
+initDatepickers(newRow.get(0));
+}
 
 $(document).on('click','.addResidency',function(){
 addRow('#residency_history',
 '<div class="row mt-2">'+
-'<div class="col-md-3"><input type="text" name="res_country[]" class="form-control"></div>'+
-'<div class="col-md-3"><input type="text" name="res_duration[]" class="form-control"></div>'+
-'<div class="col-md-3"><input type="text" name="res_visa[]" class="form-control"></div>'+
+'<div class="col-md-3"><input type="text" name="res_country[]" class="form-control" placeholder="Country"></div>'+
+'<div class="col-md-3"><input type="text" name="res_duration[]" class="form-control" placeholder="Duration"></div>'+
+'<div class="col-md-3"><input type="text" name="res_visa[]" class="form-control" placeholder="Visa Category"></div>'+
 '<div class="col-md-3"><button type="button" class="btn btn-danger remove">-</button></div>'+
 '</div>');
 });
@@ -520,8 +779,8 @@ addRow('#residency_history',
 $(document).on('click','.addTravel',function(){
 addRow('#travel_history',
 '<div class="row mt-2">'+
-'<div class="col-md-4"><input type="text" name="travel_country[]" class="form-control"></div>'+
-'<div class="col-md-4"><input type="text" name="travel_duration[]" class="form-control"></div>'+
+'<div class="col-md-4"><input type="text" name="travel_country[]" class="form-control" placeholder="Country"></div>'+
+'<div class="col-md-4"><input type="text" name="travel_duration[]" class="form-control" placeholder="Duration"></div>'+
 '<div class="col-md-4"><button type="button" class="btn btn-danger remove">-</button></div>'+
 '</div>');
 });
@@ -529,9 +788,9 @@ addRow('#travel_history',
 $(document).on('click','.addRefusal',function(){
 addRow('#refusal_history',
 '<div class="row mt-2">'+
-'<div class="col-md-3"><input type="text" name="refusal_country[]" class="form-control"></div>'+
-'<div class="col-md-3"><input type="text" name="refusal_date[]" class="form-control datepicker"></div>'+
-'<div class="col-md-4"><input type="text" name="refusal_reason[]" class="form-control"></div>'+
+'<div class="col-md-3"><input type="text" name="refusal_country[]" class="form-control" placeholder="Country"></div>'+
+'<div class="col-md-3"><input type="text" name="refusal_date[]" class="form-control datepicker" placeholder="Refusal Date"></div>'+
+'<div class="col-md-4"><input type="text" name="refusal_reason[]" class="form-control" placeholder="Reason"></div>'+
 '<div class="col-md-2"><button type="button" class="btn btn-danger remove">-</button></div>'+
 '</div>');
 });
@@ -539,26 +798,92 @@ addRow('#refusal_history',
 $(document).on('click','.addWork',function(){
 addRow('#work_experience',
 '<div class="row mt-2">'+
-'<div class="col-md-3"><input type="text" name="job_title[]" class="form-control"></div>'+
-'<div class="col-md-3"><input type="text" name="employer[]" class="form-control"></div>'+
-'<div class="col-md-2"><input type="text" name="work_country[]" class="form-control"></div>'+
-'<div class="col-md-2"><input type="text" name="joining_date[]" class="form-control datepicker"></div>'+
-'<div class="col-md-2"><button type="button" class="btn btn-danger remove">-</button></div>'+
+'<div class="col-md-3"><input type="text" name="job_title[]" class="form-control" placeholder="Job Title"></div>'+
+'<div class="col-md-2"><input type="text" name="employer[]" class="form-control" placeholder="Employer Name"></div>'+
+'<div class="col-md-2"><input type="text" name="work_country[]" class="form-control" placeholder="Country"></div>'+
+'<div class="col-md-2"><input type="text" name="joining_date[]" class="form-control datepicker" placeholder="From (Date)"></div>'+
+'<div class="col-md-2"><input type="text" name="to_date[]" class="form-control datepicker" placeholder="To (Date)"></div>'+
+'<div class="col-md-1"><button type="button" class="btn btn-danger remove">-</button></div>'+
 '</div>');
 });
 
-$(document).on('click','.addChild',function(){
-addRow('#children_rows',
-'<div class="row mt-2">'+
-'<div class="col-md-3"><input type="text" name="child_name[]" class="form-control"></div>'+
-'<div class="col-md-2"><input type="number" name="child_age[]" class="form-control"></div>'+
-'<div class="col-md-2"><select name="child_gender[]" class="form-control"><option>M</option><option>F</option><option>PNTS</option></select></div>'+
-'<div class="col-md-3"><input type="text" name="child_dob[]" class="form-control datepicker"></div>'+
-'<div class="col-md-2"><button type="button" class="btn btn-danger remove">-</button></div>'+
-'</div>');
-});
+function buildChildRow(){
+return '<div class="row child-row mt-2">'+
+'<div class="col-md-3"><input type="text" name="child_name[]" class="form-control" placeholder="Name"></div>'+
+'<div class="col-md-2"><input type="number" name="child_age[]" class="form-control" placeholder="Age"></div>'+
+'<div class="col-md-2"><select name="child_relation[]" class="form-control"><option value="Son">Son</option><option value="Daughter">Daughter</option></select></div>'+
+'<div class="col-md-3"><input type="text" name="child_dob[]" placeholder="Date of Birth" class="form-control datepicker"></div>'+
+'<div class="col-md-2"><div class="form-check mt-2"><input type="checkbox" class="form-check-input" name="child_apply_together['+childRowIndex+']" value="1"><label class="form-check-label">Applying together?</label></div></div>'+
+'</div>';
+}
+
+let childRowIndex = $('#children_rows .child-row').length;
+while ($('#children_rows .child-row').length < 6) {
+    addRow('#children_rows', buildChildRow());
+    childRowIndex++;
+}
 
 $(document).on('click','.remove',function(){ $(this).closest('.row').remove(); });
+
+const countryPreferenceSelects = $('.country-pref-select');
+const allCountryOptions = countryPreferenceSelects.first().find('option').map(function(){
+    return {
+        value: ($(this).attr('value') || '').trim(),
+        text: $(this).text(),
+    };
+}).get().filter(function(option){ return option.value !== ''; });
+
+function getBlockedCountriesForIndex(index, selectedValues) {
+    if (index === 0) {
+        return selectedValues.filter((value, selectedIndex) => value && selectedIndex !== 0);
+    }
+
+    if (index === 1) {
+        return selectedValues.filter((value, selectedIndex) => value && selectedIndex !== 1);
+    }
+
+    return selectedValues.filter((value, selectedIndex) => value && selectedIndex !== 2);
+}
+
+function syncCountryPreferenceOptions() {
+    const selectedValues = countryPreferenceSelects.map(function(){
+        return ($(this).val() || '').trim();
+    }).get();
+
+    countryPreferenceSelects.each(function(selectIndex){
+        const select = $(this);
+        const currentValue = (select.val() || '').trim();
+        const blockedCountries = getBlockedCountriesForIndex(selectIndex, selectedValues);
+        const placeholderText = select.data('placeholder') || 'Preference';
+
+        select.empty();
+        select.append(
+            $('<option></option>')
+                .attr('value', '')
+                .text(placeholderText)
+                .prop('selected', currentValue === '')
+        );
+
+        allCountryOptions.forEach(function(option){
+            if (option.value === currentValue || !blockedCountries.includes(option.value)) {
+                const optionElement = $('<option></option>')
+                    .attr('value', option.value)
+                    .text(option.text);
+
+                if (option.value === currentValue) {
+                    optionElement.prop('selected', true);
+                }
+
+                select.append(optionElement);
+            }
+        });
+    });
+}
+
+countryPreferenceSelects.on('change', function(){
+    syncCountryPreferenceOptions();
+});
+syncCountryPreferenceOptions();
 
 });
 

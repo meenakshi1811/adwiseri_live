@@ -215,7 +215,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 @if ($user->membership == "Adwiseri" || $user->membership == "Adwiseri+" || $user->membership == "Enterprise" || $user->user_type == "admin")
                 <a href="{{ route('sub_reports') }}" @if($page == "reports") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
-                    <i class="fa-solid fa-flag"></i> <!-- Font Awesome icon -->
+                    <i class="fa-solid fa-file-lines"></i> <!-- Font Awesome icon -->
                     </span>
                     Reports
                 </a>
@@ -248,7 +248,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                   @else
                   <a href="{{ route('sub_reports') }}" @if($page == "reports") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
                       <span class="sidebar-menu-icon">
-                          <i class="fa-solid fa-flag"></i> <!-- Font Awesome icon -->
+                          <i class="fa-solid fa-file-lines"></i> <!-- Font Awesome icon -->
                       </span>
                       Reports
                   </a>
@@ -285,7 +285,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 @if($user->user_type == "admin" || ($subscription_roles->read_only == 1 or $subscription_roles->read_write_only == 1))
                 <a href="{{ route('user_membership') }}" @if($page == "user_membership") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
                       <span class="sidebar-menu-icon">
-                      <i class="fa-solid fa-subscript"></i> <!-- Font Awesome icon -->
+                      <i class="fa-solid fa-money-bill-wave"></i> <!-- Font Awesome icon -->
                       </span>
                       Subscription
                   </a>

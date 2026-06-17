@@ -5,132 +5,94 @@
         <div class="col-lg-10 column-client">
             @if(isset($application))
             <div class="client-dashboard">
-                <div class="client-btn d-flex mb-2 ">
-                    <form class="form-inline d-flex justify-content-between w-100">
-                        <h3 class="text-primary">{{ $application->application_name }}</h3>
-                    </form>
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                    <div>
+                        <a href="{{ route('manage_applications') }}" class="text-decoration-none text-muted small">
+                            <i class="fa-solid fa-arrow-left me-1"></i>Back to Applications
+                        </a>
+                        <h3 class="text-primary mb-0 mt-1">{{ $application->application_name }}</h3>
+                    </div>
+                    <span class="badge rounded-pill px-3 py-2 app-status-badge">
+                        {{ $application->application_status }}
+                    </span>
                 </div>
-                <div class="col">
-                    <div class="row px-3">
-                        <div class="col-md-4 p-2 border">
-                            <label style="font-weight:550;">Client ID</label>
-                        </div>
-                        <div class="col-md-8 p-2 border">
-                            {{ $application->client_id }}
-                        </div>
-                        <div class="col-md-4 p-2 border">
-                            <label style="font-weight:550;">Application ID</label>
-                        </div>
-                        <div class="col-md-8 p-2 border">
-                            {{ $application->application_id }}
-                        </div>
-                        <div class="col-md-4 p-2 border">
-                            <label style="font-weight:550;">Application</label>
-                        </div>
-                        <div class="col-md-8 p-2 border">
-                            {{ $application->application_name }}
-                        </div>
-                        <div class="col-md-4 p-2 border">
-                            <label style="font-weight:550;">Application Country</label>
-                        </div>
-                        <div class="col-md-8 p-2 border">
-                            {{ $application->application_country }}
-                        </div>
-                        <div class="col-md-4 p-2 border">
-                            <label style="font-weight:550;">Application Detail</label>
-                        </div>
-                        <div class="col-md-8 p-2 border">
-                            {{ $application->application_detail }}
-                        </div>
-                        <div class="col-md-4 p-2 border">
-                            <label style="font-weight:550;">Application Start Date</label>
-                        </div>
-                        <div class="col-md-8 p-2 border">
-                            {{ date("d-m-Y", strtotime($application->start_date)) }}
-                        </div>
-                        <div class="col-md-4 p-2 border">
-                            <label style="font-weight:550;">Application Status</label>
-                        </div>
-                        <div class="col-md-8 p-2 border">
-                            {{ $application->application_status }}
-                        </div>
-                        <div class="col-md-4 p-2 border">
-                            <label style="font-weight:550;">Application End Date</label>
-                        </div>
-                        <div class="col-md-8 p-2 border">
-                            @if($application->end_date != null)
-                            {{ date("d-m-Y", strtotime($application->end_date)) }}
-                            @endif
+
+                <div class="app-detail-card mb-3">
+                    <div class="app-detail-card-header">
+                        <i class="fa-solid fa-circle-info me-2"></i>Application Details
+                    </div>
+                    <div class="app-detail-card-body">
+                        <div class="row g-0">
+                            <div class="col-md-6">
+                                <div class="app-detail-row">
+                                    <span class="app-detail-label">Client ID</span>
+                                    <span class="app-detail-value">{{ $application->client_id }}</span>
+                                </div>
+                                <div class="app-detail-row">
+                                    <span class="app-detail-label">Application ID</span>
+                                    <span class="app-detail-value">{{ $application->application_id }}</span>
+                                </div>
+                                <div class="app-detail-row">
+                                    <span class="app-detail-label">Application</span>
+                                    <span class="app-detail-value">{{ $application->application_name }}</span>
+                                </div>
+                                <div class="app-detail-row">
+                                    <span class="app-detail-label">Application Country</span>
+                                    <span class="app-detail-value">{{ $application->application_country }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="app-detail-row">
+                                    <span class="app-detail-label">Start Date</span>
+                                    <span class="app-detail-value">{{ date("d-m-Y", strtotime($application->start_date)) }}</span>
+                                </div>
+                                <div class="app-detail-row">
+                                    <span class="app-detail-label">End Date</span>
+                                    <span class="app-detail-value">
+                                        @if($application->end_date != null)
+                                            {{ date("d-m-Y", strtotime($application->end_date)) }}
+                                        @else
+                                            —
+                                        @endif
+                                    </span>
+                                </div>
+                                <div class="app-detail-row">
+                                    <span class="app-detail-label">Status</span>
+                                    <span class="app-detail-value">{{ $application->application_status }}</span>
+                                </div>
+                                <div class="app-detail-row app-detail-row-full">
+                                    <span class="app-detail-label">Additional Information</span>
+                                    <span class="app-detail-value">{{ $application->application_detail ?: '—' }}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                
+
+                @include('web.partials.application_documents_panel', [
+                    'application' => $application,
+                    'documents' => $documents ?? collect(),
+                    'documentsByType' => $documentsByType ?? collect(),
+                    'canDownload' => true,
+                    'showEditActions' => true,
+                    'editRoute' => 'document_update',
+                    'uploadRoute' => route('documents'),
+                ])
             </div>
             @endif
         </div>
     </div>
 
   </div>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
-  </script>
-  <script>
-      $(document).ready(() => {
-        
-          $("#country").change(function(){
-            var country = $(this).val();
-            // console.log(counrty);
-            $.ajax({
-                url: 'get_states',
-                method: 'POST',
-                data: {
-                    "_token": "{{ csrf_token() }}",
-                    country: country,
-                },
-                cache:false,
-                success: function(data){
-                  console.log(data);
-                    $("#state").html(data);
-                }
-            });
-          });
-          $("#client").change(function(){
-            var id = $(this).val();
-            // console.log(counrty);
-            $.ajax({
-                url: 'get_job_role',
-                method: 'POST',
-                data: {
-                    "_token": "{{ csrf_token() }}",
-                    id: id,
-                },
-                cache:false,
-                success: function(data){
-                  console.log(data);
-                    $("#job_role").html(data);
-                }
-            });
-          });
-      });
-  </script>
-  <script>
-      function deleteuser(id){
-          var conf = confirm('Delete User');
-          if(conf == true){
-              window.location.href = "delete_user/"+id+"";
-          }
-      }
-  </script>
-  
+
   @if(session()->has('deleted'))
     <script>
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'Application deleted successfully..'
       })
     </script>
-  
   @endif
 
 @endsection()
-            

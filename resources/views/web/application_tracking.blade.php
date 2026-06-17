@@ -43,18 +43,45 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     flex-wrap: wrap;
 }
 
+.tracking-action-btn.active {
+    background-color: #0d6efd !important;
+    color: #fff !important;
+    border-color: #0d6efd !important;
+    box-shadow: 0 4px 10px rgba(13, 110, 253, 0.25);
+}
+
 .flow-wrapper {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px;
-    align-items: stretch;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+    justify-content: center;
+}
+
+.flow-step {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.flow-arrow {
+    width: 46px;
+    height: 24px;
+    color: #0d6efd;
+    flex: 0 0 auto;
+}
+
+.flow-arrow svg {
+    width: 100%;
+    height: 100%;
+    display: block;
 }
 
 .status-circle {
     width: 220px;
     height: 220px;
     border-radius: 50%;
-    border: 2px solid rgba(0, 87, 217, 0.35);
+    border: 0;
     margin: 0 auto;
     padding: 18px;
     display: flex;
@@ -62,38 +89,40 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     justify-content: center;
     text-align: center;
     box-sizing: border-box;
-    box-shadow: 0 8px 16px rgba(11, 84, 172, 0.08);
+    background: linear-gradient(135deg, var(--circle-color, #0d6efd), var(--circle-color-dark, #0b5ed7));
+    box-shadow: 0 8px 16px rgba(35, 48, 64, 0.18);
+    color: #fff;
 }
 
 .circle-date {
     font-size: 14px;
     font-weight: 700;
-    color: #003f95;
+    color: #fff;
     margin-bottom: 2px;
 }
 
 .circle-range {
     font-size: 13px;
-    color: #1d3e72;
+    color: rgba(255, 255, 255, 0.95);
     font-weight: 600;
 }
 
 .status-circle hr {
     width: 100%;
     margin: 9px 0;
-    border-color: rgba(0, 83, 196, 0.35);
+    border-color: rgba(255, 255, 255, 0.42);
 }
 
 .circle-status {
     font-size: 18px;
     line-height: 1.25;
     font-weight: 700;
-    color: #163c76;
+    color: #fff;
 }
 
 .circle-user {
     font-size: 14px;
-    color: #0f2950;
+    color: rgba(255, 255, 255, 0.95);
     font-weight: 600;
 }
 
@@ -106,6 +135,15 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
     .circle-status {
         font-size: 16px;
+    }
+
+    .flow-step {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .flow-arrow {
+        display: none;
     }
 }
 </style>
@@ -177,9 +215,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <div class="col-md-3 p-1">
                             </div>
                             <div class="col-md-12 p-3 text-center tracking-action-row">
-                                <button type="button" id="view_status" class="btn btn-primary" onclick="viewChart(); verifyDropDowns();">View Status</button>
-                                <button type="button" id="download_status" class="btn btn-outline-primary" onclick="downloadStatus(); verifyDropDowns();">Download Status</button>
-                                <button type="button" id="view_report" class="btn btn-light border" onclick="viewReport(); verifyDropDowns();">View Table</button>
+                                <button type="button" id="view_status" class="btn btn-outline-primary tracking-action-btn" onclick="viewChart(); verifyDropDowns();">View Status</button>
+                                <button type="button" id="download_status" class="btn btn-outline-primary tracking-action-btn" onclick="downloadStatus(); verifyDropDowns();">Download Status</button>
+                                <button type="button" id="view_report" class="btn btn-outline-primary tracking-action-btn" onclick="viewReport(); verifyDropDowns();">View Table</button>
                             </div>
                             
                         </div>
@@ -224,7 +262,25 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
   </script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script>
+    const STATUS_DISPLAY_MAP = {
+        'Preparation': 'App. Preparation',
+        'Applied': 'Applied (waiting for decision)',
+        'Decision': 'Decision Made'
+    };
+
+    function getDisplayStatus(status) {
+        return STATUS_DISPLAY_MAP[status] || status || '--';
+    }
+
+    function setActiveActionButton(activeButtonId) {
+        $('.tracking-action-btn').removeClass('active');
+        if (activeButtonId) {
+            $('#' + activeButtonId).addClass('active');
+        }
+    }
+
     function viewReport() {
+        setActiveActionButton('view_report');
         // Toggle buttons
         $('#view_report').prop('disabled', true);
         $('#view_status').prop('disabled', false);
@@ -235,6 +291,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     }
 
     function viewChart() {
+        setActiveActionButton('view_status');
         // Toggle buttons
         $('#view_status').prop('disabled', true);
         $('#view_report').prop('disabled', false);
@@ -244,30 +301,64 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         $('#report_section').hide();
     }
 
+    function getOptionNameWithoutId(optionText, optionId) {
+        const trimmedText = (optionText || '').trim();
+        if (!optionId) {
+            return trimmedText;
+        }
+
+        return trimmedText.replace(new RegExp(`\\s*\\(${optionId}\\)\\s*$`), '').trim();
+    }
+
+    function sanitizePrintTitle(title) {
+        return title.replace(/[\/:*?"<>|]/g, '').trim() || 'Application Tracking';
+    }
+
     function downloadStatus() {
+        setActiveActionButton('download_status');
         const chartContent = document.getElementById('application_flow_chart').innerHTML;
         if (!chartContent.trim()) {
             return;
         }
 
+        const clientText = $('#client').find('option:selected').text() || '--';
+        const applicationText = $('#application').find('option:selected').text() || '--';
+        const selectedApplicationId = $('#application').val() || '';
+        const selectedApplicationName = getOptionNameWithoutId(applicationText, selectedApplicationId) || 'Application';
+        const applicationNameWithId = `${selectedApplicationName}${selectedApplicationId ? ` (${selectedApplicationId})` : ''}`;
+        const trackingPdfTitle = `Application Tracking - ${applicationNameWithId}`;
+        const trackingFileTitle = `${sanitizePrintTitle(trackingPdfTitle)}.PDF`;
+        const trackingDisplayTitle = trackingPdfTitle;
+
         const printableWindow = window.open('', '_blank');
         printableWindow.document.write(`
             <html>
                 <head>
-                    <title>Application Tracking Status</title>
+                    <title>${trackingFileTitle}</title>
                     <style>
-                        body { font-family: Arial, sans-serif; padding: 20px; }
-                        .flow-wrapper { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 20px; }
-                        .status-circle { width: 220px; height: 220px; border-radius: 50%; border: 2px solid rgba(0, 87, 217, 0.35); margin: 0 auto; padding: 18px; display: flex; flex-direction: column; justify-content: center; text-align: center; box-sizing: border-box; }
-                        .status-circle hr { width: 100%; margin: 9px 0; border-color: rgba(0,83,196,0.35); }
-                        .circle-date { font-size: 14px; font-weight: 700; color: #003f95; }
-                        .circle-range { font-size: 13px; color: #1d3e72; font-weight: 600; }
-                        .circle-status { font-size: 18px; font-weight: 700; color: #163c76; }
-                        .circle-user { font-size: 14px; color: #0f2950; font-weight: 600; }
+                        body { font-family: Arial, sans-serif; padding: 20px; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                        .tracking-summary { margin-bottom: 48px; text-align: center; }
+                        .tracking-title { color: #163c76; font-size: 24px; font-weight: 700; margin: 0 0 10px; }
+                        .summary-row { color: #222; font-size: 16px; font-weight: 600; margin-bottom: 8px; text-align: center; }
+                        .flow-wrapper { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: center; }
+                        .flow-step { display: flex; align-items: center; gap: 14px; }
+                        .flow-arrow { width: 46px; height: 24px; color: #0d6efd; flex: 0 0 auto; } .flow-arrow svg { width: 100%; height: 100%; display: block; }
+                        .status-circle { width: 220px; height: 220px; border-radius: 50%; border: 0; margin: 0 auto; padding: 18px; display: flex; flex-direction: column; justify-content: center; text-align: center; box-sizing: border-box; background: linear-gradient(135deg, var(--circle-color, #0d6efd), var(--circle-color-dark, #0b5ed7)); color: #fff; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                        .status-circle hr { width: 100%; margin: 9px 0; border-color: rgba(255,255,255,0.42); }
+                        .circle-range { font-size: 13px; color: rgba(255, 255, 255, 0.95); font-weight: 600; }
+                        .circle-status { font-size: 18px; font-weight: 700; color: #fff; }
+                        .circle-user { font-size: 14px; color: rgba(255, 255, 255, 0.95); font-weight: 600; }
+                        @media print {
+                            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                        }
                     </style>
                 </head>
                 <body>
-                    <h2>Application Tracking Status</h2>
+                    <div class="tracking-summary">
+                        <h2 class="tracking-title">${trackingDisplayTitle}</h2>
+                        <div class="summary-row">Client :- ${clientText}</div>
+                        <div class="summary-row">Application :- ${applicationNameWithId}</div>
+                    </div>
                     <div>${chartContent}</div>
                 </body>
             </html>
@@ -277,25 +368,56 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         printableWindow.print();
     }
 
+    function formatDateRange(item) {
+        const startDate = item.start_date || '--';
+        const endDate = item.end_date || '';
+        if (!endDate || endDate === '--') {
+            return `${startDate} - `;
+        }
+
+        if (startDate === endDate) {
+            return startDate;
+        }
+
+        return `${startDate} - ${endDate}`;
+    }
+
+
+    function getCircleColors(index) {
+        const palette = [
+            ['#0d6efd', '#0b5ed7'],
+            ['#20c997', '#159570'],
+            ['#6f42c1', '#59349d'],
+            ['#fd7e14', '#d76400'],
+            ['#dc3545', '#b02a37'],
+            ['#198754', '#13653f'],
+            ['#0dcaf0', '#0998b3'],
+            ['#6610f2', '#4b0cb8']
+        ];
+        return palette[index % palette.length];
+    }
+
+    function getArrowMarkup() {
+        return `<div class="flow-arrow" aria-hidden="true"><svg viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg"><line x1="8" y1="30" x2="98" y2="30" stroke="currentColor" stroke-width="10" stroke-linecap="round"/><polygon points="92,10 114,30 92,50" fill="currentColor"/></svg></div>`;
+    }
+
     function renderFlowChart(statuses) {
-      const circleColors = [
-        '#e8f0ff', '#e6fbf3', '#fff5e8', '#f8edff', '#ffeaf1', '#eaf8ff', '#f5ffe8'
-      ];
       let html = '<div class="flow-wrapper">';
       
       statuses.forEach((item, index) => {
-          const circleBgColor = circleColors[index % circleColors.length];
-          const dateText = item.start_date || item.end_date ? `Date ${index + 1}` : `Date ${index + 1}`;
-          const dateRange = (item.start_date || '--') + ' - ' + (item.end_date || '--');
+          const dateRange = formatDateRange(item);
+          const colors = getCircleColors(index);
 
           html += `
-              <div class="status-circle" style="background:${circleBgColor};">
-                  <div class="circle-date">${dateText}</div>
-                  <div class="circle-range">${dateRange}</div>
-                  <hr>
-                  <div class="circle-status">${item.status || '--'}</div>
-                  <hr>
-                  <div class="circle-user">${item.user || '--'}</div>
+              <div class="flow-step">
+                  <div class="status-circle" style="--circle-color: ${colors[0]}; --circle-color-dark: ${colors[1]}; background: linear-gradient(135deg, ${colors[0]}, ${colors[1]});">
+                      <div class="circle-range">${dateRange}</div>
+                      <hr>
+                      <div class="circle-status">${getDisplayStatus(item.status)}</div>
+                      <hr>
+                      <div class="circle-user">${item.user || '--'}</div>
+                  </div>
+                  ${index < statuses.length - 1 ? getArrowMarkup() : ''}
               </div>
           `;
       });
@@ -370,6 +492,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 $('#chart_section').hide();
                 $('#view_report').prop('disabled', false);
                 $('#view_status').prop('disabled', false);
+                setActiveActionButton(null);
             } else {
                 
                 $('#tracking_id').css("color", "#0D6EFD"); 
@@ -384,8 +507,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
               const applicationId = $(this).val();
               const applicationText = $(this).find('option:selected').text();  // This gets the text of the selected option
               if (applicationId) {
-                  $.ajax({
-                      url: '/admin/get-application-data/' + applicationId,
+                          $.ajax({
+                      url: '{{ route('application.data', '') }}/' + applicationId,
                       type: 'GET',
                       success: function (data) {
                           let rows = '';
@@ -394,26 +517,28 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             $('#tracking_id').text(applicationText);  // Assuming data[0].name contains the desired text
                             viewReport();
                             verifyDropDowns();
-                              data.forEach(item => {
-                                  rows += `
-                                      <tr>
-                                          <td class="text-center">${item.index}</td>
-                                          <td class="text-center">${item.status}</td>
-                                          <td class="text-center">${item.start_date} - ${item.end_date}</td>
-                                          <td class="text-center">${item.user}</td>
-                                      </tr>
-                                  `;
-                              });
                           } else {
                               rows = `<tr><td colspan="4" class="text-center">No data found.</td></tr>`;
                               $('#tracking_id').text('No application selected');  // Fallback text when no data
                           }
 
+                          const trackedStatuses = data || [];
+                          trackedStatuses.forEach(item => {
+                                  rows += `
+                                      <tr>
+                                          <td class="text-center">${item.index}</td>
+                                          <td class="text-center">${getDisplayStatus(item.status)}</td>
+                                          <td class="text-center">${formatDateRange(item)}</td>
+                                          <td class="text-center">${item.user}</td>
+                                      </tr>
+                                  `;
+                              });
+
                           $('#application_table_body').html(rows);
-                          renderFlowChart(data);
+                          renderFlowChart(trackedStatuses);
                       },
                       error: function () {
-                          alert('Failed to fetch application data.');
+                          alert('Failed to fetch application data. Please try again.');
                           $('#application_table_body').html('');
                           $('#tracking_id').text('Error loading application data');  // Fallback text in case of error
                       }
@@ -428,7 +553,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
   <script>
     function deleteapplication(id){
-        var conf = confirm('Delete Application');
+        var conf = confirm('Are you sure you want to delete this application?');
         if(conf == true){
             window.location.href = "delete_application/"+id+"";
         }
@@ -440,7 +565,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         $("#add_new_zero").click(function(){
             Swal.fire({
             icon: 'info',
-            title: 'Oops...',
+            title: 'Oops!',
             text: 'There is no applications created.'
             });
         });
@@ -452,7 +577,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Application Deleted Successfully!'
+      text: 'Application deleted successfully..'
     })
   </script>
 
@@ -462,7 +587,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'New Application Added Successfully!'
+      text: 'Application added successfully.'
     })
   </script>
 
@@ -472,7 +597,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Application Updated Successfully!'
+      text: 'Application updated successfully.'
     })
   </script>
 

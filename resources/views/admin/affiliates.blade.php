@@ -466,7 +466,11 @@
                 },
                 success: function(data) {
                     // log response into console
-                    Swal.fire("Status changed successfully!");
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: 'Status changed successfully.'
+                    });
                     $('#referalTable').DataTable().ajax.reload();
 
                 }

@@ -245,7 +245,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Congratulations',
-        text: 'Membership Plan Updated Successfully.'
+        text: 'Membership plan updated successfully.'
       })
     </script>
   

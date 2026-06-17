@@ -20,7 +20,7 @@
                             </div>
                             <div class="col-md-8 p-1">
                                 <select name="client_id" id="client_id" class="form-control form-select @error('client_id') is-invalid @enderror" required>
-                                    <option value="" {{ old('client_id') ? '' : 'selected' }}>Select Client ID</option>
+                                    <option value="" {{ old('client_id') ? '' : 'selected' }}>Select Client</option>
                                     @foreach($clients as $client)
                                         <option value="{{ $client->id }}" {{ $document->client_id == $client->id ? 'selected' : '' }}>
                                             {{ $client->name }} ({{ $client->id }})
@@ -104,9 +104,7 @@
                                 </span>
                             @enderror
                             </div>
-                            <div class="col-md-4 p-1">
-                            </div>
-                            <div class="col-md-8 text-left p-1">
+                            <div class="col-12 p-1 adwiseri-form-actions">
                                 <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                             </div>
                         </div>
@@ -130,7 +128,7 @@
                             </div>
                             <div class="col-md-8 p-1">
                                 <select name="client_id" id="client_id" class="form-control form-select @error('client_id') is-invalid @enderror" required>
-                                    <option value="" {{ old('client_id') ? '' : 'selected' }}>Select Client ID</option>
+                                    <option value="" {{ old('client_id') ? '' : 'selected' }}>Select Client</option>
                                     @foreach($clients as $client)
                                         <option value="{{ $client->id }}" {{ old('client_id') == $client->id ? 'selected' : '' }}>
                                             {{ $client->name }} ({{ $client->id }})
@@ -217,9 +215,7 @@
                                 </span>
                             @enderror
                             </div>
-                            <div class="col-md-4 p-1">
-                            </div>
-                            <div class="col-md-8 text-left p-1">
+                            <div class="col-12 p-1 adwiseri-form-actions">
                                 <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                             </div>
                         </div>
@@ -277,7 +273,7 @@
           var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.pdf|\.JPG|\.JPEG|\.PNG|\.PDF)$/i;
           if (!allowedExtensions.exec(filepath)) {
               Swal.fire({
-                  title: "Oops..",
+                  title: "Oops!",
                   icon:"info",
                   html: "Please select valid file format <br>( jpg, jpeg, png or pdf )"
               });
@@ -287,9 +283,9 @@
           const size = (this.files[0].size / 1024 / 1024).toFixed(2);
           if (size > 4) {
               Swal.fire({
-                  title: "Oops..",
+                  title: "Oops!",
                   icon:"info",
-                  html: "Please select file upto 4MB"
+                  html: "Please select a file up to 4 MB."
               });
               $(this).val("");
               return false;
@@ -299,7 +295,7 @@
   </script>
   <script>
       function deleteuser(id){
-          var conf = confirm('Delete User');
+          var conf = confirm('Are you sure you want to delete this document?');
           if(conf == true){
               window.location.href = "delete_user/"+id+"";
           }
@@ -311,7 +307,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'Document deleted successfully..'
       })
     </script>
 

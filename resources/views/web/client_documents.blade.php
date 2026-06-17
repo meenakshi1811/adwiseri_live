@@ -55,7 +55,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             </div>
                             <div class="col-md-8 p-1">
                                 <select name="client_id" id="client_id" class="form-control form-select @error('client_id') is-invalid @enderror" required>
-                                    <option value="" {{ old('client_id') ? '' : 'selected' }}>Select Client ID</option>
+                                    <option value="" {{ old('client_id') ? '' : 'selected' }}>Select Client</option>
                                     @foreach($clients as $client)
                                         <option value="{{ $client->id }}" {{ old('client_id') == $client->id ? 'selected' : '' }}>
                                             {{ $client->name }} ({{ $client->id }})
@@ -142,7 +142,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 </span>
                             @enderror
                             </div>
-                            <div class="col text-end p-1">
+                            <div class="col text-center p-1">
                                 <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                             </div>
                         </div>
@@ -218,7 +218,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
       function updatedocument(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to update this record!",
+          text: "Do you want to update this record?",
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#3085d6',
@@ -239,8 +239,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         $("#add_new_zero").click(function(){
             Swal.fire({
             icon: 'info',
-            title: 'Oops...',
-            text: 'There is no client created.'
+            title: 'Oops!',
+            text: 'No clients have been created yet.'
             });
         });
 
@@ -279,7 +279,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
           var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.pdf|\.JPG|\.JPEG|\.PNG|\.PDF)$/i;
           if (!allowedExtensions.exec(filepath)) {
               Swal.fire({
-                  title: "Oops..",
+                  title: "Oops!",
                   icon:"info",
                   html: "Please select valid file format <br>( jpg, jpeg, png or pdf )"
               });
@@ -289,9 +289,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
           const size = (this.files[0].size / 1024 / 1024).toFixed(2);
           if (size > 4) {
               Swal.fire({
-                  title: "Oops..",
+                  title: "Oops!",
                   icon:"info",
-                  html: "Please select file upto 4MB"
+                  html: "Please select a file up to 4 MB."
               });
               $(this).val("");
               return false;
@@ -304,7 +304,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
   @if($errors->has('doc_file'))
     <script>
       Swal.fire({
-        title: 'Oops..',
+        title: 'Oops!',
         icon: 'info',
         html: @json($errors->first('doc_file'))
       })
@@ -316,7 +316,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Document Deleted Successfully!'
+        text: 'Document deleted successfully..'
       })
     </script>
 
@@ -326,7 +326,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'New Document Added Successfully!'
+        text: 'Document added successfully.'
       })
     </script>
 
@@ -336,7 +336,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Document Updated Successfully!'
+        text: 'Document updated successfully.'
       })
     </script>
 

@@ -85,14 +85,14 @@
 });
   function deleteuser(id){
       var localtime = new Date();
-      var conf = confirm('Delete User');
+      var conf = confirm('Are you sure you want to delete this user?');
       if(conf == true){
           window.location.href = "delete_siteuser/"+id+"/"+localtime.toString()+"";
       }
   }
     function userstatus(id){
         var localtime = new Date();
-        var conf = confirm('Are you sure about activating/deactivating selected User ?');
+        var conf = confirm('Are you sure you want to change this user's status?');
         if(conf == true){
             window.location.href = "subscriber_status/"+id+"/"+localtime.toString()+"";
         }
@@ -102,8 +102,8 @@
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'User Added Successfully.'
+      title: 'Success',
+      text: 'User added successfully.'
     })
   </script>
 
@@ -113,7 +113,7 @@
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'User Deleted Successfully!'
+      text: 'User deleted successfully.'
     })
   </script>
 
@@ -123,7 +123,7 @@
     Swal.fire({
       icon: 'warning',
       title: 'User Limit Reached!',
-      text: 'Upgrade membership to add more Users!',
+      text: 'Upgrade your membership to add more users.',
       showCancelButton: true,
       confirmButtonText: 'Upgrade',
       cancelButtonText: 'Will do it later',
@@ -142,7 +142,7 @@
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'User Status Changed Successfully!'
+      text: 'User status changed successfully.'
     })
   </script>
 

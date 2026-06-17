@@ -94,17 +94,15 @@
                                 <label>Payment Due Date<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="due_date" required type="date" min="{{date('d-m-Y')}}" class="form-control date @error('due_date') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('due_date', date('Y-m-d')) }}"
-                                placeholder="Payment Due Date" autocomplete="due_date">
+                                <input name="due_date" required type="text" class="form-control datepicker @error('due_date') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('due_date', date('d-m-Y')) }}"
+                                placeholder="dd-mm-yyyy" autocomplete="due_date" pattern="\d{2}-\d{2}-\d{4}">
                             @error('due_date')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
                                 </span>
                             @enderror
                             </div>
-                            <div class="col-md-4 p-1">
-                            </div>
-                            <div class="col-md-8 text-left p-1">
+                            <div class="col-12 p-1 adwiseri-form-actions">
                                 <button type="submit" id="invoice_submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                             </div>
                         </div>
@@ -116,10 +114,19 @@
     </div>
 
   </div>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>
       $(document).ready(() => {
+          flatpickr('.datepicker', {
+            dateFormat: "d-m-Y",
+            defaultDate: $('input[name="due_date"]').val() || "today",
+            allowInput: true,
+            clickOpens: true
+          });
+
           $("#country").change(function(){
             var country = $(this).val();
             // console.log(counrty);
@@ -160,7 +167,7 @@
   </script>
   <script>
       function deleteuser(id){
-          var conf = confirm('Delete User');
+          var conf = confirm('Are you sure you want to delete this invoice?');
           if(conf == true){
               window.location.href = "delete_user/"+id+"";
           }
@@ -172,7 +179,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'Invoice deleted successfully.'
       })
     </script>
   

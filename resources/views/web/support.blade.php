@@ -15,8 +15,8 @@ $setting_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Support')->first();
 @endphp
     <div class="col-lg-10 column-client">
-        <div class="col d-flex justify-content-between">
-            <h3 class="text-primary px-2">Support</h3>
+        <div class="col d-flex align-items-center">
+            <h3 class="text-primary px-2 flex-grow-1 text-center m-0">Support</h3>
             @if($support_roles->write_only == 1 or $support_roles->read_write_only == 1)
             <a href="{{ route('ask_support') }}"><b>Ask For Support (Raise Ticket)</b></a>
             @endif
@@ -56,7 +56,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             Swal.fire({
                 icon: 'success',
                 title: 'Thank You',
-                text: 'Message sent successfully to Support. Support team will contact you soon..',
+                text: 'Message sent successfully to Support. Support team will contact you soon.',
             });
         </script>
     @endif

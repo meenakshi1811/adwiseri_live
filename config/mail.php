@@ -123,4 +123,17 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Email Broadcast Queue Settings
+    |--------------------------------------------------------------------------
+    |
+    | Large broadcasts are processed in background queue jobs. Each job sends
+    | a chunk of recipients, then queues the next chunk after a short delay.
+    |
+    */
+
+    'broadcast_chunk_size' => env('MAIL_BROADCAST_CHUNK_SIZE', 25),
+    'broadcast_chunk_delay_seconds' => env('MAIL_BROADCAST_CHUNK_DELAY', 2),
+
 ];

@@ -13,7 +13,7 @@
 
                 <div class="mb-4">
                     <input type="text" name="otp" class="form-control mb-2" id="exampleInputOTP" aria-describedby="otpHelp" placeholder="Enter OTP">
-                    <p id="suc_msg" class="bg-success text-white" style="display: none;">OTP Sent Successfully.</p>
+                    <p id="suc_msg" class="bg-success text-white" style="display: none;">OTP sent successfully.</p>
                     <p id="err_msg" class="bg-danger text-white" style="display: none;">OTP Not Sent.</p>
                     @if(session('emailerror'))
                         <span class="text-danger" role="alert">
@@ -84,7 +84,7 @@
   <script>
     Swal.fire({
       icon: 'error',
-      title: 'Oops..',
+      title: 'Oops!',
       text: 'No user found.'
     });
   </script>

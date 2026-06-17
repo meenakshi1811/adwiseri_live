@@ -58,7 +58,7 @@
                                     </span>
                                 @enderror
                             </div>
-                            <div class="col text-end p-1">
+                            <div class="col text-start p-1">
                                 <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                             </div>
                         </div>
@@ -89,7 +89,7 @@
       function updateassignmentt(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to update this record!",
+          text: "Do you want to update this record?",
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#3085d6',
@@ -144,7 +144,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Application Assignment Deleted Successfully!'
+        text: 'Application Assignment deleted successfully..'
       })
     </script>
   
@@ -154,7 +154,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'New Assignment Added Successfully!'
+        text: 'Assignment added successfully..'
       })
     </script>
   
@@ -164,7 +164,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Assignment Updated Successfully!'
+        text: 'Assignment updated successfully.'
       })
     </script>
   

@@ -56,6 +56,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <th class="p-1 text-center">Discount</th>
                             <th class="p-1 text-center">Tax</th>
                             <th class="p-1 text-center">Total</th>
+                            <th class="p-1 text-center">Upload Invoice</th>
                             <th class="p-1 text-center">Status</th>
                             <th class="p-1 text-center">Due Date</th>
                             <th class="p-1 text-center">Action</th>
@@ -67,9 +68,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 <td class="p-1 text-center">{{ $key + 1 }}</td>
                                 <td class="p-1 text-center">{{ $invoice->invoice_no }}</td>
                                 <td  data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $invoice->to_name }}"  class="p-1 text-center" style="position: relative;">@if(strlen($invoice->to_name) > 22){{ substr($invoice->to_name, 0, 22) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">
-                                {{$invoice->to_name}} @php $data = \App\Models\Clients::where('name', $invoice->to_name)->where('user_id', $invoice->user_id)->first(); if($data){ echo "($data->id)"; }   @endphp </span> 
-                                @else 
-                                {{$invoice->to_name}}  @php $data = \App\Models\Clients::where('name', $invoice->to_name)->where('user_id', $invoice->user_id)->first(); if($data){ echo "($data->id)"; }   @endphp 
+                                {{$invoice->to_name}}{{ !empty($invoice->vendor_id) ? ' (' . $invoice->vendor_id . ')' : '' }}</span>
+                                @else
+                                {{$invoice->to_name}}{{ !empty($invoice->vendor_id) ? ' (' . $invoice->vendor_id . ')' : '' }}
                                 @endif</td>
                                 <td class="p-1 text-center">{{ $invoice->detail }}</td>
                                 {{-- <td style="position: relative;">@if(strlen($invoice->to_email) > 22){{ substr($invoice->to_email, 0, 22) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$invoice->to_email}}</span> @else {{$invoice->to_email}} @endif</td> --}}
@@ -77,6 +78,13 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 <td class="p-1 text-center">{{ $invoice->discount }}%</td>
                                 <td class="p-1 text-center">{{ $invoice->tax }}%</td>
                                 <td class="p-1 text-center">{{ $invoice->total }}</td>
+                                <td class="p-1 text-center">
+                                    @if(!empty($invoice->uploaded_invoice))
+                                        <a href="{{ asset('web_assets/users/' . $invoice->uploaded_invoice) }}" target="_blank" rel="noopener noreferrer">View PDF</a>
+                                    @else
+                                        -
+                                    @endif
+                                </td>
                                 <td class="p-1 text-center">
                                     @if($user->user_type == "Subscriber")
                                     <select class="form-control" id="inv_status{{$invoice->id}}" style="font-size: 14px;">
@@ -92,7 +100,11 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 <td class="p-1 text-center">{{ $invoice->formatted_due_date }} </td>
                                 <td class="p-1 text-center"><a style="background:none; border:none;" @if($invoice_roles->read_only == 1 or $invoice_roles->read_write_only == 1)
                                         href="{{ route('view_invoice', $invoice->id) }}" @else href="#" @endif class="m-0 p-0"><i
-                                            class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a></td>
+                                            class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>
+                                    @if($invoice_roles->write_only == 1 or $invoice_roles->read_write_only == 1)
+                                        <a style="background:none; border:none;" href="{{ route('edit_invoice_ap', $invoice->id) }}" class="m-0 p-0" title="Edit Invoice"><i class="fa-solid fa-pen-to-square p-1 text-primary" style="font-size:14px;"></i></a>
+                                    @endif
+                                </td>
                             </tr>
                         @endforeach
 
@@ -114,6 +126,17 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     </script>
     <script>
           document.addEventListener("DOMContentLoaded", function() {
+    const headerCells = Array.from(document.querySelectorAll("#clientTable thead th"));
+    const uploadHeaderIndex = headerCells.findIndex((th) => (th.textContent || "").trim().toLowerCase() === "upload invoice");
+    if (uploadHeaderIndex !== -1) {
+        headerCells[uploadHeaderIndex].remove();
+        document.querySelectorAll("#clientTable tbody tr").forEach((row) => {
+            const rowCells = row.querySelectorAll("td");
+            if (rowCells[uploadHeaderIndex]) {
+                rowCells[uploadHeaderIndex].remove();
+            }
+        });
+    }
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
@@ -121,7 +144,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 });
         function deleteinvoice(id) {
             var localtime = new Date();
-            var conf = confirm('Delete Invoice');
+            var conf = confirm('Are you sure you want to delete this invoice?');
             if (conf == true) {
                 window.location.href = "delete_invoice/" + id + "/" + localtime.toString() + "";
             }
@@ -148,7 +171,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Invoice Status Updated Successfully!'
+                                text: 'Invoice status updated successfully.'
                             })
                         }
                     }
@@ -160,8 +183,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         <script>
             Swal.fire({
                 icon: 'success',
-                title: 'Congratulations',
-                text: 'User Added Successfully.'
+                title: 'Success',
+                text: 'Invoice created successfully.'
             })
         </script>
     @endif
@@ -170,7 +193,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'User Deleted Successfully!'
+                text: 'Invoice deleted successfully.'
             })
         </script>
     @endif
@@ -178,7 +201,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         <script>
             Swal.fire({
                 icon: 'warning',
-                title: 'Oops...',
+                title: 'Oops!',
                 text: 'No clients found.'
             })
         </script>

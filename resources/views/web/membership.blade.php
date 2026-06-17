@@ -171,9 +171,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                   @if(isset($myplan))
                     @if($plan->plan_order < $myplan->plan_order)
                       @if($plan->plan_name == "Free" or $plan->plan_name == "Free Plan")
-                      <button class="subscribe-btn" onclick="Swal.fire({ icon: 'warning', title: 'New Subscriber Only', html: 'FREE plan is available to new subscribers only.' });">Free</button>
+                      <button class="subscribe-btn" onclick="Swal.fire({ icon: 'warning', title: 'New subscribers only', html: 'The free plan is available to new subscribers only.' });">Free</button>
                       @elseif(count($total_users)>$plan->no_of_users or count($total_clients)>$plan->client_limit)
-                      <button class="subscribe-btn" onclick="Swal.fire({ icon: 'warning', title: 'User/Client Limit', text: 'User/Client limit of this plan is less than your registered no. of users/clients.' });">Downgrade</button>
+                      <button class="subscribe-btn" onclick="Swal.fire({ icon: 'warning', title: 'User/Client Limit', text: 'This plan's user/client limit is lower than your current number of users and clients.' });">Downgrade</button>
                       @elseif((new DateTime("now")) > (new DateTime($subscriber->membership_expiry_date)))
                       <button class="subscribe-btn" @if($user->user_type == "Subscriber") @endif >
                         Downgrade
@@ -237,7 +237,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
         icon: 'success',
         title: 'Congratulations',
-        text: 'Profile Updated Successfully.'
+        text: 'Profile updated successfully. successfully.'
     })
 </script>
 @endif
@@ -245,8 +245,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     <script>
       Swal.fire({
         icon: 'warning',
-        title: 'Membership Expired!',
-        text: 'Please Renew or Upgrade Your Membership!'
+        title: 'Membership expired',
+        text: 'Please renew or upgrade your membership.'
       })
     </script>
 

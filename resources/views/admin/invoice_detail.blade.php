@@ -104,13 +104,17 @@
                     <img src="{{ asset('web_assets/users/user'.$invoice->user_id.'/' . $invoice->logo) }}" alt="Logo" style="max-height:70px; object-fit:contain;">
                 @endif
             </div>
-            <div>
-                <button 
-                    class="download-btn"
-                        onclick="download_invoice({{ $invoice->id }})"
-                >Download PDF</button>
+            <div class="invoice-page-actions">
+                <button type="button" class="invoice-btn invoice-btn-primary" onclick="download_invoice({{ $invoice->id }})">
+                    <i class="fa-solid fa-download"></i> Download PDF
+                </button>
+                <a href="{{ route('admin_edit_invoice', $invoice->id) }}" class="invoice-btn invoice-btn-outline">
+                    <i class="fa-solid fa-pen-to-square"></i> Edit Invoice
+                </a>
             </div>
         </div>
+
+        @include('web.partials.invoice_audit_bar')
 
         <h3 class="text-primary text-center">Invoice</h3>
         <div class="d-flex justify-content-center align-items-center mb-3">
@@ -256,19 +260,29 @@
   </script>
   <script>
       function deleteuser(id){
-          var conf = confirm('Delete User');
+          var conf = confirm('Are you sure you want to delete this invoice?');
           if(conf == true){
               window.location.href = "delete_user/"+id+"";
           }
       }
   </script>
 
+  @if(session()->has('invoice_updated'))
+    <script>
+      Swal.fire({
+        icon: 'success',
+        title: 'Success',
+        text: 'Invoice updated successfully.'
+      })
+    </script>
+  @endif
+
   @if(session()->has('deleted'))
     <script>
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'Invoice deleted successfully.'
       })
     </script>
 

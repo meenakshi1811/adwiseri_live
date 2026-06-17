@@ -93,7 +93,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 </script>
 <script>
     function deleteuser(id){
-        var conf = confirm('Delete User');
+        var conf = confirm('Are you sure you want to delete this payment?');
         if(conf == true){
             window.location.href = "delete_siteuser/"+id+"";
         }
@@ -103,8 +103,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'User Added Successfully.'
+      title: 'Success',
+      text: 'Payment recorded successfully.'
     })
   </script>
 
@@ -114,7 +114,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'User Deleted Successfully!'
+      text: 'Payment deleted successfully.'
     })
   </script>
 
@@ -124,7 +124,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'warning',
       title: 'User Limit!',
-      text: 'Upgrade membership to add more Users!'
+      text: 'Upgrade your membership to add more users.'
     })
   </script>
 

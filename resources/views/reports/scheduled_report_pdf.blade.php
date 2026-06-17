@@ -147,7 +147,11 @@ tr:nth-child(even){
                     <tr>
                         @foreach ($columns as $column)
                             <td>
-                                {{ is_array($row[$column]) ? json_encode($row[$column]) : $row[$column] }}
+                                @if ($column === 'created_at' && !empty($row[$column]))
+                                    {{ \Carbon\Carbon::parse($row[$column])->format('d-m-Y H:i:s') }}
+                                @else
+                                    {{ is_array($row[$column]) ? json_encode($row[$column]) : $row[$column] }}
+                                @endif
                             </td>
                         @endforeach
                     </tr>

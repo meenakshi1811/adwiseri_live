@@ -41,12 +41,17 @@ class Invoicemail extends Mailable
 
         $mail = $this->subject('New Invoice');
 
+        // ✅ FROM
         if (!empty($data->from_email)) {
             $mail->from($data->from_email, $data->from_name ?? null);
         }
 
+        // ✅ REPLY-TO (FIXED HERE)
         if (!empty($data->reply_to_email)) {
-            $mail->replyTo($data->reply_to_email, $data->reply_to_name ?? null);
+            $mail->replyTo(
+                $data->reply_to_email,
+                $data->reply_to_name ?? null
+            );
         }
 
         return $mail->view('web.invoicetemplate', compact('data'))

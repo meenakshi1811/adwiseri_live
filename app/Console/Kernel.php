@@ -28,7 +28,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('export:cron')->monthlyOn(date("t"), '23:00:00');
-        $schedule->command('reports:dispatch-scheduled')->everyThirtyMinutes();
+        $schedule->command('reports:dispatch-scheduled')->everyMinute();
         $schedule->command('subscriptions:send-reminders')->dailyAt('00:00');
         $schedule->command('payments:send-reminders')->dailyAt('01:00');
         $schedule->command('activate:system-ops')->daily()->when(function () {

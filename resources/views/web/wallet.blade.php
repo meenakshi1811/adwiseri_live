@@ -227,8 +227,8 @@
 <script>
     Swal.fire({
         icon: 'success',
-        title: 'Congratulations',
-        text: 'Amount added Successfully.'
+        title: 'Success',
+        text: 'Amount added successfully.'
     })
 </script>
 @endif

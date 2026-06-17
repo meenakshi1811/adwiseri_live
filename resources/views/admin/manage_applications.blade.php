@@ -59,7 +59,7 @@
                             <td class="text-center" style="position: relative;">{{  $app->application_name. ' (' .$app->application_id. ')'  }}</td>
                             {{-- <td style="position: relative;">@if(strlen($app->application_name) > 22){{ substr($app->application_name, 0, 22) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$app->application_name}}</span> @else {{$app->application_name}} @endif</td> --}}
 
-                            <td class="text-center">{{ $app->visa_country }}</td>
+                            <td class="text-center">{{ $app->visa_country ?: ($app->client->visa_country ?? '') }}</td>
                             <td class="text-center">{{ $app->application_country }}</td>
                             <td class="text-center">{{ $app->application_status }}</td>
                             <td class="text-center">{{ date("d-m-Y", strtotime($app->start_date)) }}</td>
@@ -108,7 +108,7 @@
       function updateapplication(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to update this record!",
+          text: "Do you want to update this record?",
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#3085d6',
@@ -127,7 +127,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Application Deleted Successfully!'
+        text: 'Application deleted successfully..'
       })
     </script>
 
@@ -137,7 +137,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'New Application Added Successfully!'
+        text: 'Application added successfully.'
       })
     </script>
 
@@ -147,7 +147,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Application Updated Successfully!'
+        text: 'Application updated successfully.'
       })
     </script>
 

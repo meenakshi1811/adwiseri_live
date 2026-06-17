@@ -10,7 +10,7 @@
                     </form>
                 </div>
                 <div class="col">
-                    <form id="registration_form" class="register-box login-box" method="POST"
+                    <form id="registration_form" class="register-box login-box" method="POST" enctype="multipart/form-data"
                         action="{{ route('create_new_invoice_ap') }}" onsubmit="document.getElementById('invoice_submit').setAttribute('disabled','true');">
                         @csrf
                         <input type="hidden" name="local_time" class="localtime" />
@@ -55,12 +55,12 @@
                                 @enderror
                             </div>
                             <div class="col-md-4 p-1">
-                                <label>Amount To Pay<span class="text-danger" style="font-size: 18px;">*</span></label>
+                                <label>Subtotal<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="amount" required type="number" min="0"
+                                <input name="amount" required type="number" min="0" step="0.01"
                                     class="form-control @error('amount') is-invalid @enderror" id="exampleInputEmail1"
-                                    aria-describedby="emailHelp" value="{{ old('amount') }}" placeholder="Amount"
+                                    aria-describedby="emailHelp" value="{{ old('amount') }}" placeholder="Subtotal"
                                     autocomplete="amount">
                                 @error('amount')
                                     <span class="invalid-feedback" role="alert">
@@ -68,14 +68,14 @@
                                     </span>
                                 @enderror
                             </div>
-                            {{-- <div class="col-md-4 p-1">
-                                <label>Discount</label>
+                            <div class="col-md-4 p-1">
+                                <label>Discount (%)<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="discount" type="number"
+                                <input name="discount" id="discount_percent" type="number" min="0" max="100" step="0.01" required
                                     class="form-control @error('discount') is-invalid @enderror" id="exampleInputEmail1"
                                     aria-describedby="emailHelp" value="{{ old('discount') }}" required
-                                    placeholder="Discount" autocomplete="discount">
+                                    placeholder="Discount (%)" autocomplete="discount">
                                 @error('discount')
                                     <span class="invalid-feedback" role="alert">
                                         <strong>{{ $message }}</strong>
@@ -83,10 +83,10 @@
                                 @enderror
                             </div>
                             <div class="col-md-4 p-1">
-                                <label>Tax (%)</label>
+                                <label>Tax (%)<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="tax" type="number" min=0 max="100"
+                                <input name="tax" id="tax_percent" type="number" min=0 max="100" step="0.01" required
                                     class="form-control @error('tax') is-invalid @enderror" id="exampleInputEmail1"
                                     aria-describedby="emailHelp" value="{{ old('tax') }}" required
                                     placeholder="tax percent(%)" autocomplete="tax">
@@ -95,7 +95,32 @@
                                         <strong>{{ $message }}</strong>
                                     </span>
                                 @enderror
-                            </div> --}}
+                            </div>
+                            <div class="col-md-4 p-1">
+                                <label>Total To Pay<span class="text-danger" style="font-size: 18px;">*</span></label>
+                            </div>
+                            <div class="col-md-8 p-1">
+                                <input name="total_to_pay" id="total_to_pay" type="number" min="0" step="0.01" required
+                                    class="form-control @error('total_to_pay') is-invalid @enderror"
+                                    value="{{ old('total_to_pay') }}" placeholder="Total To Pay" autocomplete="total_to_pay">
+                                @error('total_to_pay')
+                                    <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                @enderror
+                            </div>
+                            <div class="col-md-4 p-1">
+                                <label>Upload Invoice (PDF)<span class="text-danger" style="font-size: 18px;">*</span></label>
+                            </div>
+                            <div class="col-md-8 p-1">
+                                <input name="upload_invoice" id="upload_invoice" type="file" accept="application/pdf,.pdf" required
+                                    class="form-control @error('upload_invoice') is-invalid @enderror">
+                                @error('upload_invoice')
+                                    <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                @enderror
+                            </div>
                             <div class="col-md-4 p-1">
                                 <label>Invoice Status<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
@@ -119,16 +144,13 @@
                                 <label>Payment Due Date<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="due_date" type="text" required min="{{date('d-m-Y')}}"
-                                    class="form-control date @error('due_date') is-invalid @enderror"
+                                <input name="due_date" type="text" required
+                                    class="form-control datepicker @error('due_date') is-invalid @enderror"
                                     id="exampleInputEmail1" aria-describedby="emailHelp"
-                                      value="{{ old('due_date', date('Y-m-d')) }}"
-                                      
-                                         autocomplete="due_date"
-                                    min={{ date('Y-m-d')}}
-                                    required
-                                   onfocus="(this.type='date')"
-                                    onblur="(this.type='text')" />
+                                    value="{{ old('due_date', date('d-m-Y')) }}"
+                                    placeholder="dd-mm-yyyy or dd-mm-yy"
+                                    autocomplete="due_date"
+                                    />
 
                                    
                                 @error('due_date')
@@ -152,19 +174,29 @@
     </div>
 
     </div>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
          document.addEventListener("DOMContentLoaded", function () {
-            let dueDateInput = document.getElementsByName("due_date");
-
-            // If there's no old value, set the current date
-            if (!dueDateInput.value) {
-                let today = new Date();
-                let formattedDate = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
-                dueDateInput.value = formattedDate;
-            }
+            flatpickr(".datepicker", {
+                dateFormat: "d-m-Y",
+                defaultDate: document.querySelector('input[name="due_date"]').value || "today",
+                allowInput: true,
+                clickOpens: true
+            });
         });
         $(document).ready(() => {
+            function calculateTotalToPay() {
+                const subtotal = parseFloat($("input[name='amount']").val()) || 0;
+                const discountPercent = parseFloat($("#discount_percent").val()) || 0;
+                const taxPercent = parseFloat($("#tax_percent").val()) || 0;
+                const discountedSubtotal = subtotal - (subtotal * (discountPercent / 100));
+                const calculatedTotal = discountedSubtotal + (discountedSubtotal * (taxPercent / 100));
+                $("#total_to_pay").val(calculatedTotal.toFixed(2));
+            }
+            $("input[name='amount'], #discount_percent, #tax_percent").on("input", calculateTotalToPay);
+            calculateTotalToPay();
 
             $("#country").change(function(){
             var country = $(this).val();
@@ -206,7 +238,7 @@
     </script>
     <script>
         function deleteuser(id) {
-            var conf = confirm('Delete User');
+            var conf = confirm('Are you sure you want to delete this invoice?');
             if (conf == true) {
                 window.location.href = "delete_user/" + id + "";
             }
@@ -218,7 +250,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'User Deleted Successfully!'
+                text: 'Invoice deleted successfully.'
             })
         </script>
     @endif

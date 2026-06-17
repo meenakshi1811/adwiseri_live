@@ -142,7 +142,7 @@ Swal.fire({
     Swal.fire({
         icon: 'success',
         title: 'Thanks for getting in touch.',
-        text: 'We will serve with your query at the earliest.'
+        text: 'We will respond to your query as soon as possible.'
     })
 
 document.querySelector('#contact_us').addEventListener('submit', function (event) {

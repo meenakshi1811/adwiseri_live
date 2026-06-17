@@ -31,12 +31,14 @@
                         <div class="col-6 p-2 border">
                             {{ $vuser->email }}
                         </div>
-                        <div class="col-6 p-2 border">
-                            <label style="font-weight:550;">Date of Birth</label>
-                        </div>
-                        <div class="col-6 p-2 border">
-                            {{ date("d-m-Y", strtotime($vuser->dob)) }}
-                        </div>
+                        @if(strtolower((string) $vuser->user_type) !== 'subscriber')
+                            <div class="col-6 p-2 border">
+                                <label style="font-weight:550;">Date of Birth</label>
+                            </div>
+                            <div class="col-6 p-2 border">
+                                {{ $vuser->dob ? date("d-m-Y", strtotime($vuser->dob)) : '-' }}
+                            </div>
+                        @endif
                         <div class="col-6 p-2 border">
                             <label style="font-weight:550;">Wallet Credit</label>
                         </div>
@@ -44,7 +46,7 @@
                             {{ $vuser->wallet }}
                         </div>
                         <div class="col-6 p-2 border">
-                            <label style="font-weight:550;">Referral</label>
+                            <label style="font-weight:550;">SUB-Referral_Code</label>
                         </div>
                         <div class="col-6 p-2 border">
                             {{ $vuser->referral }}

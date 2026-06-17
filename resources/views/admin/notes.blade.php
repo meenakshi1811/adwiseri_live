@@ -96,7 +96,7 @@
                                 </span>
                             @enderror
                         </div>
-                        <div class="col text-end p-1">
+                        <div class="col text-start p-1 adwiseri-form-actions">
                             <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                         </div>
                     </div>
@@ -154,8 +154,8 @@
         $("#add_new_zero").click(function(){
             Swal.fire({
             icon: 'info',
-            title: 'Oops...',
-            text: 'There is no client created.'
+            title: 'Oops!',
+            text: 'No clients have been created yet.'
             });
         });
 
@@ -198,8 +198,8 @@
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'User Added Successfully.'
+      title: 'Success',
+      text: 'Note added successfully.'
     })
   </script>
 

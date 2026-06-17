@@ -103,7 +103,7 @@
                                 </span>
                             @enderror
                             </div>
-                            <div class="col text-end p-1">
+                            <div class="col text-start p-1">
                                 <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                             </div>
                         </div>
@@ -134,7 +134,7 @@
       function updatedocument(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to update this record!",
+          text: "Do you want to update this record?",
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#3085d6',
@@ -187,7 +187,7 @@
           var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.pdf|\.JPG|\.JPEG|\.PNG|\.PDF)$/i;
           if (!allowedExtensions.exec(filepath)) {
               Swal.fire({
-                  title: "Oops..",
+                  title: "Oops!",
                   icon:"info",
                   html: "Please select valid file format <br>( jpg, jpeg, png or pdf )"
               });
@@ -197,9 +197,9 @@
           const size = (this.files[0].size / 1024 / 1024).toFixed(2);
           if (size > 4) {
               Swal.fire({
-                  title: "Oops..",
+                  title: "Oops!",
                   icon:"info",
-                  html: "Please select file upto 4MB"
+                  html: "Please select a file up to 4 MB."
               });
               $(this).val("");
               return false;
@@ -212,7 +212,7 @@
   @if($errors->has('doc_file'))
     <script>
       Swal.fire({
-        title: 'Oops..',
+        title: 'Oops!',
         icon: 'info',
         html: @json($errors->first('doc_file'))
       })
@@ -224,7 +224,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Application Deleted Successfully!'
+        text: 'Document deleted successfully..'
       })
     </script>
 
@@ -234,7 +234,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'New Document Added Successfully!'
+        text: 'Document added successfully.'
       })
     </script>
 
@@ -244,7 +244,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Document Updated Successfully!'
+        text: 'Document updated successfully.'
       })
     </script>
 

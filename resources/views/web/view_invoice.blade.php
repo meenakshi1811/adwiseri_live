@@ -21,6 +21,18 @@ if($invoice->user_id == null){
 else{
   $userid = $invoice->user_id;
 }
+
+$subscriberLogoUrl = null;
+$subscriberLogoPath = null;
+$subscriberId = $invoice->subscriber_id ?: $userid;
+
+if (!empty($invoice->logo)) {
+    $subscriberLogoPath = public_path('web_assets/users/user' . $subscriberId . '/' . $invoice->logo);
+
+    if (file_exists($subscriberLogoPath)) {
+        $subscriberLogoUrl = asset('web_assets/users/user' . $subscriberId . '/' . $invoice->logo);
+    }
+}
 @endphp
 <style>
     .invoice-box {
@@ -94,54 +106,60 @@ else{
         cursor: pointer;
     }
 
-    .note-box {
-        background: #f8f9fa;
-        padding: 15px;
-        margin-top: 30px;
-        border-left: 4px solid #0061f2;
-        font-size: 0.95rem;
-    }
-
     .text-right {
         text-align: right;
+    }
+
+    .payment-link-anchor {
+        color: #0d6efd !important;
+        text-decoration: underline !important;
+        word-break: break-all;
+        border: none !important;
+        background: none !important;
+    }
+
+    .payment-link-anchor:hover,
+    .payment-link-anchor:focus {
+        color: #0a58ca !important;
+        text-decoration: underline !important;
     }
 </style>
 
 <div class="col-lg-10 column-client">
     <div class="invoice-box">
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex justify-content-between align-items-start mb-3">
             <div>
-                @if($invoice->subscriber_id)
-                    <img src="{{ asset('web_assets/users/user'.$invoice->subscriber_id.'/' . $invoice->logo) }}" alt="Logo" style="max-height:70px; object-fit:contain;">
+                @if(!empty($subscriberLogoUrl))
+                    <img src="{{ $subscriberLogoUrl }}" alt="Logo" style="max-height:70px; object-fit:contain;">
                 @else
-                    <img src="{{ asset('web_assets/users/user'.$invoice->user_id.'/' . $invoice->logo) }}" alt="Logo" style="max-height:70px; object-fit:contain;">
+                    <div class="text-primary fw-bold" style="font-size: 1.35rem;">{{ $invoice->name ?? 'Adwiseri' }}</div>
+                @endif
+                @if(!empty($invoice->email))
+                    <div>{{ $invoice->email }}</div>
                 @endif
             </div>
-            <div>
-                <button 
-                    class="download-btn"
+            <div class="invoice-page-actions">
+                <button
+                    type="button"
+                    class="invoice-btn invoice-btn-primary"
                     @if($invoice_roles->read_only == 1 or $invoice_roles->read_write_only == 1)
                         onclick="download_invoice({{ $invoice->id }})"
                     @endif
-                >Download PDF</button>
+                >
+                    <i class="fa-solid fa-download"></i> Download PDF
+                </button>
+                @if($invoice_roles->write_only == 1 or $invoice_roles->read_write_only == 1)
+                    <a href="{{ $invoice->type === 'ap' ? route('edit_invoice_ap', $invoice->id) : route('edit_invoice', $invoice->id) }}"
+                       class="invoice-btn invoice-btn-outline">
+                        <i class="fa-solid fa-pen-to-square"></i> Edit Invoice
+                    </a>
+                @endif
             </div>
         </div>
 
-        @if($invoice->type == 'ar') 
+        @include('web.partials.invoice_audit_bar')
+
         <h3 class="text-primary text-center">Invoice</h3>
-        @else
-        <h3 class="text-primary text-center">Invoice</h3>
-        @endif
-        <div class="d-flex justify-content-center align-items-center mb-3">
-            <span class="me-2" style="display:inline-flex; width:28px; height:28px;">
-                @if($invoice->subscriber_id)
-                    <img src="{{ asset('web_assets/users/user'.$invoice->subscriber_id.'/' . $invoice->logo) }}" alt="Logo" style="width:100%; height:100%; object-fit:contain;">
-                @else
-                    <img src="{{ asset('web_assets/users/user'.$invoice->user_id.'/' . $invoice->logo) }}" alt="Logo" style="width:100%; height:100%; object-fit:contain;">
-                @endif
-            </span>
-            <strong>{{ $invoice->name }}</strong>
-        </div>
 
         <!-- <div class="invoice-header mb-4">
              <div>
@@ -224,15 +242,20 @@ else{
             $paymentLink = isset($invoiceSetting->payment_link) ? trim((string) $invoiceSetting->payment_link) : '';
         @endphp
         @if(!empty($paymentLink) && filter_var($paymentLink, FILTER_VALIDATE_URL))
-            <div class="note-box">
-                <p><strong>Payment Link:</strong> 
-                    <a style="color: inherit !important;
-    text-decoration: none !important;
-    background: none !important; border: none;" target="_blank" href="{{ $paymentLink }}">{{ $paymentLink }}</a>
-                </p>
-            </div>
+            <p><strong>Payment Link:</strong>
+                <a class="payment-link-anchor" target="_blank" rel="noopener noreferrer" href="{{ $paymentLink }}">{{ $paymentLink }}</a>
+            </p>
         @endif
         <div style="margin-top: 60px; text-align: center; font-size: 0.9rem; line-height: 1.6;">
+            @if($invoice->type === 'ap' && !empty($invoice->uploaded_invoice))
+                <div class="mb-3">
+                    <strong>Uploaded Invoice:</strong>
+                    <a href="{{ asset('web_assets/users/' . $invoice->uploaded_invoice) }}" target="_blank" rel="noopener noreferrer">Open PDF</a>
+                </div>
+                <div class="mb-3">
+                    <iframe src="{{ asset('web_assets/users/' . $invoice->uploaded_invoice) }}" title="Uploaded Invoice PDF" style="width:100%;height:500px;border:1px solid #ddd;"></iframe>
+                </div>
+            @endif
             <div>
                 Thanks for your business !
             </div>
@@ -256,18 +279,27 @@ else{
     </script>
     <script>
         function deleteuser(id) {
-            var conf = confirm('Delete User');
+            var conf = confirm('Are you sure you want to delete this invoice?');
             if (conf == true) {
                 window.location.href = "delete_siteuser/" + id + "";
             }
         }
     </script>
+    @if (session()->has('invoice_updated'))
+        <script>
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: 'Invoice updated successfully.'
+            })
+        </script>
+    @endif
     @if (session()->has('user_added'))
         <script>
             Swal.fire({
                 icon: 'success',
-                title: 'Congratulations',
-                text: 'User Added Successfully.'
+                title: 'Success',
+                text: 'Invoice created successfully.'
             })
         </script>
     @endif
@@ -276,7 +308,7 @@ else{
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'User Deleted Successfully!'
+                text: 'Invoice deleted successfully.'
             })
         </script>
     @endif
@@ -285,7 +317,7 @@ else{
             Swal.fire({
                 icon: 'warning',
                 title: 'User Limit!',
-                text: 'Upgrade membership to add more Users!'
+                text: 'Upgrade your membership to add more users.'
             })
         </script>
     @endif

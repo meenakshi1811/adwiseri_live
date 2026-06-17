@@ -8,8 +8,8 @@
     </style>
     <div class="col-lg-10 column-client">
         <div class="client-dashboard">
-            <div class="client-btn d-flex justify-content-between mb-4">
-                <h3 class="text-primary px-3">Analytics</h3>
+            <div class="client-btn d-flex justify-content-center mb-4">
+                <h3 class="text-primary px-3 text-center">Analytics</h3>
             </div>
         </div>
 
@@ -165,8 +165,8 @@
                     <option value="" selected>Select Chart Type</option>
                     <option value="bar">Bar</option>
                     <option value="line">Line</option>
-                    <option value="doughnut">Doughnut</option>
                     <option value="pie">Pie</option>
+                    <option value="doughnut">Doughnut</option>
                 </select>
             </div>
         </div>
@@ -175,7 +175,7 @@
                 <button class="login-btn" onclick="onClickGetReport()">View Data-Chart</button>
             </div>
             <div class="col-md-6 my-5">
-                <button class="login-btn" id="downloadPdf" style="display: none">Download Chart</button>
+                <button class="login-btn" id="downloadPdf" style="display: none">Download (PDF)</button>
             </div>
 
         </div> -->
@@ -185,7 +185,7 @@
                 <button class="login-btn" onclick="onClickGetReport()">View Data-Chart</button>
             </div>
             <div class="col-md-3 d-flex justify-content-center">
-                <button class="login-btn" id="downloadPdf" style="display: none">Download Chart</button>
+                <button class="login-btn" id="downloadPdf" style="display: none">Download (PDF)</button>
             </div>
         </div>
 
@@ -205,6 +205,157 @@
     <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+<script>
+Chart.defaults.scales.category.offset = false;
+
+const analyticsChartPalette = [
+    '#2563eb', '#dc2626', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2',
+    '#db2777', '#65a30d', '#ea580c', '#4f46e5', '#0f766e', '#be123c',
+    '#9333ea', '#0284c7', '#ca8a04', '#15803d', '#c026d3', '#0369a1'
+];
+
+function getAnalyticsColor(index, alpha = 1) {
+    const hex = analyticsChartPalette[index % analyticsChartPalette.length];
+    const value = hex.replace('#', '');
+    const r = parseInt(value.substring(0, 2), 16);
+    const g = parseInt(value.substring(2, 4), 16);
+    const b = parseInt(value.substring(4, 6), 16);
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getAnalyticsColors(count, alpha = 0.8) {
+    return Array.from({ length: count }, (_, index) => {
+        if (index < analyticsChartPalette.length) {
+            return getAnalyticsColor(index, alpha);
+        }
+
+        const hue = Math.round((index * 137.508) % 360);
+        return `hsla(${hue}, 72%, 48%, ${alpha})`;
+    });
+}
+
+function isCircularAnalyticsChart(type) {
+    return ['pie', 'doughnut'].includes(type);
+}
+
+function removeCircularChartAxes(config) {
+    if (!isCircularAnalyticsChart(config.type)) {
+        return;
+    }
+
+    config.options.scales = {
+        x: { display: false, grid: { display: false }, ticks: { display: false }, border: { display: false } },
+        y: { display: false, grid: { display: false }, ticks: { display: false }, border: { display: false } }
+    };
+}
+
+function normalizeAnalyticsDatasetColors(config) {
+    const labels = config.data?.labels || [];
+    const datasets = config.data?.datasets || [];
+
+    datasets.forEach((dataset, datasetIndex) => {
+        const dataLength = Array.isArray(dataset.data) ? dataset.data.length : labels.length;
+
+        if (isCircularAnalyticsChart(config.type) || datasets.length === 1) {
+            const colors = getAnalyticsColors(dataLength, isCircularAnalyticsChart(config.type) ? 0.85 : 0.75);
+            dataset.backgroundColor = colors;
+            dataset.hoverBackgroundColor = getAnalyticsColors(dataLength, 0.95);
+
+            if (isCircularAnalyticsChart(config.type)) {
+                dataset.borderColor = 'transparent';
+                dataset.borderWidth = 0;
+                dataset.hoverBorderWidth = 0;
+            }
+
+            if (config.type === 'line') {
+                dataset.borderColor = getAnalyticsColor(0, 1);
+                dataset.pointBackgroundColor = colors;
+                dataset.pointBorderColor = colors;
+                dataset.tension = dataset.tension ?? 0.35;
+            } else if (config.type === 'bar') {
+                dataset.borderColor = getAnalyticsColors(dataLength, 1);
+            }
+        } else {
+            const color = getAnalyticsColor(datasetIndex, 0.75);
+            dataset.backgroundColor = color;
+            dataset.borderColor = getAnalyticsColor(datasetIndex, 1);
+
+            if (config.type === 'line') {
+                dataset.pointBackgroundColor = getAnalyticsColor(datasetIndex, 1);
+                dataset.pointBorderColor = getAnalyticsColor(datasetIndex, 1);
+                dataset.tension = dataset.tension ?? 0.35;
+            }
+        }
+    });
+}
+
+function enableAnalyticsLegend(config) {
+    config.options.plugins.legend = {
+        ...(config.options.plugins.legend || {}),
+        display: true,
+        position: 'bottom',
+        labels: {
+            ...((config.options.plugins.legend || {}).labels || {}),
+            padding: 16,
+            usePointStyle: true,
+            generateLabels: function(chart) {
+                const defaultGenerator = Chart.defaults.plugins.legend.labels.generateLabels;
+
+                if (chart.data.datasets.length === 1) {
+                    const dataset = chart.data.datasets[0];
+                    return chart.data.labels.map((label, index) => {
+                        const backgroundColor = Array.isArray(dataset.backgroundColor)
+                            ? dataset.backgroundColor[index]
+                            : dataset.backgroundColor;
+
+                        return {
+                            text: label,
+                            fillStyle: backgroundColor,
+                            strokeStyle: backgroundColor,
+                            lineWidth: 0,
+                            pointStyle: 'circle',
+                            hidden: !chart.getDataVisibility(index),
+                            index
+                        };
+                    });
+                }
+
+                return defaultGenerator(chart);
+            }
+        },
+        onClick: function(event, legendItem, legend) {
+            const chart = legend.chart;
+
+            if (chart.data.datasets.length === 1) {
+                chart.toggleDataVisibility(legendItem.index);
+                chart.update();
+                return;
+            }
+
+            Chart.defaults.plugins.legend.onClick.call(this, event, legendItem, legend);
+        }
+    };
+}
+
+function sanitizeAnalyticsChartConfig(config) {
+    config.options = config.options || {};
+    config.options.plugins = config.options.plugins || {};
+
+    normalizeAnalyticsDatasetColors(config);
+    removeCircularChartAxes(config);
+    enableAnalyticsLegend(config);
+}
+
+const NativeAnalyticsChart = Chart;
+function AnalyticsChart(ctx, config) {
+    sanitizeAnalyticsChartConfig(config);
+    return new NativeAnalyticsChart(ctx, config);
+}
+Object.setPrototypeOf(AnalyticsChart, NativeAnalyticsChart);
+AnalyticsChart.prototype = NativeAnalyticsChart.prototype;
+window.Chart = AnalyticsChart;
+</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
 
@@ -489,8 +640,12 @@
                         value: "By Application Type"
                     },
                     {
-                        text: "By No. of Applicants per Application (Single/Joint)",
-                        value: "By No. of Applicants per Application"
+                        text: "By Application Status",
+                        value: "By Application Status"
+                    },
+                    {
+                        text: "By Application Counts By No. of Dependants",
+                        value: "ByApplicationCountsByDependants"
                     },
                     {
                         text: "By Payment Mode",
@@ -1066,10 +1221,9 @@
             var dateForTitle = selectedDate;
             var chartType = $('#chartType').val();
 
-            selectedDate = selectedDate.split("-")
-
-            var startDate = selectedDate[0].trim();
-            var endDate = selectedDate[1].trim();
+            var dateRangeParts = selectedDate.split(' - ');
+            var startDate = (dateRangeParts[0] || '').trim();
+            var endDate = (dateRangeParts[1] || '').trim();
 
             let hasError = false;
             let title = selectedAttribute + ' : ' + selectedFilterTitle + (!selectedFilterTitle.includes('By Timeline (Duration)') && !selectedFilterTitle.includes('By Year') ? ' (' + startDate + ' - ' + endDate + ')' : '');
@@ -1171,7 +1325,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
 
                         }
@@ -1358,7 +1512,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -1541,7 +1695,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -1724,7 +1878,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -1902,7 +2056,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -2081,7 +2235,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -2259,7 +2413,7 @@
                     success: function(data) {
                         console.log(data.data);
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -2438,7 +2592,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -2616,7 +2770,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -2793,7 +2947,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -2974,7 +3128,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -2997,12 +3151,12 @@
 
                         const ctx = document.getElementById('myChart');
                         const dynamicColors = generateDistinctColors(labels.length);
-                        const datasets = labels.map((label, i) => ({
-                            label: label,
-                            data: [numbers[i]],     // one value per dataset
-                            backgroundColor: dynamicColors[i],
+                        const datasets = [{
+                            label: selectedAttribute + ' ' + selectedFilter,
+                            data: numbers,
+                            backgroundColor: dynamicColors,
                             borderWidth: 1
-                        }));
+                        }];
 
                         new Chart(ctx, {
                             type: chartType,
@@ -3015,7 +3169,7 @@
                             //         backgroundColor: dynamicColors,
                             //     }]
                             // },
-                            data: { labels: [''], datasets }, // single dummy x-label
+                            data: { labels: labels, datasets },
                             options: {
                                 responsive: false,
 
@@ -3163,7 +3317,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         
@@ -3184,12 +3338,12 @@
 
                         const ctx = document.getElementById('myChart');
                         const dynamicColors = generateDistinctColors(labels.length);
-                        const datasets = labels.map((label, i) => ({
-                            label: label,
-                            data: [numbers[i]],     // one value per dataset
-                            backgroundColor: dynamicColors[i],
+                        const datasets = [{
+                            label: selectedAttribute + ' ' + selectedFilter,
+                            data: numbers,
+                            backgroundColor: dynamicColors,
                             borderWidth: 1
-                        }));
+                        }];
 
                         new Chart(ctx, {
                             type: chartType,
@@ -3202,7 +3356,7 @@
                             //         backgroundColor: dynamicColors,
                             //     }]
                             // },
-                              data: { labels: [''], datasets }, // single dummy x-label
+                              data: { labels: labels, datasets },
 
                             options: {
                                 responsive: false,
@@ -3351,7 +3505,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -3372,12 +3526,12 @@
 
                         const ctx = document.getElementById('myChart');
                         const dynamicColors = generateDistinctColors(labels.length);
-                        const datasets = labels.map((label, i) => ({
-                            label: label,
-                            data: [numbers[i]],     // one value per dataset
-                            backgroundColor: dynamicColors[i],
+                        const datasets = [{
+                            label: selectedAttribute + ' ' + selectedFilter,
+                            data: numbers,
+                            backgroundColor: dynamicColors,
                             borderWidth: 1
-                        }));
+                        }];
 
                         new Chart(ctx, {
                             type: chartType,
@@ -3391,7 +3545,7 @@
                             //     }]
                             // }
                             // ,
-                            data: { labels: [''], datasets },
+                            data: { labels: labels, datasets },
                             options: {
                                 responsive: false, // Makes the chart responsive
                                 scales: {
@@ -3537,7 +3691,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -3717,7 +3871,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -3911,7 +4065,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -3932,12 +4086,12 @@
 
                         const ctx = document.getElementById('myChart');
                         const dynamicColors = generateDistinctColors(labels.length);
-                        const datasets = labels.map((label, i) => ({
-                            label: label,
-                            data: [numbers[i]],     // one value per dataset
-                            backgroundColor: dynamicColors[i],
+                        const datasets = [{
+                            label: selectedAttribute + ' ' + selectedFilter,
+                            data: numbers,
+                            backgroundColor: dynamicColors,
                             borderWidth: 1
-                        }));
+                        }];
 
                         new Chart(ctx, {
                             type: chartType,
@@ -3950,7 +4104,7 @@
                             //         backgroundColor: dynamicColors,
                             //     }]
                             // },
-                              data: { labels: [''], datasets }, // single dummy x-label
+                              data: { labels: labels, datasets },
 
                             options: {
                                 responsive: false,
@@ -4098,7 +4252,7 @@
                     },
                     success: function(data) {
                         if (data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -4278,7 +4432,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -4458,7 +4612,7 @@
                     success: function(data) {
                         console.log(data);
                         if (data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         console.log(1);
@@ -4635,7 +4789,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -4814,7 +4968,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -4976,6 +5130,142 @@
                         }, 1000); // Small delay to ensure smooth UX
                     });
                 });
+            } else if (selectedFilter == "By Application Status") {
+                let chartStatus = Chart.getChart("myChart"); // <canvas> id
+                if (chartStatus != undefined) {
+                    chartStatus.destroy();
+                }
+                $.ajax({
+                    type: 'GET',
+                    url: "{{ route('subscribersReport') }}",
+
+                    data: {
+                        type: 'byApplicationStatus',
+                        subid: subID,
+                        startDate: startDate,
+                        endDate: endDate
+                    },
+                    success: function(data) {
+                        if (data.data.length === 0) {
+                            alert('No data found.');
+                            return;
+                        }
+
+                        var result = data.data;
+                        var labels = [];
+                        var numbers = [];
+
+                        result.forEach(function(currentElement) {
+                            if (currentElement.status_count !== 0) {
+                                labels.push(currentElement.application_status);
+                                numbers.push(currentElement.status_count);
+                            }
+                        });
+
+                        const ctx = document.getElementById('myChart');
+                        const dynamicColors = generateDistinctColors(labels.length);
+
+                        new Chart(ctx, {
+                            type: chartType,
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: selectedAttribute + ' ' + selectedFilter,
+                                    data: numbers,
+                                    borderWidth: 1,
+                                    backgroundColor: dynamicColors,
+                                }]
+                            },
+                            options: {
+                                responsive: false,
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        ticks: {
+                                            stepSize: 1,
+                                            precision: 0
+                                        }
+                                    }
+                                },
+                                plugins: {
+                                    title: {
+                                        display: true,
+                                        text: title,
+                                        font: {
+                                            size: 20,
+                                            weight: 800
+                                        },
+                                        padding: {
+                                            bottom: 50
+                                        },
+                                        color: 'black',
+                                        align: 'center'
+                                    },
+                                    legend: {
+                                        display: true,
+                                        position: 'bottom',
+                                        labels: {
+                                            padding: 30
+                                        }
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(tooltipItem) {
+                                                const dataValue = tooltipItem.raw || '';
+                                                return `No. Of Applications: ${dataValue}`;
+                                            },
+                                            afterBody: function(tooltipItem) {
+                                                const dataValue = tooltipItem[0].raw || '';
+                                                const total = tooltipItem[0].dataset.data.reduce((acc, val) => acc + val, 0);
+                                                const percentage = ((dataValue / total) * 100).toFixed(1);
+                                                return ['Percent Value: ' + percentage + '%'];
+                                            }
+                                        }
+                                    },
+                                    datalabels: {
+                                        anchor: 'end',
+                                        align: 'top',
+                                        formatter: (value) => value,
+                                        font: {
+                                            weight: 'bold'
+                                        },
+                                        color: 'black'
+                                    }
+                                }
+                            },
+                            plugins: [ChartDataLabels]
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error occurred: " + status + " - " + error);
+                    }
+                });
+                document.getElementById('downloadPdf').addEventListener('click', function(event) {
+                    event.preventDefault();
+                    let downloadButton = this;
+                    if (downloadButton.getAttribute('data-downloading') === 'true') {
+                        return;
+                    }
+                    downloadButton.setAttribute('data-downloading', 'true');
+                    downloadButton.disabled = true;
+                    html2canvas(document.getElementById('myChart')).then(canvas => {
+                        const imgData = canvas.toDataURL('image/png');
+                        const { jsPDF } = window.jspdf;
+                        const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
+                        const title = $('#selectAttribute').val() + " " + $('#filters').val() + " (" + dateForTitle + ")";
+                        pdf.setFontSize(16);
+                        pdf.text(title, 20, 30);
+                        pdf.addImage(imgData, 'PNG', 10, 50, 410, 410);
+                        pdf.save(title + '.pdf');
+                    }).catch(error => {
+                        console.error("Error generating PDF: ", error);
+                    }).finally(() => {
+                        setTimeout(() => {
+                            downloadButton.removeAttribute('data-downloading');
+                            downloadButton.disabled = false;
+                        }, 1000);
+                    });
+                });
             } else if (selectedFilter == "By Application Type") {
                 let chartStatus = Chart.getChart("myChart"); // <canvas> id
                 if (chartStatus != undefined) {
@@ -4993,7 +5283,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -5155,7 +5445,7 @@
                         }, 1000); // Small delay to ensure smooth UX
                     });
                 });
-            } else if (selectedFilter == "By No. of Applicants per Application") {
+            } else if (selectedFilter == "ByApplicationCountsByDependants") {
 
                 let chartStatus = Chart.getChart("myChart"); // <canvas> id
                 if (chartStatus != undefined) {
@@ -5166,35 +5456,31 @@
                     url: "{{ route('subscribersReport') }}",
 
                     data: {
-                        type: 'byNoofApplicantsPerApplicationChart',
+                        type: 'byApplicationCountsByDependantsChart',
                         subid: subID,
                         startDate: startDate,
                         endDate : endDate
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
                         var result = data.data;
                         var labels = [];
                         var numbers = [];
-                        const monthNames = ["January", "February", "March", "April", "May", "June",
-                            "July", "August", "September", "October", "November", "December"
-                        ];
 
-                        labels.push('Total Application');
-                        numbers.push(result);
-
-
+                        result.forEach(function(currentElement) {
+                            labels.push(currentElement.dependant_bucket);
+                            numbers.push(currentElement.application_count);
+                        });
 
                         const ctx = document.getElementById('myChart');
                         const dynamicColors = generateDistinctColors(labels.length);
 
-
                         new Chart(ctx, {
-                            type: chartType,
+                            type: applicantsChartType,
                             data: {
                                 labels: labels,
                                 datasets: [{
@@ -5350,7 +5636,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -5529,7 +5815,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -5711,7 +5997,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -5889,7 +6175,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -6072,7 +6358,7 @@
                     success: function(data) {
                         console.log(data);
                         if (data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         //    console.log(data.data);
@@ -6249,7 +6535,7 @@
                     },
                     success: function(data) {
                         if (data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -6422,7 +6708,7 @@
                     },
                     success: function(data) {
                         if (data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -6602,7 +6888,7 @@
                     },
                     success: function(data) {
                         if (data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data;
@@ -6781,7 +7067,7 @@
                     },
                     success: function(data) {
                         if (data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data;
@@ -6931,7 +7217,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -7112,7 +7398,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -7292,7 +7578,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -7473,7 +7759,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -7653,7 +7939,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -7834,7 +8120,7 @@
                     success: function(data) {
                         console.log(data);
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         console.log('hi');
@@ -8012,7 +8298,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -8216,7 +8502,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -8392,7 +8678,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -8569,7 +8855,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -8747,7 +9033,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -8925,7 +9211,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -9113,7 +9399,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -9300,7 +9586,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -9477,7 +9763,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -9665,7 +9951,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -9852,7 +10138,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10039,7 +10325,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10227,7 +10513,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10245,12 +10531,12 @@
 
                         const ctx = document.getElementById('myChart');
                         const dynamicColors = generateDistinctColors(labels.length);
-                        const datasets = labels.map((label, i) => ({
-                            label: label,
-                            data: [numbers[i]],     // one value per dataset
-                            backgroundColor: dynamicColors[i],
+                        const datasets = [{
+                            label: selectedAttribute + ' ' + selectedFilter,
+                            data: numbers,
+                            backgroundColor: dynamicColors,
                             borderWidth: 1
-                        }));
+                        }];
 
                         new Chart(ctx, {
                             type: chartType,
@@ -10264,7 +10550,7 @@
                             //     }]
                             // }
                             // ,
-                            data: { labels: [''], datasets },
+                            data: { labels: labels, datasets },
                             options: {
                                 responsive: false,
 
@@ -10412,7 +10698,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10590,7 +10876,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10767,7 +11053,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10944,7 +11230,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -11123,7 +11409,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -11301,7 +11587,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -11478,7 +11764,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -11655,7 +11941,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -11832,7 +12118,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -12018,7 +12304,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -12196,7 +12482,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -12373,7 +12659,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -12554,7 +12840,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -12730,7 +13016,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -12889,7 +13175,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -13048,7 +13334,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -13226,7 +13512,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -13400,7 +13686,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -13578,7 +13864,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -13756,7 +14042,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -13934,7 +14220,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -14111,7 +14397,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -14290,7 +14576,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -14464,7 +14750,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -14642,7 +14928,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
 
@@ -14823,7 +15109,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
 
@@ -14988,7 +15274,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
 
@@ -15153,7 +15439,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
 
@@ -15318,7 +15604,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
                         var result = data
@@ -15496,7 +15782,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
                         var result = data
@@ -15673,7 +15959,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -15851,7 +16137,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -16029,7 +16315,7 @@
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -16198,7 +16484,7 @@
             var end = moment();
 
             function cb(start, end) {
-                $('#custom_date_picker').val(start.format('DD/MM/YYYY') + ' - ' + end.format('DD/MM/YYYY'));
+                $('#custom_date_picker').val(start.format('DD-MM-YYYY') + ' - ' + end.format('DD-MM-YYYY'));
             }
 
             // Initialize daterangepicker
@@ -16207,7 +16493,7 @@
                 endDate: end,
                 maxDate: moment(),
                 locale: {
-                    format: 'DD/MM/YYYY',
+                    format: 'DD-MM-YYYY',
                     customRangeLabel: 'Custom Duration' // Rename Custom Range
                 },
                 ranges: {

@@ -122,7 +122,7 @@ use App\Models\User;
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Client Deleted Successfully!'
+      text: 'Client deleted successfully.'
     })
   </script>
 

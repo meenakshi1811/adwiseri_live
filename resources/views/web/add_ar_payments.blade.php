@@ -23,11 +23,11 @@
                             </div>
                             <div class="col-md-8 p-1">
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="payment_entry_type" id="new_entry" value="New" checked onclick="toggleOutstanding(false)">
+                                    <input class="form-check-input" type="radio" name="payment_entry_type" id="new_entry" value="New" onclick="toggleOutstanding(false)">
                                     <label class="form-check-label" for="new_entry">New</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="payment_entry_type" id="existing_entry" value="Existing" onclick="toggleOutstanding(true)">
+                                    <input class="form-check-input" type="radio" name="payment_entry_type" id="existing_entry" value="Existing" checked onclick="toggleOutstanding(true)">
                                     <label class="form-check-label" for="existing_entry">Existing</label>
                                 </div>
                             </div>
@@ -124,9 +124,16 @@
                                 <label>Total Amount To Pay<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="amount" required type="number" min="1" step="any"
-                                    class="form-control @error('amount') is-invalid @enderror" id="amount"
-                                    aria-describedby="emailHelp" value="{{ old('amount') }}" placeholder="Total Amount To Pay"
+                                <input name="amount" 
+                                    required 
+                                    type="number" 
+                                    min="0.01"
+                                    step="0.01"
+                                    class="form-control @error('amount') is-invalid @enderror" 
+                                    id="amount"
+                                    aria-describedby="emailHelp" 
+                                    value="{{ old('amount') }}" 
+                                    placeholder="Total Amount To Pay"
                                     autocomplete="amount" readonly>
                                 @error('amount')
                                     <span class="invalid-feedback" role="alert">
@@ -190,14 +197,10 @@
                                 class="form-control date @error('payment_date') is-invalid @enderror"
                                 id="payment_date"
                                 aria-describedby="emailHelp"
-                                value="{{ old('payment_date') ? date('Y-m-d', strtotime(old('payment_date'))) : '' }}"
-                                placeholder="{{date('d/m/Y')}}"
-                                autocomplete="dob"
-                                max={{ date('Y-m-d')}}
-
-                               onfocus="(this.type='date')"
-                               onblur="if(!this.value) this.type='text'"
-
+                                value="{{ old('payment_date') }}"
+                                placeholder="{{ date('d-m-Y') }}"
+                                autocomplete="off"
+                                min="{{ date('d-m-Y') }}"
                                 />
                                 @error('payment_date')
                                     <span class="invalid-feedback" role="alert">
@@ -252,7 +255,7 @@
                 })
                 .catch(error => console.error("Error fetching invoice details:", error));
         }
-        toggleOutstanding(false);
+        toggleOutstanding(true);
         function toggleOutstanding(show) {
             let invoiceSections = document.querySelectorAll('.inovice-section');
             invoiceSections.forEach(section => {
@@ -277,19 +280,20 @@
                 document.getElementById("application_id").removeAttribute("readonly");
                 document.getElementById("application_id").value = '';
 
-                document.getElementById("service_description").removeAttribute("readonly");
+                // document.getElementById("service_description").removeAttribute("readonly");
                 document.getElementById("service_description").value = '';
 
-                document.getElementById("amount").removeAttribute("readonly");
+                // document.getElementById("amount").removeAttribute("readonly");
                 document.getElementById("amount").value = '';
 
                 document.getElementById("paid_amount").removeAttribute("readonly");
                 document.getElementById("paid_amount").value = '';
                 document.getElementById("amount_paid_existing").value = '';
+                document.getElementById("outstanding_amount").value = '';
 
              }
              else{
-                                                document.getElementById("service_description").setAttribute("readonly", "readonly");
+                document.getElementById("service_description").setAttribute("readonly", "readonly");
                 document.getElementById("amount").setAttribute("readonly", "readonly");
                 // document.getElementById("paid_amount").setAttribute("readonly", "readonly");
              }
@@ -298,21 +302,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <script>
         $(document).ready(() => {
-            document.getElementById('payment_date').addEventListener('change', function () {
-                var inputField = this;
-                var inputDate = new Date(inputField.value); // Get the selected date
-                var today = new Date(); // Current date
-
-                // Check if the input date is in the future
-                if (inputDate > today) {
-                    inputField.value = ""; // Clear the invalid value
-                    inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
-                    inputField.classList.add('is-invalid'); // Add red border for invalid input
-                } else {
-                    inputField.classList.remove('is-invalid'); // Remove error state
-                    inputField.placeholder = "Payment Date"; // Reset placeholder
-                }
-            });
+            
             $("#subscriber").change(function() {
                 var subscriber = $(this).val();
                 $.ajax({
@@ -328,8 +318,8 @@
                         if (data.limit == 'full') {
                             Swal.fire({
                                 icon: 'warning',
-                                title: 'Oops..',
-                                text: 'Client limit reached for this Subscriber!'
+                                title: 'Oops!',
+                                text: 'Client limit reached for this subscriber.'
                             });
                             setTimeout(function() {
                                 window.location.reload();
@@ -410,7 +400,7 @@
 
             // Check if Paid Amount is greater than Outstanding/Amount to Pay
             if (paidAmount > allowedAmount) {
-                const message = `Total Paid amount should not exceed ${allowedAmount.toFixed(2)} (Outstanding) !.`;
+                const message = `Amount Paying should not exceed ${allowedAmount.toFixed(2)} (Outstanding).`;
                 paidAmountInput.setCustomValidity(message);
                 paidAmountInput.classList.add('is-invalid'); // Add invalid class for styling
                 if (showAlert) {
@@ -452,7 +442,7 @@
     </script>
     <script>
         function deleteuser(id) {
-            var conf = confirm('Delete User');
+            var conf = confirm('Are you sure you want to delete this payment?');
             if (conf == true) {
                 window.location.href = "delete_user/" + id + "";
             }
@@ -464,7 +454,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'User Deleted Successfully!'
+                text: 'Payment deleted successfully.'
             })
         </script>
     @endif

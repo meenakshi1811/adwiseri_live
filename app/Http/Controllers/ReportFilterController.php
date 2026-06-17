@@ -58,14 +58,56 @@ class ReportFilterController extends Controller
 {
     //
 
+    private function parseReportDate(?string $value, bool $isEndDate = false): Carbon
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return $isEndDate ? Carbon::now()->endOfDay() : Carbon::now()->startOfDay();
+        }
+
+        $normalizedValue = str_replace(['/', '.'], '-', $value);
+
+        $supportedFormats = [
+            'd-m-Y',
+            'Y-m-d',
+            'm-d-Y',
+            'Y-n-j',
+            'j-n-Y',
+            'n-j-Y',
+        ];
+
+        foreach ($supportedFormats as $format) {
+            try {
+                $date = Carbon::createFromFormat($format, $normalizedValue);
+                if ($date !== false) {
+                    return $isEndDate ? $date->endOfDay() : $date->startOfDay();
+                }
+            } catch (\Throwable $e) {
+                // Try next format.
+            }
+        }
+
+        if (preg_match('/^\d{1,2}$/', $normalizedValue)) {
+            $month = (int) $normalizedValue;
+            if ($month >= 1 && $month <= 12) {
+                $date = Carbon::create(Carbon::now()->year, $month, 1);
+                return $isEndDate ? $date->endOfMonth()->endOfDay() : $date->startOfMonth()->startOfDay();
+            }
+        }
+
+        $date = Carbon::parse($value);
+        return $isEndDate ? $date->endOfDay() : $date->startOfDay();
+    }
+
     public function clientsReport()
     {
         
         // this is used for subscriber check $user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") &&
         $user = Auth::user();
 
-        $startDate = Carbon::createFromFormat('d/m/Y', request()->input('startDate'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d/m/Y', request()->input('endDate'))->endOfDay();
+        $startDate = $this->parseReportDate(request()->input('startDate'));
+        $endDate = $this->parseReportDate(request()->input('endDate'), true);
         $query =  Clients::join('users', 'referrals.userid', '=', 'users.id')
         ->where('users.user_type', 'Subscriber')
         ->whereNull('referrals.debit_amount')
@@ -563,8 +605,8 @@ class ReportFilterController extends Controller
     public function applicationsReport()
     {
         $user = Auth::user();
-        $startDate = Carbon::createFromFormat('d/m/Y', request()->input('startDate'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d/m/Y', request()->input('endDate'))->endOfDay();
+        $startDate = $this->parseReportDate(request()->input('startDate'));
+        $endDate = $this->parseReportDate(request()->input('endDate'), true);
         if (request()->type == "visaCountry") {
 
             if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
@@ -1004,8 +1046,8 @@ class ReportFilterController extends Controller
     public function usersReport()
     {
         $user = Auth::user();
-        $startDate = Carbon::createFromFormat('d/m/Y', request()->input('startDate'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d/m/Y', request()->input('endDate'))->endOfDay();
+        $startDate = $this->parseReportDate(request()->input('startDate'));
+        $endDate = $this->parseReportDate(request()->input('endDate'), true);
         if (request()->type == "byRole") {
             $query = new User();
             if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
@@ -1327,8 +1369,23 @@ class ReportFilterController extends Controller
     }
     public function activityReport()
     {
+        $user = Auth::user();
+        $startDate = null;
+        $endDate = null;
+
+        if (request()->filled('startdate') && request()->filled('enddate')) {
+            $startDate = $this->parseReportDate(request()->input('startdate'));
+            $endDate = $this->parseReportDate(request()->input('enddate'), true);
+        }
+
         if (request()->type == "byActivityType") {
             $activities = Activities::select('activity_name', DB::raw('count(*) as count'))->groupBy('activity_name');
+            if ($user->user_type == 'Subscriber') {
+                $activities->where('subscriber_id', $user->id);
+            }
+            if ($startDate && $endDate) {
+                $activities->whereBetween('created_at', [$startDate, $endDate]);
+            }
             return DataTables::of($activities)->make(true);
         } elseif (request()->type == "byTime") {
 
@@ -1345,26 +1402,44 @@ class ReportFilterController extends Controller
             $queries = [
                 DB::table('activities')
                     ->select(DB::raw("'Today' AS period, COUNT(*) AS total_activities"))
+                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
+                        $query->where('subscriber_id', $user->id);
+                    })
                     ->whereDate('created_at', $today),
 
                 DB::table('activities')
                     ->select(DB::raw("'Last Week' AS period, COUNT(*) AS total_activities"))
+                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
+                        $query->where('subscriber_id', $user->id);
+                    })
                     ->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd]),
 
                 DB::table('activities')
                     ->select(DB::raw("'Last Month' AS period, COUNT(*) AS total_activities"))
+                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
+                        $query->where('subscriber_id', $user->id);
+                    })
                     ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd]),
 
                 DB::table('activities')
                     ->select(DB::raw("'Last Quarter' AS period, COUNT(*) AS total_activities"))
+                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
+                        $query->where('subscriber_id', $user->id);
+                    })
                     ->whereBetween('created_at', [$lastQuarterStart, $lastQuarterEnd]),
 
                 DB::table('activities')
                     ->select(DB::raw("'Last Year' AS period, COUNT(*) AS total_activities"))
+                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
+                        $query->where('subscriber_id', $user->id);
+                    })
                     ->whereYear('created_at', $lastYear),
 
                 DB::table('activities')
                     ->select(DB::raw("'Since Inception' AS period, COUNT(*) AS total_activities"))
+                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
+                        $query->where('subscriber_id', $user->id);
+                    })
             ];
 
             $unionQuery = array_shift($queries);
@@ -1375,17 +1450,35 @@ class ReportFilterController extends Controller
 
             return DataTables::of($unionQuery)->make(true);
         } elseif (request()->type == "bySubscribers") {
-            $topSubscribers = Activities::with('user')->whereNotNull('subscriber_id')
-                ->select('subscriber_id', DB::raw('COUNT(*) as total_activities'))
-                ->groupBy('subscriber_id')
-                ->limit(10);
-            return DataTables::of($topSubscribers)
-                ->editColumn('subscriber_id', function ($row) {
-                    if (!empty($row->user)) {
-                        return $row->user->name;
-                    } else {
-                        return "";
+            $topUsers = Activities::with('user')
+                ->whereNotNull('user_id')
+                ->whereHas('user', function ($query) use ($user) {
+                    $query->whereIn('user_type', ['Subscriber', 'User']);
+
+                    if ($user->user_type == 'Subscriber') {
+                        $query->where(function ($tenantUsers) use ($user) {
+                            $tenantUsers->where('id', $user->id)
+                                ->orWhere('added_by', $user->id);
+                        });
                     }
+                })
+                ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
+                    $query->where('subscriber_id', $user->id);
+                })
+                ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
+                    $query->whereBetween('created_at', [$startDate, $endDate]);
+                })
+                ->select('user_id', DB::raw('COUNT(*) as total_activities'))
+                ->groupBy('user_id')
+                ->orderByDesc('total_activities')
+                ->limit(10);
+
+            return DataTables::of($topUsers)
+                ->addColumn('user_name_id', function ($row) {
+                    if (!empty($row->user)) {
+                        return $row->user->name . ' (' . $row->user->id . ')';
+                    }
+                    return "";
                 })
                 ->make(true);
         }
@@ -1395,8 +1488,8 @@ class ReportFilterController extends Controller
     public function invoicesReport()
     {
         $user = Auth::user();
-        $startDate = Carbon::createFromFormat('d/m/Y', request()->input('startDate'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d/m/Y', request()->input('endDate'))->endOfDay();
+        $startDate = $this->parseReportDate(request()->input('startDate'));
+        $endDate = $this->parseReportDate(request()->input('endDate'), true);
         if (request()->type == "byAmount") {
           $query = Internal_Invoices::whereBetween('created_at', [$startDate, $endDate])
             ->where('total', '>', '0')->where('type', 'ar');
@@ -1657,8 +1750,8 @@ class ReportFilterController extends Controller
     public function invoicesReport_ap()
     {
         $user = Auth::user();
-        $startDate = Carbon::createFromFormat('d/m/Y', request()->input('startDate'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d/m/Y', request()->input('endDate'))->endOfDay();
+        $startDate = $this->parseReportDate(request()->input('startDate'));
+        $endDate = $this->parseReportDate(request()->input('endDate'), true);
         if (request()->type == "byAmount") {
           $query = Internal_Invoices::whereBetween('created_at', [$startDate, $endDate])
             ->where('total', '>', '0')->where('type', 'ap');
@@ -1920,8 +2013,8 @@ class ReportFilterController extends Controller
     {
         $user = Auth::user();
 
-        $startDate = Carbon::createFromFormat('d/m/Y', request()->input('startDate'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d/m/Y', request()->input('endDate'))->endOfDay();
+        $startDate = $this->parseReportDate(request()->input('startDate'));
+        $endDate = $this->parseReportDate(request()->input('endDate'), true);
         $query = new PaymentARs ();
         if (request()->type == "byPaymentMode") {
             if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
@@ -2297,8 +2390,8 @@ class ReportFilterController extends Controller
 
     public function communicationReport()
     {
-        $startDate = Carbon::createFromFormat('d/m/Y', request()->input('startDate'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d/m/Y', request()->input('endDate'))->endOfDay();
+        $startDate = $this->parseReportDate(request()->input('startDate'));
+        $endDate = $this->parseReportDate(request()->input('endDate'), true);
         $user = auth()->user();
         if (request()->type == "byMessages") {
 
@@ -2440,8 +2533,8 @@ class ReportFilterController extends Controller
     public function walletReport()
     {
         $user = Auth::user();
-        $startDate = Carbon::createFromFormat('d/m/Y', request()->input('startDate'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d/m/Y', request()->input('endDate'))->endOfDay();
+        $startDate = $this->parseReportDate(request()->input('startDate'));
+        $endDate = $this->parseReportDate(request()->input('endDate'), true);
         if (request()->type == 'byWallets') {
 
             $query = Referrals::select(
@@ -2663,8 +2756,17 @@ class ReportFilterController extends Controller
 
     public function supportReport()
     {
-        $startDate = Carbon::createFromFormat('d/m/Y', request()->input('startDate'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d/m/Y', request()->input('endDate'))->endOfDay();
+        $startInput = request()->input('startDate', request()->input('startdate'));
+        $endInput = request()->input('endDate', request()->input('enddate'));
+
+        $startDate = null;
+        $endDate = null;
+
+        if (!empty($startInput) && !empty($endInput)) {
+            $startDate = Carbon::parse($startInput)->startOfDay();
+            $endDate = Carbon::parse($endInput)->endOfDay();
+        }
+
         if (request()->type == 'byTicketType') {
             $cd = Tickets::whereIn('support', ['Billing', 'Sales', 'Support'])->select('support')
                 ->selectRaw('COUNT(*) as number_of_tickets')
@@ -2723,24 +2825,31 @@ class ReportFilterController extends Controller
                         COUNT(*) AS total_tickets
                     ")
             )
-                ->whereBetween('created_at', [$startDate,  $endDate])
                 ->groupBy('time_interval');
+
+            if ($startDate && $endDate) {
+                $timeTaken->whereBetween('created_at', [$startDate,  $endDate]);
+            }
 
             return DataTables::of($timeTaken)
                 ->make(true);
         } elseif (request()->type == 'bySupportStaff') {
             $cd = Tickets::select(
-                'user_id',
+                'served_by as support_user_id',
                 DB::raw('COUNT(id) AS no_of_tickets_solved'),
                 DB::raw('AVG(TIMESTAMPDIFF(SECOND, `created_at`, `updated_at`)) / 3600 AS avg_time_taken_hours')
             )
-                ->whereBetween('created_at', [$startDate,  $endDate])
-                // ->where('status','Closed') // Ensure that only solved tickets are considered
-                ->groupBy('user_id')
-                ->get();
+                ->whereNotNull('served_by')
+                ->groupBy('served_by');
+
+            if ($startDate && $endDate) {
+                $cd->whereBetween('created_at', [$startDate,  $endDate]);
+            }
+
+            $cd = $cd->get();
             return DataTables::of($cd)
                 ->addColumn('username', function ($row) {
-                    $user = User::find($row->user_id);
+                    $user = User::find($row->support_user_id);
                     if (!empty($user)) {
                         return $user->name;
                     } else {
@@ -2760,8 +2869,8 @@ class ReportFilterController extends Controller
 
 
         $user = Auth::user();
-        $startDate = Carbon::createFromFormat('d/m/Y', request()->input('startDate'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d/m/Y', request()->input('endDate'))->endOfDay();
+        $startDate = $this->parseReportDate(request()->input('startDate'));
+        $endDate = $this->parseReportDate(request()->input('endDate'), true);
         
         $query =  Referrals::join('users', 'referrals.userid', '=', 'users.id')
             ->where('users.user_type', 'Subscriber')
@@ -2895,8 +3004,8 @@ class ReportFilterController extends Controller
     public function affiliatesReport()
     {
 
-        $startDate = Carbon::createFromFormat('d/m/Y', request()->input('startDate'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d/m/Y', request()->input('endDate'))->endOfDay();
+        $startDate = $this->parseReportDate(request()->input('startDate'));
+        $endDate = $this->parseReportDate(request()->input('endDate'), true);
         if (request()->type == "subscribersReferred") {
 
 
@@ -3040,27 +3149,27 @@ class ReportFilterController extends Controller
     public function demoReport(Request $request)
     {
 
-        $startDate = Carbon::createFromFormat('d/m/Y', request()->input('startDate'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d/m/Y', request()->input('endDate'))->endOfDay();
+        $startDate = $this->parseReportDate(request()->input('startDate'));
+        $endDate = $this->parseReportDate(request()->input('endDate'), true);
         $demos = DemoRequests::whereBetween('created_at', [$startDate, $endDate])->get();
 
 
         return DataTables::of($demos)
             ->addIndexColumn()
             ->editColumn('created_at', function ($row) {
-                return Carbon::parse($row->created_at)->format('d-m-Y');
+                return Carbon::parse($row->created_at)->format('d-m-Y H:i:s');
             })
             ->editColumn('served_by', function ($row) {
                 return 'null';
             })
             ->editColumn('service_date', function ($row) {
-                return Carbon::parse($row->updated_at)->format('d-m-Y');
+                return Carbon::parse($row->updated_at)->format('d-m-Y H:i:s');
             })
             ->editColumn('served_by', function ($row) {
                 return  $row->served_by ? $row->user->name : '';
             })
             ->editColumn('status', function ($row) {
-                return ($row->status == 'true') ? 'Served' : (($row->status == 'false') ? 'Not Served' : $row->status);
+                return ($row->status == 'true') ? 'Closed' : (($row->status == 'false') ? 'Open' : $row->status);
             })
 
             ->editColumn('job_title', function ($row) {
@@ -3078,8 +3187,8 @@ class ReportFilterController extends Controller
     public function demoRequestReport(Request $request)
     {
 
-        $startDate = Carbon::createFromFormat('d/m/Y', request()->input('startDate'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d/m/Y', request()->input('endDate'))->endOfDay();
+        $startDate = $this->parseReportDate(request()->input('startDate'));
+        $endDate = $this->parseReportDate(request()->input('endDate'), true);
         if (request()->type == "byStatus") {
             $demorequest = DB::table('demo_requests')
                 ->select('status', DB::raw('COUNT(*) as status_count'))
@@ -3088,7 +3197,9 @@ class ReportFilterController extends Controller
                 ->get();
 
             return DataTables::of($demorequest)
-
+                ->editColumn('status', function ($row) {
+                    return ($row->status == 'true') ? 'Closed' : (($row->status == 'false') ? 'Open' : $row->status);
+                })
                 ->make(true);
         } elseif (request()->type == "byCountry") {
             $demorequest = DB::table('demo_requests')
@@ -3154,8 +3265,8 @@ class ReportFilterController extends Controller
     public function documentReport()
     {
         $user = auth()->user();
-        $startDate = Carbon::createFromFormat('d/m/Y', request()->input('startDate'))->startOfDay();
-        $endDate = Carbon::createFromFormat('d/m/Y', request()->input('endDate'))->endOfDay();
+        $startDate = $this->parseReportDate(request()->input('startDate'));
+        $endDate = $this->parseReportDate(request()->input('endDate'), true);
         if (request()->type == "byApplication") {
             $query = Client_Docs::join('clients', 'client_docs.client_id', '=', 'clients.id') // Join clients table
             ->join('applications', 'client_docs.application_id', '=', 'applications.application_id') // Join applications table

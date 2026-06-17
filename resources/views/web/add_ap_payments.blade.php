@@ -63,7 +63,7 @@
                             <div class="col-md-8 p-1">
                                 <input name="service_provider" type="text" minlength="3" maxlength="200"
                                     class="form-control @error('service_provider') is-invalid @enderror" id="service_provider"
-                                    aria-describedby="ageHelp" value="{{ old('service_provider') }}" required
+                                    aria-describedby="ageHelp" value="{{ old('service_provider') }}" required readonly
                                     placeholder="Product/Service Provider" autocomplete="detail">
                                 @error('service_provider')
                                     <span class="invalid-feedback" role="alert">
@@ -77,7 +77,7 @@
                             <div class="col-md-8 p-1">
                                 <input name="service_taken" type="text" minlength="3" maxlength="200"
                                     class="form-control @error('detail') is-invalid @enderror" id="service_taken"
-                                    aria-describedby="ageHelp" value="{{ old('service_taken') }}" required
+                                    aria-describedby="ageHelp" value="{{ old('service_taken') }}" required readonly
                                     placeholder="Product/Service Taken" autocomplete="service_taken">
                                 @error('service_taken')
                                     <span class="invalid-feedback" role="alert">
@@ -90,7 +90,7 @@
                                 <label>Total Amount<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="amount" required type="number" min="1"
+                                <input name="amount" required type="number" min="1" step="any"
                                     class="form-control @error('amount') is-invalid @enderror" id="amount"
                                     aria-describedby="emailHelp" value="{{ old('amount') }}" placeholder="Total Amount"
                                     autocomplete="amount" readonly>
@@ -163,7 +163,7 @@
                                 id="payment_date"
                                 aria-describedby="emailHelp"
                                 value="{{ old('payment_date') ? date('Y-m-d', strtotime(old('payment_date'))) : '' }}"
-                                placeholder="{{ date('m/d/Y')}}"
+                                placeholder="{{ date('d-m-Y')}}"
                                 autocomplete="dob"
                                 max="{{ date('Y-m-d')}}"
 
@@ -206,7 +206,7 @@
                 .then(data => {
                     document.getElementById("service_provider").value = data.serviceProvider;
                     document.getElementById("service_taken").value = data.serviceTaken;
-                    document.getElementById("amount").value = data.amount;
+                    document.getElementById("amount").value = data.amount.toFixed(2);
                     document.getElementById("amount_paid_existing").value = data.paidAmmount.toFixed(2);
                     document.getElementById("paid_amount").value = "";
                     document.getElementById("outstanding_amount").value = data.outstandingAmount.toFixed(2);
@@ -240,13 +240,10 @@
 
             if(show ==false) {
 
-                document.getElementById("service_provider").removeAttribute("readonly");
                 document.getElementById("service_provider").value = '';
 
-                document.getElementById("service_taken").removeAttribute("readonly");
                 document.getElementById("service_taken").value = '';
 
-                document.getElementById("amount").removeAttribute("readonly");
                 document.getElementById("amount").value = '';
 
                 document.getElementById("paid_amount").removeAttribute("readonly");
@@ -257,7 +254,7 @@
 
              }
              else{
-                                document.getElementById("service_provider").setAttribute("readonly", "readonly");
+                document.getElementById("service_provider").setAttribute("readonly", "readonly");
                 document.getElementById("service_taken").setAttribute("readonly", "readonly");
                 document.getElementById("amount").setAttribute("readonly", "readonly");
                 // document.getElementById("paid_amount").setAttribute("readonly", "readonly");
@@ -294,7 +291,7 @@
 
             // Check if Paid Amount is greater than Amount to Pay
             if (paidAmount > allowedAmount) {
-                const message = `Total Paid amount should not exceed ${allowedAmount.toFixed(2)} (Outstanding) !.`;
+                const message = `Amount Paying should not exceed  ${allowedAmount.toFixed(2)} (Outstanding)git status.`;
                 paidAmountInput.setCustomValidity(message);
                 paidAmountInput.classList.add('is-invalid'); // Add invalid class for styling
                 if (showAlert) {
@@ -338,7 +335,7 @@
     </script>
     <script>
         function deleteuser(id) {
-            var conf = confirm('Delete User');
+            var conf = confirm('Are you sure you want to delete this payment?');
             if (conf == true) {
                 window.location.href = "delete_user/" + id + "";
             }
@@ -350,7 +347,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'User Deleted Successfully!'
+                text: 'Payment deleted successfully.'
             })
         </script>
     @endif

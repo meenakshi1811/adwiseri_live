@@ -21,19 +21,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     <h3 class="text-primary text-center flex-grow-1 text-center m-0">Messaging</h3>
 
                   </div>
-              <div class="row m-0 pb-2">
-                <div class="col-4 border p-1 text-center bg-info text-white top_modules">
-                    Messaging
-                  </div>
-
-                <div class="col-4 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('client_discussion') }}';">
-                  Meeting Notes (Clients)
-                </div>
-                <div class="col-4 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('communications') }}';">
-                Communications
-                  </div>
-
-              </div>
+              @include('partials.communication_tabs', ['activeTab' => 'messaging'])
 
               <div class="col mt-3 p-2 messaging" style="border: 2px solid lightgrey; border-radius:7px;">
                 <h4 class="text-center pb-3">Send Message</h4>
@@ -81,9 +69,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 </div>
                                 
                                 @if($user->user_type == "Subscriber")
-                                <div class="dropdown-item" style="width: 100%;">
-                                    <input type="checkbox" class="recipient-checkbox" name="sendto[]" value="admin" /> Admin
-                                </div>
                                 <div class="dropdown-item" style="width: 100%;">
                                     <input type="checkbox" class="recipient-checkbox" name="sendto[]" value="all user" /> All User(Staff)
                                 </div>
@@ -168,7 +153,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 </script>
   <script>
     function deleteapplication(id){
-        var conf = confirm('Delete Application');
+        var conf = confirm('Are you sure you want to delete this application?');
         if(conf == true){
             window.location.href = "delete_application/"+id+"";
         }
@@ -180,7 +165,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Application Deleted Successfully!'
+      text: 'Application deleted successfully..'
     })
   </script>
 
@@ -190,7 +175,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Message Sent Successfully!'
+      text: 'Message sent successfully.'
     })
   </script>
 
@@ -200,7 +185,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Application Updated Successfully!'
+      text: 'Application updated successfully.'
     })
   </script>
 

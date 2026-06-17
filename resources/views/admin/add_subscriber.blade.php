@@ -224,9 +224,10 @@
                             <div class="col-md-4">
                                 <div class="mb-3">
                                         <label>Price Plan<span class="text-danger" style="font-size: 18px;">*</span></label>
-                                        <select name="membership" class="form-select" aria-label="Default select example">
+                                        <input type="hidden" name="membership" value="{{ $subscriber->membership }}">
+                                        <select name="membership_display" class="form-select" aria-label="Default select example" disabled>
                                             @foreach($membership as $plan)
-                                              <option {{ ($subscriber->membership == $plan->plan_name) ? 'selected' : '' }} value="{{  $plan->plan_name }}">{{  $plan->plan_name." ".$plan->price_per_year." USD, Yearly" }}</option>
+                                              <option {{ ($subscriber->membership == $plan->plan_name) ? 'selected' : '' }} value="{{  $plan->plan_name }}">{{ strtoupper(trim($plan->plan_name)) == 'FREE' ? 'FREE - 30 Days' : $plan->plan_name." ".$plan->price_per_year." USD, Yearly" }}</option>
                                             @endforeach
                                             </select>
                                 </div>
@@ -258,8 +259,8 @@
 
 
 
-                            <div class="col text-end p-1">
-                                <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
+                            <div class="col text-center p-1 adwiseri-form-actions">
+                                <button type="submit" class="form-control btn btn-primary d-inline-block" style="width: fit-content;">Update</button>
                             </div>
                         </div>
                     </form>
@@ -501,7 +502,8 @@
                             <div class="col-md-4">
                                 <div class="mb-3">
                                         <label>Price Plan<span class="text-danger" style="font-size: 18px;">*</span></label>
-                                        <select name="membership" class="form-select" aria-label="Default select example">
+                                        <input type="hidden" name="membership" value="{{ $subscriber->membership }}">
+                                        <select name="membership_display" class="form-select" aria-label="Default select example" disabled>
                                             @foreach($membership as $plan)
                                               <option {{ (old('membership') == $plan->plan_name) ? 'selected':'' }} value="{{  $plan->plan_name }}">{{  $plan->plan_name." ".$plan->price_per_year." USD, ".$plan->validity." days " }}</option>
                                             @endforeach
@@ -521,7 +523,7 @@
                                 @enderror
                             </div>
                         </div>
-                            <div class="col text-end p-1">
+                            <div class="col text-start p-1 adwiseri-form-actions">
                                 <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                             </div>
                         </div>
@@ -599,7 +601,7 @@
   </script>
   <script>
       function deleteuser(id){
-          var conf = confirm('Delete User');
+          var conf = confirm('Are you sure you want to delete this subscriber?');
           if(conf == true){
               window.location.href = "delete_user/"+id+"";
           }
@@ -611,7 +613,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'Subscriber deleted successfully.'
       })
     </script>
 

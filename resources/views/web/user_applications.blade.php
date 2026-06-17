@@ -98,7 +98,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                     </span>
                                 @enderror
                             </div>
-                            <div class="col text-end p-1">
+                            <div class="col text-start p-1">
                                 <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                             </div>
                         </div>
@@ -168,7 +168,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
       function updateassignmentt(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to update this record!",
+          text: "Do you want to update this record?",
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#3085d6',
@@ -189,14 +189,14 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         $("#new_assign_zero").click(function(){
             Swal.fire({
             icon: 'info',
-            title: 'Oops...',
+            title: 'Oops!',
             text: 'There is no application created.'
             });
         });
         $("#new_assign_usr").click(function(){
             Swal.fire({
             icon: 'info',
-            title: 'Oops...',
+            title: 'Oops!',
             text: 'There is no user created.'
             });
         });
@@ -238,7 +238,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Application Assignment Deleted Successfully!'
+        text: 'Application Assignment deleted successfully..'
       })
     </script>
 
@@ -248,7 +248,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'New Assignment Added Successfully!'
+        text: 'Assignment added successfully..'
       })
     </script>
 
@@ -258,7 +258,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Assignment Updated Successfully!'
+        text: 'Assignment updated successfully.'
       })
     </script>
 

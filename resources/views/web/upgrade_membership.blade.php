@@ -220,8 +220,8 @@
         <script>
             Swal.fire({
                 icon: 'error',
-                title: 'Oops...',
-                text: 'Invalid Refferal Code'
+                title: 'Oops!',
+                text: 'Invalid referral code.'
             })
         </script>
     @endif --}}

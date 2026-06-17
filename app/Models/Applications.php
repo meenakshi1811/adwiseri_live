@@ -44,12 +44,13 @@ class Applications extends Model
 
         // Define date formats based on the country
         $dateFormat = match (strtoupper($countryCode)) {
-            'US' => 'm/d/Y', // MM/DD/YYYY for US
-            default => 'd/m/Y', // DD/MM/YYYY for other countries
+            'US' => 'd-m-Y', // MM/DD/YYYY for US
+            default => 'd-m-Y', // DD-MM-YYYY for other countries
         };
 
         // Format and return the `dob` field
-        return $this->start_date ? Carbon::parse($this->start_date)->format($dateFormat) : null;
+        $date = $this->normalizeDateForDisplay($this->start_date);
+        return $date ? $date->format($dateFormat) : null;
     }
     public function getFormattedEndDateAttribute()
     {
@@ -59,11 +60,43 @@ class Applications extends Model
 
         // Define date formats based on the country
         $dateFormat = match (strtoupper($countryCode)) {
-            'US' => 'm/d/Y', // MM/DD/YYYY for US
-            default => 'd/m/Y', // DD/MM/YYYY for other countries
+            'US' => 'd-m-Y', // MM/DD/YYYY for US
+            default => 'd-m-Y', // DD-MM-YYYY for other countries
         };
 
         // Format and return the `dob` field
-        return $this->end_date ? Carbon::parse($this->end_date)->format($dateFormat) : null;
+        $date = $this->normalizeDateForDisplay($this->end_date);
+        return $date ? $date->format($dateFormat) : null;
+    }
+
+    public function getStartDateInputAttribute()
+    {
+        $date = $this->normalizeDateForDisplay($this->start_date);
+        return $date ? $date->format('Y-m-d') : null;
+    }
+
+    public function getEndDateInputAttribute()
+    {
+        $date = $this->normalizeDateForDisplay($this->end_date);
+        return $date ? $date->format('Y-m-d') : null;
+    }
+
+    private function normalizeDateForDisplay($value)
+    {
+        if (!$value) {
+            return null;
+        }
+        $value = trim((string) $value);
+        foreach (['Y-m-d', 'd-m-Y', 'm-d-Y'] as $format) {
+            try {
+                return Carbon::createFromFormat($format, $value);
+            } catch (\Exception $e) {
+            }
+        }
+        try {
+            return Carbon::parse($value);
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 }

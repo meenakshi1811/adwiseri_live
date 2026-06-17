@@ -69,7 +69,9 @@
                               </select>
                             </td>
                             <td>{{ date("d-m-Y", strtotime($invoice->due_date)) }}</td>
-                            <td><a style="background:none; border:none;" href="{{ route('invoice_detail', $invoice->id) }}" class="m-0 p-0"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a></td>
+                            <td><a style="background:none; border:none;" href="{{ route('invoice_detail', $invoice->id) }}" class="m-0 p-0"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>
+                                <a style="background:none; border:none;" href="{{ route('admin_edit_invoice', $invoice->id) }}" class="m-0 p-0" title="Edit Invoice"><i class="fa-solid fa-pen-to-square btn p-1 text-primary" style="font-size:14px;"></i></a>
+                            </td>
                         </tr>
                         @endforeach
 
@@ -103,7 +105,7 @@
       // }, 1000);
     }
       function deleteclient(id){
-          var conf = confirm('Delete Client');
+          var conf = confirm('Are you sure you want to delete this client?');
           if(conf == true){
               window.location.href = "delete_clients/"+id+"";
           }
@@ -130,7 +132,7 @@
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Invoice Status Updated Successfully!'
+                                text: 'Invoice status updated successfully.'
                             })
                         }
                     }
@@ -144,7 +146,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Client Deleted Successfully!'
+        text: 'Invoice deleted successfully.'
       })
     </script>
 
@@ -153,8 +155,8 @@
     <script>
       Swal.fire({
         icon: 'info',
-        title: 'Oops...',
-        text: 'Invoice user do not exists any more.';
+        title: 'Oops!',
+        text: 'The invoice user no longer exists.';
       })
     </script>
 

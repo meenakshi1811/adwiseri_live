@@ -57,9 +57,7 @@
                                     </span>
                                 @enderror
                             </div>
-                            <div class="col-md-4 p-1">
-                            </div>
-                            <div class="col-md-8 text-left p-1">
+                            <div class="col-12 p-1 adwiseri-form-actions">
                                 <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                             </div>
                         </div>
@@ -120,9 +118,7 @@
                                     </span>
                                 @enderror
                             </div>
-                            <div class="col-md-4 p-1">
-                            </div>
-                            <div class="col-md-8 text-left p-1">
+                            <div class="col-12 p-1 adwiseri-form-actions">
                                 <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                             </div>
                         </div>
@@ -174,7 +170,7 @@
   </script>
   <script>
       function deleteuser(id){
-          var conf = confirm('Delete User');
+          var conf = confirm('Are you sure you want to delete this assignment?');
           if(conf == true){
               window.location.href = "delete_user/"+id+"";
           }
@@ -186,7 +182,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'Assignment deleted successfully..'
       })
     </script>
   

@@ -173,8 +173,8 @@
     <script>
       Swal.fire({
         icon: 'success',
-        title: 'Congratulations',
-        text: 'About Adwiseri Updated Successfully.'
+        title: 'Success',
+        text: 'About Advisori updated successfully.'
       })
     </script>
 
@@ -183,7 +183,7 @@
   <script>
   Swal.fire({
     icon: 'error',
-    title: 'Oops...',
+    title: 'Oops!',
     text: '{{ $message }}'
   })
 </script>

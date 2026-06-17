@@ -38,7 +38,7 @@
                         </span>
                     @enderror
                 </div>
-                <div class="col text-end p-1">
+                <div class="col text-start p-1 adwiseri-form-actions">
                     <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                 </div>
             </div>
@@ -69,8 +69,8 @@
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'Feature Added Successfully.'
+      title: 'Success',
+      text: 'Feature added successfully.'
     })
   </script>
 
@@ -80,7 +80,7 @@
     <script>
     Swal.fire({
       icon: 'error',
-      title: 'Oops...',
+      title: 'Oops!',
       text: '{{ $message }}'
     })
   </script>

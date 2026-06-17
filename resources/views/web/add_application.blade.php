@@ -17,24 +17,21 @@
                 <input type="hidden" name="local_time" class="localtime" />
                 <div class="row">
                     <div class="col-md-4 p-1">
-                        <label>Client ID<span class="text-danger" style="font-size: 18px;">*</span><i class="fa-solid fa-esterisk"></i></label>
+                        <label>Client (ID)<span class="text-danger" style="font-size: 18px;">*</span><i class="fa-solid fa-esterisk"></i></label>
                     </div>
                     <div class="col-md-8 p-1">
-                        <input type="text" name="client" id="client" required readonly value="{{ $application->client_id }}" class="form-control @error('client') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp">
+                        <input type="text" name="client" id="client" required readonly value="{{ ($application->client->name ?? 'N/A') . ' (' . $application->client_id . ')' }}" class="form-control @error('client') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp">
+                        <input type="hidden" name="client_id" value="{{ $application->client_id }}">
                     </div>
                     <div class="col-md-4 p-1">
-                        <label>Application Type<span class="text-danger" style="font-size: 18px;">*</span></label>
+                        <label>Application (ID)<span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>
                     <div class="col-md-8 p-1">
-                                <select name="job_role" id="job_role" class="form-control form-select @error('job_role') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
-                                    <option value="">Select Application Type</option>
-                                    @foreach($job_roles as $job)
-                                    <option {{ ($job->job == $application->application_name) ? 'selected' : '' }} value="{{ $job->job }}">{{ $job->job }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="text" readonly value="{{ $application->application_name }} ({{ $application->id }})" class="form-control">
+                                <input type="hidden" name="job_role" value="{{ $application->application_name }}">
                                 @error('job_role')
                                     <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
+                                        {{ $message }}
                                     </span>
                                 @enderror
                         <!-- <select name="job_role" id="job_role" class="form-control form-select @error('job_role') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
@@ -45,7 +42,7 @@
                         </select>
                         @error('job_role')
                             <span class="invalid-feedback" role="alert">
-                                <strong>{{ $message }}</strong>
+                                {{ $message }}
                             </span>
                         @enderror -->
                     </div>
@@ -53,15 +50,22 @@
                         <label>Visa Country<span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>
                     <div class="col-md-8 p-1">
-                                <input name="visa_country" type="text"
-                                                        class="form-control date @error('visa_country') is-invalid @enderror"
-                                                        id="visa_country"
-                                                        aria-describedby="emailHelp"
-                                                        placeholder="Visa Country"
-                                                        autocomplete="visa_country" readonly />
+                                @php
+                                    $selectedVisaCountry = old('visa_country')
+                                        ?: ($application->visa_country ?: ($application->client->visa_country ?? $application->application_country));
+                                    if (is_numeric($selectedVisaCountry)) {
+                                        $selectedVisaCountry = optional($countries->firstWhere('id', (int) $selectedVisaCountry))->country_name;
+                                    }
+                                @endphp
+                                <select name="visa_country" id="visa_country" class="form-control form-select @error('visa_country') is-invalid @enderror" style="background-color: #fff; color:#000 !important;" aria-describedby="emailHelp" required>
+                                    <option value="">Select Visa Country</option>
+                                    @foreach($countries as $country)
+                                    <option {{ (string) $selectedVisaCountry === (string) $country->country_name ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
+                                    @endforeach
+                                </select>
                                 @error('visa_country')
                                     <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
+                                        {{ $message }}
                                     </span>
                                 @enderror    
                         <!-- <select name="visa_country" id="visa_country" class="form-control form-select @error('visa_country') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
@@ -72,7 +76,7 @@
                         </select>
                         @error('country')
                             <span class="invalid-feedback" role="alert">
-                                <strong>{{ $message }}</strong>
+                                {{ $message }}
                             </span>
                         @enderror -->
                     </div>
@@ -85,15 +89,13 @@
                           type="date"
                          class="form-control date @error('job_open_date') is-invalid @enderror"
                           id="job_open_date"  aria-describedby="emailHelp"
-                          value="{{ date('Y-m-d', strtotime($application->start_date)) }}"
-                          min="{{ date('Y-m-d') }}"
-                          {{-- max="{{ date('Y-m-d', strtotime($application->start_date . ' +2 years')) }}" --}}
-                          {{-- required placeholder="Application Start Date" autocomplete="job_open_date"> --}}
-                          placeholder="Application Start Date" autocomplete="job_open_date" disabled>
+                          max="{{ date('Y-m-d') }}"
+                          value="{{ $application->start_date_input ?: '' }}"
+                          placeholder="Application Start Date" autocomplete="job_open_date" style="background-color: #fff;">
 
                     @error('job_open_date')
                         <span class="invalid-feedback" role="alert">
-                            <strong>{{ $message }}</strong>
+                            {{ $message }}
                         </span>
                     @enderror
                     </div>
@@ -101,17 +103,30 @@
                         <label>Application Status<span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>
                     <div class="col-md-8 p-1">
-                        <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
+                        @php
+                            $currentApplicationStatus = old('job_status', $application->application_status ?? '');
+                            $isTerminalApplicationStatus = in_array($currentApplicationStatus, ['Withdrawn', 'Cancelled'], true);
+                            $endDateEditableStatuses = ['Decision', 'Appeal Decision', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
+                            $isEndDateEditable = in_array($currentApplicationStatus, $endDateEditableStatuses, true);
+                        @endphp
+                        <select name="job_status" class="form-control form-select js-app-status @error('job_status') is-invalid @enderror" id="exampleInputEmail1" style="background-color: #fff; color:#000 !important;" aria-describedby="emailHelp" required>
                             <option value="">Select Application Status</option>
-                            <option {{ ($application->application_status == "Pending") ? 'selected' : '' }} value="Pending">Pending (For submission)</option>
-                            <option {{ ($application->application_status == "In Process") ? 'selected' : '' }} value="In Process">In Process (Waiting for decision)</option>
-                            <option {{ ($application->application_status == "Complete") ? 'selected' : '' }} value="Complete">Completed (Application/Appeal decision received)</option>
-                            <option {{ ($application->application_status == "Cancelled") ? 'selected' : '' }} value="Cancelled">Cancelled (Application/Appeal Cancelled by Consultancy/Authorities)</option>
-                            <option {{ ($application->application_status == "Withdrawn") ? 'selected' : '' }} value="Withdrawn">Withdrawn (Application/Appeal Withdrawn by Client)</option>
+                            <option {{ ($currentApplicationStatus == "Client Registered") ? 'selected' : '' }} value="Client Registered" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Client Registered") disabled @endif>Client Registered</option>
+                            <option {{ ($currentApplicationStatus == "Client Counselled") ? 'selected' : '' }} value="Client Counselled" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Client Counselled") disabled @endif>Client Counselled</option>
+                            <option {{ ($currentApplicationStatus == "Preparation") ? 'selected' : '' }} value="Preparation" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Preparation") disabled @endif>Preparation</option>
+                            <option {{ ($currentApplicationStatus == "Apointment Booked") ? 'selected' : '' }} value="Apointment Booked" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Apointment Booked") disabled @endif>Apointment Booked</option>
+                            <option {{ ($currentApplicationStatus == "Applied") ? 'selected' : '' }} value="Applied" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Applied") disabled @endif>Applied</option>
+                            <option {{ ($currentApplicationStatus == "Decision") ? 'selected' : '' }} value="Decision" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Decision") disabled @endif>Decision</option>
+                            <option {{ ($currentApplicationStatus == "Appeal Lodged") ? 'selected' : '' }} value="Appeal Lodged" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Appeal Lodged") disabled @endif>Appeal Lodged</option>
+                            <option {{ ($currentApplicationStatus == "Appeal Decision") ? 'selected' : '' }} value="Appeal Decision" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Appeal Decision") disabled @endif>Appeal Decision</option>
+                            <option {{ ($currentApplicationStatus == "AR / JR Lodged") ? 'selected' : '' }} value="AR / JR Lodged" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "AR / JR Lodged") disabled @endif>AR / JR Lodged</option>
+                            <option {{ ($currentApplicationStatus == "AR / JR Decision") ? 'selected' : '' }} value="AR / JR Decision" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "AR / JR Decision") disabled @endif>AR / JR Decision</option>
+                            <option {{ ($currentApplicationStatus == "Withdrawn") ? 'selected' : '' }} value="Withdrawn" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Withdrawn") disabled @endif>Withdrawn</option>
+                            <option {{ ($currentApplicationStatus == "Cancelled") ? 'selected' : '' }} value="Cancelled" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Cancelled") disabled @endif>Cancelled</option>
                         </select>
                     @error('job_status')
                         <span class="invalid-feedback" role="alert">
-                            <strong>{{ $message }}</strong>
+                            {{ $message }}
                         </span>
                     @enderror
                     </div>
@@ -119,22 +134,19 @@
                         <label>Application End Date</label>
                     </div>
                     <div class="col-md-8 p-1">
-                        {{-- <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date }}" value="{{ $application->end_date }}" placeholder="Application End Date" autocomplete="job_completion_date"> --}}
-                        {{-- <input name="job_completion_date" type="date" class="form-control date @error('job_completion_date') is-invalid @enderror" id="app_end_date" aria-describedby="emailHelp" min="{{ $application->start_date }}" value="{{ $application->end_date }}" placeholder="Application End Date" autocomplete="job_completion_date"> --}}
                         <input name="job_completion_date" type="date"
-                        class="form-control date @error('job_completion_date') is-invalid @enderror"
+                        class="form-control date js-app-end-date @error('job_completion_date') is-invalid @enderror"
                         id="job_completion_date"
                         aria-describedby="emailHelp"
-                        min="{{  date('Y-m-d') }}"
-                        {{-- max="{{ date('Y-m-d', strtotime($application->start_date . ' +2 years')) }}" --}}
-                        value="{{ date('Y-m-d', strtotime($application->end_date)) }}"
+                        min="{{ $application->start_date_input ?: '' }}"
+                        max="{{ date('Y-m-d') }}"
+                        value="{{ $isEndDateEditable ? ($application->end_date_input ?: '') : '' }}"
                         placeholder="Application End Date"
                         autocomplete="job_completion_date"
-                         onfocus="(this.type='date')"
-                        onblur="(this.type='text')"
+                        @unless($isEndDateEditable) readonly disabled @endunless
                         />     @error('job_completion_date')
                         <span class="invalid-feedback" role="alert">
-                            <strong>{{ $message }}</strong>
+                            {{ $message }}
                         </span>
                     @enderror
                     </div>
@@ -145,14 +157,14 @@
                         <textarea name="job_detail" rows="3" class="form-control @error('job_detail') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ $application->application_detail }}" placeholder="Additional Information" autocomplete="job_detail">{{ $application->application_detail }}</textarea>
                     @error('job_detail')
                         <span class="invalid-feedback" role="alert">
-                            <strong>{{ $message }}</strong>
+                            {{ $message }}
                         </span>
                     @enderror
                     </div>
                     <div class="col-md-4 p-1">
                             </div>
                             <div class="col-md-8 text-left p-1">
-                                <button type="submit" class="btn btn-outline-success login-btn" style="width: 100%;">Submit</button>
+                                <button type="submit" class="btn btn-primary">Submit</button>
                                 <!-- <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button> -->
                             </div>
                 </div>
@@ -184,9 +196,36 @@
                         </select>
                         @error('client')
                             <span class="invalid-feedback" role="alert">
-                                <strong>{{ $message }}</strong>
+                                {{ $message }}
                             </span>
                         @enderror
+                    </div>
+                    <div class="col-md-4 p-1">
+                        <label>Visa Country<span class="text-danger" style="font-size: 18px;">*</span></label>
+                    </div>
+                    <div class="col-md-8 p-1">
+                                <select name="visa_country" id="visa_country" class="form-control form-select @error('visa_country') is-invalid @enderror" aria-describedby="emailHelp" required>
+                                    <option value="">Select Visa Country</option>
+                                    @foreach($countries as $country)
+                                    <option {{ (old('visa_country') == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
+                                    @endforeach
+                                </select>
+                                @error('visa_country')
+                                    <span class="invalid-feedback" role="alert">
+                                        {{ $message }}
+                                    </span>
+                                @enderror
+                        <!-- <select name="visa_country" id="visa_country" class="form-control @error('visa_country') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
+                            <option value="">Select Visa Country</option>
+                            @foreach($countries as $country)
+                            <option {{ (old('visa_country') == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
+                            @endforeach
+                        </select>
+                        @error('country')
+                            <span class="invalid-feedback" role="alert">
+                                {{ $message }}
+                            </span>
+                        @enderror -->
                     </div>
                     <div class="col-md-4 p-1">
                         <label>Application Type<span class="text-danger" style="font-size: 18px;">*</span></label>
@@ -200,7 +239,7 @@
                                 </select>
                                 @error('job_role')
                                     <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
+                                        {{ $message }}
                                     </span>
                                 @enderror
                         <!-- <select name="job_role" id="job_role" class="form-control form-select @error('job_role') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
@@ -214,34 +253,7 @@
                         </select>
                         @error('job_role')
                             <span class="invalid-feedback" role="alert">
-                                <strong>{{ $message }}</strong>
-                            </span>
-                        @enderror -->
-                    </div>
-                    <div class="col-md-4 p-1">
-                        <label>Visa Country<span class="text-danger" style="font-size: 18px;">*</span></label>
-                    </div>
-                    <div class="col-md-8 p-1">
-                                <input name="visa_country" type="text"
-                                                        class="form-control date @error('visa_country') is-invalid @enderror"
-                                                        id="visa_country"
-                                                        aria-describedby="emailHelp"
-                                                        placeholder="Visa Country"
-                                                        autocomplete="visa_country" readonly />
-                                @error('visa_country')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                        <!-- <select name="visa_country" id="visa_country" class="form-control @error('visa_country') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
-                            <option value="">Select Visa Country</option>
-                            @foreach($countries as $country)
-                            <option {{ (old('visa_country') == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
-                            @endforeach
-                        </select>
-                        @error('country')
-                            <span class="invalid-feedback" role="alert">
-                                <strong>{{ $message }}</strong>
+                                {{ $message }}
                             </span>
                         @enderror -->
                     </div>
@@ -255,7 +267,7 @@
                         aria-describedby="emailHelp" value="{{ old('job_open_date') }}"
                         required placeholder="Application Start Date"
                         autocomplete="job_open_date"> --}}
-                        <input name="job_open_date" type="text"
+                        <input name="job_open_date" type="date"
                                                     class="form-control date @error('job_open_date') is-invalid @enderror"
                                                     id="job_open_date"
                                                     aria-describedby="emailHelp"
@@ -264,14 +276,12 @@
                                                     autocomplete="job_open_date"
                                                     {{-- max={{ date('Y-m-d')}} --}}
                                                     required
-                                                   onfocus="(this.type='date')"
-                                                    onblur="(this.type='text')"
                                                       max="{{date('Y-m-d')}}"
                                                       {{-- max="{{ date('Y-m-d', strtotime('+2 years')) }}" --}}
                                                     />
                     @error('job_open_date')
                         <span class="invalid-feedback" role="alert">
-                            <strong>{{ $message }}</strong>
+                            {{ $message }}
                         </span>
                     @enderror
                     </div>
@@ -279,17 +289,24 @@
                         <label>Application Status<span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>
                     <div class="col-md-8 p-1">
-                        <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('job_status') }}" required>
+                        <select name="job_status" class="form-control form-select js-app-status @error('job_status') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('job_status') }}" required>
                             <option value="">Select Application Status</option>
-                            <option {{ (old('job_status') == "Pending") ? 'selected':'' }} value="Pending">Pending (For submission)</option>
-                            <option {{ (old('job_status') == "In Process") ? 'selected':'' }} value="In Process">In Process (Waiting for decision)</option>
-                            <option {{ (old('job_status') == "Complete") ? 'selected':'' }} value="Complete">Completed (Application/Appeal decision received)</option>
-                            <option {{ (old('job_status') == "Cancelled") ? 'selected':'' }} value="Cancelled">Cancelled (Application/Appeal Cancelled by Consultancy/Authorities)</option>
-                            <option {{ (old('job_status') == "Withdrawn") ? 'selected' : '' }} value="Withdrawn">Withdrawn (Application/Appeal Withdrawn by Client)</option>
+                            <option {{ (old('job_status') == "Client Registered") ? 'selected':'' }} value="Client Registered">Client Registered</option>
+                            <option {{ (old('job_status') == "Client Counselled") ? 'selected':'' }} value="Client Counselled">Client Counselled</option>
+                            <option {{ (old('job_status') == "Preparation") ? 'selected':'' }} value="Preparation">Preparation</option>
+                            <option {{ (old('job_status') == "Apointment Booked") ? 'selected':'' }} value="Apointment Booked">Apointment Booked</option>
+                            <option {{ (old('job_status') == "Applied") ? 'selected':'' }} value="Applied">Applied</option>
+                            <option {{ (old('job_status') == "Decision") ? 'selected':'' }} value="Decision">Decision</option>
+                            <option {{ (old('job_status') == "Appeal Lodged") ? 'selected':'' }} value="Appeal Lodged">Appeal Lodged</option>
+                            <option {{ (old('job_status') == "Appeal Decision") ? 'selected':'' }} value="Appeal Decision">Appeal Decision</option>
+                            <option {{ (old('job_status') == "AR / JR Lodged") ? 'selected':'' }} value="AR / JR Lodged">AR / JR Lodged</option>
+                            <option {{ (old('job_status') == "AR / JR Decision") ? 'selected':'' }} value="AR / JR Decision">AR / JR Decision</option>
+                            <option {{ (old('job_status') == "Withdrawn") ? 'selected' : '' }} value="Withdrawn">Withdrawn</option>
+                            <option {{ (old('job_status') == "Cancelled") ? 'selected':'' }} value="Cancelled">Cancelled</option>
                         </select>
                     @error('job_status')
                         <span class="invalid-feedback" role="alert">
-                            <strong>{{ $message }}</strong>
+                            {{ $message }}
                         </span>
                     @enderror
                     </div>
@@ -297,22 +314,25 @@
                         <label>Application End Date</label>
                     </div>
                     <div class="col-md-8 p-1">
-                        <input name="job_completion_date" type="text"
-                        class="form-control date @error('job_completion_date') is-invalid @enderror"
+                        @php
+                            $selectedApplicationStatus = old('job_status', '');
+                            $endDateEditableStatuses = ['Decision', 'Appeal Decision', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
+                            $isEndDateEditable = in_array($selectedApplicationStatus, $endDateEditableStatuses, true);
+                        @endphp
+                        <input name="job_completion_date" type="date"
+                        class="form-control date js-app-end-date @error('job_completion_date') is-invalid @enderror"
                         id="job_completion_date"
                         aria-describedby="emailHelp"
-                        value="{{ old('job_completion_date') ? date('Y-m-d', strtotime(old('job_completion_date'))) : date('Y-m-d') }}"
+                        value="{{ $isEndDateEditable && old('job_completion_date') ? date('Y-m-d', strtotime(old('job_completion_date'))) : null }}"
 
                         placeholder="Application End Date"
                         autocomplete="job_completion_date"
-                       onfocus="(this.type='date')"
-                        onblur="(this.type='text')"
                           max="{{date('Y-m-d')}}"
-                        {{-- readonly --}}
+                        @unless($isEndDateEditable) readonly disabled @endunless
                         />
                     @error('job_completion_date')
                         <span class="invalid-feedback" role="alert">
-                            <strong>{{ $message }}</strong>
+                            {{ $message }}
                         </span>
                     @enderror
                     </div>
@@ -323,7 +343,7 @@
                         <textarea name="job_detail" rows="3" class="form-control @error('job_detail') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Additional Information">{{old('job_detail')}}</textarea>
                     @error('job_detail')
                         <span class="invalid-feedback" role="alert">
-                            <strong>{{ $message }}</strong>
+                            {{ $message }}
                         </span>
                     @enderror
                     </div>
@@ -331,7 +351,7 @@
                             </div>
                             <div class="col-md-8 text-left p-1">
                                 <!-- <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button> -->
-                                <button type="submit" class="btn btn-outline-success login-btn" style="width: 100%;">Submit</button>
+                                <button type="submit" class="btn btn-primary">Submit</button>
                             </div>
                 </div>
             </form>
@@ -347,11 +367,31 @@
   </script>
   <script>
       $(document).ready(() => {
+        const endDateEditableStatuses = ["Decision", "Appeal Decision", "AR / JR Decision", "Withdrawn", "Cancelled"];
 
-        var id = document.getElementById('client').value;
-        if(id != ''){
+        const syncEndDateEditability = () => {
+            const statusField = document.querySelector(".js-app-status");
+            const endDateField = document.querySelector(".js-app-end-date");
+
+            if (!statusField || !endDateField) {
+                return;
+            }
+
+            const canEditEndDate = endDateEditableStatuses.includes(statusField.value);
+            endDateField.readOnly = !canEditEndDate;
+            endDateField.disabled = !canEditEndDate;
+
+            if (!canEditEndDate) {
+                endDateField.value = "";
+            }
+        };
+
+        const clientEl = document.getElementById('client');
+        var id = clientEl ? clientEl.value : '';
+        const isClientSelect = clientEl && clientEl.tagName === 'SELECT';
+        if(isClientSelect && id != ''){
             $.ajax({
-                url: '/fetch_visa_country/' + 65,
+                url: '/fetch_visa_country/' + id,
                 method: 'GET',
                 data: {
                     "_token": "{{ csrf_token() }}",
@@ -359,8 +399,9 @@
                 },
                 cache:false,
                 success: function(data){
-                  console.log(data);
-                    $("#visa_country").val(data);
+                    if (data) {
+                        $("#visa_country").val(data);
+                    }
                 }
             });
         }
@@ -378,15 +419,23 @@
                 cache:false,
                 success: function(data){
                   console.log(data);
-                    $("#visa_country").val(data);
+                    if (data) {
+                        $("#visa_country").val(data);
+                    }
                 }
             });
           });
 
+        $(document).on("change", ".js-app-status", syncEndDateEditability);
+        syncEndDateEditability();
+
         $("#job_open_date").on("change", function () {
                 var startDate = $(this).val(); // Get the selected start date
                 var $endDateInput = $("#job_completion_date");
-                $endDateInput.prop("readonly", false);
+                const selectedStatus = $(".js-app-status").first().val();
+                const canEditEndDate = endDateEditableStatuses.includes(selectedStatus);
+                $endDateInput.prop("readonly", !canEditEndDate);
+                $endDateInput.prop("disabled", !canEditEndDate);
                 // Update the min attribute of the end date
                 $endDateInput.attr("min", startDate);
 
@@ -425,36 +474,7 @@
                 }
             });
           });
-            document.getElementById('job_open_date').addEventListener('change', function () {
-        var inputField = this;
-        var inputDate = new Date(inputField.value); // Get the selected date
-        var today = new Date(); // Current date
-
-        // Check if the input date is in the future
-        if (inputDate > today) {
-            inputField.value = ""; // Clear the invalid value
-            inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
-            inputField.classList.add('is-invalid'); // Add red border for invalid input
-        } else {
-            inputField.classList.remove('is-invalid'); // Remove error state
-            inputField.placeholder = "Application Start Date"; // Reset placeholder
-        }
-    });
-     document.getElementById('job_completion_date').addEventListener('change', function () {
-        var inputField = this;
-        var inputDate = new Date(inputField.value); // Get the selected date
-        var today = new Date(); // Current date
-
-        // Check if the input date is in the future
-        if (inputDate > today) {
-            inputField.value = ""; // Clear the invalid value
-            inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
-            inputField.classList.add('is-invalid'); // Add red border for invalid input
-        } else {
-            inputField.classList.remove('is-invalid'); // Remove error state
-            inputField.placeholder = "Application End Date"; // Reset placeholder
-        }
-    });
+            // Keep server-rendered dates/country intact on edit load; no client-side auto-clearing here.
 
         $("#client").change(function(){
             var id = $(this).val();
@@ -495,7 +515,7 @@
   </script>
   <script>
       function deleteuser(id){
-          var conf = confirm('Delete User');
+          var conf = confirm('Are you sure you want to delete this application?');
           if(conf == true){
               window.location.href = "delete_user/"+id+"";
           }
@@ -507,7 +527,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'Application deleted successfully..'
       })
     </script>
 

@@ -18,6 +18,8 @@ use DateTime;
 use DataTables;
 use DB;
 use App\Models\Internal_Invoices;
+use Carbon\Carbon;
+
 class PaymentController extends Controller
 {
     //
@@ -286,7 +288,15 @@ class PaymentController extends Controller
     public function payment_received(Request $request){
         $request->validate([
             'paid_amount' => 'required|numeric|min:0.01',
+            'payment_date' => 'required|date_format:d-m-Y',
         ]);
+
+        $paymentDate = Carbon::createFromFormat('d-m-Y', $request->payment_date)->startOfDay();
+        if ($paymentDate->lt(Carbon::today())) {
+            return back()->withInput()->withErrors([
+                'payment_date' => 'Payment date must be today or a future date.',
+            ]);
+        }
         $application  =  Applications::where('application_id',$request->application_id)->first();
         $data = $request->except(['_token','application_id','local_time']);
         $subscriber = auth()->user()->added_by ? auth()->user()->added_by : auth()->user()->id;
@@ -320,7 +330,7 @@ class PaymentController extends Controller
         }
 
         $data['type'] ='ar';
-        $data['payment_date'] =now();
+        $data['payment_date'] = $paymentDate->format('Y-m-d');
         $paymentAR = PaymentARs::create($data);
 
         $activity = new Activities();
@@ -426,8 +436,7 @@ class PaymentController extends Controller
     {
         $invoiceRows = Internal_Invoices::where('subscriber_id', $subscriberId)
             ->where('type', $type)
-            ->where('status', 'UnPaid')
-            ->whereNotIn('status', ['Cancelled'])
+            ->whereNotIn(DB::raw('LOWER(status)'), ['cancelled', 'withdrawn'])
             ->orderBy('created_at', 'asc')
             ->get();
 
@@ -443,7 +452,7 @@ class PaymentController extends Controller
                 $group = $paymentsByInvoice->get($invoice->invoice_no, collect());
                 $totalAmount = (float) $invoice->total;
                 $totalPaid = (float) $group->sum('paid_amount');
-                $outstanding = max(0, $totalAmount - $totalPaid);
+                $outstanding = round(max(0, $totalAmount - $totalPaid), 2);
 
                 if ($outstanding <= 0) {
                     return null;

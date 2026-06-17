@@ -34,8 +34,16 @@
                 <!-- Second Row -->
                 <div class="row">
                     <div class="col-lg-6 mb-3">
-                        <input name="email" minlength="3" maxlength="100" type="email" class="form-control @error('email') is-invalid @enderror" placeholder="Email ID" value="{{ old('email') }}" required>
-                        @error('email')
+                    <input 
+                        name="email"
+                        type="email"
+                        pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
+                        class="form-control @error('email') is-invalid @enderror"
+                        placeholder="Email ID"
+                        value="{{ old('email') }}"
+                        required
+                        >    
+                    @error('email')
                             <span class="invalid-feedback" role="alert">
                                 <strong>{{ $message }}</strong>
                             </span>
@@ -210,15 +218,17 @@
             event.preventDefault(); // Prevent form submission
             checkbox.setCustomValidity(checkbox.getAttribute('data-error')); // Set error message
             checkbox.reportValidity(); // Display the error message
-        }else if (!recaptchaResponse) {
-            event.preventDefault(); // Prevent form submission
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops!',
-                text: 'Please complete the reCAPTCHA to proceed.',
-            });
-            return false; // Stop form submission
-        }else {
+        }
+        // else if (!recaptchaResponse) {
+        //     event.preventDefault(); // Prevent form submission
+        //     Swal.fire({
+        //         icon: 'error',
+        //         title: 'Oops!',
+        //         text: 'Please complete the reCAPTCHA to proceed.',
+        //     });
+        //     return false; // Stop form submission
+        // }
+        else {
             checkbox.setCustomValidity(''); // Clear the error message
             checkbox.reportValidity(); // Ensure no residual error message
         }

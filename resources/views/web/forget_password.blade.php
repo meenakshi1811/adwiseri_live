@@ -86,12 +86,12 @@ $(document).ready(function () {
         const recaptcha = grecaptcha.getResponse(sendCaptcha);
 
         if (!email) {
-            Swal.fire({ icon: "error", title: "Oops...", text: "Please enter your email." });
+            Swal.fire({ icon: "error", title: "Oops!", text: "Please enter your email." });
             return;
         }
 
         if (!recaptcha) {
-            Swal.fire({ icon: "error", title: "Oops...", text: "Please complete the reCAPTCHA." });
+            Swal.fire({ icon: "error", title: "Oops!", text: "Please complete the reCAPTCHA." });
             grecaptcha.reset(sendCaptcha);
             return;
         }
@@ -130,12 +130,12 @@ $(document).ready(function () {
         const recaptcha = grecaptcha.getResponse(verifyCaptcha);
 
         if (!emailOtp) {
-            Swal.fire({ icon: "error", title: "Oops...", text: "Please enter the OTP." });
+            Swal.fire({ icon: "error", title: "Oops!", text: "Please enter the OTP." });
             return;
         }
 
         if (!recaptcha) {
-            Swal.fire({ icon: "error", title: "Oops...", text: "Please complete the reCAPTCHA." });
+            Swal.fire({ icon: "error", title: "Oops!", text: "Please complete the reCAPTCHA." });
             grecaptcha.reset(verifyCaptcha);
             return;
         }

@@ -70,7 +70,7 @@
                         </span>
                     @enderror
                 </div>
-                <div class="col text-end p-1">
+                <div class="col text-start p-1">
                     <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                 </div>
             </div>
@@ -133,9 +133,9 @@
       var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.JPG|\.JPEG|\.PNG)$/i;
       if (!allowedExtensions.exec(filepath)) {
           Swal.fire({
-              title: "Oops..",
+              title: "Oops!",
               icon: "info",
-              html: "Please select valid file format <br>( jpg, jpeg, png )"
+              html: "Please select a valid file format.<br>(jpg, jpeg, png)"
           });
           $(this).val("");
           return false;
@@ -143,9 +143,9 @@
       const size = (this.files[0].size / 1024 / 1024).toFixed(2);
       if (size > 4) {
           Swal.fire({
-              title: "Oops..",
+              title: "Oops!",
               icon: "info",
-              html: "Please select file upto 4MB"
+              html: "Please select a file up to 4 MB."
           });
           $(this).val("");
           return false;
@@ -183,7 +183,7 @@
 @if($errors->has('attachment'))
 <script>
     Swal.fire({
-        title: 'Oops..',
+        title: 'Oops!',
         icon: 'info',
         html: @json($errors->first('attachment'))
     });
@@ -195,7 +195,7 @@
     Swal.fire({
         icon: 'success',
         title: 'Your support request received.',
-        text: 'someone from relevant team will be in touch soon.',
+        text: 'Someone from the relevant team will be in touch soon.',
     })
   </script>
 

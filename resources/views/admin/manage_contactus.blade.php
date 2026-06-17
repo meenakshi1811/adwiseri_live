@@ -191,8 +191,8 @@
             Swal.fire({
 
                 icon: 'error',
-                title: 'Oops...',
-                text: 'Please select valid Image!'
+                title: 'Oops!',
+                text: 'Please select a valid image.'
             })
         </script>
     @enderror
@@ -200,8 +200,8 @@
         <script>
             Swal.fire({
                 icon: 'success',
-                title: 'Congratulations',
-                text: 'Contact Us Details has been Updated!'
+                title: 'Success',
+                text: 'Contact details updated successfully.'
             })
         </script>
     @endif

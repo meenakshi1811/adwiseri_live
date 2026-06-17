@@ -188,7 +188,11 @@
 
     @if (session()->has('errors'))
         <script>
-        alert('{{session('errors')}}');
+        Swal.fire({
+            icon: 'error',
+            title: 'Payment failed',
+            text: @json(session('errors'))
+        });
         </script>
     @endif
 

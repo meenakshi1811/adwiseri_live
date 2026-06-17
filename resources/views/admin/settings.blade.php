@@ -6,15 +6,11 @@
     }
 </style>
 
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-
-
-
 @section('main-section')
     <div class="col-lg-10 column-client">
         <div class="client-dashboard">
-            <div class="client-btn d-flex mb-2">
-                <h3 class="text-primary">Settings</h3>
+            <div class="client-btn d-flex justify-content-center mb-2">
+                <h3 class="text-primary text-center">Settings</h3>
             </div>
 
             <ul class="nav nav-tabs border" id="settingsTab" role="tablist">
@@ -36,7 +32,7 @@
                 </li>
                 <li class="nav-item">
                     <button class="nav-link" id="email-template-tab" data-bs-toggle="tab" href="#email-template" role="tab"
-                        aria-controls="email-template" aria-selected="false">Email Template</button>
+                        aria-controls="email-template" aria-selected="false">Email Templates</button>
                 </li>
             </ul>
 
@@ -83,10 +79,13 @@
                                     </select>
                                 </div>
                             </div>
-                            <!-- Apply/Send Button -->
+                            <!-- Save Button -->
                             <div class="row p-1 m-0">
-                                <div class="col-12 text-end">
-                                    <button type="button" id="save-general-settings"class="btn btn-primary">Apply/Send</button>
+                                <div class="col-md-6">
+
+                                </div>
+                                <div class="col-md-6 text-right">
+                                    <button type="button" id="save-general-settings"class="btn btn-primary">Save</button>
                                 </div>
                             </div>
                         </form>
@@ -108,7 +107,7 @@
                                 <label>Tax (%)</label>
                             </div>
                             <div class="col-6">
-                                <input type="number" min="1" max="100" value="{{ $inv_setting->tax }}"
+                                <input type="number" min="0" max="100" value="{{ $inv_setting->tax }}"
                                     id="tax" name="tax" class="form-control" placeholder="Tax (%)">
                             </div>
                         </div>
@@ -117,17 +116,26 @@
                                 <label>Discount(%)</label>
                             </div>
                             <div class="col-6">
-                                <input type="number" min="1" max="100" value="{{ $inv_setting->discount }}"
+                                <input type="number" min="0" max="100" value="{{ $inv_setting->discount }}"
                                     id="discount" name="discount" class="form-control" placeholder="Discount (%)">
                             </div>
                         </div>
 
-                        <div class="row p-1 m-0">
+                        <div class="row p-1 mb-3 align-items-center">
                             <div class="col-6">
-                                {{-- <label>Description</label> --}}
+                                <label>Payment Link URL</label>
                             </div>
-                            <div class="col-6 text-end">
-                                <button type="button" class="btn btn-primary" id="save-invoice-settings">Apply/Send</button>
+                            <div class="col-6">
+                                <input type="url" value="{{ $inv_setting->payment_link ?? '' }}" id="payment_link" name="payment_link" class="form-control" placeholder="https://example.com/pay">
+                            </div>
+                        </div>
+
+                        <div class="row p-1 m-0">
+                            <div class="col-md-6">
+
+                                </div>
+                                <div class="col-md-6 text-right">
+                                <button type="button" class="btn btn-primary" id="save-invoice-settings">Save</button>
                             </div>
                         </div>
                     </form>
@@ -243,42 +251,101 @@
                             </div>
                         </div>
                         <div class="row p-1 m-0">
-                            <div class="col-6">
-                                {{-- <label>Description</label> --}}
-                            </div>
-                            <div class="col-6 text-end">
-                                <button type="submit" class="btn btn-primary" id="save-offers-settings">Apply/Send</button>
+                            <div class="col-md-6">
+
+                                </div>
+                                <div class="col-md-6 text-right">
+                                <button type="submit" class="btn btn-primary" id="save-offers-settings">Apply &amp; Save</button>
                             </div>
                         </div>
 
                     </form>
                 </div>
                 <div class="tab-pane fade" id="reports" role="tabpanel" aria-labelledby="reports-tab">
+                    <div class="row p-1 m-0">
+                        <p class="m-0 p-1" style="font-size:18px;font-weight:550;">Reports Settings</p>
+                        <small class="text-muted px-2">A single PDF will be generated for the selected modules and sent on the selected frequency.</small>
+                    </div>
+
+                    <form id="reports-settings-form">
+                        @csrf
                     <div class="row p-1 mb-3 align-items-center">
                         <div class="col-6">
                                     <label>Select Module(s)</label>
                                 </div>
                                 <div class="col-6">
-
-                                    <div class="dropdown">
-                                        <div class="form-control dropdown-toggle" data-bs-toggle="dropdown">
-                                            Select Module(s)
+                                    @php
+                                        $selectedModules = old('modules', optional($reportSetting)->modules ?? []);
+                                        $reportDefaultEmail = trim((string) (optional($reportSetting)->emails ?? $user->email ?? ''));
+                                    @endphp
+                                    @foreach ($reportModules as $moduleKey => $moduleLabel)
+                                        <div class="form-check">
+                                            <input type="checkbox" name="modules[]" value="{{ $moduleKey }}" class="form-check-input report-module-checkbox"
+                                                {{ in_array($moduleKey, $selectedModules) ? 'checked' : '' }}>
+                                            <label class="form-check-label">{{ $moduleLabel }}</label>
                                         </div>
-                                        <div class="dropdown-menu form-control">
-
-                                            <div class="dropdown-item" style="width: 100%;"><input type="checkbox"  id="selectAll"
-                                                    name="module[]" value="All" />All</div>
-
-                                        
-
-                                        </div>
-                                    </div>
-                                    @error('module')
+                                    @endforeach
+                                    @error('modules')
                                         <span style="color: red;">{{ $message }}</span>
                                     @enderror
-
+                                    <div class="invalid-feedback d-block" id="reports-modules-error" style="display:none;"></div>
                                 </div>
                     </div>
+
+                    <div class="row p-1 mb-3 align-items-center">
+                        <div class="col-6">
+                            <label>Select Frequency</label>
+                        </div>
+                        <div class="col-6">
+                            <select name="frequency" class="form-control form-select">
+                                @php
+                                    $selectedFrequency = old('frequency', optional($reportSetting)->frequency ?? 'daily');
+                                @endphp
+                                <option value="daily" {{ $selectedFrequency == 'daily' ? 'selected' : '' }}>Daily</option>
+                                <option value="weekly" {{ $selectedFrequency == 'weekly' ? 'selected' : '' }}>Weekly</option>
+                                <option value="monthly" {{ $selectedFrequency == 'monthly' ? 'selected' : '' }}>Monthly</option>
+                                <option value="quarterly" {{ $selectedFrequency == 'quarterly' ? 'selected' : '' }}>Quarterly</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row p-1 mb-3 align-items-center">
+                        <div class="col-6">
+                            <label>Delivery Mode</label>
+                        </div>
+                        <div class="col-6">
+                            @php
+                                $selectedDeliveryMode = old('delivery_mode', optional($reportSetting)->delivery_mode ?? 'attachment');
+                            @endphp
+                            <select name="delivery_mode" class="form-control form-select">
+                                <option value="attachment" {{ $selectedDeliveryMode == 'attachment' ? 'selected' : '' }}>Reports as PDF in Email Attachment</option>
+                                <option value="link" {{ $selectedDeliveryMode == 'link' ? 'selected' : '' }}>Links to View / Download Reports</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row p-1 mb-3 align-items-center">
+                        <div class="col-6">
+                            <label>Send To</label>
+                        </div>
+                        <div class="col-6">
+                            <textarea name="emails" class="form-control"
+                                placeholder="Enter upto 5 emails separated by comma">{{ old('emails', $reportDefaultEmail) }}</textarea>
+                            <div class="invalid-feedback" id="reports-emails-error"></div>
+                            <small class="text-muted">Example: test1@gmail.com, test2@gmail.com</small>
+                        </div>
+                    </div>
+
+                    <div class="row p-1 m-0">
+                       <div class="col-md-6">
+
+                                </div>
+                                <div class="col-md-6 text-right">
+                            <button type="button" class="btn btn-primary" id="save-reports-settings">Apply</button>
+                            <button type="reset" class="btn btn-secondary">Cancel</button>
+                        </div>
+                    </div>
+                    </form>
                 </div>
                 <div class="tab-pane fade" id="email-template" role="tabpanel" aria-labelledby="email-template-tab">
                     <div class="row p-1 m-0">
@@ -288,7 +355,7 @@
                         @csrf
                         <input type="hidden" id="emailAudience" name="audience" value="{{ $emailTemplateAudience }}">
                         <div class="row p-1 mb-3 align-items-center">
-                            <div class="col-6"><label>Audience</label></div>
+                            <div class="col-6"><label>Template Audience</label></div>
                             <div class="col-6">
                                 <input type="text" class="form-control" value="{{ $emailTemplateAudience === 'admin' ? 'Admin Mail Templates' : 'Subscriber Mail Templates' }}" readonly>
                             </div>
@@ -309,8 +376,20 @@
                             <div class="col-6"><label>Email Body</label></div>
                             <div class="col-6"><textarea id="emailTemplateBody" name="body" class="form-control" rows="8"></textarea></div>
                         </div>
+                        <div class="row p-1 mb-3 align-items-center">
+                            <div class="col-6">
+                                <label>Payment Link URL</label>
+                            </div>
+                            <div class="col-6">
+                                <input type="url" value="{{ $inv_setting->payment_link ?? '' }}" id="payment_link" name="payment_link" class="form-control" placeholder="https://example.com/pay">
+                            </div>
+                        </div>
+
                         <div class="row p-1 m-0">
-                            <div class="col-12 text-end">
+                           <div class="col-md-6">
+
+                                </div>
+                                <div class="col-md-6 text-right">
                                 <button type="button" class="btn btn-primary" id="save-email-template">Save</button>
                                 <button type="button" class="btn btn-outline-secondary" id="reset-email-template">Reset</button>
                             </div>
@@ -321,13 +400,10 @@
         </div>
     </div>
 
-    </div>
-    </div>
-@endsection()
+@endsection
 @push('scripts')
 
 
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
 
@@ -368,6 +444,111 @@
     </script>
 
     <script>
+        function clearReportSettingsInlineErrors() {
+            const emailField = $('#reports-settings-form textarea[name="emails"]');
+            emailField.removeClass('is-invalid');
+            $('#reports-emails-error').text('');
+            $('#reports-modules-error').text('').hide();
+        }
+
+        function setReportSettingsInlineError(field, message) {
+            if (field === 'modules') {
+                $('#reports-modules-error').text(message).show();
+                return;
+            }
+
+            if (field === 'emails') {
+                const emailField = $('#reports-settings-form textarea[name="emails"]');
+                emailField.addClass('is-invalid');
+                $('#reports-emails-error').text(message);
+            }
+        }
+
+        $('#save-reports-settings').click(function() {
+            const $saveReportsButton = $('#save-reports-settings');
+            const defaultButtonText = ($saveReportsButton.data('default-text') || $.trim($saveReportsButton.text()) || 'Apply');
+            clearReportSettingsInlineErrors();
+
+            $saveReportsButton
+                .data('default-text', defaultButtonText)
+                .prop('disabled', true)
+                .text('Submitting...');
+
+            const emailField = $('#reports-settings-form textarea[name="emails"]');
+            const emails = $.trim(emailField.val());
+            const selectedModulesCount = $('#reports-settings-form input[name="modules[]"]:checked').length;
+
+            if (!selectedModulesCount) {
+                setReportSettingsInlineError('modules', 'Please select at least one module.');
+                $saveReportsButton
+                    .prop('disabled', false)
+                    .text(defaultButtonText);
+                return;
+            }
+
+            if (!emails) {
+                setReportSettingsInlineError('emails', 'Please enter at least one recipient email.');
+                $saveReportsButton
+                    .prop('disabled', false)
+                    .text(defaultButtonText);
+                return;
+            }
+
+            let formData = $('#reports-settings-form').serialize();
+
+            $.ajax({
+                url: "{{ route('save_report_settings') }}",
+                method: "POST",
+                data: formData,
+
+                success: function(response) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: response.message
+                    });
+
+                },
+
+                error: function(xhr) {
+                    let message = 'Failed to save report settings';
+
+                    if (xhr.responseJSON) {
+                        if (xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+
+                        if (xhr.responseJSON.errors) {
+                            Object.entries(xhr.responseJSON.errors).forEach(function([field, messages]) {
+                                const inlineField = field === 'modules.0' ? 'modules' : field;
+                                if (messages && messages[0]) {
+                                    setReportSettingsInlineError(inlineField, messages[0]);
+                                }
+                            });
+                            const firstErrorKey = Object.keys(xhr.responseJSON.errors)[0];
+                            if (firstErrorKey && xhr.responseJSON.errors[firstErrorKey][0]) {
+                                message = xhr.responseJSON.errors[firstErrorKey][0];
+                            }
+                        }
+                    }
+
+                    if (xhr.status !== 422) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: message
+                        });
+                    }
+                },
+
+                complete: function() {
+                    $saveReportsButton
+                        .prop('disabled', false)
+                        .text(defaultButtonText);
+                }
+            });
+        });
+
         function deleteapplication(id) {
             Swal.fire({
                 title: 'Are you sure?',
@@ -387,7 +568,7 @@
         function updateapplication(id) {
             Swal.fire({
                 title: 'Are you sure?',
-                text: "You want to update this record!",
+                text: "Do you want to update this record?",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
@@ -459,38 +640,6 @@
         });
 
         $(document).ready(() => {
-            console.log($().jquery);
-            console.log($.fn.select2 ? "Select2 is loaded" : "Select2 is NOT loaded");
-
-            $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
-                $('#subscribers, #discount_type').select2('destroy').select2({});
-            });
-
-            $('#subscribers').select2({
-                placeholder: "Select Subscribers",
-                allowClear: true,
-                width: '100%'
-            });
-            $('#subscribers').on('select2:select', function(e) {
-                let selectedValues = $(this).val();
-
-                // If "All" is selected
-                if (selectedValues.includes("all")) {
-                    // Deselect all other options except "All"
-                    $(this).val(["all"]).trigger('change');
-                }
-            });
-
-            $('#subscribers').on('select2:unselect', function(e) {
-                // Allow other selections if "All" is unselected
-                if (!$(this).val().includes("all")) {
-                    return;
-                }
-
-                // If "All" is unselected, deselect everything
-                $(this).val(null).trigger('change');
-            });
-
             $("#country").change(function() {
                 var country = $(this).val();
                 // console.log(counrty);
@@ -524,7 +673,7 @@
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Currency Updated Successfully!'
+                                text: 'Currency updated successfully.'
                             })
                         }
                     }
@@ -546,13 +695,26 @@
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Timezone Updated Successfully!'
+                                text: 'Timezone updated successfully.'
                             })
                         }
                     }
                 });
             });
             $('#save-general-settings').click(function() {
+                const timezone = $('#timezon').val();
+                const currency = $('#currenc').val();
+
+                if (!timezone) {
+                    Swal.fire({ icon: 'warning', title: 'Oops!', text: 'Please select a timezone.' });
+                    return;
+                }
+
+                if (!currency) {
+                    Swal.fire({ icon: 'warning', title: 'Oops!', text: 'Please select a currency.' });
+                    return;
+                }
+
                 let formData = $('#general-settings-form').serialize();
 
                 $.ajax({
@@ -563,19 +725,33 @@
                         Swal.fire({
                             icon: 'success',
                             title: 'Success',
-                            text: 'Settings Updated Successfully!',
+                            text: 'Settings updated successfully.',
                         });
                     },
                     error: function(xhr) {
+                        const errorText = xhr?.responseJSON?.message || 'Failed to update settings!';
                         Swal.fire({
                             icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to update settings!',
+                            title: 'Oops!',
+                            text: errorText,
                         });
                     },
                 });
             });
             $('#save-invoice-settings').click(function() {
+                const tax = $.trim($('#tax').val());
+                const discount = $.trim($('#discount').val());
+
+                if (tax !== '' && (isNaN(tax) || Number(tax) < 0 || Number(tax) > 100)) {
+                    Swal.fire({ icon: 'warning', title: 'Oops!', text: 'Tax must be between 0 and 100.' });
+                    return;
+                }
+
+                if (discount !== '' && (isNaN(discount) || Number(discount) < 0 || Number(discount) > 100)) {
+                    Swal.fire({ icon: 'warning', title: 'Oops!', text: 'Discount must be between 0 and 100.' });
+                    return;
+                }
+
                 let formData = $('#invoice-settings-form').serialize();
 
                 $.ajax({
@@ -590,10 +766,11 @@
                         });
                     },
                     error: function(xhr) {
+                        const errorText = xhr?.responseJSON?.message || 'Failed to update invoice settings!';
                         Swal.fire({
                             icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to update invoice settings!',
+                            title: 'Oops!',
+                            text: errorText,
                         });
                     },
                 });
@@ -683,7 +860,7 @@
                         Swal.fire({ icon: 'success', title: 'Success', text: response.message });
                     },
                     error: function () {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to save email template!' });
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to save email template.' });
                     }
                 });
             });
@@ -760,7 +937,13 @@
                         });
                     },
                     error: function (xhr) {
-                        const message = xhr?.responseJSON?.message || 'Failed to apply discount!';
+                        let message = xhr?.responseJSON?.message || 'Failed to apply discount!';
+                        if (xhr?.responseJSON?.errors) {
+                            const firstError = Object.values(xhr.responseJSON.errors)[0];
+                            if (firstError && firstError[0]) {
+                                message = firstError[0];
+                            }
+                        }
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
@@ -810,7 +993,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Application Deleted Successfully!'
+                text: 'Application deleted successfully..'
             })
         </script>
     @endif
@@ -819,7 +1002,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'General Settings Updated Successfully!'
+                text: 'General Settings updated successfully.'
             })
         </script>
     @endif
@@ -828,7 +1011,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Invoice Settings Updated Successfully!'
+                text: 'Invoice Settings updated successfully.'
             })
         </script>
     @endif
@@ -837,7 +1020,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Application Updated Successfully!'
+                text: 'Service updated successfully.'
             })
         </script>
     @endif
@@ -846,7 +1029,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Discounts & Offers Applied Successfully!'
+                text: 'Discounts and offers applied successfully.'
             })
         </script>
     @endif

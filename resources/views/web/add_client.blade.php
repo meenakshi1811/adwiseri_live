@@ -232,9 +232,8 @@
 
                         </div>
 
-                       
-                        <div class="col text-end p-1">
-                            <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
+                        <div class="col-12 d-flex justify-content-center p-1 mt-2">
+                            <button type="submit" class="btn btn-primary w-50">Submit</button>
                         </div>
                     </div>
                 </form>
@@ -273,8 +272,8 @@
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'Client Added Successfully.'
+      title: 'Success',
+      text: 'Client added successfully.'
     })
   </script>
 

@@ -79,12 +79,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     <div class="d-flex gap-2">
                     @php
                     $encryptedId = encrypt($user->id);
-                    $qrUrl = url('/create-new-lead/'.$encryptedId);
                     @endphp
-                    <a href="javascript:void(0)" 
-                    class="btn btn-info btn-sm" 
-                    data-bs-toggle="modal" 
-                    data-bs-target="#qrModal">
+                    <a href="{{ route('createLead', $encryptedId) }}" class="btn btn-info btn-sm">
                     Add Enquiry
                     </a>
                       <a
@@ -107,33 +103,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     </div>
                   </div>
                   <div class="client-btn d-flex justify-content-between mb-4">
-                    <div class="modal fade" id="qrModal" tabindex="-1">
-                        <div class="modal-dialog modal-dialog-centered">
-                            <div class="modal-content">
-
-                            <div class="modal-header">
-                                <h5 class="modal-title">Scan QR Code</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-
-                            <div class="modal-body text-center">
-
-                                <p>Scan this QR to create a new lead</p>
-
-                               <img 
-                                src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={{ urlencode($qrUrl) }}"
-                                alt="QR Code"
-                                />
-
-                                <!-- <p class="mt-2 small text-muted">
-                                {{ $qrUrl }}
-                                </p> -->
-
-                            </div>
-
-                            </div>
-                        </div>
-                        </div>
                     <div id="myModal" class="modal" tabindex="-1">
                         <div class="modal-dialog modal-md">
                             <div class="modal-content">
@@ -253,6 +222,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                             <select name="job_status" id="job_status" required
                                                 class="form-control form-select @error('job_status') is-invalid @enderror">
                                                 <option value="">Select Application Status</option>
+                                                <option {{ (old('job_status') == "Registration") ? 'selected':'' }} value="Registration">Registration</option>
+                                                <option {{ (old('job_status') == "Applied") ? 'selected':'' }} value="Applied">Applied</option>
                                                 <option {{ (old('job_status') == "Pending") ? 'selected':'' }} value="Pending">Pending (For submission)</option>
                                                 <option {{ (old('job_status') == "In Process") ? 'selected':'' }} value="In Process">In Process (Waiting for decision)</option>
                                                 <option {{ (old('job_status') == "Complete") ? 'selected':'' }} value="Complete">Completed (Application/Appeal decision received)</option>
@@ -374,17 +345,14 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                         <!-- Application Dates -->
                                             <div class="mb-3">
                                                 <label for="app_start_date" class="form-label">DateOfBirth <span class="text-danger" style="font-size: 18px;">*</span></label>
-                                                <input name="dob" type="text"
+                                                <input name="dob" type="date"
                                                     class="form-control date @error('dob') is-invalid @enderror"
                                                     id="dob"
                                                     aria-describedby="emailHelp"
                                                     value="{{ old('dob') ? date('Y-m-d', strtotime(old('dob'))) : '' }}"
-                                                    placeholder="{{ date('m/d/Y')}}"
-                                                    autocomplete="dob"
+                                                    placeholder="{{ date('d-m-Y')}}"
+                                                    autocomplete="bday"
                                                     max="{{ date('Y-m-d')}}"
-
-                                                onfocus="(this.type='date')"
-                                                    onblur="(this.type='text')"
                                                     />
                                                     @error('dob')
                                                         <span class="invalid-feedback" role="alert">
@@ -480,7 +448,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <td class="p-1 text-center">{{ $client->country }}</td>
                             <td class="p-1 text-center">{{ $client->city }}</td>
                             <td class="p-1 text-center">{{ $client->pincode }}</td>
-                            <td class="text-center"> {{ $client->applications ? ($client->applications->count() ?? 'No') : 'No User' }}</td>
+                            <td class="text-center"> {{ 1 + (int) ($client->dependants_count ?? 0) }}</td>
                             <td class="text-center">{{  \Carbon\Carbon::parse($client->created_at)->format('d-m-Y') }}</td>
                             <td class="text-center action-icon p-1">
                                 <a @if($client_roles->read_only == 1 or $client_roles->read_write_only == 1) href="{{ route('client_profile', $client->id)}}" @else href="#" @endif style="text-decoration:none;"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:12px;"></i></a>
@@ -541,7 +509,7 @@ function validateInput(input) {
             
     function deleteclient(id){
       var localtime = new Date();
-        var conf = confirm('Delete Client');
+        var conf = confirm('Are you sure you want to delete this client?');
         if(conf == true){
             window.location.href = "delete_client/"+id+"/"+localtime.toString()+"";
         }
@@ -698,8 +666,8 @@ window.onclick = function (event) {
                         if (data.limit == 'full') {
                             Swal.fire({
                                 icon: 'warning',
-                                title: 'Oops..',
-                                text: 'Client limit reached for this Subscriber!'
+                                title: 'Oops!',
+                                text: 'Client limit reached for this subscriber.'
                             });
                             setTimeout(function() {
                                 window.location.reload();
@@ -788,7 +756,7 @@ window.onclick = function (event) {
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: 'Failed to add client application !',
+                            text: 'Failed to save dependant details.',
                         });
                     },
                 });
@@ -817,13 +785,14 @@ window.onclick = function (event) {
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: 'Failed to add client application !',
+                            text: 'Failed to save dependant details.',
                         });
                     },
                 });
             });
 
         });
+
 </script>
 
 @if(session()->has('deleted'))
@@ -831,7 +800,7 @@ window.onclick = function (event) {
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Client Deleted Successfully!'
+      text: 'Client deleted successfully.'
     })
   </script>
 
@@ -841,12 +810,12 @@ window.onclick = function (event) {
     // Swal.fire({
     //   icon: 'warning',
     //   title: 'Client Limit Reached!',
-    //   text: 'Upgrade membership to add more Clients!'
+    //   text: 'Upgrade your membership to add more clients.'
     // })
     Swal.fire({
       icon: 'warning',
       title: 'Client Limit Reached!',
-      text: 'Upgrade membership to add more Clients!',
+      text: 'Upgrade your membership to add more clients.',
       showCancelButton: true,
       confirmButtonText: 'Upgrade',
       cancelButtonText: 'Will do it later',

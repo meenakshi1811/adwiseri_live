@@ -126,16 +126,13 @@
                                 <label>Payment Due Date<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="due_date" type="text" required min="{{date('d-m-Y')}}"
-                                    class="form-control date @error('due_date') is-invalid @enderror"
+                                <input name="due_date" type="text" required
+                                    class="form-control datepicker @error('due_date') is-invalid @enderror"
                                     id="exampleInputEmail1" aria-describedby="emailHelp"
-                                      value="{{ old('due_date', date('Y-m-d')) }}"
-                                      
-                                         autocomplete="due_date"
-                                    min={{ date('Y-m-d')}}
-                                    required
-                                   onfocus="(this.type='date')"
-                                    onblur="(this.type='text')" />
+                                    value="{{ old('due_date', date('d-m-Y')) }}"
+                                    placeholder="dd-mm-yyyy or dd-mm-yy"
+                                    autocomplete="due_date"
+                                    />
 
                                    
                                 @error('due_date')
@@ -159,17 +156,17 @@
     </div>
 
     </div>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
-         document.addEventListener("DOMContentLoaded", function () {
-            let dueDateInput = document.getElementsByName("due_date");
-
-            // If there's no old value, set the current date
-            if (!dueDateInput.value) {
-                let today = new Date();
-                let formattedDate = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
-                dueDateInput.value = formattedDate;
-            }
+        document.addEventListener("DOMContentLoaded", function () {
+            flatpickr(".datepicker", {
+                dateFormat: "d-m-Y",
+                defaultDate: document.querySelector('input[name="due_date"]').value || "today",
+                allowInput: true,
+                clickOpens: true
+            });
         });
         $(document).ready(() => {
 
@@ -236,7 +233,7 @@
     </script>
     <script>
         function deleteuser(id) {
-            var conf = confirm('Delete User');
+            var conf = confirm('Are you sure you want to delete this invoice?');
             if (conf == true) {
                 window.location.href = "delete_user/" + id + "";
             }
@@ -248,7 +245,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'User Deleted Successfully!'
+                text: 'User deleted successfully.'
             })
         </script>
     @endif
