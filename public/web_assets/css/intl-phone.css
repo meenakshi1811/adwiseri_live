@@ -1,0 +1,141 @@
+.iti {
+    width: 100%;
+    display: block;
+}
+
+.iti__country-container,
+.iti__selected-country {
+    z-index: 3;
+}
+
+.iti input,
+.iti input[type="tel"],
+.iti input[type="text"],
+.iti .form-control {
+    width: 100% !important;
+    box-sizing: border-box;
+}
+
+.iti--allow-dropdown input,
+.iti--allow-dropdown input[type="tel"],
+.iti--allow-dropdown input[type="text"] {
+    padding-right: 12px !important;
+}
+
+/*
+ * Contact Us / form-box theme styles target ALL buttons and spans.
+ * intl-tel-input uses a <button> for the flag and a <span> for +code,
+ * so those rules hide/mis-style the dial code. Reset them here.
+ */
+.iti__selected-country,
+.contact-form .iti__selected-country,
+.form-box .iti__selected-country,
+.contact-form button.iti__selected-country,
+.form-box button.iti__selected-country {
+    background: transparent !important;
+    background-color: transparent !important;
+    color: #1e2433 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    line-height: inherit !important;
+    text-transform: none !important;
+    cursor: pointer !important;
+}
+
+.iti__selected-country:hover,
+.contact-form .iti__selected-country:hover,
+.form-box .iti__selected-country:hover,
+.contact-form button.iti__selected-country:hover,
+.form-box button.iti__selected-country:hover {
+    background: transparent !important;
+    background-color: transparent !important;
+    color: #1e2433 !important;
+    border: 0 !important;
+}
+
+.iti__selected-country-primary {
+    background: transparent !important;
+    padding: 0 6px 0 8px !important;
+    height: 100%;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.iti__selected-dial-code,
+.iti--separate-dial-code .iti__selected-dial-code,
+.contact-form .iti__selected-dial-code,
+.form-box .iti__selected-dial-code,
+.form-box span.iti__selected-dial-code,
+.contact-form span.iti__selected-dial-code {
+    display: inline-block !important;
+    margin-left: 6px !important;
+    margin-right: 2px !important;
+    padding: 0 !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+    color: #1e2433 !important;
+    white-space: nowrap !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Undo Contact Us .form-box span { margin-left: 48px } inside the widget */
+.form-box .iti span,
+.contact-form .iti span {
+    margin-left: 0 !important;
+    font-weight: inherit !important;
+    font-size: inherit !important;
+}
+
+.form-box .iti span.iti__selected-dial-code,
+.contact-form .iti span.iti__selected-dial-code {
+    margin-left: 6px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    display: inline-block !important;
+}
+
+.iti__a11y-text {
+    /* keep screen-reader-only text out of layout */
+}
+
+.intl-phone-error {
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
+}
+
+.intl-phone-invalid,
+.intl-phone-invalid.form-control {
+    border-color: #dc3545 !important;
+}
+
+.form-validation-error {
+    border-color: #dc3545 !important;
+}
+
+.form-validation-message {
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
+}
+
+.phone-display-number {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}

@@ -1,0 +1,135 @@
+/**
+ * Reports module — titles & section names: Soft Indigo, centered.
+ */
+.reports-module .client-btn h3,
+.reports-module .second-table-heading,
+.reports-module .table-wrapper > h3,
+.reports-module [id*="ReportTitle"],
+.reports-module [id*="ReportAPTitle"],
+.reports-module [id*="reportTitle"],
+.reports-module [id*="reportdemoTitle"],
+.reports-module [id*="demoRequestHeader"],
+.reports-module #clientstabs222 {
+    text-align: center !important;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 0.5em;
+    color: var(--adwiseri-primary, #695EEE) !important;
+}
+
+.reports-module .client-btn {
+    justify-content: center !important;
+}
+
+.reports-module .second-table-heading {
+    margin-top: 32px;
+}
+
+/* Line-gap between the "Select Filter / Select Date" row and the filtered report title */
+.reports-module [id*="ReportTitle"],
+.reports-module [id*="ReportAPTitle"],
+.reports-module [id*="reportTitle"]:not(.second-table-heading),
+.reports-module [id*="reportdemoTitle"],
+.reports-module [id*="demoRequestHeader"] {
+    margin-top: 1.5rem;
+}
+
+/* Extra half-line between report title and DataTables "Show X entries" row */
+.reports-module .dataTables_wrapper > .reports-dt-toolbar,
+.reports-module .dataTables_wrapper > .d-flex:first-of-type {
+    margin-top: 0.5em;
+}
+
+/* Scroll wide tables without pushing the search box off-screen */
+.reports-module .table-wrapper {
+    container-type: inline-size;
+    overflow-x: auto;
+}
+
+/* Toolbar: length (left), export buttons (center), search (right) */
+.reports-module .reports-dt-toolbar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.75rem 1rem;
+    width: 100cqw;
+    max-width: 100%;
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #fff;
+    padding: 0.25rem 0;
+    box-sizing: border-box;
+}
+
+.reports-module .reports-dt-toolbar .dataTables_length,
+.reports-module .reports-dt-toolbar .dataTables_filter {
+    float: none !important;
+    text-align: left;
+    margin: 0;
+}
+
+.reports-module .reports-dt-toolbar .dataTables_length {
+    justify-self: start;
+    white-space: nowrap;
+}
+
+.reports-module .reports-dt-toolbar .reports-dt-btn-wrap,
+.reports-module .reports-dt-toolbar .dt-buttons {
+    justify-self: center;
+    float: none !important;
+    text-align: center;
+    margin: 0 !important;
+}
+
+.reports-module .reports-dt-toolbar .dataTables_filter {
+    justify-self: end;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.reports-module .reports-dt-toolbar .dataTables_filter label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.reports-module .reports-dt-toolbar .dataTables_filter input {
+    width: auto !important;
+    min-width: 140px;
+    max-width: 220px;
+    margin-left: 0 !important;
+}
+
+.reports-module .reports-dt-toolbar .dt-buttons .btn {
+    margin: 0 !important;
+}
+
+@media (max-width: 767px) {
+    .reports-module .reports-dt-toolbar {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+    }
+
+    .reports-module .reports-dt-toolbar .dataTables_length,
+    .reports-module .reports-dt-toolbar .reports-dt-btn-wrap,
+    .reports-module .reports-dt-toolbar .dt-buttons,
+    .reports-module .reports-dt-toolbar .dataTables_filter {
+        justify-self: center;
+        width: 100%;
+    }
+
+    .reports-module .reports-dt-toolbar .dataTables_filter label {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .reports-module .reports-dt-toolbar .dataTables_filter input {
+        flex: 1 1 auto;
+        max-width: none;
+    }
+}

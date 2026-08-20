@@ -1,0 +1,220 @@
+/**
+ * Adwiseri — round-cut tab styling (system-wide)
+ * Loaded after style.css / adwiseri-responsive.css
+ */
+
+:root {
+    --adwiseri-tab-radius: 10px;
+    --adwiseri-tab-gap: 0.5rem;
+    --adwiseri-tab-border: var(--adwiseri-secondary-border, #e2e6f0);
+    --adwiseri-tab-min-height: var(--adwiseri-btn-min-height, 38px);
+}
+
+/* ------------------------------------------------------------------ */
+/* Tab strip containers                                               */
+/* ------------------------------------------------------------------ */
+
+.module-tab-strip,
+.invoice-module-tabs,
+.payment-module-tabs,
+.users-module-tabs,
+.module-tab-row,
+.client-dashboard > .row.m-0.pb-2:has(> [class*="col-"].border),
+.client-dashboard > .row.m-0.p-2:has(> [class*="col-"].border),
+.client-dashboard > .row.m-0.pb-2:has(> .tab-anchor),
+.client-dashboard > .row.m-0.p-2:has(> .tab-anchor) {
+    display: flex !important;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: var(--adwiseri-tab-gap);
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    border-bottom: 2px solid var(--adwiseri-tab-border);
+    padding-bottom: 0;
+}
+
+.module-tab-strip,
+.invoice-module-tabs,
+.payment-module-tabs {
+    gap: var(--adwiseri-tab-gap);
+}
+
+.users-module-tabs > [class*="col-"],
+.module-tab-row > [class*="col-"],
+.client-dashboard > .row.m-0.pb-2:has(> [class*="col-"].border) > [class*="col-"],
+.client-dashboard > .row.m-0.p-2:has(> [class*="col-"].border) > [class*="col-"],
+.client-dashboard > .row.m-0.pb-2:has(> .tab-anchor) > [class*="col-"],
+.client-dashboard > .row.m-0.p-2:has(> .tab-anchor) > [class*="col-"] {
+    flex: 1 1 0;
+    width: auto !important;
+    max-width: none;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* ------------------------------------------------------------------ */
+/* Round-cut tab items                                                */
+/* ------------------------------------------------------------------ */
+
+.tab-anchor,
+.module-tab-strip > .tab-anchor,
+.module-tab-strip > .flex-fill.border,
+.invoice-module-tabs .tab-anchor,
+.payment-module-tabs .tab-anchor,
+.users-module-tabs > [class*="col-"].border,
+.module-tab-row > [class*="col-"].border,
+.client-dashboard > .row.m-0.pb-2 > [class*="col-"].border,
+.client-dashboard > .row.m-0.p-2 > [class*="col-"].border {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--adwiseri-tab-min-height);
+    padding: var(--adwiseri-btn-padding-y, 0.45rem) 0.75rem !important;
+    margin-bottom: -2px;
+    border-radius: var(--adwiseri-tab-radius) var(--adwiseri-tab-radius) 0 0 !important;
+    border: 1px solid var(--adwiseri-tab-border) !important;
+    border-bottom: 2px solid transparent !important;
+    background-color: #fff;
+    color: #333;
+    font-size: var(--adwiseri-btn-font-size, 14px);
+    font-weight: var(--adwiseri-btn-font-weight, 600);
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.tab-anchor:hover,
+.top_modules:hover,
+.module-tab-row > [class*="col-"].border.top_modules:hover,
+.users-module-tabs > [class*="col-"].border.top_modules:hover,
+.client-dashboard > .row.m-0.pb-2 > [class*="col-"].border.top_modules:hover,
+.client-dashboard > .row.m-0.p-2 > [class*="col-"].border.top_modules:hover {
+    background-color: var(--adwiseri-primary-hover, #564bb0) !important;
+    color: #fff !important;
+    border-color: var(--adwiseri-primary-hover, #564bb0) !important;
+}
+
+.tab-anchor.bg-info,
+.tab-anchor.bg-primary,
+.bg-info.text-white.tab-anchor,
+.module-tab-strip > .bg-info.text-white.tab-anchor,
+.module-tab-strip > .tab-anchor.bg-info,
+.module-tab-row > [class*="col-"].border.bg-info.text-white,
+.users-module-tabs > [class*="col-"].border.bg-info.text-white,
+.client-dashboard > .row.m-0.pb-2 > [class*="col-"].border.bg-info.text-white,
+.client-dashboard > .row.m-0.p-2 > [class*="col-"].border.bg-info.text-white {
+    background-color: var(--adwiseri-primary, #695eee) !important;
+    color: #fff !important;
+    border-color: var(--adwiseri-primary, #695eee) !important;
+    border-bottom-color: var(--adwiseri-primary, #695eee) !important;
+}
+
+.tab-anchor.bg-info:hover,
+.tab-anchor.bg-primary:hover,
+.bg-info.text-white.tab-anchor:hover,
+.users-module-tabs > [class*="col-"].border.bg-info.text-white:hover,
+.client-dashboard > .row.m-0.pb-2 > [class*="col-"].border.bg-info.text-white:hover,
+.client-dashboard > .row.m-0.p-2 > [class*="col-"].border.bg-info.text-white:hover {
+    background-color: var(--adwiseri-primary-hover, #564bb0) !important;
+    color: #fff !important;
+    border-color: var(--adwiseri-primary-hover, #564bb0) !important;
+}
+
+/* ------------------------------------------------------------------ */
+/* Bootstrap nav-tabs                                                 */
+/* ------------------------------------------------------------------ */
+
+.nav-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--adwiseri-tab-gap);
+    border-bottom: 2px solid var(--adwiseri-tab-border) !important;
+    padding-bottom: 0;
+    margin-bottom: 1rem;
+}
+
+.nav-tabs .nav-item {
+    margin-bottom: 0;
+}
+
+.nav-tabs .nav-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--adwiseri-tab-min-height);
+    margin-bottom: -2px;
+    padding: var(--adwiseri-btn-padding-y, 0.45rem) 1rem !important;
+    border-radius: var(--adwiseri-tab-radius) var(--adwiseri-tab-radius) 0 0 !important;
+    border: 1px solid var(--adwiseri-tab-border) !important;
+    border-bottom: 2px solid transparent !important;
+    background-color: #fff;
+    color: var(--adwiseri-primary-deep, #4c3bb7);
+}
+
+.nav-tabs .nav-link:hover {
+    background-color: var(--adwiseri-secondary-wash, #eef1f8) !important;
+    color: var(--adwiseri-primary, #695eee) !important;
+    border-color: var(--adwiseri-tab-border) !important;
+}
+
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link,
+#settingsTab .nav-link.active,
+#myTab .nav-link.active {
+    background-color: var(--adwiseri-primary, #695eee) !important;
+    color: #fff !important;
+    border-color: var(--adwiseri-primary, #695eee) !important;
+    border-bottom-color: var(--adwiseri-primary, #695eee) !important;
+}
+
+/* Pills keep their own rounded style */
+.nav-pills .nav-link {
+    border-radius: var(--adwiseri-btn-radius, 6px) !important;
+}
+
+@media (max-width: 767px) {
+    .module-tab-strip,
+    .invoice-module-tabs,
+    .payment-module-tabs,
+    .users-module-tabs,
+    .module-tab-row,
+    .client-dashboard > .row.m-0.pb-2:has(> [class*="col-"].border),
+    .client-dashboard > .row.m-0.p-2:has(> [class*="col-"].border) {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tab-anchor,
+    .module-tab-strip .tab-anchor,
+    .invoice-module-tabs .tab-anchor,
+    .payment-module-tabs .tab-anchor,
+    .users-module-tabs > [class*="col-"].border,
+    .module-tab-row > [class*="col-"].border,
+    .client-dashboard > .row.m-0.pb-2 > [class*="col-"].border,
+    .client-dashboard > .row.m-0.p-2 > [class*="col-"].border {
+        flex: 0 0 auto;
+        min-width: max(42%, 9rem);
+        font-size: clamp(11px, 2.8vw, 14px);
+        padding: var(--adwiseri-btn-padding-y, 0.45rem) 0.5rem !important;
+    }
+
+    .nav-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .nav-tabs .nav-link {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+}

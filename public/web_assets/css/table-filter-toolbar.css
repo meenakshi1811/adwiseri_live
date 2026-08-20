@@ -1,0 +1,384 @@
+.table-filter-toolbar {
+    align-items: center;
+    background: linear-gradient(135deg, #fafbff 0%, #f3f2ff 100%);
+    border: 1px solid #e4e7f5;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    justify-content: center;
+    margin: 0 0 1rem;
+    padding: 0.75rem 0.9rem;
+    text-align: center;
+}
+
+.table-filter-toolbar--inline {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.55rem 0.75rem;
+}
+
+.table-filter-toolbar__title {
+    color: #4b5563;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin: 0;
+    text-align: center;
+    text-transform: uppercase;
+    width: 100%;
+}
+
+.table-filter-toolbar--inline .table-filter-toolbar__title {
+    flex: 0 1 auto;
+    width: auto;
+}
+
+.table-filter-toolbar__items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    justify-content: center;
+    width: 100%;
+}
+
+.table-filter-toolbar--inline .table-filter-toolbar__items {
+    flex: 1 1 auto;
+    width: auto;
+}
+
+.table-filter-btn {
+    align-items: center;
+    border: 1px solid #d9def0;
+    border-radius: 10px;
+    color: #374151;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 0.68rem;
+    font-weight: 600;
+    gap: 0.3rem;
+    line-height: 1.15;
+    padding: 0.22rem 0.55rem;
+    transition: all 0.15s ease;
+}
+
+.table-filter-btn:hover {
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+}
+
+.table-filter-btn__count {
+    align-items: center;
+    background: rgba(15, 23, 42, 0.08);
+    border-radius: 999px;
+    color: inherit;
+    display: inline-flex;
+    font-size: 0.62rem;
+    font-weight: 700;
+    justify-content: center;
+    line-height: 1;
+    min-width: 1.25rem;
+    padding: 0.1rem 0.32rem;
+}
+
+.table-filter-btn.is-active .table-filter-btn__count {
+    background: rgba(255, 255, 255, 0.24);
+}
+
+.table-filter-btn--tone-0 {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #334155;
+}
+
+.table-filter-btn--tone-0.is-active {
+    background: #475569;
+    border-color: #475569;
+    color: #fff;
+}
+
+.table-filter-btn--tone-1 {
+    background: #dbeafe;
+    border-color: #93c5fd;
+    color: #1d4ed8;
+}
+
+.table-filter-btn--tone-1.is-active {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+}
+
+.table-filter-btn--tone-2 {
+    background: #fef3c7;
+    border-color: #fcd34d;
+    color: #b45309;
+}
+
+.table-filter-btn--tone-2.is-active {
+    background: #d97706;
+    border-color: #d97706;
+    color: #fff;
+}
+
+.table-filter-btn--tone-3 {
+    background: #dcfce7;
+    border-color: #86efac;
+    color: #15803d;
+}
+
+.table-filter-btn--tone-3.is-active {
+    background: #16a34a;
+    border-color: #16a34a;
+    color: #fff;
+}
+
+.table-filter-btn--tone-4 {
+    background: #fce7f3;
+    border-color: #f9a8d4;
+    color: #be185d;
+}
+
+.table-filter-btn--tone-4.is-active {
+    background: #db2777;
+    border-color: #db2777;
+    color: #fff;
+}
+
+.table-filter-btn--tone-5 {
+    background: #ede9fe;
+    border-color: #c4b5fd;
+    color: #6d28d9;
+}
+
+.table-filter-btn--tone-5.is-active {
+    background: #7c3aed;
+    border-color: #7c3aed;
+    color: #fff;
+}
+
+.table-filter-btn--tone-6 {
+    background: #ffedd5;
+    border-color: #fdba74;
+    color: #c2410c;
+}
+
+.table-filter-btn--tone-6.is-active {
+    background: #ea580c;
+    border-color: #ea580c;
+    color: #fff;
+}
+
+.table-filter-btn--tone-7 {
+    background: #cffafe;
+    border-color: #67e8f9;
+    color: #0e7490;
+}
+
+.table-filter-btn--tone-7.is-active {
+    background: #0891b2;
+    border-color: #0891b2;
+    color: #fff;
+}
+
+.table-filter-btn--tone-8 {
+    background: #f3e8ff;
+    border-color: #d8b4fe;
+    color: #7e22ce;
+}
+
+.table-filter-btn--tone-8.is-active {
+    background: #9333ea;
+    border-color: #9333ea;
+    color: #fff;
+}
+
+.multi-table-filter-toolbar {
+    align-items: center;
+    text-align: center;
+}
+
+.multi-table-filter-toolbar__header {
+    align-items: center;
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    margin: 0 auto 0.75rem;
+    max-width: 100%;
+    width: auto;
+}
+
+.multi-table-filter-toolbar__panel[hidden] {
+    display: none !important;
+}
+
+.multi-table-filter-toolbar__panel:not(.is-active) {
+    display: none !important;
+}
+
+.multi-table-filter-toolbar__panel.is-active {
+    display: block;
+    width: 100%;
+}
+
+.multi-table-filter-toolbar__label {
+    color: #4b5563;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.multi-table-filter-toolbar__select {
+    width: auto !important;
+    min-width: 0;
+    max-width: none;
+    flex: 0 0 auto;
+    field-sizing: content;
+}
+
+.comm-legend-item.is-filterable {
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+button.comm-legend-item {
+    font: inherit;
+    text-align: left;
+    width: auto;
+}
+
+.comm-legend-item.is-filterable:hover {
+    box-shadow: 0 1px 4px rgba(105, 94, 238, 0.12);
+}
+
+.comm-legend-item.is-filterable.is-active {
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12);
+}
+
+/* Communications inbox: comm legend markup + shared filter tone colors */
+.comm-inbox-toolbar__legend.table-filter-toolbar__items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    justify-content: center;
+    margin: 0 auto;
+    width: 100%;
+}
+
+@media (max-width: 991px) {
+    .comm-inbox-toolbar__legend.table-filter-toolbar__items {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 575px) {
+    .comm-inbox-toolbar__legend.table-filter-toolbar__items {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+.comm-legend-item.table-filter-btn {
+    flex: 1 1 180px;
+    justify-content: flex-start;
+    max-width: 240px;
+    min-height: 44px;
+    padding: 0.55rem 0.7rem;
+    width: auto;
+}
+
+.comm-legend-item.table-filter-btn .comm-legend-item__text {
+    color: inherit;
+    flex: 1 1 auto;
+    font-size: 0.76rem;
+    font-weight: 600;
+    line-height: 1.35;
+    min-width: 0;
+}
+
+.comm-legend-item.table-filter-btn .comm-legend-item__count,
+.comm-legend-item.table-filter-btn .table-filter-btn__count {
+    background: rgba(15, 23, 42, 0.08);
+    border: 1px solid transparent;
+    border-radius: 999px;
+    color: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    min-width: 1.65rem;
+    padding: 0.2rem 0.45rem;
+}
+
+.comm-legend-item.table-filter-btn.is-active .comm-legend-item__count,
+.comm-legend-item.table-filter-btn.is-active .table-filter-btn__count {
+    background: rgba(255, 255, 255, 0.24);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: inherit;
+}
+
+.comm-inbox-toolbar__legend .comm-legend-item.table-filter-btn--tone-0:not(.is-active) {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #334155;
+}
+
+.comm-inbox-toolbar__legend .comm-legend-item.table-filter-btn--tone-0.is-active {
+    background: #475569;
+    border-color: #475569;
+    color: #fff;
+}
+
+.comm-inbox-toolbar__legend .comm-legend-item.table-filter-btn--tone-1:not(.is-active) {
+    background: #dbeafe;
+    border-color: #93c5fd;
+    color: #1d4ed8;
+}
+
+.comm-inbox-toolbar__legend .comm-legend-item.table-filter-btn--tone-1.is-active {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+}
+
+.comm-inbox-toolbar__legend .comm-legend-item.table-filter-btn--tone-2:not(.is-active) {
+    background: #fef3c7;
+    border-color: #fcd34d;
+    color: #b45309;
+}
+
+.comm-inbox-toolbar__legend .comm-legend-item.table-filter-btn--tone-2.is-active {
+    background: #d97706;
+    border-color: #d97706;
+    color: #fff;
+}
+
+.comm-inbox-toolbar__legend .comm-legend-item.table-filter-btn--tone-3:not(.is-active) {
+    background: #dcfce7;
+    border-color: #86efac;
+    color: #15803d;
+}
+
+.comm-inbox-toolbar__legend .comm-legend-item.table-filter-btn--tone-3.is-active {
+    background: #16a34a;
+    border-color: #16a34a;
+    color: #fff;
+}
+
+@media (max-width: 575px) {
+    .table-filter-toolbar--inline {
+        flex-direction: column;
+        gap: 0.55rem;
+    }
+
+    .table-filter-toolbar--inline .table-filter-toolbar__title,
+    .table-filter-toolbar--inline .table-filter-toolbar__items {
+        width: 100%;
+    }
+
+    .multi-table-filter-toolbar__header {
+        justify-content: center;
+        width: 100%;
+    }
+}
