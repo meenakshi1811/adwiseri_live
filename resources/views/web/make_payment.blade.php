@@ -17,6 +17,14 @@
                                 <h3 class="panel-title" >Payment Details</h3>
                         </div>
                         <div class="panel-body">
+
+                            @if (!empty($data))
+                            <div class="well well-sm" style="margin-bottom: 20px;">
+                                <p class="mb-1"><strong>Plan:</strong> {{ $data['plan_name'] ?? '' }}</p>
+                                <p class="mb-1"><strong>Term:</strong> {{ \App\Services\SubscriptionTermPricing::label((int) ($data['plan_duration'] ?? 1)) }}</p>
+                                <p class="mb-0"><strong>Amount due:</strong> ${{ number_format($amount, 0) }} USD</p>
+                            </div>
+                            @endif
             
                             @if (Session::has('success'))
                                 <div class="alert alert-success text-center">
@@ -188,7 +196,11 @@
 
     @if (session()->has('errors'))
         <script>
-        alert('{{session('errors')}}');
+        Swal.fire({
+            icon: 'error',
+            title: 'Payment failed',
+            text: @json(session('errors'))
+        });
         </script>
     @endif
 

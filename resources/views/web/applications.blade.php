@@ -1,4 +1,4 @@
-@extends('web.layout.main')
+﻿@extends('web.layout.main')
 
 @section('main-section')
 
@@ -16,7 +16,7 @@ $setting_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Support')->first();
 @endphp
 @php
-    $statusFlow = ['Client Registered', 'Client Counselled', 'Preparation', 'Apointment Booked', 'Applied', 'Decision', 'Appeal Lodged', 'Appeal Decision', 'AR / JR Lodged', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
+    $statusFlow = ['Client Registered', 'Client Counselled', 'Preparation', 'Appointment Booked', 'Applied', 'Decision', 'Appeal Lodged', 'Appeal Decision', 'AR / JR Lodged', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
 @endphp
 
 
@@ -24,40 +24,24 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
         <div class="col-lg-10 column-client">
             <div class="client-dashboard">
-                <div class="col-12 d-flex justify-content-between align-items-center mt-3  mb-3">
-                    <h3 class="text-primary text-center flex-grow-1 text-center m-0">Applications</h3>
-                    <p>
-                        @if(count($clients) > 0)
-                        <a @if($application_roles->write_only == 1 or $application_roles->read_write_only == 1) href="{{ route('add_application') }}" @else href="#" @endif>Add New</a>
-                        @else
-                        <a @if($application_roles->write_only == 1 or $application_roles->read_write_only == 1) href="{{ route('add_client') }}" @else href="#" @endif>Add New</a>
-                        @endif
-                        <a href="{{ route('export_applications') }}">Export</a>
-                        @if($user->user_type == 'Subscriber')
-
-                        @endif
-                    </p>
-                </div>
-              <div class="row m-0 pb-2">
-                <div class="col-3 border p-1 text-center bg-info text-white">
-                  Applications
-                </div>
-                <div class="col-3 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('client_documents') }}';">
-                  Documents
-                </div>
-                <div class="col-3 border p-1 text-center top_modules" @if($user->user_type == "Subscriber") onclick="window.location.href = '{{ route('user_applications') }}';" @endif>
-                  Application Management
-                </div>
-                <div class="col-3 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('user_application_tracking') }}';">
-                  Application Tracking
-                </div>
-              </div>
+                @include('partials.application_module_header', [
+                    'activeTab' => 'applications',
+                    'application_roles' => $application_roles,
+                    'user' => $user,
+                    'clients' => $clients,
+                    'applications' => $applications,
+                ])
                 {{-- <div class="col-12 d-flex justify-content-between mb-2 ">
                         <h3 class="text-primary">Applications</h3>
 
                 </div> --}}
 
-
+                @include('partials.table_filter_toolbar', [
+                    'filterItems' => $applicationTypeFilters ?? [],
+                    'tableId' => 'clientTable',
+                    'toolbarTitle' => 'Application Type',
+                    'totalCount' => count($applications),
+                ])
                 <div class="table-wrapper">
                     <table class="table table-hover table-bordered fl-table" id="clientTable">
                         <thead>
@@ -75,7 +59,11 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         </thead>
                         <tbody>
                         @foreach($applications as $key=>$app)
-                        <tr>
+                        @php
+                            $applicationType = trim((string) ($app->application_name ?? '')) ?: 'Unspecified';
+                            $applicationFilterKey = \App\Services\TableFilterCountService::keyFor($applicationType);
+                        @endphp
+                        <tr data-filter-value="{{ $applicationFilterKey }}">
                             <td class="p-1 text-center">{{ $key+1}}</td>
                             <td class="p-1 text-center">{{ $app->client ? $app->client->name .'('.$app->client_id.')' :  '' }}</td>
                             <td class="p-1 text-center">{{  $app->application_name  .'('.$app->application_id.')'}}</td>
@@ -103,7 +91,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             </td>
                             <td class="p-1 text-center">{{ $app->formatted_start_date }}</td>
                             <td class="p-1 text-center">@if($app->end_date != null){{ $app->formatted_end_date }}@endif</td>
-                            <td class="p-1 text-center">
+                            <td class="p-1 text-center action-icon">
                                 <a style="background:transparent;border:none;" class="p-0 m-0 text-dark" @if($application_roles->read_only == 1 or $application_roles->read_write_only == 1) href="{{ route('view_application', $app->id)}}" @else href="#" @endif><i class="fa-solid fa-eye btn text-info p-1 m-0"></i></a>
                                 <a style="background:transparent;border:none;" class=" p-0 m-0 text-dark" @if($application_roles->update_only == 1) href="{{ route('update_application', $app->id)}}" @else href="#" @endif><i class="fa-solid fa-edit btn text-primary p-1 m-0"></i></a>
                                 <i class="fa-solid fa-trash btn p-1 text-danger" style="font-size:14px;" @if($application_roles->delete_only == 1) onclick="deleteapplication({{ $app->id }})" @endif></i>
@@ -128,7 +116,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
   </script>
   <script>
     function deleteapplication(id){
-        var conf = confirm('Delete Application');
+        var conf = confirm('Are you sure you want to delete this application?');
         if(conf == true){
             window.location.href = "delete_application/"+id+"";
         }
@@ -150,12 +138,12 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     status: selectedStatus
                 },
                 success: function(response) {
-                    Swal.fire({ icon: 'success', title: 'Success', text: response.message || 'Status updated.' })
+                    Swal.fire({ icon: 'success', title: 'Success', text: response.message || 'Status updated successfully.' })
                         .then(() => window.location.reload());
                 },
                 error: function(xhr) {
                     const message = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Unable to update status.';
-                    Swal.fire({ icon: 'error', title: 'Error', text: message });
+                    Swal.fire({ icon: 'error', title: 'Oops!', text: message });
                     window.location.reload();
                 }
             });
@@ -163,9 +151,17 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
         $("#add_new_zero").click(function(){
             Swal.fire({
-            icon: 'info',
-            title: 'Oops...',
-            text: 'There is no applications created.'
+            icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+            title: 'Oops!',
+            text: 'No applications have been created yet.'
+            });
+        });
+
+        $("#app_tracking_zero").click(function(){
+            Swal.fire({
+            icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+            title: 'Oops!',
+            text: 'No applications have been created yet.'
             });
         });
       })
@@ -176,7 +172,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Application Deleted Successfully!'
+      text: 'Application deleted successfully.'
     })
   </script>
 
@@ -186,7 +182,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'New Application Added Successfully!'
+      text: 'Application added successfully.'
     })
   </script>
 
@@ -196,7 +192,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Application Updated Successfully!'
+      text: 'Application updated successfully.'
     })
   </script>
 

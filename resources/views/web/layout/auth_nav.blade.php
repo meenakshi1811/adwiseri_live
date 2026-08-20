@@ -1,45 +1,21 @@
 <!---Navbar-->
 @php
 
-use App\Models\User;
 use App\Models\UserRoles;
-$user_roles = UserRoles::where('user_id', '=', $user->id)->get();
-$roleFor = function ($modules) use ($user_roles) {
-    $modules = array_map('strtolower', array_map('trim', (array) $modules));
-
-    return $user_roles->first(function ($role) use ($modules) {
-        return in_array(strtolower(trim($role->module)), $modules);
-    });
-};
-$client_roles = $roleFor(['Clients', 'Client']);
-$application_roles = $roleFor(['Applications', 'Application']);
-$communication_roles = $roleFor(['Communication', 'Communications']);
-$invoice_roles = $roleFor(['Invoices', 'Invoice']);
-$payment_roles = $roleFor(['Payments', 'Payment']);
-$report_roles = $roleFor(['Reports', 'Report']);
-$subscription_roles = $roleFor(['Subscription', 'Subscriptions']);
-$setting_roles = $roleFor(['Settings', 'Setting']);
-$support_roles = $roleFor(['Support', 'Supports']);
-$subscriber_user = ($user->user_type == 'Subscriber' || $user->user_type == 'admin') ? $user : User::find($user->added_by);
-$effective_membership = $subscriber_user->membership ?? $user->membership;
-$hasModuleAccess = function ($role) {
-    return $role && (
-        $role->read_only == 1 ||
-        $role->write_only == 1 ||
-        $role->update_only == 1 ||
-        $role->delete_only == 1 ||
-        $role->read_write_only == 1
-    );
-};
-$can_clients = $user->user_type == 'admin' || $hasModuleAccess($client_roles);
-$can_applications = $user->user_type == 'admin' || $hasModuleAccess($application_roles);
-$can_invoices = $user->user_type == 'admin' || $hasModuleAccess($invoice_roles);
-$can_payments = $user->user_type == 'admin' || $hasModuleAccess($payment_roles);
-$can_communications = $user->user_type == 'admin' || $hasModuleAccess($communication_roles);
-$can_reports = $user->user_type == 'admin' || $hasModuleAccess($report_roles);
-$can_subscription = $user->user_type == 'admin' || $hasModuleAccess($subscription_roles);
-$can_settings = $user->user_type == 'admin' || $hasModuleAccess($setting_roles);
-$can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
+use App\Services\OfferBenefitService;
+$client_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Clients')->first();
+$dashboard_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Dashboard')->first();
+$application_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Applications')->first();
+$communication_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Communication')->first();
+$associate_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Associates')->first();
+$invoice_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Invoices')->first();
+$payment_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Payments')->first();
+$report_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Reports')->first();
+$subscription_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Subscription')->first();
+$setting_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Settings')->first();
+$support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Support')->first();
+$offerBenefitService = app(OfferBenefitService::class);
+$hasAnalyticsAccess = $offerBenefitService->hasAnalyticsAccess($user);
 @endphp
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
@@ -104,7 +80,7 @@ $can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
 <nav class="navbar navbar-expand-lg navbar-light" style="background:#695EEE;">
     <div class="container-fluid">
       <!-- <a class="navbar-brand text-white" href="{{ route('/') }}"><img width="50" @if($user->organization_logo != null) src="{{ asset('web_assets/users/user'.$user->id.'/'.$user->organization_logo) }}" @else src="{{ asset('web_assets/images/Style2.png') }}" @endif /></a> -->
-       <a class="navbar-brand text-white" href="{{ route('/') }}"><img width="120" src="{{ asset('web_assets/images/Style2.png') }}" /></a>
+       <a class="navbar-brand text-white" href="{{ route('/') }}"><img class="logo-fix" src="{{ asset('web_assets/images/Style2.png') }}" alt="adwiseri" /></a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
         aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -126,7 +102,7 @@ $can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
         </ul> --}}
         <form class="log-btn" style="width: 100%;margin:auto;">
           @if(isset($user))
-
+          @include('partials.topbar_notifications')
           <a href="{{ route('userprofile') }}" class="btn btn-outline-success login-btn"><img src="{{ asset('web_assets/images/login.png') }}" width="20"
             height="20" alt=""> {{ $user->name }}</a>
           <a href="{{ route('logout') }}" class="btn btn-outline-success demo-btn"><img src="{{ asset('web_assets/images/logout.png') }}" width="20"
@@ -142,23 +118,23 @@ $can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
   </nav>
   <!---Navbar END-->
 @if($page != "index" and $page != "features" and $page != "membership" and $page != "about_adwiseri" and $page != "contact_us" and $page != "privacy_policy" and $page != "terms_conditions" and $page != "terms_use" and $page != "refund_policy")
-  <div class="container-fluid dashboard-box mt-3 mb-5">
+  <div class="container-fluid dashboard-box mt-2 mb-3">
 
-    <div class="row  client-row">
+    <div class="row client-row{{ ($page ?? '') === 'dashboard' ? ' dashboard-equal-cols' : '' }}">
         <div class="col-lg-2 column-dashbox">
             <div class="dash-box">
                 @if(isset($user))
-                  @if($user->user_type == "Subscriber" || $user->user_type == "admin")
-                  <a href="{{ route('dashboard') }}" @if($page == "dashboard") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                  @if($user->user_type == "Subscriber" || $user->user_type == "admin" || ($dashboard_roles && ($dashboard_roles->read_only == 1 || $dashboard_roles->read_write_only == 1)))
+                  <a href="{{ route('dashboard') }}" @if($page == "dashboard") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                       <span class="sidebar-menu-icon">
-                          <i class="fas fa-home"></i> <!-- Font Awesome icon -->
+                          @include('partials.module_icon', ['module' => 'dashboard'])
                       </span>
                       Dashboard
                   </a>
                   @endif
                 @endif
 
-              <div class="dashbox-btn" id="manage_box" @if($page == "contactus" or $page == "about_adwiseri" or $page == "features" or $page == "membership") style="flex-direction: column;display:flex;" @else style="flex-direction: column;display:none;" @endif>
+              <div class="dashbox-btn" id="manage_box" @if($page == "contactus" or $page == "about_adwiseri" or $page == "features" or $page == "membership" or $page == "landing_discounts_offers") style="flex-direction: column;display:flex;" @else style="flex-direction: column;display:none;" @endif>
                 <div class="dashbox-btn d-flex">
                   <a href="{{ route('manage_contactus') }}" @if($page == "contactus") style="font-weight:700;" @endif>Contact Us</a>
                 </div>
@@ -172,46 +148,49 @@ $can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
                   <a href="{{ route('manage_membership') }}" @if($page == "membership") style="font-weight:700;" @endif>Subscriptions</a>
                 </div>
                 <div class="dashbox-btn d-flex">
+                  <a href="{{ route('manage_landing_discounts_offers') }}" @if($page == "landing_discounts_offers") style="font-weight:700;" @endif>Discounts &amp; Offers</a>
+                </div>
+                <div class="dashbox-btn d-flex">
                   <a href="{{ route('demo_requests') }}" @if($page == "demo_request") style="font-weight:700;" @endif>Demo Requests</a>
                 </div>
               </div>
-                @if($can_clients)
-                <a href="{{ route('client') }}" @if($page == "clients") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                @if($user->user_type == "admin" || ($client_roles->read_only == 1 or $client_roles->read_write_only == 1))
+                <a href="{{ route('client') }}" @if($page == "clients") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
-                        <i class="fas fa-users"></i> <!-- Font Awesome icon -->
+                        @include('partials.module_icon', ['module' => 'clients'])
                     </span>
                     Clients
                 </a>
                 @endif
-                @if($can_applications)
-                <a href="{{ route('applications') }}" @if($page == "applications") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                @if($user->user_type == "admin" || ($application_roles->read_only == 1 or $application_roles->read_write_only == 1))
+                <a href="{{ route('applications') }}" @if($page == "applications") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
-                    <i class="fa-solid fa-window-restore"></i> <!-- Font Awesome icon -->
+                    @include('partials.module_icon', ['module' => 'applications'])
                     </span>
                     Applications
                 </a>
                 @endif
-                @if($can_invoices)
-                <a href="{{ route('invoices') }}" @if($page == "invoices") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                @if($user->user_type == "admin" || ($invoice_roles->read_only == 1 or $invoice_roles->read_write_only == 1))
+                <a href="{{ route('invoices') }}" @if($page == "invoices") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
-                        <i class="fas fa-file"></i> <!-- Font Awesome icon -->
+                        @include('partials.module_icon', ['module' => 'invoices'])
                     </span>
                     Invoices
                 </a>
                 @endif
-                @if($can_payments)
-                <a href="{{ route('my_payments') }}" @if($page == "payments") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                @if($user->user_type == "admin" || ($payment_roles->read_only == 1 or $payment_roles->read_write_only == 1))
+                <a href="{{ route('my_payments') }}" @if($page == "payments") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
-                        <i class="fas fa-dollar"></i> <!-- Font Awesome icon -->
+                        @include('partials.module_icon', ['module' => 'payments'])
                     </span>
                     Payments
                 </a>
                 @endif
                 @if(isset($user))
                   @if($user->user_type == "Subscriber" || $user->user_type == "admin")
-                  <a href="{{ route('users') }}" @if($page == "users" || $page == 'user_role') style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                  <a href="{{ route('users') }}" @if($page == "users" || $page == 'user_role') style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
-                        <i class="fas fa-user"></i> <!-- Font Awesome icon -->
+                        @include('partials.module_icon', ['module' => 'users'])
                     </span>
                     Users&nbsp;(Staff) 
                 </a>
@@ -227,10 +206,10 @@ $can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
 
 
 
-                @if($can_communications)
-                <a href="{{ route('messaging') }}" @if($page == "messaging" || $page == 'communications') style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                @if($user->user_type == "admin" || ($communication_roles->read_only == 1 or $communication_roles->read_write_only == 1))
+                <a href="{{ route('messaging') }}" @if($page == "messaging" || $page == 'communications') style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
-                    <i class="fa-solid fa-comment"></i> <!-- Font Awesome icon -->
+                    @include('partials.module_icon', ['module' => 'communications'])
                     </span>
                     Communications
                 </a>
@@ -240,11 +219,20 @@ $can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
                 </div> -->
                 @endif
 
-                @if($can_reports)
-                @if ($effective_membership == "Adwiseri" || $effective_membership == "Adwiseri+" || $effective_membership == "Enterprise" || $user->user_type == "admin")
-                <a href="{{ route('sub_reports') }}" @if($page == "reports") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                @if($user->user_type == "admin" || $user->user_type == "Subscriber" || (optional($associate_roles)->read_only == 1 || optional($associate_roles)->read_write_only == 1))
+                <a href="{{ route('associates') }}" @if($page == "associates") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
-                    <i class="fa-solid fa-file-lines"></i> <!-- Font Awesome icon -->
+                    @include('partials.module_icon', ['module' => 'associates'])
+                    </span>
+                    Associates (B2B)
+                </a>
+                @endif
+
+                @if($user->user_type == "admin" || ($report_roles && ($report_roles->read_only == 1 || $report_roles->read_write_only == 1)))
+                @if ($user->membership == "Adwiseri" || $user->membership == "Adwiseri+" || $user->membership == "Enterprise" || $user->user_type == "admin" || $hasAnalyticsAccess)
+                <a href="{{ route('sub_reports') }}" @if($page == "reports") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
+                    <span class="sidebar-menu-icon">
+                    @include('partials.module_icon', ['module' => 'reports'])
                     </span>
                     Reports
                 </a>
@@ -252,20 +240,22 @@ $can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
                     <img src="{{ asset('web_assets/images/reports.png') }}" width="30" height="30" alt="">
                     <a href="{{ route('sub_reports') }}" @if($page == "reports") style="font-weight:700;" @endif>Reports</a>
                   </div> -->
-                  <a href="{{ route('sub_analytics') }}" @if($page == "analytics") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                  @if ($user->user_type == "admin" || $hasAnalyticsAccess || $user->membership == "Adwiseri" || $user->membership == "Adwiseri+" || $user->membership == "Enterprise")
+                  <a href="{{ url('/sub_analytics') }}" @if($page == "analytics") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
-                        <i class="fa-solid fa-chart-simple"></i> <!-- Font Awesome icon -->
+                        @include('partials.module_icon', ['module' => 'analytics'])
                     </span>
                     Analytics
-                </a>
+                  </a>
+                  @endif
                   <!-- <div class="dashbox-btn d-flex">
                     <img src="{{ asset('web_assets/images/analytics.png') }}" width="30" height="30" alt="">
                     <a href="{{ route('sub_analytics') }}" @if($page == "analytics") style="font-weight:700;" @endif>Analytics</a>
                   </div> -->
                   @if ($user->user_type == "admin" || $user->user_type == "Affiliate")
-                  <a href="{{ route('Affiliates') }}" @if($page == "Affiliates") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                  <a href="{{ route('Affiliates') }}" @if($page == "Affiliates") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                       <span class="sidebar-menu-icon">
-                          <i class="fas fa-payment"></i> <!-- Font Awesome icon -->
+                          @include('partials.module_icon', ['module' => 'affiliates'])
                       </span>
                       Affiliates
                   </a>
@@ -275,9 +265,9 @@ $can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
                     </div> -->
                   @endif
                   @else
-                  <a href="{{ route('sub_reports') }}" @if($page == "reports") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                  <a href="{{ route('sub_reports') }}" @if($page == "reports") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                       <span class="sidebar-menu-icon">
-                          <i class="fa-solid fa-file-lines"></i> <!-- Font Awesome icon -->
+                          @include('partials.module_icon', ['module' => 'reports'])
                       </span>
                       Reports
                   </a>
@@ -285,14 +275,22 @@ $can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
                     <img src="{{ asset('web_assets/images/reports.png') }}" width="30" height="30" alt="">
                     <a href="{{ route('sub_reports') }}" @if($page == "reports") style="font-weight:700;" @endif>Reports </a>
                   </div> -->
+                  @if ($hasAnalyticsAccess)
+                  <a href="{{ url('/sub_analytics') }}" @if($page == "analytics") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
+                      <span class="sidebar-menu-icon">
+                          @include('partials.module_icon', ['module' => 'analytics'])
+                      </span>
+                      Analytics
+                  </a>
+                  @endif
                 @endif
 
                 @endif
                 @if(isset($user))
                   @if($user->user_type == "Subscriber" || $user->user_type == "admin")
-                  <a href="{{ route('referrals') }}" @if($page == "referrals") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                  <a href="{{ route('referrals') }}" @if($page == "referrals") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                       <span class="sidebar-menu-icon">
-                      <i class="fa-solid fa-asterisk"></i> <!-- Font Awesome icon -->
+                      @include('partials.module_icon', ['module' => 'referrals'])
                       </span>
                       Referrals
                   </a>
@@ -300,9 +298,9 @@ $can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
                     <img src="{{ asset('web_assets/images/affiliates.png') }}" width="30" height="30" alt="">
                     <a href="{{ route('referrals') }}" @if($page == "referrals") style="font-weight:700;" @endif>Referrals</a>
                 </div> -->
-                <a href="{{ route('wallet') }}" @if($page == "wallet") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                <a href="{{ route('wallet') }}" @if($page == "wallet") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                       <span class="sidebar-menu-icon">
-                          <i class="fas fa-wallet"></i> <!-- Font Awesome icon -->
+                          @include('partials.module_icon', ['module' => 'wallet'])
                       </span>
                       Wallet
                   </a>
@@ -311,10 +309,10 @@ $can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
                     <a href="{{ route('wallet') }}" @if($page == "wallet") style="font-weight:700;" @endif>Wallet</a>
                 </div> -->
                 @endif
-                @if($can_subscription)
-                <a href="{{ route('user_membership') }}" @if($page == "user_membership") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                @if($user->user_type == "admin" || ($subscription_roles->read_only == 1 or $subscription_roles->read_write_only == 1))
+                <a href="{{ route('user_membership') }}" @if($page == "user_membership") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                       <span class="sidebar-menu-icon">
-                      <i class="fa-solid fa-money-bill-wave"></i> <!-- Font Awesome icon -->
+                      @include('partials.module_icon', ['module' => 'subscription'])
                       </span>
                       Subscription
                   </a>
@@ -323,10 +321,10 @@ $can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
                     <a href="{{ route('user_membership') }}" @if($page == "user_membership") style="font-weight:700;" @endif>Subscription</a>
                 </div> -->
                 @endif
-                @if($can_settings)
-                <a href="{{ route('my_settings') }}" @if($page == "settings") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                @if($user->user_type == "admin" || ($setting_roles->read_only == 1 or $setting_roles->read_write_only == 1))
+                <a href="{{ route('my_settings') }}" @if($page == "settings") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                       <span class="sidebar-menu-icon">
-                          <i class="fa-solid fa-gear"></i> <!-- Font Awesome icon -->
+                          @include('partials.module_icon', ['module' => 'settings'])
                       </span>
                       Settings
                   </a>
@@ -336,10 +334,10 @@ $can_support = $user->user_type == 'admin' || $hasModuleAccess($support_roles);
                 </div> -->
                 @endif
                 @endif
-                @if($can_support)
-                <a href="{{ route('support') }}" @if($page == "support") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                @if($user->user_type == "admin" || ($support_roles->read_only == 1 or $support_roles->read_write_only == 1))
+                <a href="{{ route('support') }}" @if($page == "support") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                       <span class="sidebar-menu-icon">
-                          <i class="fa-solid fa-circle-info"></i> <!-- Font Awesome icon -->
+                          @include('partials.module_icon', ['module' => 'support'])
                       </span>
                       Support
                   </a>

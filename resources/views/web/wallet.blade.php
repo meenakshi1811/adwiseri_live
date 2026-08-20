@@ -89,7 +89,7 @@
                             @else
                             <td class="p-1 text-center">{{ $ref->getRefferedByUser ? $ref->getRefferedByUser->name .'('.$ref->getRefferedByUser->id.')' :''  }}</td>
                             @endif --}}
-                            <td class="p-1" title="{{ $ref->user_name }} ({{ $ref->userid }})" style="position: relative;">@if(strlen($ref->user_name) > 15){{ substr($ref->user_name, 0, 15) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$ref->user_name}} ({{$ref->userid}})</span> @else {{$ref->user_name}} ({{$ref->userid}})@endif</td>
+                            <td class="p-1" style="position: relative;">@if(strlen($ref->user_name) > 15){{ substr($ref->user_name, 0, 15) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$ref->user_name}} ({{$ref->userid}})</span> @else {{$ref->user_name}} ({{$ref->userid}})@endif</td>
                             <td class="p-1 text-center">
                                 @php
                                 $wallet_balance = round($ref->wallet_balance,2) ?? 0;
@@ -106,31 +106,7 @@
 
                             </td>
                             <td class="p-1 text-center">
-                                @php
-                                // Mapping types to their corresponding display names
-                                $displayText = '';
-                                switch ($ref->type) {
-                                    case 'cashback':
-                                        $displayText = 'Cashback';
-                                        break;
-                                    case 'one_off':
-                                        $displayText = 'One-off credit';
-                                        break;
-                                    case 'double_term':
-                                        $displayText = 'Double-Term Subscription';
-                                        break;
-                                    default:
-                                        $displayText = $ref->type;
-                                }
-                                if($displayText == 'Referral Commission'){
-                                    echo $displayText . ' ('.$ref->getRefferedByUser->id.')';
-                                }
-                                else{
-                                    echo $displayText;
-                                }
-                            @endphp
-                            
-                                        
+                                {{ app(\App\Services\WalletLedgerService::class)->walletReferralDescription($ref) }}
                             </td>
 
 
@@ -138,7 +114,7 @@
 
                             <td class="p-1 text-center">{{ round($ref->previous_balance,2) }}</td>
                             <td class="p-1 text-center">{{ round($ref->wallet_balance,2) }}</td>
-                            <td class="p-1 text-center">{{ date("d-m-Y", strtotime($ref->created_at)) }}</td>
+                            <td class="p-1 text-center">{{ date("d-m-Y H:i:s", strtotime($ref->created_at)) }}</td>
                         </tr>
                         @endforeach
                         <tbody>
@@ -227,8 +203,8 @@
 <script>
     Swal.fire({
         icon: 'success',
-        title: 'Congratulations',
-        text: 'Amount added Successfully.'
+        title: 'Success',
+        text: 'Amount added successfully.'
     })
 </script>
 @endif

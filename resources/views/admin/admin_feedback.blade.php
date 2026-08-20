@@ -17,6 +17,16 @@
                       </form>
                       {{-- <i class="fa-solid fa-magnifying-glass"></i> --}}
                 </div>
+                <div class="alert alert-info mb-3" role="note">
+                    <strong>Feedback popup rules (rule of thumb):</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Applies to every <strong>Subscriber</strong> and <strong>staff user</strong> in the web portal (each account is tracked separately).</li>
+                        <li><strong>First review:</strong> on the <strong>90th day</strong> — from subscription purchase date for subscribers, or account creation date for staff.</li>
+                        <li><strong>Second review onwards:</strong> at most <strong>once per year per user</strong>, counted from that user&rsquo;s anchor date anniversary.</li>
+                        <li>Example (subscriber, purchase 1 Jan 2025): first popup from 1 Apr 2025; next from 1 Jan 2026 if not submitted in that year.</li>
+                        <li>Example (staff, added 1 Mar 2025): first popup from 29 May 2025; next from 1 Mar 2026 if not submitted in that year.</li>
+                    </ul>
+                </div>
                 <div class="table-wrapper">
                     <table class="table table-hover table-bordered fl-table" id="clientTable">
                         <thead>
@@ -35,7 +45,7 @@
                             <td class="text-center" style="position: relative;">{{ $feedback->user->name .'('.$feedback->user_id.')' }}</td>
                             <td class="text-center">{{ $feedback->rating }}</td>
                             <td class="text-center">{{ $feedback->feedback }}</td>
-                            <td class="text-center">{{  \Carbon\Carbon::parse($feedback->created_at)->format('d-m-Y') }}</td>
+                            <td class="text-center">{{  \Carbon\Carbon::parse($feedback->created_at)->format('d-m-Y H:i:s') }}</td>
 
                         </tr>
                         @endforeach
@@ -57,10 +67,10 @@
       function deleteclient(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You won't be able to revert this!",
+          text: "This action cannot be undone.",
           icon: 'warning',
           showCancelButton: true,
-          confirmButtonColor: '#3085d6',
+          confirmButtonColor: '#695EEE',
           cancelButtonColor: '#d33',
           confirmButtonText: 'Yes, delete it!'
         }).then((result) => {
@@ -68,7 +78,7 @@
             window.location.href = "delete_clients/"+id+"";
           }
         })
-          // var conf = confirm('Delete Client');
+          // var conf = confirm('Are you sure you want to delete this client?');
           // if(conf == true){
           //     window.location.href = "delete_clients/"+id+"";
           // }
@@ -76,12 +86,12 @@
       function updateclient(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to update record!",
+          text: "Do you want to update this record?",
           icon: 'warning',
           showCancelButton: true,
-          confirmButtonColor: '#3085d6',
+          confirmButtonColor: '#695EEE',
           cancelButtonColor: '#d33',
-          confirmButtonText: 'Yes'
+          confirmButtonText: 'Yes, continue'
         }).then((result) => {
           if (result.isConfirmed) {
             window.location.href = "client_update/"+id+"";
@@ -95,7 +105,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Client Deleted Successfully!'
+        text: 'Client deleted successfully.'
       })
     </script>
 
@@ -105,7 +115,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'New Client Added Successfully!'
+        text: 'Client added successfully.'
       })
     </script>
 
@@ -115,7 +125,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Client Updated Successfully!'
+        text: 'Client updated successfully.'
       })
     </script>
 

@@ -287,9 +287,9 @@
                       success: function (data) {
                           let rows = '';
 
-                          if (data.length > 0) {
+                          if (Array.isArray(data) && data.length > 0) {
                             console.log(applicationText);
-                              $('#tracking_id').text(applicationText);  // Assuming data[0].name contains the desired text
+                              $('#tracking_id').text(applicationText);
                               viewReport();
                               verifyDropDowns();
                               data.forEach(item => {
@@ -303,15 +303,17 @@
                                   `;
                               });
                           } else {
-                              rows = `<tr><td colspan="4" class="text-center">No data found.</td></tr>`;
-                              $('#tracking_id').text('No application selected');  // Fallback text when no data
+                              rows = `<tr><td colspan="4" class="text-center">No status data available for this application.</td></tr>`;
+                              $('#tracking_id').text(applicationText);
+                              $('#report_section').hide();
+                              $('#chart_section').hide();
                           }
 
                           $('#application_table_body').html(rows);
-                          renderFlowChart(data);
+                          renderFlowChart(Array.isArray(data) ? data : []);
                       },
                       error: function () {
-                          alert('Failed to fetch application data.');
+                          AdwiseriAlert.error('Failed to fetch application data. Please try again.');
                           $('#application_table_body').html('');
                           $('#tracking_id').text('Error loading application data');  // Fallback text in case of error
                       }
@@ -350,10 +352,10 @@
     function deleteapplication(id){
       Swal.fire({
         title: 'Are you sure?',
-        text: "You won't be able to revert this!",
+        text: "This action cannot be undone.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
+        confirmButtonColor: '#695EEE',
         cancelButtonColor: '#d33',
         confirmButtonText: 'Yes, delete it!'
       }).then((result) => {
@@ -365,12 +367,12 @@
       function updateapplication(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to update this record!",
+          text: "Do you want to update this record?",
           icon: 'warning',
           showCancelButton: true,
-          confirmButtonColor: '#3085d6',
+          confirmButtonColor: '#695EEE',
           cancelButtonColor: '#d33',
-          confirmButtonText: 'Yes'
+          confirmButtonText: 'Yes, continue'
         }).then((result) => {
           if (result.isConfirmed) {
             window.location.href = "application_update/"+id+"";
@@ -384,7 +386,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Application Deleted Successfully!'
+        text: 'Application deleted successfully.'
       })
     </script>
 
@@ -394,7 +396,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'New Application Added Successfully!'
+        text: 'Application added successfully.'
       })
     </script>
 
@@ -404,7 +406,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Application Updated Successfully!'
+        text: 'Application updated successfully.'
       })
     </script>
 

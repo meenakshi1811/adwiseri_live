@@ -1,7 +1,7 @@
 @extends('web.layout.main')
 
 @section('main-section')
-  <div class="container d-flex align-items-center justify-content-center min-vh-100">
+  <div class="container mt-5 mb-5 pt-4">
     <div class="row w-100">
         <div class="col-lg-6 mx-auto">
             <form id="registration_form" class="register-box login-box" method="POST" action="{{ route('check_registration') }}">
@@ -22,7 +22,7 @@
                         @enderror
                     </div>
                     <div class="col-lg-6 mb-3">
-                        <input name="phone" type="text" pattern="\d*" minlength="9" maxlength="12" class="form-control @error('phone') is-invalid @enderror" placeholder="Phone Number" value="{{ old('phone') }}" required>
+                        <input name="phone" type="tel" class="form-control @error('phone') is-invalid @enderror" placeholder="Phone Number" value="{{ old('phone') }}" required>
                         @error('phone')
                             <span class="invalid-feedback" role="alert">
                                 <strong>{{ $message }}</strong>
@@ -93,6 +93,16 @@
                             </select>
 
 
+                    </div>
+                    <div class="col-lg-6 mb-3" id="subscription_duration_row">
+                        <label for="duration" class="form-label mb-1">Subscription Term</label>
+                        @include('partials.subscription_duration_select', [
+                            'name' => 'duration',
+                            'id' => 'duration',
+                            'selected' => old('duration', 1),
+                            'required' => true,
+                        ])
+                        <small class="text-muted">Multi-year terms include built-in savings (up to 50% on 5 years, 30% on 4 years).</small>
                     </div>
 
                     <div class="col-lg-6 mb-3" id="other_field" style="display: none;">
@@ -202,6 +212,21 @@
           }
         });
 
+        function syncRegistrationDurationField() {
+            var plan = ($("#membership").val() || '').toLowerCase();
+            var isFree = plan === '' || plan.indexOf('free') !== -1;
+            if (isFree) {
+                $("#subscription_duration_row").hide();
+                $("#duration").prop('disabled', true).removeAttr('required');
+            } else {
+                $("#subscription_duration_row").show();
+                $("#duration").prop('disabled', false).attr('required', 'required');
+            }
+        }
+
+        $("#membership").change(syncRegistrationDurationField);
+        syncRegistrationDurationField();
+
     });
 
 
@@ -218,15 +243,17 @@
             event.preventDefault(); // Prevent form submission
             checkbox.setCustomValidity(checkbox.getAttribute('data-error')); // Set error message
             checkbox.reportValidity(); // Display the error message
-        }else if (!recaptchaResponse) {
-            event.preventDefault(); // Prevent form submission
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops!',
-                text: 'Please complete the reCAPTCHA to proceed.',
-            });
-            return false; // Stop form submission
-        }else {
+        }
+        // else if (!recaptchaResponse) {
+        //     event.preventDefault(); // Prevent form submission
+        //     Swal.fire({
+        //         icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+        //         title: 'Oops!',
+        //         text: 'Please complete the reCAPTCHA to proceed.',
+        //     });
+        //     return false; // Stop form submission
+        // }
+        else {
             checkbox.setCustomValidity(''); // Clear the error message
             checkbox.reportValidity(); // Ensure no residual error message
         }

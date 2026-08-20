@@ -57,6 +57,7 @@ use App\Exports\ExportApplications;
 use App\Exports\ExportInvoices;
 use App\Exports\ExportPayments;
 use App\Exports\ExportApplicationsReport;
+use App\Exports\ExportErrorLogs;
 use App\Exports\ExportInvoicesReport;
 
 use Maatwebsite\Excel\Facades\Excel;
@@ -211,6 +212,17 @@ class ExportController extends Controller
     {
         $user = Auth::user();
         return Excel::download(new ExportApplicationsReport, 'Applications_Report.xlsx');
+    }
+
+    public function error_logs_export()
+    {
+        $user = Auth::user();
+
+        if (!$user || strtolower((string) $user->user_type) !== 'admin' || (int) ($user->is_support ?? 0) === 1) {
+            return redirect()->route('admin');
+        }
+
+        return Excel::download(new ExportErrorLogs, 'Error_Logs.xlsx');
     }
 
 

@@ -72,7 +72,8 @@
                             <span class="details-line"><strong>Paid Amount</strong> :- USD {{$data->paid_amount ?? $data->amount}}</span><br><br>
                             View invoice: <a href="{{route('invoice_preview', $data->invoice_id .'/'. $data->token)}}">Click here</a>
                             @else
-                            Your <strong>Free Plan</strong> is activated successfully. The plan details are as follows:<br><br>
+                            <strong>{{ $data->plan_name ?? 'Free Plan' }}</strong> plan is activated on your account.<br><br>
+                            Subscription details are as follows:<br><br>
                             <span class="details-line"><strong>Plan Name</strong> : {{$data->plan_name}}</span><br>
                             <span class="details-line"><strong>Duration</strong> : {{$data->duration}}</span><br>
                             <span class="details-line"><strong>Paid Amount</strong> : $0</span><br>
@@ -84,16 +85,15 @@
                         <p><strong>Have a question?</strong></p>
                         <p>Check our <strong><a href="https://adwiseri.com/faqs">FAQ Page</a></strong> for a quick answer.</p>
                         <p>
-                            You can always contact our support team via email or by raising a ticket from the support section.<br>
+                            You can always contact our support team via live chat or email.<br>
                             We will be happy to help you!<br><br>
-                            Thanks,<br>
-                            <b>The Adwiseri Team</b>
+                            @include('emails.partials.signature')
                         </p>
                     </div>
                 @endif
             </div>
             <div style="text-align:center;background:#695EEE;padding:20px 15px;color:white;border-radius:0 0 10px 10px;">
-                <p style="margin:0 0 10px 0;">&copy; {{ date('Y') }} adwiseri. All rights reserved.</p>
+                <p style="margin:0 0 10px 0;">&copy; {{ $copyrightYears }} adwiseri. All rights reserved.</p>
                 <div style="text-align:center" class="footer-links">
                     <a style="text-align:center; color:white;" href="https://adwiseri.com/terms_of_use">Terms of Use</a> |
                     <a style="text-align:center; color:white;" href="https://adwiseri.com/privacy_policy">Privacy Policy</a> |

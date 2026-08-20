@@ -78,7 +78,7 @@
                             <label>Communication Date<span class="text-danger" style="font-size: 18px;">*</span></label>
                         </div>
                         <div class="col-md-8 p-1">
-                            <input type="datetime-local" name="communication_date" class="form-control date" required />
+                            <input type="datetime-local" name="communication_date" class="form-control" required />
                             @error('communication_date')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -108,29 +108,45 @@
                         <thead>
                         <tr>
                             <th>Sr.</th>
-                            <th>User Name</th>
+                            <th>User</th>
                             <th>Client Name</th>
-                            <th>Application ID</th>
+                            <th>Application (ID)</th>
                             <th>Mode</th>
                             <th>Date</th>
                             <th>Discussion</th>
+                            <th>Action</th>
                         </tr>
                         </thead>
                         <tbody>
                         @foreach($notes as $key => $discus)
+                        @php
+                            $userDisplay = ($discus->user && $discus->user->user_type === 'Subscriber') ? 'SUB' : $discus->user_name;
+                            $appName = trim((string) ($discus->application->application_name ?? ''));
+                            $appId = (string) ($discus->application_id ?? '');
+                            $applicationDisplay = $appName !== '' ? $appName . ' (' . $appId . ')' : $appId;
+                            $meetingNotePayload = [
+                                'user' => $userDisplay,
+                                'client' => $discus->client_name,
+                                'application' => $applicationDisplay,
+                                'mode' => $discus->communication_type,
+                                'date' => date('d-m-Y H:i:s', strtotime($discus->communication_date)),
+                                'discussion' => $discus->discussion,
+                            ];
+                        @endphp
                         <tr>
                             <td>{{ $key+1 }}</td>
-                            <td>{{ $discus->user_name }}</td>
+                            <td>{{ $userDisplay }}</td>
                             <td>{{ $discus->client_name }}</td>
-                            <td>{{ $discus->application_id }}</td>
+                            <td>{{ $applicationDisplay }}</td>
                             <td>{{ $discus->communication_type }}</td>
                             <td>{{ date("d-m-Y H:i:s",strtotime($discus->communication_date)) }}</td>
                             <td><div style="max-height: 100px;overflow:auto;">{{ $discus->discussion }}</div></td>
-                            {{-- <td class="text-center">
-                                <a style="background:none; border:none;" onclick="window.location.href = '{{ route('view_query', $discus->id) }}';" class="m-0 p-0"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>
-                                <i class="fa-solid fa-edit btn p-1 text-success" onclick="queryresponse({{ $discus->id }})" style="font-size:14px;"></i>
-                                <i class="fa-solid fa-trash btn p-1 text-danger" onclick="deletequery({{ $discus->id }})" style="font-size:14px;"></i>
-                            </td> --}}
+                            <td class="text-center action-icon">
+                                <button type="button" class="btn p-0 border-0 bg-transparent" title="View"
+                                    onclick="viewMeetingNote(@json($meetingNotePayload))">
+                                    <i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i>
+                                </button>
+                            </td>
                         </tr>
                         @endforeach
                         
@@ -149,13 +165,34 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
   </script>
   <script>
+  <script>
+      function viewMeetingNote(note) {
+          const discussion = (note.discussion || '').replace(/\n/g, '<br>');
+          Swal.fire({
+              title: 'Meeting Note Details',
+              html: `
+                  <div class="text-start">
+                      <p><strong>User:</strong> ${note.user || ''}</p>
+                      <p><strong>Client:</strong> ${note.client || ''}</p>
+                      <p><strong>Application:</strong> ${note.application || ''}</p>
+                      <p><strong>Mode:</strong> ${note.mode || ''}</p>
+                      <p><strong>Date:</strong> ${note.date || ''}</p>
+                      <p><strong>Discussion:</strong></p>
+                      <div style="max-height:300px;overflow:auto;text-align:left;white-space:normal;">${discussion}</div>
+                  </div>
+              `,
+              width: '640px',
+              confirmButtonText: 'Close'
+          });
+      }
+
       $(document).ready(() => {
 
         $("#add_new_zero").click(function(){
             Swal.fire({
-            icon: 'info',
-            title: 'Oops...',
-            text: 'There is no client created.'
+            icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+            title: 'Oops!',
+            text: 'No clients have been created yet.'
             });
         });
 
@@ -175,19 +212,20 @@
           
           $("#client").change(function(){
             var id = $(this).val();
-            var comm = "communication";
-            // console.log(counrty);
+            $("#application").html('<option value="">Select Application</option>');
+            if (!id) {
+                return;
+            }
             $.ajax({
-                url: 'get_application',
+                url: "{{ route('get_application') }}",
                 method: 'POST',
                 data: {
                     "_token": "{{ csrf_token() }}",
                     id: id,
-                    comm: comm,
+                    comm: "communication",
                 },
                 cache:false,
                 success: function(data){
-                  console.log(data);
                     $("#application").html(data);
                 }
             });
@@ -198,8 +236,8 @@
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'User Added Successfully.'
+      title: 'Success',
+      text: 'Note added successfully.'
     })
   </script>
 

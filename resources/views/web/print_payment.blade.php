@@ -62,7 +62,7 @@
                         <h4>{{ $invoice->company_name }}</h4>
                         <p class="m-1" style="line-height: 1;">{{ $invoice->city }}, {{ $invoice->state }}</p>
                         <p class="m-1" style="line-height: 1;">{{ $invoice->country }}, {{ $invoice->pincode }}</p>
-                        <p class="m-1" style="line-height: 1;">{{ $invoice->phone }}</p>
+                        <p class="m-1" style="line-height: 1;">{{ \App\Support\PhoneNumber::displayE164($invoice->phone) }}</p>
                     </div>
                     <div class="col-6 d-flex justify-content-end">
                         <div class="row m-0" style="height: fit-content;">

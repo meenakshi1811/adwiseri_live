@@ -1,4 +1,4 @@
-@extends('web.layout.main')
+﻿@extends('web.layout.main')
 
 @section('main-section')
 @php
@@ -17,41 +17,15 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
         <div class="col-lg-10 column-client">
             <div class="client-dashboard">
-
-                <div class="client-btn d-flex justify-content-between align-items-center mt-3 ">
-                    <form class="form-inline d-flex justify-content-between w-100">
-                        <h3 class="text-primary text-center flex-grow-1 text-center m-0">Payments</h3>
-                        @if(!$user->is_support)
-                        <p>
-                            <a href="{{ route('add_ar_payments') }}" class="m-0">Add AR (Payments Received) Record</a>
-                            <a href="{{ route('add_ap_payments') }}" class="m-0">Add AP (Payments Made) Record</a>
-                          </p>
-                    @endif
-
-                    {{-- <form class="form-inline d-flex justify-content-between w-100">
-                        <h3 class="text-primary">Payments</h3>
-                        <a href="{{ route('add_ar_payments') }}" class="m-0">Add (AR)</a>
-                        <a href="{{ route('payments_export') }}" class="m-0">Add (Ap)</a>
-                        {{-- <div class="d-flex ">
-                            <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
-                        </div> --}}
-                      {{-- </form>  --}}
-                      {{-- <i class="fa-solid fa-magnifying-glass"></i> --}}
-                </div>
-                <div class="row m-0 pb-2">
-
-
-                    <div class="col-6 border p-1 text-center    text-center tab-anchor top_modules"   onclick="window.location.href = '{{ route('my_payments') }}';">
-                        Accounts Receivables &nbsp;&nbsp;  (Payments Received)
-                    </div>
-                    <div class="col-6 border p-1 text-center text-white bg-info">
-                        Accounts Payable &nbsp;&nbsp; (Payments Made)
-                      </div>
-
-                 </div>
-
+                @include('partials.payment_ar_ap_module_header', ['activeTab' => 'ap'])
 
                 @if(count($paymentAP) != 0)
+                @include('partials.table_filter_toolbar', [
+                    'filterItems' => $paymentModeFilters ?? [],
+                    'tableId' => 'clientTable',
+                    'toolbarTitle' => 'Payments By Mode',
+                    'totalCount' => count($paymentAP),
+                ])
                   <div class="table-wrapper">
                   <table class="fl-table table table-hover p-0 m-0" id="clientTable">
                     <thead>
@@ -69,7 +43,15 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     </thead>
                     <tbody>
                       @foreach($paymentAP as $key => $payment)
+                        @php
+                          $paymentMode = trim((string) ($payment->payment_mode ?? '')) ?: 'Unspecified';
+                          $paymentFilterKey = \App\Services\TableFilterCountService::keyFor($paymentMode);
+                          $amountToPayDisplay = $payment->amount_to_pay_display
+                              ?? number_format((float) ($payment->invoice_total ?? $payment->amount), 2, '.', '');
+                          $outstanding = $payment->outstanding_balance ?? max(0, ((float) $payment->amount - (float) $payment->paid_amount));
+                        @endphp
                         <tr 
+                          data-filter-value="{{ $paymentFilterKey }}"
                           data-invoice-no="{{ $payment->invoice_no }}"
                           data-client-id="{{ $payment->client_id }}" 
                           data-application-id="{{ $payment->application_id }}"
@@ -77,15 +59,22 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                           <td class="p-1 text-center">{{ $key+1 }}</td>
                           <td class="p-1 text-center">{{ $payment->invoice_no }}</td>
                           <td class="p-1 text-center">
-                            {{ $payment->service_provider ? $payment->service_provider .'('.$payment->client_id.')' : ''}}
+                            @php
+                              $vendorId = \App\Models\Internal_Invoices::resolveVendorIdForPayment(
+                                  $payment->invoice_no,
+                                  $payment->subscriber_id,
+                                  $payment->service_provider
+                              );
+                            @endphp
+                            {{ \App\Models\Internal_Invoices::formatVendorDisplay($payment->service_provider, $vendorId) }}
                           </td>
                           <td class="p-1 text-center">
                             {{ $payment->service_taken }}
                           </td>
                           <td class="p-1 text-center">{{ $payment->payment_mode }}</td>
-                          <td class="p-1 text-center amount">{{ $payment->amount }}</td>
-                          <td class="p-1 text-center paid">{{ $payment->paid_amount }}</td>
-                          <td class="p-1 text-center outstanding">{{ $payment->amount - $payment->paid_amount }}</td>
+                          <td class="p-1 text-center amount">{{ $amountToPayDisplay }}</td>
+                          <td class="p-1 text-center paid">{{ number_format((float) $payment->paid_amount, 2, '.', '') }}</td>
+                          <td class="p-1 text-center outstanding">{{ number_format((float) $outstanding, 2, '.', '') }}</td>
                           <td class="p-1 text-center">
                             {{ \Carbon\Carbon::parse($payment->payment_date)->format('d-m-Y') }}
                           </td>
@@ -95,64 +84,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                   </table>
                 </div>
 
-                {{-- Add this JS after your table --}}
-                <script>
-                  document.addEventListener('DOMContentLoaded', function() {
-                      // parse ISO datetime from data-created-at (fallback to epoch)
-                      function parseIsoDate(dateStr) {
-                          if (!dateStr) return new Date(0);
-                          const t = Date.parse(dateStr);
-                          return isNaN(t) ? new Date(0) : new Date(t);
-                      }
-
-                      let rows = Array.from(document.querySelectorAll('#clientTable tbody tr'));
-                      let grouped = {};
-
-                      rows.forEach((row, domIndex) => {
-                          let invoiceNo = row.dataset.invoiceNo || '';
-                          let key = invoiceNo;
-
-                          // numeric parsing (strip commas/currency)
-                          let amountText = (row.querySelector('.amount')?.textContent || '').replace(/[^0-9.\-]/g, '');
-                          let paidText   = (row.querySelector('.paid')?.textContent   || '').replace(/[^0-9.\-]/g, '');
-
-                          let amount = parseFloat(amountText) || 0;
-                          let paid = parseFloat(paidText) || 0;
-
-                          // use data-created-at attribute (full timestamp)
-                          let createdAt = row.dataset.createdAt || '';
-                          let dateObj = parseIsoDate(createdAt);
-
-                          if (!grouped[key]) grouped[key] = { totalAmount: amount, rows: [] };
-
-                          // keep maximum amount seen for that group (fallback)
-                          grouped[key].totalAmount = Math.max(grouped[key].totalAmount || 0, amount);
-
-                          grouped[key].rows.push({ row, paid, dateObj, domIndex });
-                      });
-
-                      Object.keys(grouped).forEach(key => {
-                          let entry = grouped[key];
-
-                          // stable sort by real timestamp (oldest first), then DOM index as tie-breaker
-                          entry.rows.sort((a, b) => {
-                              if (a.dateObj < b.dateObj) return -1;
-                              if (a.dateObj > b.dateObj) return 1;
-                              return a.domIndex - b.domIndex;
-                          });
-
-                          // compute cumulative and write remaining AFTER each payment
-                          let cumulativePaid = 0;
-                          entry.rows.forEach(item => {
-                              cumulativePaid += item.paid;
-                              let remaining = entry.totalAmount - cumulativePaid;
-                              if (remaining < 0) remaining = 0;
-                              let outEl = item.row.querySelector('.outstanding');
-                              if (outEl) outEl.innerText = remaining.toFixed(2);
-                          });
-                      });
-                  });
-                  </script>
                 @else
                 <p class="text-secondary px-3">No Payment Records to show</p>
                 @endif
@@ -165,7 +96,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 <script>
     function deleteinvoice(id){
       var localtime = new Date();
-        var conf = confirm('Delete Invoice');
+        var conf = confirm('Are you sure you want to delete this invoice?');
         if(conf == true){
             window.location.href = "delete_payment/"+id+"/"+localtime.toString()+"";
         }
@@ -186,7 +117,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'User Added Successfully.'
+      text: 'Payment recorded successfully.'
     })
   </script>
 
@@ -196,7 +127,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Payment Deleted Successfully!'
+      text: 'Payment deleted successfully.'
     })
   </script>
 
@@ -204,9 +135,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 @if(session()->has('user_limit'))
   <script>
     Swal.fire({
-      icon: 'warning',
-      title: 'User Limit!',
-      text: 'Upgrade membership to add more Users!'
+      icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+      title: 'User Limit Reached',
+      text: 'Upgrade your membership to add more users.'
     })
   </script>
 

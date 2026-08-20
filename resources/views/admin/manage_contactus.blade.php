@@ -19,7 +19,7 @@
                                     <p style="font-weight:550;">Contact No.</p>
                                 </div>
                                 <div class="col-6">
-                                    <p>@if($contact->contact_no == "") --- @else {{ $contact->contact_no }} @endif</p>
+                                    <p>@include('partials.phone_display', ['phone' => $contact->contact_no, 'emptyText' => '---'])</p>
                                 </div>
                             {{-- <div class="col-6">
                                     <p style="font-weight:550;">Alternate No.</p>
@@ -100,11 +100,11 @@
                     @endif
                 </div>
                 <div class="mb-4">
-                    <input name="contact_no" value="{{ $contact->contact_no }}" required type="text" pattern="\d*" minlength="10" maxlength="10" class="form-control"
+                    <input name="contact_no" value="{{ \App\Support\PhoneNumber::displayE164($contact->contact_no) }}" data-phone-e164="{{ \App\Support\PhoneNumber::displayE164($contact->contact_no) }}" required type="tel" class="form-control"
                         id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Contact Number">
                 </div>
                 <div class="mb-4">
-                    <input name="alternate_no" value="{{ $contact->alternate_no }}" required type="text" pattern="\d*" minlength="10" maxlength="10" class="form-control"
+                    <input name="alternate_no" value="{{ \App\Support\PhoneNumber::displayE164($contact->alternate_no) }}" data-phone-e164="{{ \App\Support\PhoneNumber::displayE164($contact->alternate_no) }}" required type="tel" class="form-control"
                         id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Alternate Number">
                 </div>
                 <div class="mb-4">
@@ -190,9 +190,9 @@
         <script>
             Swal.fire({
 
-                icon: 'error',
-                title: 'Oops...',
-                text: 'Please select valid Image!'
+                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                title: 'Oops!',
+                text: 'Please select a valid image.'
             })
         </script>
     @enderror
@@ -200,8 +200,8 @@
         <script>
             Swal.fire({
                 icon: 'success',
-                title: 'Congratulations',
-                text: 'Contact Us Details has been Updated!'
+                title: 'Success',
+                text: 'Contact details updated successfully.'
             })
         </script>
     @endif

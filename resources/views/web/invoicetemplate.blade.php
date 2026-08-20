@@ -138,15 +138,12 @@
 
                 <p>
                     Please find your invoice attached as a PDF in this email.
-                    @if(($data->status ?? '') === 'Paid')
-                        This invoice is already marked as <strong>Paid</strong>.
-                    @endif
                 </p>
 
                 <p>Thank you,<br><strong>{{ $data->company_name ?? 'Adwiseri Team' }}</strong></p>
             </div>
             <div class="footer">
-                &copy; {{ date('Y') }} adwiseri. All rights reserved.
+                &copy; {{ $copyrightYears }} adwiseri. All rights reserved.
             </div>
         </div>
     </div>

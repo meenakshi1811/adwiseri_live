@@ -1,4 +1,4 @@
-@extends('admin.layout.main')
+﻿@extends('admin.layout.main')
 
 @section('main-section')
 
@@ -34,6 +34,7 @@
                                     </span>
                                 @enderror
                             </div>
+                            @include('web.partials.application_visa_detail_fields', ['application' => $application])
                             <div class="col-md-4 p-1">
                                 <label>Visa Country<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
@@ -86,11 +87,8 @@
                             <div class="col-md-8 p-1">
                                 <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="edit_job_status" style="background-color: #fff; color:#000 !important;" aria-describedby="emailHelp" required>
                                     <option value="">Select Application Status</option>
-                                    <option {{ ($application->application_status == "Registration") ? 'selected' : '' }} value="Registration">Registration</option>
+                                    <option {{ ($application->application_status == "Client Registered") ? 'selected' : '' }} value="Client Registered">Client Registered</option>
                                     <option {{ ($application->application_status == "Applied") ? 'selected' : '' }} value="Applied">Applied</option>
-                                    <option {{ ($application->application_status == "Pending") ? 'selected' : '' }} value="Pending">Pending (For submission)</option>
-                                    <option {{ ($application->application_status == "In Process") ? 'selected' : '' }} value="In Process">In Process (Waiting for decision)</option>
-                                    <option {{ ($application->application_status == "Complete") ? 'selected' : '' }} value="Complete">Completed (Application/Appeal decision received)</option>
                                     <option {{ ($application->application_status == "Cancelled") ? 'selected' : '' }} value="Cancelled">Cancelled (Application/Appeal Cancelled by Consultancy/Authorities)</option>
                                     <option {{ ($application->application_status == "Withdrawn") ? 'selected' : '' }} value="Withdrawn">Withdrawn (Application/Appeal Withdrawn by Client)</option>
                                 </select>
@@ -162,10 +160,16 @@
                                 <label>Visa Country<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
+                                @php
+                                    $defaultVisaCountry = old('visa_country');
+                                    if (!$defaultVisaCountry && $countries->count() === 1) {
+                                        $defaultVisaCountry = $countries->first()->country_name;
+                                    }
+                                @endphp
                                 <select name="visa_country" id="visa_country" class="form-control form-select @error('visa_country') is-invalid @enderror" aria-describedby="emailHelp" required>
                                     <option value="">Select Visa Country</option>
                                     @foreach($countries as $country)
-                                    <option {{ (old('visa_country') == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
+                                    <option {{ ($defaultVisaCountry == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
                                     @endforeach
                                 </select>
                                 @error('visa_country')
@@ -201,6 +205,7 @@
                                     </span>
                                 @enderror
                             </div>
+                            @include('web.partials.application_visa_detail_fields')
                             <div class="col-md-4 p-1">
                                 <label>Application Start Date<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
@@ -226,11 +231,8 @@
                             <div class="col-md-8 p-1">
                                 <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="add_job_status" aria-describedby="emailHelp" value="{{ old('job_status') }}" required>
                                     <option value="">Select Application Status</option>
-                                    <option {{ (old('job_status') == "Registration") ? 'selected':'' }} value="Registration">Registration</option>
+                                    <option {{ (old('job_status', 'Client Registered') == "Client Registered") ? 'selected':'' }} value="Client Registered">Client Registered</option>
                                     <option {{ (old('job_status') == "Applied") ? 'selected':'' }} value="Applied">Applied</option>
-                                    <option {{ (old('job_status') == "Pending") ? 'selected':'' }} value="Pending">Pending (For submission)</option>
-                                    <option {{ (old('job_status') == "In Process") ? 'selected':'' }} value="In Process">In Process (Waiting for decision)</option>
-                                    <option {{ (old('job_status') == "Complete") ? 'selected':'' }} value="Complete">Completed (Application/Appeal decision received)</option>
                                     <option {{ (old('job_status') == "Cancelled") ? 'selected':'' }} value="Cancelled">Cancelled (Application/Appeal Cancelled by Consultancy/Authorities)</option>
                                     <option {{ (old('job_status') == "Withdrawn") ? 'selected' : '' }} value="Withdrawn">Withdrawn (Application/Appeal Withdrawn by Client)</option>
                                 </select>
@@ -328,7 +330,28 @@
 
           $("#client").change(function(){
             var id = $(this).val();
-            // console.log(counrty);
+
+            if (!id) {
+                $("#job_role").html('<option value="">Select Application Type</option>');
+                $("#visa_country").html('<option value="">Select Visa Country</option>');
+                return;
+            }
+
+            $.ajax({
+                url: 'fetch_visa_country/' + id,
+                method: 'GET',
+                cache:false,
+                success: function(data){
+                    $.post("{{ route('get_cc_countries') }}", {
+                        _token: "{{ csrf_token() }}",
+                        client_id: id,
+                        selected: data || ''
+                    }, function (html) {
+                        $("#visa_country").html(html);
+                    });
+                }
+            });
+
             $.ajax({
                 url: 'get_job_role',
                 method: 'POST',
@@ -338,26 +361,9 @@
                 },
                 cache:false,
                 success: function(data){
-                  console.log(data);
                     $("#job_role").html(data);
-                }
-            });
-          });
-
-          $("#client").change(function(){
-            var id = $(this).val();
-            // console.log(counrty);
-            $.ajax({
-                url: 'fetch_visa_country/'+id,
-                method: 'GET',
-                data: {
-                    "_token": "{{ csrf_token() }}",
-                    // id: id,
-                },
-                cache:false,
-                success: function(data){
-                    if (data) {
-                        $("#visa_country").val(data);
+                    if (typeof window.syncApplicationVisaDetailFields === 'function') {
+                        window.syncApplicationVisaDetailFields();
                     }
                 }
             });
@@ -365,16 +371,17 @@
 
           if (isClientSelect && clientEl.value) {
             $.ajax({
-                url: '/fetch_visa_country/' + clientEl.value,
+                url: 'fetch_visa_country/' + clientEl.value,
                 method: 'GET',
-                data: {
-                    "_token": "{{ csrf_token() }}",
-                },
                 cache:false,
                 success: function(data){
-                    if (data) {
-                        $("#visa_country").val(data);
-                    }
+                    $.post("{{ route('get_cc_countries') }}", {
+                        _token: "{{ csrf_token() }}",
+                        client_id: clientEl.value,
+                        selected: data || ''
+                    }, function (html) {
+                        $("#visa_country").html(html);
+                    });
                 }
             });
           }
@@ -399,9 +406,10 @@
           toggleEndDateField("#add_job_status", "#job_completion_date");
       });
   </script>
+  @include('web.partials.application_visa_detail_fields_script')
   <script>
       function deleteuser(id){
-          var conf = confirm('Delete User');
+          var conf = confirm('Are you sure you want to delete this application?');
           if(conf == true){
               window.location.href = "delete_user/"+id+"";
           }
@@ -413,7 +421,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'Application deleted successfully.'
       })
     </script>
 

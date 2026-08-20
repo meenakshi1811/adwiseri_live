@@ -102,7 +102,7 @@
                         </div>
                         {{-- <div class="col-6">
                             <p>@if($vuser->name == "") --- @else {{ $vuser->name }} @endif</p>
-                            <p>@if($vuser->phone == "") --- @else {{ $vuser->phone }} @endif</p>
+                            <p>@include('partials.phone_display', ['phone' => $vuser->phone, 'emptyText' => '---'])</p>
                             <p>@if($vuser->email == "") --- @else {{ $vuser->email }} @endif</p>
                             <p>@if($vuser->category == "") --- @else {{ $vuser->category }} @endif</p>
                             <p>@if($vuser->sub_category == "") --- @else {{ $vuser->sub_category }} @endif</p>
@@ -245,7 +245,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Congratulations',
-        text: 'Membership Plan Updated Successfully.'
+        text: 'Membership plan updated successfully.'
       })
     </script>
   

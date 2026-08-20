@@ -50,13 +50,18 @@ use App\Models\Internal_communications;
 use App\Models\Affiliates;
 use App\Models\Feedbacks;
 use App\Models\PaymentARs;
+use App\Models\Associate;
+use App\Models\AssociateBusiness;
+use App\Models\AssociateInvoice;
 use Carbon\CarbonInterface;
 
 use DataTables;
 
+use App\Http\Controllers\Concerns\ScopesConsultancyReports;
+
 class ReportFilterController extends Controller
 {
-    //
+    use ScopesConsultancyReports;
 
     private function parseReportDate(?string $value, bool $isEndDate = false): Carbon
     {
@@ -114,8 +119,8 @@ class ReportFilterController extends Controller
         ->where('referrals.type', 'Referral Commission');
 
         if (request()->type == "homeCountry") {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $clientsByCountry = Clients::whereBetween('created_at', [$startDate, $endDate])->where('subscriber_id', '=', $user->id)->select('country as country_name', DB::raw('COUNT(subscriber_id) as No_of_Subscribers'))
+            if ($this->hasConsultancyReportAccess($user)) {
+                $clientsByCountry = Clients::whereBetween('created_at', [$startDate, $endDate])->where('subscriber_id', '=', $this->consultancySubscriberId($user))->select('country as country_name', DB::raw('COUNT(subscriber_id) as No_of_Subscribers'))
                     ->groupBy('country')->get();
             } else {
                 $clientsByCountry = Clients::whereBetween('created_at', [$startDate, $endDate])->select('country as country_name', DB::raw('COUNT(subscriber_id) as No_of_Subscribers'))
@@ -129,7 +134,7 @@ class ReportFilterController extends Controller
                 })
                 ->make(true);
         } elseif (request()->type == "ageGroup") {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
 
                 $clients = DB::table(DB::raw('(SELECT "Under 18" AS age_group UNION ALL 
@@ -140,15 +145,19 @@ class ReportFilterController extends Controller
                         SELECT "55 +") AS age_groups'))
                     ->leftJoinSub(
                         Clients::whereBetween('created_at', [$startDate, $endDate])
-                            ->where('subscriber_id', '=', $user->id)
+                            ->where('subscriber_id', '=', $this->consultancySubscriberId($user))
+                            ->whereNotNull('dob')
+                            ->where('dob', '!=', '')
+                            ->where('dob', '!=', '0000-00-00')
+                            ->whereRaw('dob REGEXP ?', ['^[0-9]{4}-[0-9]{2}-[0-9]{2}'])
                             ->select(
                                 DB::raw("
                     CASE 
                         WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) < 18 THEN 'Under 18'
-                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 18 AND 25 THEN '18-24'
-                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 26 AND 35 THEN '25-34'
-                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 36 AND 45 THEN '35-44'
-                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 46 AND 55 THEN '45-55'
+                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 18 AND 24 THEN '18-24'
+                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 25 AND 34 THEN '25-34'
+                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 35 AND 44 THEN '35-44'
+                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 45 AND 54 THEN '45-55'
                         ELSE '55 +'
                     END AS age_group,
                     COUNT(*) AS count
@@ -175,21 +184,25 @@ class ReportFilterController extends Controller
             }
             if ($user->user_type == 'admin') {
                 $clients = DB::table(DB::raw('(SELECT "Under 18" AS age_group UNION ALL 
-                SELECT "18-25" UNION ALL 
-                SELECT "25-35" UNION ALL 
-                SELECT "35-45" UNION ALL 
+                SELECT "18-24" UNION ALL 
+                SELECT "25-34" UNION ALL 
+                SELECT "35-44" UNION ALL 
                 SELECT "45-55" UNION ALL 
                 SELECT "55 +") AS age_groups'))
                     ->leftJoinSub(
                         Clients::whereBetween('created_at', [$startDate, $endDate])
+                            ->whereNotNull('dob')
+                            ->where('dob', '!=', '')
+                            ->where('dob', '!=', '0000-00-00')
+                            ->whereRaw('dob REGEXP ?', ['^[0-9]{4}-[0-9]{2}-[0-9]{2}'])
                             ->select(
                                 DB::raw("
                 CASE 
                     WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) < 18 THEN 'Under 18'
-                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 18 AND 25 THEN '18-24'
-                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 26 AND 35 THEN '25-34'
-                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 36 AND 45 THEN '35-44'
-                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 46 AND 55 THEN '45-55'
+                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 18 AND 24 THEN '18-24'
+                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 25 AND 34 THEN '25-34'
+                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 35 AND 44 THEN '35-44'
+                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 45 AND 54 THEN '45-55'
                     ELSE '55 +'
                 END AS age_group,
                 COUNT(*) AS count
@@ -223,9 +236,9 @@ class ReportFilterController extends Controller
                 ->addIndexColumn()
                 ->make(true);
         } elseif (request()->type == 'appType') {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
                 $applications = Applications::whereBetween('created_at', [$startDate, $endDate])
-                    ->where('subscriber_id', $user->id)
+                    ->where('subscriber_id', $this->consultancySubscriberId($user))
                     ->selectRaw(
                         'CONCAT(application_name, " (", application_id, ")") as application_name, COUNT(DISTINCT client_id) AS number_of_clients'
                     )
@@ -243,12 +256,12 @@ class ReportFilterController extends Controller
                 ->addIndexColumn()
                 ->make(true);
         } elseif (request()->type == 'applications') {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
                 $applications = Clients::join('applications', 'clients.id', '=', 'applications.client_id')
                     ->join('users', 'clients.subscriber_id', '=', 'users.id')
                     ->whereBetween('clients.created_at', [$startDate, $endDate])
-                    ->where('clients.subscriber_id', $user->id) // Ensure table alias is correct
+                    ->where('clients.subscriber_id', $this->consultancySubscriberId($user)) // Ensure table alias is correct
                     ->selectRaw('
                         users.name as subscriber_name,
                         users.id as sub_id,
@@ -281,11 +294,11 @@ class ReportFilterController extends Controller
                 ->make(true);
         } elseif (request()->type == 'payment_mode') {
             $paymentMode = PaymentARs::pluck('payment_mode')->toArray();
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
                 $app = PaymentARs::whereBetween('created_at', [$startDate, $endDate])
                     ->whereIn('payment_mode', $paymentMode)
-                    ->where('subscriber_id', $user->id)
+                    ->where('subscriber_id', $this->consultancySubscriberId($user))
                     ->selectRaw('payment_mode') // Select the payment mode column for grouping
                     ->selectRaw('COUNT(*) as number_of_payment') // Count the number of invoices
                     // ->selectRaw('SUM(amount) as total_payment_sum') // Calculate the sum of invoice totals
@@ -310,11 +323,11 @@ class ReportFilterController extends Controller
 
                 ->make(true);
         } elseif (request()->type == 'paymentAmount') {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
 
                 $paymentAP = PaymentARs::where('type', 'ar')
-                    ->where('subscriber_id', $user->id)
+                    ->where('subscriber_id', $this->consultancySubscriberId($user))
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->whereNotNull('client_id') // Ensure there is a client_id
                     ->with([
@@ -375,13 +388,13 @@ class ReportFilterController extends Controller
                 })
                 ->make(true);
         } elseif (request()->type == 'document') {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
 
                 $clientDocs = Client_Docs::join('clients', 'client_docs.client_id', '=', 'clients.id') // Join Client model
                     ->selectRaw('clients.name as client_name, client_docs.client_id, COUNT(*) AS no_of_docs') // Select client name, client_id, and count of documents
                     ->groupBy('client_docs.client_id', 'clients.name') // Group by client_id and client name
-                    ->where('client_docs.user_id', $user->id)
+                    ->where('client_docs.user_id', $this->consultancySubscriberId($user))
                     ->whereBetween('client_docs.created_at', [$startDate, $endDate])
                     ->orderBy('no_of_docs', 'desc')
                     ->get();
@@ -405,9 +418,9 @@ class ReportFilterController extends Controller
 
                 ->make(true);
         } elseif (request()->type == 'dependants') {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
                 $clientsWithDependants = Clients::withCount('dependants') // Count dependants for each client
-                    ->where('subscriber_id', $user->id)
+                    ->where('subscriber_id', $this->consultancySubscriberId($user))
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->havingRaw('dependants_count > 0')
                     ->orderBy('dependants_count', 'desc')
@@ -440,9 +453,9 @@ class ReportFilterController extends Controller
             $lastQuarterStart = Carbon::today()->subQuarterNoOverflow()->startOfQuarter();
             $lastQuarterEnd = Carbon::today()->startOfQuarter()->subDay()->endOfDay();
             $lastYear = Carbon::today()->subYear()->year;
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
-                $query = $query->where('user_id',$user->id);
+                $query = $query->where('user_id', $this->consultancySubscriberId($user));
               
             }
 
@@ -479,7 +492,7 @@ class ReportFilterController extends Controller
             // $query1 = null;
 
             // // Filter for specific user types
-            // if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
+            // if ($this->hasConsultancyReportAccess($user)) {
             //    $query = Clients::where('user_id', $user->id);
             //    $query1 = Clients::where('user_id', $user->id);
             // }
@@ -584,9 +597,9 @@ class ReportFilterController extends Controller
             // return DataTables::of($formattedData)->make(true);
         } else if (request()->type == "yearly") {
 
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
-                $yearlyClients = Clients::where('subscriber_id', $user->id)->selectRaw('YEAR(created_at) as year, COUNT(*) as year_count')->whereBetween('created_at', [$startDate, $endDate])
+                $yearlyClients = Clients::where('subscriber_id', $this->consultancySubscriberId($user))->selectRaw('YEAR(created_at) as year, COUNT(*) as year_count')->whereBetween('created_at', [$startDate, $endDate])
                     ->groupBy('year')->get();
             }
             if ($user->user_type == 'admin') {
@@ -609,11 +622,11 @@ class ReportFilterController extends Controller
         $endDate = $this->parseReportDate(request()->input('endDate'), true);
         if (request()->type == "visaCountry") {
 
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
                 $applicationsByVisaCountry = Applications::select('visa_country as country', DB::raw('count(*) as application_count'))
                     ->whereBetween('created_at', [$startDate, $endDate])
-                    ->where('subscriber_id', $user->id)
+                    ->where('subscriber_id', $this->consultancySubscriberId($user))
                     ->groupBy('country')->get();
             }
             if ($user->user_type == 'admin') {
@@ -629,9 +642,9 @@ class ReportFilterController extends Controller
                 ->rawColumns(['name', 'subscriber'])
                 ->make(true);
         } elseif (request()->type == "applicationCountry") {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
-                $applicationsByApplicationCountry = Applications::where('subscriber_id', $user->id)
+                $applicationsByApplicationCountry = Applications::where('subscriber_id', $this->consultancySubscriberId($user))
                     ->select('application_country as country', DB::raw('count(*) as application_count'))
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->groupBy('country')->get();
@@ -646,9 +659,9 @@ class ReportFilterController extends Controller
                 ->make(true);
         } elseif (request()->type == "applicationType") {
 
-            // if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            // if ($this->hasConsultancyReportAccess($user)) {
             //     $applications = Applications::whereBetween('created_at', [$startDate, $endDate])
-            //         ->where('subscriber_id', $user->id)
+            //         ->where('subscriber_id', $this->consultancySubscriberId($user))
             //         ->selectRaw(
             //             'CONCAT(application_name, " (", application_id, ")") as application_name, COUNT(DISTINCT client_id) AS number_of_clients'
             //         )
@@ -667,8 +680,8 @@ class ReportFilterController extends Controller
             //     ->make(true);
 
             $query = new Applications();
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $query =  $query->where('subscriber_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query =  $query->where('subscriber_id', $this->consultancySubscriberId($user));
                     
             }
 
@@ -686,14 +699,14 @@ class ReportFilterController extends Controller
                 ->addIndexColumn()
                 ->make(true);
         } elseif (request()->type == "noOfApplicaitonsPerApplication") {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
-                // $applicationsByDependants = Applications::where('subscriber_id', $user->id)->select('application_name as applicationName', DB::raw('count(*) as application_count'))
+                // $applicationsByDependants = Applications::where('subscriber_id', $this->consultancySubscriberId($user))->select('application_name as applicationName', DB::raw('count(*) as application_count'))
                 // ->whereBetween('created_at', [$startDate, $endDate])
                 // ->groupBy('applicationName')->get();
                 $applicationsByDependants = Applications::join('clients', 'applications.client_id', '=', 'clients.id') // Join with clients
                     ->leftJoin('dependants', 'clients.id', '=', 'dependants.client_id') // Left join with dependants
-                    ->where('applications.subscriber_id', $user->id)
+                    ->where('applications.subscriber_id', $this->consultancySubscriberId($user))
                     ->whereBetween('applications.created_at', [$startDate, $endDate])
                     ->select(
                         DB::raw('CONCAT(applications.application_name, " (", applications.application_id, ")") as applicationName'), // Concatenating name and ID
@@ -723,10 +736,10 @@ class ReportFilterController extends Controller
                 ->make(true);
         } elseif (request()->type == "paymentMode") {
             $paymentMode = PaymentARs::pluck('payment_mode')->toArray();
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
 
-                $applicationsByPaymentMode = PaymentARs::where('subscriber_id', $user->id)->whereBetween('created_at', [$startDate, $endDate])
+                $applicationsByPaymentMode = PaymentARs::where('subscriber_id', $this->consultancySubscriberId($user))->whereBetween('created_at', [$startDate, $endDate])
                     ->whereNotNull('application_id')
                     ->whereIn('payment_mode', $paymentMode)
                     ->selectRaw('payment_mode')
@@ -752,8 +765,8 @@ class ReportFilterController extends Controller
             $query = PaymentARs::where('type', 'ar')
                                 ->whereNotNull('client_id')
                                 ->whereBetween('created_at', [$startDate, $endDate]);
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-               $query = $query->where('subscriber_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+               $query = $query->where('subscriber_id', $this->consultancySubscriberId($user));
                                 
             }
 
@@ -814,7 +827,7 @@ class ReportFilterController extends Controller
                 ->make(true);
         } elseif (request()->type == "documentStored") {
 
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
                 $applicationsByDocumentStored = Client_Docs::join('applications', 'client_docs.application_id', '=', 'applications.application_id') // Join Client model
                     ->selectRaw(
@@ -822,7 +835,7 @@ class ReportFilterController extends Controller
                     )
                     ->groupBy('client_docs.application_id', 'applications.application_name') // Group by application_id and application_name
                     ->whereNotNull('client_docs.application_id') // Ensure application_id is not null in Client_Docs table
-                    ->where('client_docs.user_id', $user->id)
+                    ->where('client_docs.user_id', $this->consultancySubscriberId($user))
                     ->whereBetween('client_docs.created_at', [$startDate, $endDate]) // Date range filter
                     ->orderBy('no_of_docs', 'desc') // Order by the count of documents in descending order
                     ->get();
@@ -842,9 +855,9 @@ class ReportFilterController extends Controller
                 ->make(true);
         } elseif (request()->type == "noOfApplicaitonsBy1") {
 
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
-                $totalApplications = Applications::where('subscriber_id', $user->id)->whereBetween('created_at', [$startDate, $endDate])->count();
+                $totalApplications = Applications::where('subscriber_id', $this->consultancySubscriberId($user))->whereBetween('created_at', [$startDate, $endDate])->count();
             }
             if ($user->user_type == 'admin') {
 
@@ -864,9 +877,9 @@ class ReportFilterController extends Controller
                 ->addIndexColumn()
                 ->make(true);
         } elseif (request()->type == "noOfApplicaitonsByQuaterly") {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
-                $quarterlyApplications = Applications::where('subscriber_id', $user->id)->selectRaw('YEAR(created_at) as year, QUARTER(created_at) as quarter, COUNT(*) as application_count')
+                $quarterlyApplications = Applications::where('subscriber_id', $this->consultancySubscriberId($user))->selectRaw('YEAR(created_at) as year, QUARTER(created_at) as quarter, COUNT(*) as application_count')
                     ->groupBy('year', 'quarter');
             }
             if ($user->user_type == 'admin') {
@@ -893,9 +906,9 @@ class ReportFilterController extends Controller
                 })
                 ->make(true);
         } elseif (request()->type == "noOfApplicaitonsByYearly") {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
-                $yearlyApplications = Applications::where('subscriber_id', $user->id)->selectRaw('YEAR(created_at) as year, COUNT(*) as application_count')
+                $yearlyApplications = Applications::where('subscriber_id', $this->consultancySubscriberId($user))->selectRaw('YEAR(created_at) as year, COUNT(*) as application_count')
                     ->groupBy('year');
             }
             if ($user->user_type == 'admin') {
@@ -918,7 +931,7 @@ class ReportFilterController extends Controller
             $lastQuarterStart = Carbon::today()->subQuarterNoOverflow()->startOfQuarter();
             $lastQuarterEnd = Carbon::today()->startOfQuarter()->subDay()->endOfDay();
             $lastYear = Carbon::today()->subYear()->year;
-            // if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            // if ($this->hasConsultancyReportAccess($user)) {
 
             //     $query = $query->where('referrals.referral_code',$user->referral);
               
@@ -930,9 +943,9 @@ class ReportFilterController extends Controller
             $query1 = new Applications;
 
             // Filter for specific user types
-            if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-               $query = $query->where('subscriber_id', $user->id);
-               $query1 = $query1->where('subscriber_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+               $query = $query->where('subscriber_id', $this->consultancySubscriberId($user));
+               $query1 = $query1->where('subscriber_id', $this->consultancySubscriberId($user));
             }
 
             if($user->user_type == 'admin') {
@@ -965,11 +978,11 @@ class ReportFilterController extends Controller
             //     ->whereBetween('created_at', [$startDate, $endDate])
             //     ->whereYear('created_at', $currentYear);
 
-            // if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-            //     $query->where('subscriber_id', $user->id);
+            // if ($this->hasConsultancyReportAccess($user)) {
+            //     $query->where('subscriber_id', $this->consultancySubscriberId($user));
             //     $pastYearData = Applications::query()
             //         ->whereYear('created_at', '<', $currentYear)
-            //         ->where('subscriber_id', $user->id)
+            //         ->where('subscriber_id', $this->consultancySubscriberId($user))
             //         ->selectRaw("YEAR(created_at) as type, COUNT(*) as count")
             //         ->groupBy('type')
             //         ->orderBy('type', 'desc')
@@ -1026,8 +1039,8 @@ class ReportFilterController extends Controller
 
             // return DataTables::of($formattedData)->make(true);
         } else if (request()->type == "yearly") {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $yearlyApplications = Applications::where('subscriber_id', $user->id)->selectRaw('YEAR(created_at) as year, COUNT(*) as year_count')->whereBetween('created_at', [$startDate, $endDate])
+            if ($this->hasConsultancyReportAccess($user)) {
+                $yearlyApplications = Applications::where('subscriber_id', $this->consultancySubscriberId($user))->selectRaw('YEAR(created_at) as year, COUNT(*) as year_count')->whereBetween('created_at', [$startDate, $endDate])
                     ->groupBy('year')->get();
             }
             if ($user->user_type == 'admin') {
@@ -1050,8 +1063,8 @@ class ReportFilterController extends Controller
         $endDate = $this->parseReportDate(request()->input('endDate'), true);
         if (request()->type == "byRole") {
             $query = new User();
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $query = $query->where('added_by', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query = $query->where('added_by', $this->consultancySubscriberId($user));
             }
             $userFetch = $query->where('user_type', 'User')
                 ->whereNotNull('designation')
@@ -1063,7 +1076,7 @@ class ReportFilterController extends Controller
                 ->addIndexColumn()
                 ->make(true);
         } elseif (request()->type == "ageGroup") {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
                 $user = DB::table(DB::raw('(SELECT "Under 18" AS age_group UNION ALL 
                         SELECT "18-24" UNION ALL 
@@ -1073,15 +1086,20 @@ class ReportFilterController extends Controller
                         SELECT "55 +") AS age_groups'))
                     ->leftJoinSub(
                         User::whereBetween('created_at', [$startDate, $endDate])
-                            ->where('id', '=', $user->id)
+                            ->where('user_type', 'User')
+                            ->where('added_by', '=', $this->consultancySubscriberId($user))
+                            ->whereNotNull('dob')
+                            ->where('dob', '!=', '')
+                            ->where('dob', '!=', '0000-00-00')
+                            ->whereRaw('dob REGEXP ?', ['^[0-9]{4}-[0-9]{2}-[0-9]{2}'])
                             ->select(
                                 DB::raw("
                     CASE 
                         WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) < 18 THEN 'Under 18'
-                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 18 AND 25 THEN '18-24'
-                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 26 AND 35 THEN '25-34'
-                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 36 AND 45 THEN '35-44'
-                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 46 AND 55 THEN '45-55'
+                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 18 AND 24 THEN '18-24'
+                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 25 AND 34 THEN '25-34'
+                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 35 AND 44 THEN '35-44'
+                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 45 AND 54 THEN '45-55'
                         ELSE '55 +'
                     END AS age_group,
                     COUNT(*) AS count
@@ -1114,14 +1132,19 @@ class ReportFilterController extends Controller
                         SELECT "55 +") AS age_groups'))
                     ->leftJoinSub(
                         User::whereBetween('created_at', [$startDate, $endDate])
+                            ->where('user_type', 'User')
+                            ->whereNotNull('dob')
+                            ->where('dob', '!=', '')
+                            ->where('dob', '!=', '0000-00-00')
+                            ->whereRaw('dob REGEXP ?', ['^[0-9]{4}-[0-9]{2}-[0-9]{2}'])
                             ->select(
                                 DB::raw("
                     CASE 
                         WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) < 18 THEN 'Under 18'
-                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 18 AND 25 THEN '18-24'
-                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 26 AND 35 THEN '25-34'
-                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 36 AND 45 THEN '35-44'
-                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 46 AND 55 THEN '45-55'
+                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 18 AND 24 THEN '18-24'
+                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 25 AND 34 THEN '25-34'
+                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 35 AND 44 THEN '35-44'
+                        WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 45 AND 54 THEN '45-55'
                         ELSE '55 +'
                     END AS age_group,
                     COUNT(*) AS count
@@ -1161,7 +1184,7 @@ class ReportFilterController extends Controller
             //     ->whereBetween('created_at', [$startDate, $endDate]);
             
             // if ($user->user_type === 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-            //     $query->where('added_by', $user->id);
+            //     $query->where('added_by', $this->consultancySubscriberId($user));
             // }
             
             // $ageData = $query->selectRaw("
@@ -1186,8 +1209,8 @@ class ReportFilterController extends Controller
             //     ->make(true);
         } else if (request()->type == "applicationProcessed") {
             $query = new Application_assignments();
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $query =   $query->where('subscriber_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query =   $query->where('subscriber_id', $this->consultancySubscriberId($user));
             }
             $applicationProcessed =  $query->whereBetween('created_at', [$startDate, $endDate])
                 ->whereHas('user', function ($query) {
@@ -1202,8 +1225,8 @@ class ReportFilterController extends Controller
                 ->make(true);
         } else if (request()->type == "meetingNotes") {
             $query = new Client_discussions();
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query = $query->where('subscriber_id', $this->consultancySubscriberId($user));
             }
             $meetingNotes = $query->whereHas('user', function ($query) {
                 $query->where('user_type', 'User'); 
@@ -1238,8 +1261,8 @@ class ReportFilterController extends Controller
                        
 
             // Apply additional filtering based on user type
-            if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-                $query->where('subscriber_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query->where('subscriber_id', $this->consultancySubscriberId($user));
             }
 
             $data = $query->groupBy('client_discussions.communication_type')
@@ -1268,8 +1291,8 @@ class ReportFilterController extends Controller
                 ->orderBy('users.name', 'asc');
 
             // Apply filtering only if the user is a Subscriber with specific memberships
-            if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-                $query->where('internal_communications.subscriber_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query->where('internal_communications.subscriber_id', $this->consultancySubscriberId($user));
             }
 
             $messagesCount = $query->get();
@@ -1289,11 +1312,11 @@ class ReportFilterController extends Controller
                 ->whereBetween('created_at', [$startDate, $endDate])
                 ->whereYear('created_at', $currentYear);
 
-            if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-                $query->where('subscriber_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query->where('subscriber_id', $this->consultancySubscriberId($user));
                 $pastYearData = Clients::query()
                     ->whereYear('created_at', '<', $currentYear)
-                    ->where('subscriber_id', $user->id)
+                    ->where('subscriber_id', $this->consultancySubscriberId($user))
                     ->selectRaw("YEAR(created_at) as type, COUNT(*) as count")
                     ->groupBy('type')
                     ->orderBy('type', 'desc')
@@ -1350,12 +1373,12 @@ class ReportFilterController extends Controller
 
             return DataTables::of($formattedData)->make(true);
         } else if (request()->type == "yearly") {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $yearlyUser = User::selectRaw('YEAR(users.created_at) as year, COUNT(*) as year_count')->where('added_by', $user->id)->where('user_type', 'User')->whereBetween('created_at', [$startDate, $endDate])
+            if ($this->hasConsultancyReportAccess($user)) {
+                $yearlyUser = User::selectRaw('YEAR(users.created_at) as year, COUNT(*) as year_count')->where('added_by', $this->consultancySubscriberId($user))->where('user_type', 'User')->whereBetween('created_at', [$startDate, $endDate])
                     ->groupBy('year')->get();
             }
             if ($user->user_type == 'admin') {
-                $yearlyUser = User::selectRaw('YEAR(users.created_at) as year, COUNT(*) as year_count')->where('added_by', $user->id)->where('user_type', 'User')->whereBetween('created_at', [$startDate, $endDate])
+                $yearlyUser = User::selectRaw('YEAR(users.created_at) as year, COUNT(*) as year_count')->where('added_by', $this->consultancySubscriberId($user))->where('user_type', 'User')->whereBetween('created_at', [$startDate, $endDate])
                     ->groupBy('year')->get();
             }
 
@@ -1380,8 +1403,8 @@ class ReportFilterController extends Controller
 
         if (request()->type == "byActivityType") {
             $activities = Activities::select('activity_name', DB::raw('count(*) as count'))->groupBy('activity_name');
-            if ($user->user_type == 'Subscriber') {
-                $activities->where('subscriber_id', $user->id);
+            if ($this->isConsultancyMember($user)) {
+                $activities->where('subscriber_id', $this->consultancySubscriberId($user));
             }
             if ($startDate && $endDate) {
                 $activities->whereBetween('created_at', [$startDate, $endDate]);
@@ -1402,43 +1425,43 @@ class ReportFilterController extends Controller
             $queries = [
                 DB::table('activities')
                     ->select(DB::raw("'Today' AS period, COUNT(*) AS total_activities"))
-                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
-                        $query->where('subscriber_id', $user->id);
+                    ->when($this->isConsultancyMember($user), function ($query) use ($user) {
+                        $query->where('subscriber_id', $this->consultancySubscriberId($user));
                     })
                     ->whereDate('created_at', $today),
 
                 DB::table('activities')
                     ->select(DB::raw("'Last Week' AS period, COUNT(*) AS total_activities"))
-                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
-                        $query->where('subscriber_id', $user->id);
+                    ->when($this->isConsultancyMember($user), function ($query) use ($user) {
+                        $query->where('subscriber_id', $this->consultancySubscriberId($user));
                     })
                     ->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd]),
 
                 DB::table('activities')
                     ->select(DB::raw("'Last Month' AS period, COUNT(*) AS total_activities"))
-                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
-                        $query->where('subscriber_id', $user->id);
+                    ->when($this->isConsultancyMember($user), function ($query) use ($user) {
+                        $query->where('subscriber_id', $this->consultancySubscriberId($user));
                     })
                     ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd]),
 
                 DB::table('activities')
                     ->select(DB::raw("'Last Quarter' AS period, COUNT(*) AS total_activities"))
-                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
-                        $query->where('subscriber_id', $user->id);
+                    ->when($this->isConsultancyMember($user), function ($query) use ($user) {
+                        $query->where('subscriber_id', $this->consultancySubscriberId($user));
                     })
                     ->whereBetween('created_at', [$lastQuarterStart, $lastQuarterEnd]),
 
                 DB::table('activities')
                     ->select(DB::raw("'Last Year' AS period, COUNT(*) AS total_activities"))
-                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
-                        $query->where('subscriber_id', $user->id);
+                    ->when($this->isConsultancyMember($user), function ($query) use ($user) {
+                        $query->where('subscriber_id', $this->consultancySubscriberId($user));
                     })
                     ->whereYear('created_at', $lastYear),
 
                 DB::table('activities')
                     ->select(DB::raw("'Since Inception' AS period, COUNT(*) AS total_activities"))
-                    ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
-                        $query->where('subscriber_id', $user->id);
+                    ->when($this->isConsultancyMember($user), function ($query) use ($user) {
+                        $query->where('subscriber_id', $this->consultancySubscriberId($user));
                     })
             ];
 
@@ -1455,15 +1478,15 @@ class ReportFilterController extends Controller
                 ->whereHas('user', function ($query) use ($user) {
                     $query->whereIn('user_type', ['Subscriber', 'User']);
 
-                    if ($user->user_type == 'Subscriber') {
+                    if ($this->isConsultancyMember($user)) {
                         $query->where(function ($tenantUsers) use ($user) {
-                            $tenantUsers->where('id', $user->id)
-                                ->orWhere('added_by', $user->id);
+                            $tenantUsers->where('id', $this->consultancySubscriberId($user))
+                                ->orWhere('added_by', $this->consultancySubscriberId($user));
                         });
                     }
                 })
-                ->when($user->user_type == 'Subscriber', function ($query) use ($user) {
-                    $query->where('subscriber_id', $user->id);
+                ->when($this->isConsultancyMember($user), function ($query) use ($user) {
+                    $query->where('subscriber_id', $this->consultancySubscriberId($user));
                 })
                 ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
                     $query->whereBetween('created_at', [$startDate, $endDate]);
@@ -1495,9 +1518,8 @@ class ReportFilterController extends Controller
             ->where('total', '>', '0')->where('type', 'ar');
 
         // Check if user is a Subscriber with a specific membership
-        if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") 
-            && $user->user_type == 'Subscriber') {
-            $query = $query->where('user_id', $user->id); // Apply condition for Subscribers only
+        if ($this->hasConsultancyReportAccess($user)) {
+            $query = $query->where('user_id', $this->consultancySubscriberId($user));
         }
 
         // Select the amount range and count the number of invoices
@@ -1527,8 +1549,8 @@ class ReportFilterController extends Controller
                 ->make(true);
         } elseif (request()->type == "byType") {
             $query = new Internal_Invoices();
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $query  = $query->where('subscriber_id', $user->id)->where('type', 'ar');
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query  = $query->where('subscriber_id', $this->consultancySubscriberId($user))->where('type', 'ar');
             }
 
             $invoice_interval =  $query->whereBetween('created_at', [$startDate, $endDate])
@@ -1541,8 +1563,8 @@ class ReportFilterController extends Controller
                 ->make(true);
         } elseif (request()->type == "byClient") {
             $query = new Internal_Invoices();
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $query =  $query->where('user_id', $user->id)->where('type', 'ar');
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query =  $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ar');
             }
             $invoice_interval = $query->whereBetween('created_at', [$startDate, $endDate])
                 ->select('country')
@@ -1554,9 +1576,9 @@ class ReportFilterController extends Controller
                 ->make(true);
         } elseif (request()->type == "byVisaCountry") {
             $query = new Internal_Invoices();
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
-                $query =  $query->where('user_id', $user->id)->where('type', 'ar');
+                $query =  $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ar');
             }
             $invoice_interval =  $query->whereBetween('created_at', [$startDate, $endDate])
                 ->select('to_country')
@@ -1577,7 +1599,7 @@ class ReportFilterController extends Controller
             $lastQuarterStart = Carbon::today()->subQuarterNoOverflow()->startOfQuarter();
             $lastQuarterEnd = Carbon::today()->startOfQuarter()->subDay()->endOfDay();
             $lastYear = Carbon::today()->subYear()->year;
-            // if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            // if ($this->hasConsultancyReportAccess($user)) {
 
             //     $query = $query->where('referrals.referral_code',$user->referral);
               
@@ -1589,9 +1611,9 @@ class ReportFilterController extends Controller
             $query1 = new Internal_Invoices;
 
             // Filter for specific user types
-            if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-               $query = $query->where('user_id', $user->id)->where('type', 'ar');
-               $query1 = $query1->where('user_id', $user->id)->where('type', 'ar');
+            if ($this->hasConsultancyReportAccess($user)) {
+               $query = $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ar');
+               $query1 = $query1->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ar');
             }
 
             if($user->user_type == 'admin') {
@@ -1630,9 +1652,9 @@ class ReportFilterController extends Controller
             // $query1 = Internal_Invoices::whereBetween('created_at', [$startDate, $endDate]);
 
             // // Filter for specific user types
-            // if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-            //    $query = $query->where('user_id', $user->id);
-            //    $query1 = $query1->where('user_id', $user->id);
+            // if ($this->hasConsultancyReportAccess($user)) {
+            //    $query = $query->where('user_id', $this->consultancySubscriberId($user));
+            //    $query1 = $query1->where('user_id', $this->consultancySubscriberId($user));
             // }
             // // Past year data query
             // $pastYearData = $query1->selectRaw("YEAR(created_at) as type, COUNT(*) as count")
@@ -1728,8 +1750,8 @@ class ReportFilterController extends Controller
 
             // return DataTables::of($formattedData)->make(true);
         } else if (request()->type == "yearly") {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $yearlyInternal_Invoices = Internal_Invoices::where('subscriber_id', $user->id)->where('type', 'ar')->selectRaw('YEAR(created_at) as year, COUNT(*) as year_count')->whereBetween('created_at', [$startDate, $endDate])
+            if ($this->hasConsultancyReportAccess($user)) {
+                $yearlyInternal_Invoices = Internal_Invoices::where('subscriber_id', $this->consultancySubscriberId($user))->where('type', 'ar')->selectRaw('YEAR(created_at) as year, COUNT(*) as year_count')->whereBetween('created_at', [$startDate, $endDate])
                     ->groupBy('year')->get();
             }
             if ($user->user_type == 'admin') {
@@ -1757,9 +1779,8 @@ class ReportFilterController extends Controller
             ->where('total', '>', '0')->where('type', 'ap');
 
         // Check if user is a Subscriber with a specific membership
-        if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") 
-            && $user->user_type == 'Subscriber') {
-            $query = $query->where('user_id', $user->id); // Apply condition for Subscribers only
+        if ($this->hasConsultancyReportAccess($user)) {
+            $query = $query->where('user_id', $this->consultancySubscriberId($user));
         }
 
         // Select the amount range and count the number of invoices
@@ -1789,8 +1810,8 @@ class ReportFilterController extends Controller
                 ->make(true);
         } elseif (request()->type == "byType") {
             $query = new Internal_Invoices();
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $query  = $query->where('subscriber_id', $user->id)->where('type', 'ap');
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query  = $query->where('subscriber_id', $this->consultancySubscriberId($user))->where('type', 'ap');
             }
 
             $invoice_interval =  $query->whereBetween('created_at', [$startDate, $endDate])
@@ -1803,8 +1824,8 @@ class ReportFilterController extends Controller
                 ->make(true);
         } elseif (request()->type == "byClient") {
             $query = new Internal_Invoices();
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $query =  $query->where('user_id', $user->id)->where('type', 'ap');
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query =  $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ap');
             }
             $invoice_interval = $query->whereBetween('created_at', [$startDate, $endDate])
                 ->select('country')
@@ -1816,9 +1837,9 @@ class ReportFilterController extends Controller
                 ->make(true);
         } elseif (request()->type == "byVisaCountry") {
             $query = new Internal_Invoices();
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
-                $query =  $query->where('user_id', $user->id)->where('type', 'ap');
+                $query =  $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ap');
             }
             $invoice_interval =  $query->whereBetween('created_at', [$startDate, $endDate])
                 ->select('to_country')
@@ -1839,7 +1860,7 @@ class ReportFilterController extends Controller
             $lastQuarterStart = Carbon::today()->subQuarterNoOverflow()->startOfQuarter();
             $lastQuarterEnd = Carbon::today()->startOfQuarter()->subDay()->endOfDay();
             $lastYear = Carbon::today()->subYear()->year;
-            // if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            // if ($this->hasConsultancyReportAccess($user)) {
 
             //     $query = $query->where('referrals.referral_code',$user->referral);
               
@@ -1851,9 +1872,9 @@ class ReportFilterController extends Controller
             $query1 = new Internal_Invoices;
 
             // Filter for specific user types
-            if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-               $query = $query->where('user_id', $user->id)->where('type', 'ap');
-               $query1 = $query1->where('user_id', $user->id)->where('type', 'ap');
+            if ($this->hasConsultancyReportAccess($user)) {
+               $query = $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ap');
+               $query1 = $query1->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ap');
             }
 
             if($user->user_type == 'admin') {
@@ -1892,9 +1913,9 @@ class ReportFilterController extends Controller
             // $query1 = Internal_Invoices::whereBetween('created_at', [$startDate, $endDate]);
 
             // // Filter for specific user types
-            // if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-            //    $query = $query->where('user_id', $user->id);
-            //    $query1 = $query1->where('user_id', $user->id);
+            // if ($this->hasConsultancyReportAccess($user)) {
+            //    $query = $query->where('user_id', $this->consultancySubscriberId($user));
+            //    $query1 = $query1->where('user_id', $this->consultancySubscriberId($user));
             // }
             // // Past year data query
             // $pastYearData = $query1->selectRaw("YEAR(created_at) as type, COUNT(*) as count")
@@ -1990,8 +2011,8 @@ class ReportFilterController extends Controller
 
             // return DataTables::of($formattedData)->make(true);
         } else if (request()->type == "yearly") {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $yearlyInternal_Invoices = Internal_Invoices::where('subscriber_id', $user->id)->where('type', 'ap')->selectRaw('YEAR(created_at) as year, COUNT(*) as year_count')->whereBetween('created_at', [$startDate, $endDate])
+            if ($this->hasConsultancyReportAccess($user)) {
+                $yearlyInternal_Invoices = Internal_Invoices::where('subscriber_id', $this->consultancySubscriberId($user))->where('type', 'ap')->selectRaw('YEAR(created_at) as year, COUNT(*) as year_count')->whereBetween('created_at', [$startDate, $endDate])
                     ->groupBy('year')->get();
             }
             if ($user->user_type == 'admin') {
@@ -2017,9 +2038,9 @@ class ReportFilterController extends Controller
         $endDate = $this->parseReportDate(request()->input('endDate'), true);
         $query = new PaymentARs ();
         if (request()->type == "byPaymentMode") {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
-                $query =  $query->where('subscriber_id', $user->id);
+                $query =  $query->where('subscriber_id', $this->consultancySubscriberId($user));
             }
                 $applications = $query->whereBetween('created_at', [$startDate, $endDate])
                     ->where('type',request()->input('payment_type'))
@@ -2035,8 +2056,8 @@ class ReportFilterController extends Controller
             
 
             $query = PaymentARs::whereBetween('created_at', [$startDate, $endDate])->where('type',request()->input('payment_type'));
-            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query = $query->where('subscriber_id', $this->consultancySubscriberId($user));
             } 
             $paymentAP = $query
             ->selectRaw("
@@ -2067,8 +2088,8 @@ class ReportFilterController extends Controller
             $query = PaymentARs::where('type',request()->input('payment_type'))
             ->whereNotNull('client_id')
             ->whereBetween('created_at', [$startDate, $endDate]);
-            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query = $query->where('subscriber_id', $this->consultancySubscriberId($user));
                     
             } 
             
@@ -2114,8 +2135,8 @@ class ReportFilterController extends Controller
         } elseif (request()->type == 'byInvoiceType') {
 
             $query = new PaymentARs();
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $query  = $query ->where('subscriber_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query  = $query ->where('subscriber_id', $this->consultancySubscriberId($user));
                     
             }
             $invoices = $query->where('type',request()->input('payment_type'))
@@ -2139,9 +2160,9 @@ class ReportFilterController extends Controller
             ->make(true);
         } elseif (request()->type == "byClientCountry") {
             $query =  new PaymentARs();
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
-                $query =  $query->where('payment_ar.subscriber_id', $user->id);
+                $query =  $query->where('payment_ar.subscriber_id', $this->consultancySubscriberId($user));
             }
             
                 $invoice_interval =    $query ->whereBetween('payment_ar.created_at', [$startDate, $endDate])
@@ -2160,9 +2181,9 @@ class ReportFilterController extends Controller
                 ->make(true);
         } elseif (request()->type == "byVisaCountry") {
             $query =  new PaymentARs();
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
-                $query =  $query->where('payment_ar.subscriber_id', $user->id);
+                $query =  $query->where('payment_ar.subscriber_id', $this->consultancySubscriberId($user));
             }
 
                 $invoice_interval =  $query->whereBetween('payment_ar.created_at', [$startDate, $endDate])
@@ -2179,9 +2200,9 @@ class ReportFilterController extends Controller
                 ->make(true);
         } elseif (request()->type == "byApplicationType") {
             $query =  new PaymentARs();
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
-                $query  =     $query->where('payment_ar.subscriber_id', $user->id);
+                $query  =     $query->where('payment_ar.subscriber_id', $this->consultancySubscriberId($user));
                 
                    
             }
@@ -2209,7 +2230,7 @@ class ReportFilterController extends Controller
             $lastQuarterStart = Carbon::today()->subQuarterNoOverflow()->startOfQuarter();
             $lastQuarterEnd = Carbon::today()->startOfQuarter()->subDay()->endOfDay();
             $lastYear = Carbon::today()->subYear()->year;
-            // if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            // if ($this->hasConsultancyReportAccess($user)) {
 
             //     $query = $query->where('referrals.referral_code',$user->referral);
               
@@ -2221,9 +2242,9 @@ class ReportFilterController extends Controller
             $query1 = new PaymentARs;
 
             // Filter for specific user types
-            if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-               $query = $query->where('subscriber_id', $user->id);
-               $query1 = $query1->where('subscriber_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+               $query = $query->where('subscriber_id', $this->consultancySubscriberId($user));
+               $query1 = $query1->where('subscriber_id', $this->consultancySubscriberId($user));
             }
 
             if($user->user_type == 'admin') {
@@ -2260,14 +2281,14 @@ class ReportFilterController extends Controller
             //     ->whereYear('created_at', $currentYear)->where('type',request()->input('payment_type'));
 
             // // Filter for specific user types
-            // if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-            //     $query->where('subscriber_id', $user->id);
+            // if ($this->hasConsultancyReportAccess($user)) {
+            //     $query->where('subscriber_id', $this->consultancySubscriberId($user));
             // }
 
             // // Past year data query
             // $pastYearData = PaymentARs::whereYear('created_at', '<', $currentYear)
-            //     ->when($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']), function ($query) use ($user) {
-            //         return $query->where('subscriber_id', $user->id);
+            //     ->when($this->hasConsultancyReportAccess($user), function ($query) use ($user) {
+            //         return $query->where('subscriber_id', $this->consultancySubscriberId($user));
             //     })
             //     ->where('type',request()->input('payment_type'))
             //     ->selectRaw("YEAR(created_at) as type, COUNT(*) as count")
@@ -2367,8 +2388,8 @@ class ReportFilterController extends Controller
             $query =   PaymentARs::whereBetween('created_at', [$startDate, $endDate])->where('type',request()->input('payment_type'));
 
             // Filter for specific user types
-            if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-                $query->where('subscriber_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query->where('subscriber_id', $this->consultancySubscriberId($user));
             }
 
             
@@ -2418,8 +2439,8 @@ class ReportFilterController extends Controller
                 ->groupBy('period')
                 ->orderByRaw("FIELD(period, 'Today', 'Last Week', 'Last Month', 'Last Quarter', 'Last Year', 'Since Inception')");
 
-            if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-                $query->where('subscriber_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query->where('subscriber_id', $this->consultancySubscriberId($user));
             }
 
             return DataTables::of($query)
@@ -2456,12 +2477,12 @@ class ReportFilterController extends Controller
                 $lastQuarterEnd,
                 $lastYear
             ])
-                ->where('subscriber_id', $user->id) // Filter by subscriber_id
+                ->where('subscriber_id', $this->consultancySubscriberId($user)) // Filter by subscriber_id
                 ->groupBy('period')
                 ->orderByRaw("FIELD(period, 'Today', 'Last Week', 'Last Month', 'Last Quarter', 'Last Year', 'Since Inception')");
 
-            if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-                $query->where('subscriber_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query->where('subscriber_id', $this->consultancySubscriberId($user));
             }
             return DataTables::of($query)
                 ->addIndexColumn()
@@ -2469,8 +2490,8 @@ class ReportFilterController extends Controller
         } elseif (request()->type == 'meetingNotes') {
             
             $query = new Client_discussions();
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query = $query->where('subscriber_id', $this->consultancySubscriberId($user));
             }
             $meetingNotes = $query->whereHas('user', function ($query) {
                 $query->where('user_type', 'User'); 
@@ -2493,8 +2514,8 @@ class ReportFilterController extends Controller
         } elseif (request()->type == 'messagesSentByUser') {
             $query = Internal_communications::select('user_id')
                     ->selectRaw('COUNT(*) as number_of_communication');
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $query  =  $query->where('subscriber_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query  =  $query->where('subscriber_id', $this->consultancySubscriberId($user));
             } 
                 $cd = $query->whereBetween('created_at', [$startDate,  $endDate])
                     ->groupBy('user_id')->get();
@@ -2511,8 +2532,8 @@ class ReportFilterController extends Controller
                 })
                 ->make(true);
         } else if (request()->type == "yearly") {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $yearlyClient_discussions = Client_discussions::where('user_id', $user->id)->selectRaw('YEAR(created_at) as year, COUNT(*) as year_count')->whereBetween('created_at', [$startDate, $endDate])
+            if ($this->hasConsultancyReportAccess($user)) {
+                $yearlyClient_discussions = Client_discussions::where('user_id', $this->consultancySubscriberId($user))->selectRaw('YEAR(created_at) as year, COUNT(*) as year_count')->whereBetween('created_at', [$startDate, $endDate])
                     ->groupBy('year')->get();
             }
             if ($user->user_type == 'admin') {
@@ -2554,8 +2575,8 @@ class ReportFilterController extends Controller
             ->selectRaw('COUNT(*) as number_of_wallet')
             ->groupBy('payment_amount_range');
             
-            if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-                $query->where('userid', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query->where('userid', $this->consultancySubscriberId($user));
             } elseif ($user->user_type == 'admin') {
                 $query->whereBetween('created_at', [$startDate, $endDate]);
             }
@@ -2575,31 +2596,16 @@ class ReportFilterController extends Controller
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->selectRaw('COUNT(*) as number_of_communication');
                     
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
-                $query = $query->where('userid', $user->id);
+                $query = $query->where('userid', $this->consultancySubscriberId($user));
                    
             }
             $cd = $query->groupBy('type');
             return DataTables::of($cd)
             ->addIndexColumn()
             ->addColumn('type', function ($row) {
-                $displayText = '';
-                switch ($row->type) {
-                    case 'cashback':
-                        $displayText = 'Cashback';
-                        break;
-                    case 'one_off':
-                        $displayText = 'One-off credit';
-                        break;
-                    case 'double_term':
-                        $displayText = 'Double-Term Subscription';
-                        break;
-                    default:
-                        $displayText = $row->type;
-                }
-                return $displayText;
-    
+                return app(\App\Services\OfferBenefitService::class)->offerTypeLabel((string) $row->type);
             })
                 ->make(true);
             
@@ -2607,9 +2613,9 @@ class ReportFilterController extends Controller
             $query =  new Referrals();
             // ->where('users.user_type', 'Subscriber')
             
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
                 // Apply condition for 'Subscriber' user type and membership types
-             $query =   $query->where('userid',$user->id);
+             $query =   $query->where('userid', $this->consultancySubscriberId($user));
             }
             $unionQuery = $query->whereBetween('created_at', [$startDate, $endDate])->select(
                 DB::raw('YEAR(created_at) AS year'), // Extract year from referral creation date
@@ -2635,14 +2641,14 @@ class ReportFilterController extends Controller
                 ->whereYear('created_at', $currentYear);
 
             // Filter for specific user types
-            if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
+            if ($this->hasConsultancyReportAccess($user)) {
                
                 
-                $query = $query->where('userid', $user->id);
+                $query = $query->where('userid', $this->consultancySubscriberId($user));
                 $pastYearData = Referrals::whereYear('created_at', '<', $currentYear)
-                ->where('userid', $user->id)
-                // ->when($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']), function ($query) use ($user) {
-                //     return $query->where('user_id', $user->id);
+                ->where('userid', $this->consultancySubscriberId($user))
+                // ->when($this->hasConsultancyReportAccess($user), function ($query) use ($user) {
+                //     return $query->where('user_id', $this->consultancySubscriberId($user));
                 // })
                 ->selectRaw("YEAR(created_at) as type, COUNT(*) as count")
                 ->whereNull('debit_amount')
@@ -2652,8 +2658,8 @@ class ReportFilterController extends Controller
 
             }else{
                 $pastYearData = Referrals::whereYear('created_at', '<', $currentYear)
-                // ->when($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']), function ($query) use ($user) {
-                //     return $query->where('user_id', $user->id);
+                // ->when($this->hasConsultancyReportAccess($user), function ($query) use ($user) {
+                //     return $query->where('user_id', $this->consultancySubscriberId($user));
                 // })
                 ->selectRaw("YEAR(created_at) as type, COUNT(*) as count")
                 ->whereNull('debit_amount')
@@ -2767,8 +2773,21 @@ class ReportFilterController extends Controller
             $endDate = Carbon::parse($endInput)->endOfDay();
         }
 
+        // Scope aggregates to the current subscriber so counts match the ticket listing; admins see all.
+        $user = Auth::user();
+        $scopeSubscriberId = $this->isConsultancyMember($user)
+            ? $this->consultancySubscriberId($user)
+            : null;
+
         if (request()->type == 'byTicketType') {
-            $cd = Tickets::whereIn('support', ['Billing', 'Sales', 'Support'])->select('support')
+            $cd = Tickets::whereIn('support', ['Billing', 'Sales', 'Support'])
+                ->when($scopeSubscriberId, function ($q) use ($scopeSubscriberId) {
+                    $q->where('subscriber_id', $scopeSubscriberId);
+                })
+                ->when($startDate && $endDate, function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('created_at', [$startDate, $endDate]);
+                })
+                ->select('support')
                 ->selectRaw('COUNT(*) as number_of_tickets')
                 ->groupBy('support');
             return DataTables::of($cd)
@@ -2803,6 +2822,12 @@ class ReportFilterController extends Controller
                 Tickets::select(DB::raw("'Since Inception' AS period, COUNT(*) AS total_activities"))
             ];
 
+            if ($scopeSubscriberId) {
+                foreach ($queries as $ticketPeriodQuery) {
+                    $ticketPeriodQuery->where('subscriber_id', $scopeSubscriberId);
+                }
+            }
+
             $unionQuery = array_shift($queries);
             foreach ($queries as $query) {
                 $unionQuery->unionAll($query);
@@ -2827,6 +2852,10 @@ class ReportFilterController extends Controller
             )
                 ->groupBy('time_interval');
 
+            if ($scopeSubscriberId) {
+                $timeTaken->where('subscriber_id', $scopeSubscriberId);
+            }
+
             if ($startDate && $endDate) {
                 $timeTaken->whereBetween('created_at', [$startDate,  $endDate]);
             }
@@ -2841,6 +2870,10 @@ class ReportFilterController extends Controller
             )
                 ->whereNotNull('served_by')
                 ->groupBy('served_by');
+
+            if ($scopeSubscriberId) {
+                $cd->where('subscriber_id', $scopeSubscriberId);
+            }
 
             if ($startDate && $endDate) {
                 $cd->whereBetween('created_at', [$startDate,  $endDate]);
@@ -2880,7 +2913,7 @@ class ReportFilterController extends Controller
                
         if (request()->type == "subscribers") {
             
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
                 $query = $query->where('referrals.referral_code',$user->referral);
             }
@@ -2895,7 +2928,7 @@ class ReportFilterController extends Controller
                 ->make(true);
         } else if (request()->type == "subscriberType") {
            
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
                 $query = $query->where('referrals.referral_code',$user->referral);
             }
             $referrals =  $query->whereBetween('referrals.created_at', [$startDate, $endDate])->select(
@@ -2915,7 +2948,7 @@ class ReportFilterController extends Controller
                 ->make(true);
         } else if (request()->type == "subscribedPlan") {
            
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
                 $query = $query->where('referrals.referral_code',$user->referral);
             }
             $referrals =  $query->whereBetween('referrals.created_at', [$startDate, $endDate])->select(
@@ -2944,7 +2977,7 @@ class ReportFilterController extends Controller
             $lastQuarterStart = Carbon::today()->subQuarterNoOverflow()->startOfQuarter();
             $lastQuarterEnd = Carbon::today()->startOfQuarter()->subDay()->endOfDay();
             $lastYear = Carbon::today()->subYear()->year;
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
 
                 $query = $query->where('referrals.referral_code',$user->referral);
               
@@ -2972,7 +3005,7 @@ class ReportFilterController extends Controller
                 ->make(true);
         } else if (request()->type == "yearly") {
 
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
                 // Apply condition for 'Subscriber' user type and membership types
                 $query->where('referrals.referral_code', $user->referral); 
             }
@@ -2994,6 +3027,134 @@ class ReportFilterController extends Controller
 
 
 
+
+    // -------------------------------------------------------------------------------------------------------
+    // ---------------------------------------- associates Report ----------------------------------------------------
+    // -------------------------------------------------------------------------------------------------------
+
+    /**
+     * Associates reporting/analytics endpoint. Scoped to the logged-in subscriber.
+     * Supported request()->type values:
+     *   byCity, byCountry, byReferrals, byBusiness, byHomeCountry,
+     *   byOutstanding, byYear, byTimeline
+     */
+    public function associatesReport()
+    {
+        $user = Auth::user();
+        $subscriberId = $this->consultancySubscriberId($user);
+        $startDate = $this->parseReportDate(request()->input('startDate'));
+        $endDate = $this->parseReportDate(request()->input('endDate'), true);
+        $type = request()->type;
+
+        // Base scoped queries for each source table.
+        $associates = Associate::query();
+        $business = AssociateBusiness::query();
+        $invoices = AssociateInvoice::query();
+        if ($subscriberId) {
+            $associates->where('added_by', $subscriberId);
+            $business->where('subscriber_id', $subscriberId);
+            $invoices->where('subscriber_id', $subscriberId);
+        }
+
+        if ($type == "byCity") {
+            $data = $associates->whereBetween('created_at', [$startDate, $endDate])
+                ->select('city', DB::raw('COUNT(*) as total'))
+                ->whereNotNull('city')->where('city', '!=', '')
+                ->groupBy('city')->orderBy('total', 'desc')->get();
+
+            return DataTables::of($data)->addIndexColumn()->make(true);
+        } elseif ($type == "byCountry") {
+            $data = $associates->whereBetween('created_at', [$startDate, $endDate])
+                ->select('country', DB::raw('COUNT(*) as total'))
+                ->whereNotNull('country')->where('country', '!=', '')
+                ->groupBy('country')->orderBy('total', 'desc')->get();
+
+            return DataTables::of($data)->addIndexColumn()->make(true);
+        } elseif ($type == "byReferrals") {
+            // Number of business (referral) entries brought by each associate.
+            $data = $business->whereBetween('associate_businesses.created_at', [$startDate, $endDate])
+                ->leftJoin('associates', 'associate_businesses.associate_id', '=', 'associates.id')
+                ->select('associates.associate_code', 'associates.name', DB::raw('COUNT(associate_businesses.id) as total'))
+                ->groupBy('associates.associate_code', 'associates.name')
+                ->orderBy('total', 'desc')->get();
+
+            return DataTables::of($data)->addIndexColumn()->make(true);
+        } elseif ($type == "byBusiness") {
+            // Total business amount (fees) per associate.
+            $data = $business->whereBetween('associate_businesses.created_at', [$startDate, $endDate])
+                ->leftJoin('associates', 'associate_businesses.associate_id', '=', 'associates.id')
+                ->select('associates.associate_code', 'associates.name', DB::raw('SUM(associate_businesses.fees) as total'))
+                ->groupBy('associates.associate_code', 'associates.name')
+                ->orderBy('total', 'desc')->get();
+
+            return DataTables::of($data)->addIndexColumn()->make(true);
+        } elseif ($type == "byHomeCountry") {
+            $data = $business->whereBetween('created_at', [$startDate, $endDate])
+                ->select('home_country', DB::raw('COUNT(*) as total'))
+                ->whereNotNull('home_country')->where('home_country', '!=', '')
+                ->groupBy('home_country')->orderBy('total', 'desc')->get();
+
+            return DataTables::of($data)->addIndexColumn()->make(true);
+        } elseif ($type == "byOutstanding") {
+            // Outstanding amount (fees - paid) per associate on non-cancelled invoices.
+            $data = $invoices->whereBetween('associate_invoices.created_at', [$startDate, $endDate])
+                ->where('associate_invoices.status', '!=', 'Cancelled')
+                ->leftJoin('associates', 'associate_invoices.associate_id', '=', 'associates.id')
+                ->select(
+                    'associates.associate_code',
+                    'associates.name',
+                    DB::raw('SUM(associate_invoices.fees - associate_invoices.paid) as total')
+                )
+                ->groupBy('associates.associate_code', 'associates.name')
+                ->havingRaw('SUM(associate_invoices.fees - associate_invoices.paid) > 0')
+                ->orderBy('total', 'desc')->get();
+
+            return DataTables::of($data)->addIndexColumn()->make(true);
+        } elseif ($type == "byYear") {
+            $data = $associates->select(DB::raw('YEAR(created_at) as year'), DB::raw('COUNT(*) as total'))
+                ->groupBy(DB::raw('YEAR(created_at)'))->orderBy('year', 'desc')->get();
+
+            return DataTables::of($data)->addIndexColumn()->make(true);
+        } elseif ($type == "byTimeline") {
+            $data = $associates->whereBetween('created_at', [$startDate, $endDate])
+                ->select(DB::raw("DATE_FORMAT(created_at, '%Y-%m') as period"), DB::raw('COUNT(*) as total'))
+                ->groupBy(DB::raw("DATE_FORMAT(created_at, '%Y-%m')"))
+                ->orderBy('period', 'asc')->get();
+
+            return DataTables::of($data)->addIndexColumn()->make(true);
+        }
+
+        return DataTables::of(collect())->make(true);
+    }
+
+    /**
+     * Gross (unfiltered list) Associates table for the Reports screen second table.
+     * Respects the selected duration and consultancy subscriber scope.
+     */
+    public function manage_associates_report()
+    {
+        $user = Auth::user();
+        $subscriberId = $this->consultancySubscriberId($user);
+        $startDate = $this->parseReportDate(request()->input('startDate'));
+        $endDate = $this->parseReportDate(request()->input('endDate'), true);
+
+        $query = Associate::query()->whereBetween('created_at', [$startDate, $endDate]);
+        if ($subscriberId) {
+            $query->where('added_by', $subscriberId);
+        }
+
+        $associates = $query->orderBy('created_at', 'desc')->get();
+
+        return DataTables::of($associates)
+            ->addIndexColumn()
+            ->editColumn('organization', function ($row) {
+                return $row->organization ?: '-';
+            })
+            ->editColumn('created_at', function ($row) {
+                return Carbon::parse($row->created_at)->format('d-m-Y');
+            })
+            ->make(true);
+    }
 
     // -------------------------------------------------------------------------------------------------------
     // ---------------------------------------- affiliates Report ----------------------------------------------------
@@ -3271,9 +3432,9 @@ class ReportFilterController extends Controller
             $query = Client_Docs::join('clients', 'client_docs.client_id', '=', 'clients.id') // Join clients table
             ->join('applications', 'client_docs.application_id', '=', 'applications.application_id') // Join applications table
             ->join('users', 'client_docs.user_id', '=', 'users.id'); // Join users table
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
            
-                    $query = $query->where('client_docs.user_id', $user->id);
+                    $query = $query->where('client_docs.user_id', $this->consultancySubscriberId($user));
                     
             } 
                 $documents =$query->select(
@@ -3322,8 +3483,8 @@ class ReportFilterController extends Controller
             $query= Client_Docs::join('clients', 'client_docs.client_id', '=', 'clients.id') // Join clients table
             ->join('users', 'client_docs.user_id', '=', 'users.id'); // Join users table
     
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $query = $query->where('client_docs.user_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+                $query = $query->where('client_docs.user_id', $this->consultancySubscriberId($user));
             } 
                 $documents = $query ->whereBetween('client_docs.created_at', [$startDate, $endDate]) // Filter by date range
                     ->select(
@@ -3354,11 +3515,11 @@ class ReportFilterController extends Controller
 
                 ->make(true);
         } elseif (request()->type == "bySubscriber") {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
                 $documents = Client_Docs::join('users', 'client_docs.user_id', '=', 'users.id') // Join users table
 
                     ->whereBetween('client_docs.created_at', [$startDate, $endDate]) // Filter by date range
-                    ->where('client_docs.user_id', $user->id)
+                    ->where('client_docs.user_id', $this->consultancySubscriberId($user))
                     ->select(
                         'users.name as sub_name', // Subscriber name
                         'users.id as sub_id', // Subscriber ID
@@ -3411,8 +3572,8 @@ class ReportFilterController extends Controller
                 )
                 ->whereBetween('client_docs.created_at', [$startDate, $endDate]);
 
-                if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
-                    $query->where('client_docs.user_id', $user->id);
+                if ($this->hasConsultancyReportAccess($user)) {
+                    $query->where('client_docs.user_id', $this->consultancySubscriberId($user));
                 }
 
                 $documents = $query->get();
@@ -3441,7 +3602,7 @@ class ReportFilterController extends Controller
                         'application_name' => $doc->application_name.'('.$doc->application_id.')', // Application name
                         'application_id' => $doc->application_id, // Application ID
                         'docs_name' => $doc->doc_name . ' (' . $doc->id . ')',
-                        'doc_file' => $doc->doc_file,
+                        'doc_file' => \App\Support\DocumentFileName::forTable($doc->doc_file, $doc->doc_name),
                         'file_size' => $fileSize, // Size in bytes
                         'formatted_size' => $formattedSize, // Human-readable size
                     ];
@@ -3457,7 +3618,7 @@ class ReportFilterController extends Controller
                 ->make(true);
         } elseif (request()->type == "byFiletype") {
 
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            if ($this->hasConsultancyReportAccess($user)) {
                 $documents = Client_Docs::join('users', 'client_docs.user_id', '=', 'users.id') // Join users table
                     ->select(
                         'client_docs.doc_file', // Document file path
@@ -3465,7 +3626,7 @@ class ReportFilterController extends Controller
                         'users.name as user_name', // User name
                         DB::raw("SUBSTRING_INDEX(client_docs.doc_file, '.', -1) as file_type") // Extract file type
                     )
-                    ->where('client_docs.user_id', $user->id)
+                    ->where('client_docs.user_id', $this->consultancySubscriberId($user))
                     ->whereBetween('client_docs.created_at', [$startDate, $endDate])
                     ->get();
             } else {
@@ -3492,7 +3653,7 @@ class ReportFilterController extends Controller
                     // Add the document and its file type to the array
                     $filesWithType[] = [
                         'user_name' => $doc->user_name,
-                        'doc_file' => $doc->doc_file,
+                        'doc_file' => \App\Support\DocumentFileName::forTable($doc->doc_file, $doc->doc_name),
                         'file_type' => strtolower($fileType), // Normalize to lowercase for grouping
                     ];
                 }
@@ -3522,7 +3683,7 @@ class ReportFilterController extends Controller
             $lastQuarterStart = Carbon::today()->subQuarterNoOverflow()->startOfQuarter();
             $lastQuarterEnd = Carbon::today()->startOfQuarter()->subDay()->endOfDay();
             $lastYear = Carbon::today()->subYear()->year;
-            // if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
+            // if ($this->hasConsultancyReportAccess($user)) {
 
             //     $query = $query->where('referrals.referral_code',$user->referral);
               
@@ -3534,9 +3695,9 @@ class ReportFilterController extends Controller
             $query1 = new Client_Docs;
 
             // Filter for specific user types
-            if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-               $query = $query->where('user_id', $user->id);
-               $query1 = $query1->where('user_id', $user->id);
+            if ($this->hasConsultancyReportAccess($user)) {
+               $query = $query->where('user_id', $this->consultancySubscriberId($user));
+               $query1 = $query1->where('user_id', $this->consultancySubscriberId($user));
             }
 
             if($user->user_type == 'admin') {
@@ -3571,11 +3732,11 @@ class ReportFilterController extends Controller
             //     ->whereBetween('created_at', [$startDate, $endDate])
             //     ->whereYear('created_at', $currentYear);
 
-            // if ($user->user_type == 'Subscriber' && in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise'])) {
-            //     $query->where('user_id', $user->id);
+            // if ($this->hasConsultancyReportAccess($user)) {
+            //     $query->where('user_id', $this->consultancySubscriberId($user));
             //     $pastYearData = Client_Docs::query()
             //         ->whereYear('created_at', '<', $currentYear)
-            //         ->where('user_id', $user->id)
+            //         ->where('user_id', $this->consultancySubscriberId($user))
             //         ->selectRaw("YEAR(created_at) as type, COUNT(*) as count")
             //         ->groupBy('type')
             //         ->orderBy('type', 'desc')
@@ -3632,8 +3793,8 @@ class ReportFilterController extends Controller
 
             // return DataTables::of($formattedData)->make(true);
         } else if (request()->type == "yearly") {
-            if (($user->membership == 'Adwiseri' || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") && $user->user_type == 'Subscriber') {
-                $yearlyClient_Docs = Client_Docs::where('user_id', $user->id)->selectRaw('YEAR(created_at) as year, COUNT(*) as year_count')->whereBetween('created_at', [$startDate, $endDate])
+            if ($this->hasConsultancyReportAccess($user)) {
+                $yearlyClient_Docs = Client_Docs::where('user_id', $this->consultancySubscriberId($user))->selectRaw('YEAR(created_at) as year, COUNT(*) as year_count')->whereBetween('created_at', [$startDate, $endDate])
                     ->groupBy('year')->get();
             }
             if ($user->user_type == 'admin') {

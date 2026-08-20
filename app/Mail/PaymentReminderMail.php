@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Services\EmailTemplateService;
+use App\Support\BrandedMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
@@ -38,8 +39,10 @@ class PaymentReminderMail extends Mailable
         $bodyTemplate = $template?->body ?: $defaultBody;
         $resolvedPayload = $this->withDynamicAliases($this->payload);
 
-        $subject = $this->replacePlaceholders($subjectTemplate, $resolvedPayload);
-        $content = $this->replacePlaceholders($bodyTemplate, $resolvedPayload);
+        $subject = BrandedMail::replacePlaceholders($subjectTemplate, $resolvedPayload);
+        $content = $this->removeEmptyPaymentLinkLine(
+            BrandedMail::replacePlaceholders($bodyTemplate, $resolvedPayload)
+        );
 
         $headerTitle = 'Outstanding Payment Reminder';
 
@@ -48,29 +51,18 @@ class PaymentReminderMail extends Mailable
 
         $mail = $this->subject($subject)
             ->from(
-                config('mail.from.address'),
-                'Sent on behalf of ' . ($subscriberName !== '' ? $subscriberName : 'Subscriber')
+                BrandedMail::alertsFromAddress(),
+                BrandedMail::alertsFromName($subscriberName !== '' ? $subscriberName : 'Subscriber')
             )
-            ->view('web.dynamic_email_template', compact('content', 'headerTitle'));
+            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle'));
 
         if ($subscriberEmail !== '') {
-            $mail->replyTo($subscriberEmail);
-            $mail->cc($subscriberEmail);
+            BrandedMail::applySubscriberReplyTo($mail, $subscriberEmail, $subscriberName);
+        } else {
+            BrandedMail::applyDefaultReplyTo($mail);
         }
 
         return $mail;
-    }
-
-    private function replacePlaceholders(?string $text, array $data): string
-    {
-        $content = (string) $text;
-        foreach ($data as $key => $value) {
-            $quotedKey = preg_quote((string) $key, '/');
-            $content = preg_replace('/{{\s*' . $quotedKey . '\s*}}/i', (string) $value, $content);
-            $content = preg_replace('/<\s*' . $quotedKey . '\s*>/i', (string) $value, $content);
-        }
-
-        return $this->removeEmptyPaymentLinkLine($content);
     }
 
     private function removeEmptyPaymentLinkLine(string $content): string

@@ -69,8 +69,8 @@
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'Feature Added Successfully.'
+      title: 'Success',
+      text: 'Feature added successfully.'
     })
   </script>
 
@@ -79,8 +79,9 @@
 @error('icon')
     <script>
     Swal.fire({
-      icon: 'error',
-      title: 'Oops...',
+      icon: 'warning',
+      customClass: { icon: 'adwiseri-oops-icon' },
+      title: 'Oops!',
       text: '{{ $message }}'
     })
   </script>

@@ -23,7 +23,7 @@
                             <label style="font-weight:550;">Phone Number</label>
                         </div>
                         <div class="col-6 p-2 border">
-                            {{ $vuser->phone }}
+                            @include('partials.phone_display', ['phone' => $vuser->phone, 'emptyText' => '—'])
                         </div>
                         <div class="col-6 p-2 border">
                             <label style="font-weight:550;">Email ID</label>

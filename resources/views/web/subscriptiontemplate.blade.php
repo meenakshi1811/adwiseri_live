@@ -56,7 +56,7 @@
         </div>
     </div>
     <footer style="text-align:center;background:#695EEE;padding:20px 0px;color:white;">
-        <p style="text-align:center">&copy; {{ date('Y') }} adwiseri. All rights reserved.</p>
+        <p style="text-align:center">&copy; {{ $copyrightYears }} adwiseri. All rights reserved.</p>
         <div style="text-align:center"  class="footer-links">
             <a style="text-align:center; color:white;" href="https://adwiseri.com/terms_of_use">Terms of Use</a> |
 <a style="text-align:center; color:white;" href="https://adwiseri.com/privacy_policy">Privacy Policy</a> |

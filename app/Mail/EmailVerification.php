@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Services\EmailTemplateService;
+use App\Support\BrandedMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
@@ -24,63 +25,58 @@ class EmailVerification extends Mailable
         $templateService = app(EmailTemplateService::class);
 
         $templateKey = 'otp_email';
-        $defaultSubject = 'adwiseri Email Verification';
+        $defaultSubject = 'Adwiseri Email Verification';
+        $headerTitle = 'Email Verification';
 
         if (isset($data->password)) {
             $templateKey = 'forgot_password_email';
-            $defaultSubject = 'adwiseri Password Recovery OTP';
+            $defaultSubject = 'Adwiseri Password Recovery OTP';
+            $headerTitle = 'Password Recovery';
         } elseif (isset($data->message)) {
             $templateKey = 'contact_us_notification_email';
             $defaultSubject = 'New Message from adwiseri.com (Contact Us)';
+            $headerTitle = 'Contact Us Message';
         } elseif (isset($data->how_did_hear)) {
             $templateKey = 'demo_request_notification_email';
             $defaultSubject = 'Demo Request from adwiseri.com';
+            $headerTitle = 'Demo Request';
         }
 
         $owner = $templateService->resolveTemplateOwner($data);
-
-       
         $template = $templateService->getTemplateForUser($owner, 'admin', $templateKey);
-    //    echo'<pre>';print_r($template);echo'</pre>';exit;
-        if (!$template) {
-            return $this->subject($defaultSubject)->view('web.emailtemplate', compact('data'));
+        $placeholderData = $this->placeholderData($data);
+
+        if ($template && !empty(trim((string) $template->body))) {
+            $content = BrandedMail::replacePlaceholders($template->body, $placeholderData);
+            $subject = BrandedMail::replacePlaceholders($template->subject ?: $defaultSubject, $placeholderData);
+        } else {
+            $content = BrandedMail::renderBody('emails.bodies.verification_fallback', compact('data'));
+            $subject = $defaultSubject;
         }
 
-        $content = $this->replacePlaceholders($template->body, $data);
-        $subject = $this->replacePlaceholders($template->subject ?: $defaultSubject, $data);
+        $mail = $this->subject($subject)
+            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle'));
 
-        return $this->subject($subject)->view('web.dynamic_email_template', compact('content'));
+        // Sender: alerts@adwiseri.com | Reply-To: care@adwiseri.com
+        return BrandedMail::applyPlatformEnvelope($mail);
     }
 
-    private function replacePlaceholders(?string $text, $data): string
+    private function placeholderData($data): array
     {
-        $content = (string) $text;
-        $map = [];
-        if (is_array($data)) {
-            $map = $data;
-        } elseif (is_object($data)) {
-            $map = (array) $data;
-        }
+        $map = BrandedMail::dataFromObject($data);
 
-        foreach ($map as $key => $value) {
-            if (is_scalar($value) || is_null($value)) {
-                $content = str_replace('{{' . $key . '}}', (string) $value, $content);
-            }
-        }
-
-        // Backward-compatible aliases for Contact Us template placeholders.
         if (isset($map['phone']) && !isset($map['contact_no'])) {
-            $content = str_replace('{{contact_no}}', (string) $map['phone'], $content);
+            $map['contact_no'] = $map['phone'];
         }
 
         if (isset($map['country']) && !isset($map['country_name'])) {
-            $content = str_replace('{{country_name}}', (string) $map['country'], $content);
+            $map['country_name'] = $map['country'];
         }
 
         if (isset($map['message']) && !isset($map['query'])) {
-            $content = str_replace('{{query}}', (string) $map['message'], $content);
+            $map['query'] = $map['message'];
         }
 
-        return $content;
+        return $map;
     }
 }

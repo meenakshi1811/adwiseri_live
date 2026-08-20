@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,8 +17,47 @@ use Illuminate\Support\Facades\Route;
 // Route::get('/', function () {
 //     return view('welcome');
 // });
+Route::get('/run-migrations', function () {
+    Artisan::call('migrate', ['--force' => true]);
+
+    return nl2br(Artisan::output());
+});
+
+Route::get('/clear-all', function () {
+    $commands = [
+        'optimize:clear',
+        'cache:clear',
+        'config:clear',
+        'route:clear',
+        'view:clear',
+        'event:clear',
+    ];
+
+    $lines = [];
+    foreach ($commands as $command) {
+        try {
+            Artisan::call($command);
+            $result = trim(Artisan::output());
+            $lines[] = $command . ': ' . ($result !== '' ? $result : 'done');
+        } catch (\Throwable $e) {
+            $lines[] = $command . ': failed — ' . $e->getMessage();
+        }
+    }
+
+    return response('<pre>' . e(implode("\n", $lines)) . '</pre>');
+})->name('clear_cache');
+
+Route::get('/clear-cache', function () {
+    return redirect()->route('clear_cache');
+});
 
 Auth::routes();
+
+// Admin two-factor authentication (6-digit OTP)
+Route::get('/admin/2fa', [App\Http\Controllers\Auth\LoginController::class, 'showAdminOtpForm'])->name('admin.2fa');
+Route::post('/admin/2fa', [App\Http\Controllers\Auth\LoginController::class, 'verifyAdminOtp'])->name('admin.2fa.verify');
+Route::post('/admin/2fa/resend', [App\Http\Controllers\Auth\LoginController::class, 'resendAdminOtp'])->name('admin.2fa.resend');
+
 Route::get('/check_login', [App\Http\Controllers\WebController::class, 'check_login'])->name('check_login');
 Route::get('/set_timezone', [App\Http\Controllers\WebController::class, 'set_timezone'])->name('set_timezone');
 Route::get('/send_email', [App\Http\Controllers\WebController::class, 'send_email'])->name('send_email');
@@ -47,6 +87,7 @@ Route::get('/invoices_report_export', [App\Http\Controllers\ExportController::cl
 
 Route::get('/emailtemplate', [App\Http\Controllers\EmailController::class, 'sendEmail'])->name('emailtemplate');
 Route::post('/password_otp', [App\Http\Controllers\EmailController::class, 'password_otp'])->name('password_otp');
+Route::post('/validate-phone', [App\Http\Controllers\WebController::class, 'validatePhone'])->name('validate.phone');
 
 Route::get('/', [App\Http\Controllers\WebController::class, 'index'])->name('/');
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
@@ -67,7 +108,7 @@ Route::post('/update_siteuser', [App\Http\Controllers\WebController::class, 'upd
 Route::post('/update_client', [App\Http\Controllers\WebController::class, 'update_client'])->name('update_client')->middleware(['auth','check.device']);
 Route::get('/logout', [App\Http\Controllers\HomeController::class, 'logout'])->name('logout');
 Route::get('/thanks', [App\Http\Controllers\WebController::class, 'thanks'])->name('thanks');
-Route::post('/moredetails', [App\Http\Controllers\WebController::class, 'moredetails'])->name('moredetails')->middleware(['auth','check.device']);
+Route::get('/moredetails', [App\Http\Controllers\WebController::class, 'moredetails'])->name('moredetails')->middleware(['auth','check.device']);
 Route::get('/otp/{email?}', [App\Http\Controllers\WebController::class, 'otp'])->name('otp');
 Route::post('/verify_otp', [App\Http\Controllers\WebController::class, 'verify_otp'])->name('verify_otp');
 Route::post('/verify_password_otp', [App\Http\Controllers\WebController::class, 'verify_password_otp'])->name('verify_password_otp');
@@ -81,18 +122,26 @@ Route::get('/membership_renewal', [App\Http\Controllers\WebController::class, 'm
 Route::get('/create-new-lead/{id}', [App\Http\Controllers\WebController::class, 'createLead'])->name('createLead');
 Route::post('/visa-enquiry-store', [App\Http\Controllers\VisaEnquiryController ::class, 'store'])->name('visa.enquiry.store');
 Route::get('/enquiries', [App\Http\Controllers\WebController::class, 'enquiries'])->name('enquiries')->middleware(['auth','check.device']);
+Route::get('/enquiries/create', [App\Http\Controllers\WebController::class, 'createManualLead'])->name('enquiries.create')->middleware(['auth','check.device']);
+Route::post('/enquiries/store', [App\Http\Controllers\WebController::class, 'storeManualLead'])->name('enquiries.store')->middleware(['auth','check.device']);
 Route::post('/convert-enquiry-client', [App\Http\Controllers\WebController::class, 'convertEnquiryClient'])->name('convert.enquiry.client');
 Route::delete('/visa-enquiries/delete/{id}', [App\Http\Controllers\WebController::class, 'deleteEnquiry'])->name('visa_enquiries.delete')->middleware(['auth','check.device']);
 Route::get('/visa-enquiries/view/{id}', [App\Http\Controllers\WebController::class, 'viewEnquiry'])->name('visa_enquiries.view')->middleware(['auth','check.device']);
 Route::get('/visa-enquiries/edit/{id}', [App\Http\Controllers\WebController::class, 'editEnquiry'])->name('visa_enquiries.edit')->middleware(['auth','check.device']);
 Route::post('/visa-enquiries/update/{id}', [App\Http\Controllers\WebController::class, 'updateEnquiry'])->name('visa_enquiries.update')->middleware(['auth','check.device']);
+Route::post('/enquiries/{id}/lead-follow-up', [App\Http\Controllers\WebController::class, 'updateLeadFollowUp'])->name('enquiries.lead_follow_up')->middleware(['auth','check.device']);
+Route::get('/enquiries/{id}/follow-up-history', [App\Http\Controllers\WebController::class, 'leadFollowUpHistoryData'])->name('enquiries.follow_up_history')->middleware(['auth','check.device']);
 /* Backward-compatible enquiry edit/update routes */
 Route::get('/edit-enquiry/{id}', [App\Http\Controllers\WebController::class, 'editEnquiry'])->middleware(['auth','check.device']);
 Route::post('/update-enquiry/{id}', [App\Http\Controllers\WebController::class, 'updateEnquiry'])->middleware(['auth','check.device']);
-Route::post('/save-appointment',[App\Http\Controllers\WebController::class,'storeAppointment'])->name('save_appointment');
+Route::post('/save-appointment',[App\Http\Controllers\WebController::class,'storeAppointment'])->name('save_appointment')->middleware(['auth','check.device']);
+Route::get('/appointment-records', [App\Http\Controllers\WebController::class, 'appointmentRecords'])->name('appointment_records')->middleware(['auth','check.device']);
+Route::get('/get-appointment-records', [App\Http\Controllers\WebController::class, 'getAppointmentRecords'])->name('get_appointment_records')->middleware(['auth','check.device']);
 Route::get('/appointment/{appointment}/{action}', [App\Http\Controllers\WebController::class, 'respondToAppointment'])->name('appointment.respond')->middleware('signed');
 Route::post('/save-report-settings',[App\Http\Controllers\WebController::class,'saveReportSettings'])->name('save_report_settings');
 Route::post('/save-payment-reminder-settings',[App\Http\Controllers\WebController::class,'savePaymentReminderSettings'])->name('save_payment_reminder_settings')->middleware('auth');
+Route::post('/save-application-reminder',[App\Http\Controllers\WebController::class,'saveApplicationReminder'])->name('save_application_reminder')->middleware('auth');
+Route::delete('/application-reminders/{id}',[App\Http\Controllers\WebController::class,'deleteApplicationReminder'])->name('delete_application_reminder')->middleware('auth');
 Route::get('/email-templates', [App\Http\Controllers\WebController::class, 'getEmailTemplates'])->name('email_templates')->middleware('auth');
 Route::post('/save-email-template', [App\Http\Controllers\WebController::class, 'saveEmailTemplate'])->name('save_email_template')->middleware('auth');
 Route::get('/scheduled-report-download/{file}', [App\Http\Controllers\WebController::class, 'downloadScheduledReport'])->name('scheduled_report_download')->middleware('signed');
@@ -107,6 +156,15 @@ Route::post('/check_user_limit', [App\Http\Controllers\WebController::class, 'ch
 Route::post('/check_client_limit', [App\Http\Controllers\WebController::class, 'check_client_limit'])->name('check_client_limit');
 Route::get('/dashboard', [App\Http\Controllers\WebController::class, 'dashboard'])->name('dashboard')->middleware(['auth','check.device']);
 Route::get('/client', [App\Http\Controllers\WebController::class, 'client'])->name('client')->middleware(['auth','check.device']);
+Route::get('/client_accounts', [App\Http\Controllers\ClientAccountController::class, 'index'])->name('client_accounts')->middleware(['auth','check.device']);
+Route::get('/client_accounts_pdf', [App\Http\Controllers\ClientAccountController::class, 'downloadPdf'])->name('client_accounts_pdf')->middleware(['auth','check.device']);
+Route::get('/add_client_account', [App\Http\Controllers\ClientAccountController::class, 'create'])->name('add_client_account')->middleware(['auth','check.device']);
+Route::get('/client_account_balance', [App\Http\Controllers\ClientAccountController::class, 'balance'])->name('client_account_balance')->middleware(['auth','check.device']);
+Route::post('/store_client_account', [App\Http\Controllers\ClientAccountController::class, 'store'])->name('store_client_account')->middleware(['auth','check.device']);
+Route::get('/view_client_account/{id}', [App\Http\Controllers\ClientAccountController::class, 'show'])->name('view_client_account')->middleware(['auth','check.device']);
+Route::get('/edit_client_account/{id}', [App\Http\Controllers\ClientAccountController::class, 'edit'])->name('edit_client_account')->middleware(['auth','check.device']);
+Route::post('/update_client_account/{id}', [App\Http\Controllers\ClientAccountController::class, 'update'])->name('update_client_account')->middleware(['auth','check.device']);
+Route::get('/delete_client_account/{id}/{localtime?}', [App\Http\Controllers\ClientAccountController::class, 'destroy'])->name('delete_client_account')->middleware(['auth','check.device']);
 Route::get('/clientDatatable', [App\Http\Controllers\WebController::class, 'clientDatatable'])->name('clientDatatable')->middleware('auth');
 Route::get('/users', [App\Http\Controllers\WebController::class, 'users'])->name('users')->middleware(['auth','check.device']);
 Route::get('/add_client', [App\Http\Controllers\WebController::class, 'add_client'])->name('add_client')->middleware(['auth','check.device']);
@@ -114,6 +172,41 @@ Route::post('/add_new_client', [App\Http\Controllers\WebController::class, 'add_
 Route::get('/affiliates_records', [App\Http\Controllers\AdminController::class, 'affiliates_records'])->name('affiliates_records')->middleware('admin_auth');
 Route::get('/add_user', [App\Http\Controllers\WebController::class, 'add_user'])->name('add_user')->middleware(['auth','check.device']);
 Route::post('/add_new_user', [App\Http\Controllers\WebController::class, 'add_new_user'])->name('add_new_user');
+
+/* ---------------- Associates module (Referrals) ---------------- */
+Route::get('/associates', [App\Http\Controllers\AssociateController::class, 'associates'])->name('associates')->middleware(['auth','check.device']);
+Route::get('/add_associate', [App\Http\Controllers\AssociateController::class, 'add_associate'])->name('add_associate')->middleware(['auth','check.device']);
+Route::post('/store_associate', [App\Http\Controllers\AssociateController::class, 'store_associate'])->name('store_associate')->middleware(['auth','check.device']);
+Route::get('/edit_associate/{id}', [App\Http\Controllers\AssociateController::class, 'edit_associate'])->name('edit_associate')->middleware(['auth','check.device']);
+Route::post('/update_associate', [App\Http\Controllers\AssociateController::class, 'update_associate'])->name('update_associate')->middleware(['auth','check.device']);
+Route::get('/delete_associate/{id}', [App\Http\Controllers\AssociateController::class, 'delete_associate'])->name('delete_associate')->middleware(['auth','check.device']);
+// Business (Referrals) tab
+Route::get('/associate_business', [App\Http\Controllers\AssociateController::class, 'business'])->name('associate_business')->middleware(['auth','check.device']);
+Route::get('/add_associate_business', [App\Http\Controllers\AssociateController::class, 'add_business'])->name('add_associate_business')->middleware(['auth','check.device']);
+Route::post('/store_associate_business', [App\Http\Controllers\AssociateController::class, 'store_business'])->name('store_associate_business')->middleware(['auth','check.device']);
+Route::get('/view_associate_business/{id}', [App\Http\Controllers\AssociateController::class, 'view_business'])->name('view_associate_business')->middleware(['auth','check.device']);
+Route::get('/edit_associate_business/{id}', [App\Http\Controllers\AssociateController::class, 'edit_business'])->name('edit_associate_business')->middleware(['auth','check.device']);
+Route::post('/update_associate_business', [App\Http\Controllers\AssociateController::class, 'update_business'])->name('update_associate_business')->middleware(['auth','check.device']);
+Route::get('/delete_associate_business/{id}', [App\Http\Controllers\AssociateController::class, 'delete_business'])->name('delete_associate_business')->middleware(['auth','check.device']);
+// Invoices tab
+Route::get('/associate_invoices', [App\Http\Controllers\AssociateController::class, 'invoices'])->name('associate_invoices')->middleware(['auth','check.device']);
+Route::get('/create_associate_invoice', [App\Http\Controllers\AssociateController::class, 'create_invoice'])->name('create_associate_invoice')->middleware(['auth','check.device']);
+Route::post('/store_associate_invoice', [App\Http\Controllers\AssociateController::class, 'store_invoice'])->name('store_associate_invoice')->middleware(['auth','check.device']);
+Route::get('/edit_associate_invoice/{id}', [App\Http\Controllers\AssociateController::class, 'edit_invoice'])->name('edit_associate_invoice')->middleware(['auth','check.device']);
+Route::post('/update_associate_invoice', [App\Http\Controllers\AssociateController::class, 'update_invoice'])->name('update_associate_invoice')->middleware(['auth','check.device']);
+Route::get('/view_associate_invoice/{id}', [App\Http\Controllers\AssociateController::class, 'view_invoice'])->name('view_associate_invoice')->middleware(['auth','check.device']);
+Route::get('/print_associate_invoice/{id}', [App\Http\Controllers\AssociateController::class, 'print_invoice'])->name('print_associate_invoice')->middleware(['auth','check.device']);
+Route::post('/resend_associate_invoice_email/{id}', [App\Http\Controllers\AssociateController::class, 'resend_invoice_email'])->name('resend_associate_invoice_email')->middleware(['auth','check.device']);
+Route::get('/delete_associate_invoice/{id}', [App\Http\Controllers\AssociateController::class, 'delete_invoice'])->name('delete_associate_invoice')->middleware(['auth','check.device']);
+// Payments tab
+Route::get('/associate_payments', [App\Http\Controllers\AssociateController::class, 'payments'])->name('associate_payments')->middleware(['auth','check.device']);
+Route::get('/add_associate_payment', [App\Http\Controllers\AssociateController::class, 'add_payment'])->name('add_associate_payment')->middleware(['auth','check.device']);
+Route::post('/associate_invoice_details', [App\Http\Controllers\AssociateController::class, 'invoice_details'])->name('associate_invoice_details')->middleware(['auth','check.device']);
+Route::post('/store_associate_payment', [App\Http\Controllers\AssociateController::class, 'store_payment'])->name('store_associate_payment')->middleware(['auth','check.device']);
+Route::get('/view_associate_payment/{id}', [App\Http\Controllers\AssociateController::class, 'view_payment'])->name('view_associate_payment')->middleware(['auth','check.device']);
+Route::get('/delete_associate_payment/{id}', [App\Http\Controllers\AssociateController::class, 'delete_payment'])->name('delete_associate_payment')->middleware(['auth','check.device']);
+/* --------------- End Associates module --------------- */
+
 Route::get('/contactus', [App\Http\Controllers\WebController::class, 'contactus'])->name('contactus');
 Route::get('/cookie_notice', [App\Http\Controllers\WebController::class, 'refund_policy'])->name('refund_policy');
 Route::get('/gdpr', [App\Http\Controllers\WebController::class, 'terms_conditions'])->name('terms_conditions');
@@ -161,17 +254,23 @@ Route::get('/invoice_payment_made', [App\Http\Controllers\WebController::class, 
 
 Route::get('/new_invoice', [App\Http\Controllers\WebController::class, 'new_invoice'])->name('new_invoice')->middleware(['auth','check.device']);
 Route::get('/new_invoice_ap', [App\Http\Controllers\WebController::class, 'new_invoice_ap'])->name('new_invoice_ap')->middleware(['auth','check.device']);
+Route::post('/check_duplicate_invoice', [App\Http\Controllers\WebController::class, 'check_duplicate_invoice'])->name('check_duplicate_invoice')->middleware(['auth','check.device']);
 Route::post('/create_new_invoice', [App\Http\Controllers\WebController::class, 'create_new_invoice'])->name('create_new_invoice')->middleware(['auth','check.device']);
 Route::post('/create_new_invoice_ap', [App\Http\Controllers\WebController::class, 'create_new_invoice_ap'])->name('create_new_invoice_ap')->middleware(['auth','check.device']);
+Route::get('/edit_invoice/{id}', [App\Http\Controllers\WebController::class, 'edit_invoice'])->name('edit_invoice')->middleware(['auth','check.device']);
+Route::post('/update_invoice/{id}', [App\Http\Controllers\WebController::class, 'update_invoice'])->name('update_invoice')->middleware(['auth','check.device']);
+Route::get('/edit_invoice_ap/{id}', [App\Http\Controllers\WebController::class, 'edit_invoice_ap'])->name('edit_invoice_ap')->middleware(['auth','check.device']);
+Route::post('/update_invoice_ap/{id}', [App\Http\Controllers\WebController::class, 'update_invoice_ap'])->name('update_invoice_ap')->middleware(['auth','check.device']);
 
 Route::get('/view_invoice/{id?}', [App\Http\Controllers\WebController::class, 'view_invoice'])->name('view_invoice')->middleware(['auth','check.device']);
+Route::post('/invoice/{id}/resend-email', [App\Http\Controllers\WebController::class, 'resendInvoiceEmail'])->name('resend_invoice_email')->middleware(['auth','check.device']);
 Route::get('/invoice_preview/{id?}/{token?}', [App\Http\Controllers\WebController::class, 'invoice_preview'])->name('invoice_preview');
 Route::get('/print_invoice/{id?}', [App\Http\Controllers\WebController::class, 'print_invoice'])->name('print_invoice')->middleware(['auth','check.device']);
 Route::get('/delete_invoice/{id?}/{localtime?}', [App\Http\Controllers\WebController::class, 'delete_invoice'])->name('delete_invoice')->middleware(['auth','check.device']);
 Route::post('/invoice_status', [App\Http\Controllers\WebController::class, 'invoice_status'])->name('invoice_status');
 Route::get('/user_role', [App\Http\Controllers\WebController::class, 'user_role'])->name('user_role')->middleware(['auth','check.device']);
 Route::get('/add_user_role/{id?}', [App\Http\Controllers\WebController::class, 'add_user_role'])->name('add_user_role')->middleware(['auth','check.device']);
-Route::post('/user_role_post', [App\Http\Controllers\WebController::class, 'user_role_post'])->name('user_role_post');
+Route::post('/user_role_post', [App\Http\Controllers\WebController::class, 'user_role_post'])->name('user_role_post')->middleware(['auth','check.device']);
 Route::get('/delete_user_role/{id?}', [App\Http\Controllers\WebController::class, 'delete_user_role'])->name('delete_user_role')->middleware(['auth','check.device']);
 Route::get('/job_role/{id?}', [App\Http\Controllers\WebController::class, 'job_role'])->name('job_role')->middleware(['auth','check.device']);
 Route::get('/add_job_role', [App\Http\Controllers\WebController::class, 'add_job_role'])->name('add_job_role')->middleware(['auth','check.device']);
@@ -197,12 +296,18 @@ Route::get('/get-application-data/{id}', [App\Http\Controllers\WebController::cl
 Route::get('/add_application', [App\Http\Controllers\WebController::class, 'add_application'])->name('add_application')->middleware(['auth','check.device']);
 Route::get('/update_application/{id?}', [App\Http\Controllers\WebController::class, 'update_application'])->name('update_application')->middleware(['auth','check.device']);
 Route::get('/view_application/{id?}', [App\Http\Controllers\WebController::class, 'view_application'])->name('view_application')->middleware(['auth','check.device']);
+Route::get('/application/{id}/document-list', [App\Http\Controllers\WebController::class, 'generate_application_document_list'])->name('generate_application_document_list')->middleware(['auth','check.device']);
+Route::get('/application/{id}/document-list/download', [App\Http\Controllers\WebController::class, 'download_application_document_list'])->name('download_application_document_list')->middleware(['auth','check.device']);
+Route::post('/application/{id}/document-list/send', [App\Http\Controllers\WebController::class, 'send_application_document_list'])->name('send_application_document_list')->middleware(['auth','check.device']);
 Route::post('/add_new_application', [App\Http\Controllers\WebController::class, 'add_new_application'])->name('add_new_application');
 Route::get('/sub_reports', [App\Http\Controllers\WebController::class, 'sub_reports'])->name('sub_reports')->middleware(['auth','check.device']);
 Route::get('/sub_reports/support_tickets', [App\Http\Controllers\WebController::class, 'sub_reports_support_tickets'])->name('sub_reports_support_tickets')->middleware(['auth','check.device']);
 Route::get('/sub_reports/activity_log', [App\Http\Controllers\WebController::class, 'sub_reports_activity_log'])->name('sub_reports_activity_log')->middleware(['auth','check.device']);
 Route::get('/sub_analytics', [App\Http\Controllers\WebController::class, 'analytics'])->name('sub_analytics')->middleware(['auth','check.device']);
 
+Route::get('/email_broadcast', [App\Http\Controllers\WebController::class, 'email_broadcast'])->name('email_broadcast')->middleware(['auth','check.device']);
+Route::post('/send_email_broadcast', [App\Http\Controllers\WebController::class, 'send_email_broadcast'])->name('send_email_broadcast')->middleware(['auth','check.device']);
+Route::post('/upload_email_broadcast_image', [App\Http\Controllers\WebController::class, 'upload_email_broadcast_image'])->name('upload_email_broadcast_image')->middleware(['auth','check.device']);
 Route::get('/communications', [App\Http\Controllers\WebController::class, 'communications'])->name('communications')->middleware(['auth','check.device']);
 Route::get('/messaging', [App\Http\Controllers\WebController::class, 'messaging'])->name('messaging')->middleware(['auth','check.device']);
 Route::post('/communicate', [App\Http\Controllers\WebController::class, 'communicate'])->name('communicate');
@@ -212,13 +317,31 @@ Route::get('/user_applications', [App\Http\Controllers\WebController::class, 'us
 Route::post('/user_app_assignment', [App\Http\Controllers\WebController::class, 'user_app_assignment'])->name('user_app_assignment');
 Route::get('/client_documents', [App\Http\Controllers\WebController::class, 'client_documents'])->name('client_documents')->middleware(['auth','check.device']);
 Route::post('/upload_client_document', [App\Http\Controllers\WebController::class, 'upload_client_document'])->name('upload_client_document');
+Route::get('/delete_client_document/{id?}', [App\Http\Controllers\WebController::class, 'delete_client_document'])->name('delete_client_document')->middleware(['auth','check.device']);
 Route::get('/client_document_update/{id?}', [App\Http\Controllers\WebController::class, 'client_document_update'])->name('client_document_update')->middleware(['auth','check.device']);
 Route::get('/update_application_assignment/{id?}', [App\Http\Controllers\WebController::class, 'update_application_assignment'])->name('update_application_assignment')->middleware(['auth','check.device']);
 Route::get('/my_settings', [App\Http\Controllers\WebController::class, 'my_settings'])->name('my_settings')->middleware(['auth','check.device']);
+Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'index'])->name('notifications')->middleware(['auth','check.device']);
+Route::post('/notifications/mark-all-read', [App\Http\Controllers\NotificationController::class, 'markAllRead'])->name('notifications_mark_all_read');
+Route::post('/messages/mark-all-read', [App\Http\Controllers\NotificationController::class, 'markAllMessagesRead'])->name('messages_mark_all_read');
+Route::post('/messages/{id}/mark-read', [App\Http\Controllers\NotificationController::class, 'markMessageRead'])->name('messages_mark_read');
+Route::post('/messages/{id}/delete', [App\Http\Controllers\NotificationController::class, 'deleteMessage'])->name('messages_delete');
+Route::post('/notifications/{id}/read', [App\Http\Controllers\NotificationController::class, 'markRead'])->name('notifications_mark_read');
+Route::post('/notifications/{id}/delete', [App\Http\Controllers\NotificationController::class, 'deleteNotification'])->name('notifications_delete')->middleware(['auth','check.device']);
+Route::post('/notifications/delete-selected', [App\Http\Controllers\NotificationController::class, 'deleteSelectedNotifications'])->name('notifications_delete_selected')->middleware(['auth','check.device']);
+Route::post('/notifications/clear-all', [App\Http\Controllers\NotificationController::class, 'clearAllNotifications'])->name('notifications_clear_all')->middleware(['auth','check.device']);
+Route::post('/save_notification_preferences', [App\Http\Controllers\NotificationController::class, 'savePreferences'])->name('save_notification_preferences')->middleware(['auth','check.device']);
+Route::post('/admin_send_notification', [App\Http\Controllers\NotificationController::class, 'adminSendNotification'])->name('admin_send_notification')->middleware('admin_auth');
+Route::get('/notification-counts', [App\Http\Controllers\NotificationController::class, 'counts'])->name('notification_counts');
 Route::get('/my_query/{id?}', [App\Http\Controllers\WebController::class, 'my_query'])->name('my_query');
 Route::get('/view_message/{id?}', [App\Http\Controllers\WebController::class, 'view_message'])->name('view_message')->middleware(['auth','check.device']);
 
 Route::post('/add_service', [App\Http\Controllers\WebController::class, 'add_service'])->name('add_service')->middleware(['auth','check.device']);
+Route::post('/save_cc_settings', [App\Http\Controllers\WebController::class, 'save_cc_settings'])->name('save_cc_settings')->middleware(['auth','check.device']);
+Route::post('/save_cc_document_lists', [App\Http\Controllers\WebController::class, 'save_cc_document_lists'])->name('save_cc_document_lists')->middleware(['auth','check.device']);
+Route::post('/save_dashboard_settings', [App\Http\Controllers\WebController::class, 'save_dashboard_settings'])->name('save_dashboard_settings')->middleware(['auth','check.device']);
+Route::post('/save_enquiry_form_settings', [App\Http\Controllers\WebController::class, 'save_enquiry_form_settings'])->name('save_enquiry_form_settings')->middleware(['auth','check.device']);
+Route::post('/get_service_fee', [App\Http\Controllers\WebController::class, 'get_service_fee'])->name('get_service_fee')->middleware(['auth','check.device']);
 
 Route::get('/get_subscriber_service', [App\Http\Controllers\WebController::class, 'get_subscriber_service'])->name('get_subscriber_service')->middleware(['auth','check.device']);
 Route::delete('/services_delete/{id}', [App\Http\Controllers\WebController::class,'services_delete'])->name('services_delete')->middleware(['auth','check.device']);
@@ -238,10 +361,13 @@ Route::post('/Affiliates_storeLogin', [App\Http\Controllers\WebController::class
 Route::get('/Affiliates_forget_create', [App\Http\Controllers\WebController::class, 'Affiliates_forget_create'])->name('affiliate.forget_create');
 Route::post('/change_password_affiliate', [App\Http\Controllers\WebController::class, 'change_password_affiliate'])->name('change_password_affiliate');
 Route::post('/Affiliates_forget_store', [App\Http\Controllers\WebController::class, 'Affiliates_forget_store'])->name('affiliate.forget_store');
-Route::get('/dashboard_affiliate', [App\Http\Controllers\WebController::class, 'dashboard_affiliate'])->name('affiliate.dashboard_affiliate');
+Route::get('/affiliate_notifications', [App\Http\Controllers\NotificationController::class, 'index'])->name('affiliate_notifications');
 Route::get('/userprofile_affiliate', [App\Http\Controllers\WebController::class, 'userprofile_affiliate'])->name('userprofile_affiliate');
 Route::post('/update_user_affiliate', [App\Http\Controllers\WebController::class, 'update_user_affiliate'])->name('update_user_affiliate');
 Route::get('/logout_affiliate', [App\Http\Controllers\HomeController::class, 'logout_affiliate'])->name('logout_affiliate');
+Route::get('/dashboard_affiliate', [App\Http\Controllers\WebController::class, 'dashboard_affiliate'])->name('affiliate.dashboard_affiliate');
+Route::get('/subscribers_affiliate', [App\Http\Controllers\WebController::class, 'subscribers_affiliate'])->name('subscribers_affiliate');
+Route::get('/commissions_affiliate', [App\Http\Controllers\WebController::class, 'commissions_affiliate'])->name('commissions_affiliate');
 Route::get('/referrals_affiliate', [App\Http\Controllers\WebController::class, 'referrals'])->name('referrals_affiliate');
 Route::get('/wallet_affiliate', [App\Http\Controllers\WebController::class, 'wallet'])->name('wallet_affiliate');
 Route::group(['middleware' => ['ops.sys']], function () {
@@ -279,6 +405,15 @@ Route::get('/manage_report_referrals', [App\Http\Controllers\AdminController::cl
 Route::get('/demo_requests', [App\Http\Controllers\AdminController::class, 'demo_requests'])->name('demo_requests')->middleware('admin_auth');
 Route::get('/demo_status/{id?}', [App\Http\Controllers\AdminController::class, 'demo_status'])->name('demo_status')->middleware('admin_auth');
 Route::get('/subscribers', [App\Http\Controllers\AdminController::class, 'subscribers'])->name('subscribers')->middleware('admin_auth');
+Route::get('/email_subscribers', [App\Http\Controllers\AdminController::class, 'email_subscribers'])->name('email_subscribers')->middleware('admin_auth');
+Route::post('/store_email_subscriber', [App\Http\Controllers\AdminController::class, 'store_email_subscriber'])->name('store_email_subscriber')->middleware('admin_auth');
+Route::get('/email_subscription_status/{id?}', [App\Http\Controllers\AdminController::class, 'email_subscription_status'])->name('email_subscription_status')->middleware('admin_auth');
+Route::get('/admin/subscriber-journey-log-data', [App\Http\Controllers\JourneyLogController::class, 'subscriberJourneyLogData'])->name('admin_subscriber_journey_log_data')->middleware('admin_auth');
+Route::get('/admin/user-activity-log-data', [App\Http\Controllers\JourneyLogController::class, 'userActivityLogData'])->name('admin_user_activity_log_data')->middleware('admin_auth');
+Route::get('/admin/subscription-history-data', [App\Http\Controllers\JourneyLogController::class, 'subscriptionHistoryData'])->name('admin_subscription_history_data')->middleware('admin_auth');
+Route::get('/subscription-history-data', [App\Http\Controllers\JourneyLogController::class, 'subscriberSubscriptionHistoryData'])->name('subscription_history_data')->middleware(['auth', 'check.device']);
+Route::get('/admin/discount-offer-history-data', [App\Http\Controllers\JourneyLogController::class, 'discountOfferHistoryData'])->name('admin_discount_offer_history_data')->middleware('admin_auth');
+Route::get('/discount-offer-history-data', [App\Http\Controllers\JourneyLogController::class, 'subscriberDiscountOfferHistoryData'])->name('discount_offer_history_data')->middleware(['auth', 'check.device']);
 //HEERE
 Route::get('/subscribersReport', [App\Http\Controllers\SubscriberFilterController::class, 'subscribersReport'])->name('subscribersReport')->middleware('admin_auth');
 
@@ -304,6 +439,8 @@ Route::get('/documentReport', [App\Http\Controllers\ReportFilterController::clas
 
 
 Route::get('/referralsReport', [App\Http\Controllers\ReportFilterController::class, 'referralsReport'])->name('referralsReport');
+Route::get('/associatesReport', [App\Http\Controllers\ReportFilterController::class, 'associatesReport'])->name('associatesReport')->middleware(['auth','check.device']);
+Route::get('/manage_associates_report', [App\Http\Controllers\ReportFilterController::class, 'manage_associates_report'])->name('manage_associates_report')->middleware(['auth','check.device']);
 
 Route::get('/changeAffiliateStatus', [App\Http\Controllers\AdminController::class, 'changeAffiliateStatus'])->name('changeAffiliateStatus');
 
@@ -327,9 +464,13 @@ Route::get('/delete_clients/{id?}', [App\Http\Controllers\AdminController::class
 Route::get('/delete_application/{id?}', [App\Http\Controllers\AdminController::class, 'delete_application'])->name('delete_application')->middleware('admin_auth');
 Route::get('/delete_document/{id?}', [App\Http\Controllers\AdminController::class, 'delete_document'])->name('delete_document')->middleware('admin_auth');
 Route::get('/communication', [App\Http\Controllers\AdminController::class, 'communication'])->name('communication')->middleware('admin_auth');
+Route::get('/admin_notifications', [App\Http\Controllers\NotificationController::class, 'adminIndex'])->name('admin_notifications')->middleware('admin_auth');
 Route::post('/offers_store', [App\Http\Controllers\AdminController::class, 'applyOffer'])->name('offers_store')->middleware('admin_auth');
 
 Route::get('/manage_report_communications', [App\Http\Controllers\AdminController::class, 'manage_report_communications'])->name('manage_report_communications')->middleware('admin_auth');
+Route::get('/admin_email_broadcast', [App\Http\Controllers\AdminController::class, 'admin_email_broadcast'])->name('admin_email_broadcast')->middleware('admin_auth');
+Route::post('/admin_send_email_broadcast', [App\Http\Controllers\AdminController::class, 'admin_send_email_broadcast'])->name('admin_send_email_broadcast')->middleware('admin_auth');
+Route::post('/admin_upload_email_broadcast_image', [App\Http\Controllers\AdminController::class, 'admin_upload_email_broadcast_image'])->name('admin_upload_email_broadcast_image')->middleware('admin_auth');
 Route::get('/admin_messaging', [App\Http\Controllers\AdminController::class, 'admin_messaging'])->name('admin_messaging')->middleware('admin_auth');
 Route::post('/admin_communicate', [App\Http\Controllers\AdminController::class, 'admin_communicate'])->name('admin_communicate')->middleware('admin_auth');
 Route::get('/view_communication/{id?}', [App\Http\Controllers\AdminController::class, 'view_communication'])->name('view_communication')->middleware('admin_auth');
@@ -347,6 +488,8 @@ Route::get('/manage_reports_invoices_ap', [App\Http\Controllers\AdminController:
 
 
 Route::get('/activity_log', [App\Http\Controllers\AdminController::class, 'activity_log'])->name('activity_log')->middleware('admin_auth');
+Route::get('/error_log', [App\Http\Controllers\AdminController::class, 'error_log'])->name('error_log')->middleware('admin_auth');
+Route::get('/error_logs_export', [App\Http\Controllers\ExportController::class, 'error_logs_export'])->name('error_logs_export')->middleware('admin_auth');
 Route::get('/chat/{id?}', [App\Http\Controllers\AdminController::class, 'chat'])->name('chat')->middleware('admin_auth');
 Route::post('/send_response', [App\Http\Controllers\AdminController::class, 'send_response'])->name('send_response');
 Route::get('/subscriber_status/{id?}/{localtime?}', [App\Http\Controllers\AdminController::class, 'subscriber_status'])->name('subscriber_status')->middleware('admin_auth');
@@ -356,7 +499,10 @@ Route::get('/new_application', [App\Http\Controllers\AdminController::class, 'ne
 Route::post('/register_new_application', [App\Http\Controllers\AdminController::class, 'register_new_application'])->name('register_new_application');
 Route::get('/application_update/{id?}', [App\Http\Controllers\AdminController::class, 'application_update'])->name('application_update')->middleware('admin_auth');
 Route::get('/application_view/{id?}', [App\Http\Controllers\AdminController::class, 'application_view'])->name('application_view')->middleware('admin_auth');
+Route::get('/admin/application/{id}/document-list', [App\Http\Controllers\AdminController::class, 'generate_application_document_list'])->name('admin.generate_application_document_list')->middleware('admin_auth');
+Route::get('/admin/application/{id}/document-list/download', [App\Http\Controllers\AdminController::class, 'download_application_document_list'])->name('admin.download_application_document_list')->middleware('admin_auth');
 Route::post('/get_job_role', [App\Http\Controllers\AdminController::class, 'get_job_role'])->name('get_job_role');
+Route::post('/get_cc_countries', [App\Http\Controllers\AdminController::class, 'get_cc_countries'])->name('get_cc_countries');
 Route::get('fetch_visa_country/{id?}', [App\Http\Controllers\AdminController::class, 'fetch_visa_country'])->name('fetch_visa_country');
 
 Route::get('/documents', [App\Http\Controllers\AdminController::class, 'documents'])->name('documents')->middleware('admin_auth');
@@ -378,7 +524,10 @@ Route::post('/get_client', [App\Http\Controllers\AdminController::class, 'get_cl
 Route::post('/get_applications', [App\Http\Controllers\AdminController::class, 'get_applications'])->name('get_applications');
 Route::post('/get_user', [App\Http\Controllers\AdminController::class, 'get_user'])->name('get_user');
 Route::get('/admin_new_invoice', [App\Http\Controllers\AdminController::class, 'admin_new_invoice'])->name('admin_new_invoice')->middleware('admin_auth');
-Route::post('/admin_new_invoice_post', [App\Http\Controllers\AdminController::class, 'admin_new_invoice_post'])->name('admin_new_invoice_post');
+Route::post('/admin_new_invoice_post', [App\Http\Controllers\AdminController::class, 'admin_new_invoice_post'])->name('admin_new_invoice_post')->middleware('admin_auth');
+Route::post('/admin_invoice/{id}/resend-email', [App\Http\Controllers\AdminController::class, 'resendInvoiceEmail'])->name('admin_resend_invoice_email')->middleware('admin_auth');
+Route::get('/admin_edit_invoice/{id}', [App\Http\Controllers\AdminController::class, 'admin_edit_invoice'])->name('admin_edit_invoice')->middleware('admin_auth');
+Route::post('/admin_update_invoice/{id}', [App\Http\Controllers\AdminController::class, 'admin_update_invoice'])->name('admin_update_invoice')->middleware('admin_auth');
 Route::get('/invoice_detail/{id?}', [App\Http\Controllers\AdminController::class, 'invoice_detail'])->name('invoice_detail')->middleware('admin_auth');
 Route::get('/print_invoice_detail/{id?}', [App\Http\Controllers\AdminController::class, 'print_invoice_detail'])->name('print_invoice_detail')->middleware('admin_auth');
 Route::get('/reports', [App\Http\Controllers\AdminController::class, 'reports'])->name('reports')->middleware('admin_auth');
@@ -401,10 +550,12 @@ Route::get('/update_faq/{id?}', [App\Http\Controllers\AdminController::class, 'u
 Route::post('/register_faq', [App\Http\Controllers\AdminController::class, 'register_faq'])->name('register_faq');
 Route::get('/delete_faq/{id?}', [App\Http\Controllers\AdminController::class, 'delete_faq'])->name('delete_faq')->middleware('admin_auth');
 Route::get('/settings', [App\Http\Controllers\AdminController::class, 'settings'])->name('settings')->middleware('admin_auth');
+Route::post('/save_admin_dashboard_settings', [App\Http\Controllers\AdminController::class, 'save_admin_dashboard_settings'])->name('save_admin_dashboard_settings')->middleware('admin_auth');
 Route::post('/invoice_settings', [App\Http\Controllers\AdminController::class, 'invoice_settings'])->name('invoice_settings');
 Route::post('/update_currency', [App\Http\Controllers\AdminController::class, 'update_currency'])->name('update_currency');
 Route::post('/update_timezone', [App\Http\Controllers\AdminController::class, 'update_timezone'])->name('update_timezone');
 Route::get('/view_query/{id?}', [App\Http\Controllers\AdminController::class, 'view_query'])->name('view_query')->middleware('admin_auth');
+Route::get('/admin/ticket-activity-log/{id}', [App\Http\Controllers\AdminController::class, 'ticketActivityLogData'])->name('admin_ticket_activity_log_data')->middleware('admin_auth');
 Route::get('/query_response/{id?}', [App\Http\Controllers\AdminController::class, 'query_response'])->name('query_response')->middleware('admin_auth');
 Route::get('/delete_query/{id?}', [App\Http\Controllers\AdminController::class, 'delete_query'])->name('delete_query')->middleware('admin_auth');
 Route::get('/update_query_status/{id?}', [App\Http\Controllers\AdminController::class, 'update_query_status'])->name('update_query_status')->middleware('admin_auth');
@@ -429,6 +580,13 @@ Route::post('/post_feature', [App\Http\Controllers\AdminController::class, 'post
 Route::get('/view_feature/{id?}', [App\Http\Controllers\AdminController::class, 'view_feature'])->name('view_feature')->middleware('admin_auth');
 Route::get('/manage_about_adwiseri', [App\Http\Controllers\AdminController::class, 'manage_about_adwiseri'])->name('manage_about_adwiseri')->middleware('admin_auth');
 Route::post('/update_about_adwiseri', [App\Http\Controllers\AdminController::class, 'update_about_adwiseri'])->name('update_about_adwiseri');
+Route::get('/manage_landing_discounts_offers', [App\Http\Controllers\AdminController::class, 'manage_landing_discounts_offers'])->name('manage_landing_discounts_offers')->middleware('admin_auth');
+Route::post('/update_landing_promo_settings', [App\Http\Controllers\AdminController::class, 'update_landing_promo_settings'])->name('update_landing_promo_settings')->middleware('admin_auth');
+Route::post('/store_landing_promo_item', [App\Http\Controllers\AdminController::class, 'store_landing_promo_item'])->name('store_landing_promo_item')->middleware('admin_auth');
+Route::post('/update_landing_promo_item/{id}', [App\Http\Controllers\AdminController::class, 'update_landing_promo_item'])->name('update_landing_promo_item')->middleware('admin_auth');
+Route::get('/delete_landing_promo_item/{id}', [App\Http\Controllers\AdminController::class, 'delete_landing_promo_item'])->name('delete_landing_promo_item')->middleware('admin_auth');
+Route::get('/manage_homepage_sections', [App\Http\Controllers\AdminController::class, 'manage_homepage_sections'])->name('manage_homepage_sections')->middleware('admin_auth');
+Route::post('/update_homepage_sections', [App\Http\Controllers\AdminController::class, 'update_homepage_sections'])->name('update_homepage_sections')->middleware('admin_auth');
 
 
 Route::post('/update_contactus', [App\Http\Controllers\AdminController::class, 'update_contactus'])->name('update_contactus');
@@ -448,12 +606,3 @@ Route::post('/update_dependant/{id}', [App\Http\Controllers\ApplicationControlle
 Route::delete('/delete_dependant/{id}', [App\Http\Controllers\ApplicationController::class, 'deleteDependant'])->name('delete_dependant');
 Route::get('/subscriber_dependents', [App\Http\Controllers\ApplicationController::class, 'subscriber_dependents'])->name('subscriber_dependents');
 
-
-Route::get('/clear-all', function() {
-    Artisan::call('optimize');
-    Artisan::call('cache:clear');
-    Artisan::call('config:clear');
-    Artisan::call('route:clear');
-    Artisan::call('view:clear');
-    return "All caches are cleared";
-});

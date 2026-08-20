@@ -29,7 +29,7 @@
                         @foreach($features as $key => $feature)
                         <tr>
                             <td class="text-center">{{ $key+1 }}.</td>
-                            <td><img src="{{ asset('admin_assets/features/icon/'.$feature->icon) }}" style="width:50px;heigth:50px;"></td>
+                            <td><img src="{{ asset('admin_assets/features/icon/'.$feature->icon) }}" style="width:50px;height:50px;"></td>
                             <td>{{ $feature->name }}</td>
                             <td>{{ substr($feature->content, 0, 80).'...' }}</td>
                             <td><a class="p-1 text-dark" href="{{ route('view_feature', $feature->id)}}"><i class="fa-solid fa-eye"></i></a></td>

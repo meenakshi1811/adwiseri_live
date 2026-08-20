@@ -93,10 +93,10 @@
     function deleteapplication(id){
       Swal.fire({
         title: 'Are you sure?',
-        text: "You won't be able to revert this!",
+        text: "This action cannot be undone.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
+        confirmButtonColor: '#695EEE',
         cancelButtonColor: '#d33',
         confirmButtonText: 'Yes, delete it!'
       }).then((result) => {
@@ -108,12 +108,12 @@
       function updateapplication(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to update this record!",
+          text: "Do you want to update this record?",
           icon: 'warning',
           showCancelButton: true,
-          confirmButtonColor: '#3085d6',
+          confirmButtonColor: '#695EEE',
           cancelButtonColor: '#d33',
-          confirmButtonText: 'Yes'
+          confirmButtonText: 'Yes, continue'
         }).then((result) => {
           if (result.isConfirmed) {
             window.location.href = "application_update/"+id+"";
@@ -127,7 +127,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Application Deleted Successfully!'
+        text: 'Application deleted successfully.'
       })
     </script>
 
@@ -137,7 +137,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'New Application Added Successfully!'
+        text: 'Application added successfully.'
       })
     </script>
 
@@ -147,7 +147,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Application Updated Successfully!'
+        text: 'Application updated successfully.'
       })
     </script>
 

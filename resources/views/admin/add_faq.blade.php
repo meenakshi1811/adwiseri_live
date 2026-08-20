@@ -104,7 +104,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'FAQ deleted successfully.'
       })
     </script>
   

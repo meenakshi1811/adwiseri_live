@@ -4,8 +4,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Invoice</title>
+    @include('partials.invoice_document_styles')
     <style>
         body {
             font-family: Arial, Helvetica, sans-serif;
@@ -47,116 +47,16 @@
             font-weight: 700;
             color: #1f4bb8;
         }
-
-        .grid {
-            width: 100%;
-            margin-bottom: 16px;
-        }
-
-        .grid td {
-            width: 50%;
-            vertical-align: top;
-        }
-
-        .section-title {
-            font-size: 11px;
-            text-transform: uppercase;
-            color: #6b7280;
-            margin-bottom: 4px;
-            font-weight: 700;
-            letter-spacing: .5px;
-        }
-
-        .box {
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            padding: 10px;
-            min-height: 90px;
-        }
-
-        .items,
-        .totals {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .items th,
-        .items td,
-        .totals td {
-            border: 1px solid #d1d5db;
-            padding: 8px;
-        }
-
-        .items th {
-            background: #eff3ff;
-            text-align: left;
-        }
-
-        .right {
-            text-align: right;
-        }
-
-        .totals-wrap {
-            width: 45%;
-            margin-left: auto;
-            margin-top: 10px;
-        }
-
-        .totals .grand td {
-            font-weight: 700;
-            background: #eff3ff;
-        }
-
-        .footer {
-            position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 20px;
-            text-align: center;
-            font-size: 12px;
-        }
     </style>
 </head>
 
 <body>
     @php
-        $userid = $invoice->user_id ?? 1;
-        $logoPath = null;
-        $hasSubscriberLogo = false;
-
-        if (!empty($invoice->logo)) {
-            $logoUserIds = ($invoice->type ?? '') === 'ap'
-                ? array_unique(array_filter([1, $invoice->user_id, $invoice->subscriber_id]))
-                : array_unique(array_filter([$userid, $u->added_by ?? null, $invoice->subscriber_id]));
-
-            foreach ($logoUserIds as $logoUserId) {
-                $candidateLogoPath = public_path('web_assets/users/user' . $logoUserId . '/' . $invoice->logo);
-
-                if (file_exists($candidateLogoPath)) {
-                    $logoPath = $candidateLogoPath;
-                    $hasSubscriberLogo = true;
-                    break;
-                }
-            }
-        }
-
-        $statusRaw = (string) ($invoice->status ?? '-');
-        $statusLabel = $statusRaw === 'PartiallyPaid' ? 'Partially Paid' : ($statusRaw === 'UnPaid' ? 'Unpaid' : $statusRaw);
-        $subtotal = (float) $invoice->amount;
-        $discountAmount = $subtotal * ((float) $invoice->discount / 100);
-        $taxable = $subtotal - $discountAmount;
-        $taxAmount = $taxable * ((float) $invoice->tax / 100);
-        $total = $taxable + $taxAmount;
-
-        $currencyValue = trim((string) ($user->currency ?? 'USD'));
-        $currencySymbols = ['USD' => '$', 'INR' => '₹', 'EUR' => '€', 'GBP' => '£', 'AUD' => 'A$', 'CAD' => 'C$', 'SGD' => 'S$', 'AED' => 'د.إ'];
-        if (preg_match('/\((.*?)\)/', $currencyValue, $currencyMatch)) {
-            $currency = $currencyMatch[1];
-        } else {
-            $currencyCode = strtoupper(preg_replace('/[^A-Za-z]/', '', $currencyValue));
-            $currency = $currencySymbols[$currencyCode] ?? $currencyValue;
-        }
-        $descriptionLabel = ($invoice->type ?? '') === 'ap' ? ($invoice->detail ?: 'Plan Purchase / Renewal / Upgrade') : 'Professional Fees (' . $invoice->detail . ')';
+        $issuerLogo = \App\Support\InvoiceIssuerLogo::resolve($invoice, $u ?? null);
+        $logoPath = $issuerLogo['disk_path'];
+        $hasSubscriberLogo = !empty($logoPath);
+        $qrSubscriberId = $invoice->subscriber_id ?: ($issuerLogo['owner_user_id'] ?? ($invoice->user_id ?? 1));
+        $forPdf = false;
     @endphp
 
     <div class="sheet">
@@ -169,7 +69,7 @@
                     @if(empty($hasSubscriberLogo))
                         <div class="company">{{ $invoice->name ?? 'Adwiseri' }}</div>
                     @endif
-                    @if(!empty($invoice->email))
+                    @if(!empty($invoice->email) && !\App\Support\BrandedMail::isPlatformBrand($invoice->name ?? 'Adwiseri'))
                         <div>{{ $invoice->email }}</div>
                     @endif
                 </td>
@@ -177,68 +77,18 @@
             </tr>
         </table>
 
-        <table class="grid">
-            <tr>
-                <td style="padding-right: 8px;">
-                    <div class="section-title">Bill To</div>
-                    <div class="box">
-                        <strong>{{ $invoice->to_name ?? '-' }}</strong><br>
-                        {{ $invoice->to_email ?? '' }}
-                    </div>
-                </td>
-                <td style="padding-left: 8px;">
-                    <div class="section-title">Invoice Details</div>
-                    <div class="box">
-                        <strong>Invoice No:</strong> {{ $invoice->invoice_no ?? '-' }}<br>
-                        <strong>Invoice Date:</strong> {{ !empty($invoice->created_at) ? date('d-m-Y', strtotime($invoice->created_at)) : '-' }}<br>
-                        @if(($invoice->status ?? '') !== 'Paid')
-                            <strong>Due Date:</strong> {{ !empty($invoice->due_date) ? date('d-m-Y', strtotime($invoice->due_date)) : '-' }}<br>
-                        @endif
-                        <strong>Status:</strong> {{ $statusLabel }}
-                    </div>
-                </td>
-            </tr>
-        </table>
+        @include('partials.invoice_document_core', [
+            'forPdf' => false,
+            'qrSubscriberId' => $qrSubscriberId,
+            'showFooterThanks' => false,
+            'isAdwiseriInvoice' => \App\Support\BrandedMail::isPlatformBrand($invoice->name ?? 'Adwiseri'),
+        ])
 
-        <table class="items">
-            <thead>
-                <tr>
-                    <th style="width:72%;">Description</th>
-                    <th class="right" style="width:28%;">Amount ({{ $currency }})</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>{{ $descriptionLabel }}</td>
-                    <td class="right">{{ $currency }} {{ number_format($subtotal, 2) }}</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <div class="totals-wrap">
-            <table class="totals">
-                <tr>
-                    <td>Subtotal</td>
-                    <td class="right">{{ $currency }} {{ number_format($subtotal, 2) }}</td>
-                </tr>
-                @if((float) $invoice->discount > 0)
-                    <tr>
-                        <td>Discount ({{ number_format((float) $invoice->discount, 2) }}%)</td>
-                        <td class="right">-{{ $currency }} {{ number_format($discountAmount, 2) }}</td>
-                    </tr>
-                @endif
-                <tr>
-                    <td>Tax ({{ number_format((float) $invoice->tax, 2) }}%)</td>
-                    <td class="right">{{ $currency }} {{ number_format($taxAmount, 2) }}</td>
-                </tr>
-                <tr class="grand">
-                    <td>Total</td>
-                    <td class="right">{{ $currency }} {{ number_format($total, 2) }}</td>
-                </tr>
-            </table>
+        <div style="margin-top: 24px;">
+            @include('partials.invoice_document_footer', [
+                'isAdwiseriInvoice' => \App\Support\BrandedMail::isPlatformBrand($invoice->name ?? 'Adwiseri'),
+            ])
         </div>
-
-        <div class="footer">Thanks for your business !</div>
     </div>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>

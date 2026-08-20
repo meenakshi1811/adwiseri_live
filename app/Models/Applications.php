@@ -5,11 +5,10 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Concerns\BelongsToCurrentSubscriber;
 
 class Applications extends Model
 {
-    use HasFactory, BelongsToCurrentSubscriber;
+    use HasFactory;
     protected $table = "applications";
     protected $primaryKey = "id";
     protected $fillable = [
@@ -18,6 +17,15 @@ class Applications extends Model
         'application_id',
         'application_name',
         'application_program',
+        'course_name',
+        'course_duration',
+        'institution',
+        'intake',
+        'admission_number',
+        'employer_name',
+        'employment_role',
+        'permit_duration',
+        'sponsor_number',
         'application_country',
         'application_detail',
         'start_date',

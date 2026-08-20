@@ -4,12 +4,27 @@
 
         <div class="col-lg-10 column-client">
             <div class="client-dashboard">
-                <div class="client-btn d-flex mb-2 ">
-                    <form class="form-inline d-flex justify-content-between w-100">
-                        <h3 class="text-primary">Manage Subscriptions</h3>
-                        <div class="d-flex ">
+                <div class="client-btn d-flex mb-2 flex-wrap gap-2">
+                    <form class="form-inline d-flex justify-content-between w-100 align-items-center flex-wrap gap-2">
+                        <h3 class="text-primary m-0">Manage Subscriptions</h3>
+                        <div class="d-flex flex-wrap gap-2 align-items-center module-header-actions">
+                            <button type="button"
+                                class="btn text-white"
+                                style="background:#695EEE;"
+                                data-bs-toggle="modal"
+                                data-bs-target="#subscriptionHistoryModal"
+                                onclick="if(typeof initSubscriptionHistoryModal === 'function'){ initSubscriptionHistoryModal(); }">
+                                Subscription History
+                            </button>
+                            <button type="button"
+                                class="btn text-white"
+                                style="background:#695EEE;"
+                                data-bs-toggle="modal"
+                                data-bs-target="#discountOfferHistoryModal"
+                                onclick="if(typeof initDiscountOfferHistoryModal === 'function'){ initDiscountOfferHistoryModal(); }">
+                                Discounts/Offers
+                            </button>
                             <a href="{{ route('add_membership') }}">Add New +</a>
-                            {{-- <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search"> --}}
                         </div>
                       </form>
                       {{-- <i class="fa-solid fa-magnifying-glass"></i> --}}
@@ -51,5 +66,16 @@
     </div>
 
   </div>
+
+@include('admin.partials.subscription_history_modal', [
+    'showSubscriberFilter' => true,
+    'subscriberOptions' => $subscriberOptions ?? collect(),
+    'historyDataUrl' => route('admin_subscription_history_data'),
+])
+@include('admin.partials.discount_offer_history_modal', [
+    'showSubscriberFilter' => true,
+    'subscriberOptions' => $subscriberOptions ?? collect(),
+    'historyDataUrl' => route('admin_discount_offer_history_data'),
+])
 
 @endsection()

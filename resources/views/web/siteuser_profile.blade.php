@@ -2,62 +2,111 @@
 
 @section('main-section')
 
-        <div class="col-lg-10 userdash-client column-client">
-            <h3 class="text-primary px-2">{{ $siteuser->name }}</h3>
-            <div class="profile-detail">
-                <div class="col-lg-7 profile-data" style="border: 1px solid lightgrey;">
+        <div class="col-lg-10 userdash-client column-client profile-page-shell">
+        <div class="col-12 d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 profile-page-header">
+            <h3 class="text-primary text-center flex-grow-1 m-0 profile-page-title">Staff Profile</h3>
+            <a href="{{ route('users') }}" class="text-nowrap">Back to Users</a>
+        </div>
+            <div class="profile-detail profile-detail-responsive">
+                <div class="col-12 col-lg-7 profile-data profile-card-panel">
                     <div class="row">
                         <div class="col-11"></div>
                         <div class="col-1 editss">
-                            <img style="cursor: pointer;" onclick="document.getElementById('update_box').style.display='flex';" src="{{ asset('web_assets/images/edit.png') }}"width="20" height="20" alt="">
+                        <img style="cursor: pointer;" onclick="document.getElementById('siteuser_update_box').style.display='flex';" src="{{ asset('web_assets/images/edit.png') }}"width="20" height="20" alt="Edit staff profile" title="Edit Profile">
                         </div>
                     </div>
-                    <div class="row det-row">
-                        <div class="col-6">
+                    <div class="row det-row profile-detail-grid">
+                        <div class="col-12 col-sm-6 col-md-5">
                             <p style="font-weight:550;">Name</p>
-                            <p style="font-weight:550;">Phone Number</p>
-                            <p style="font-weight:550;">Email ID</p>
-                            <p style="font-weight:550;">Date of Birth</p>
-                            <p style="font-weight:550;">Organization</p>
-                            <p style="font-weight:550;">Designation/Role</p>
-                            <p style="font-weight:550;">Country</p>
-                            <p style="font-weight:550;">State/County</p>
-                            <p style="font-weight:550;">City/Town</p>
-                            <p style="font-weight:550;">Postcode</p>
-                            <p style="font-weight:550;">Timezone</p>
                         </div>
                         <div class="col-6">
                             <p>{{ $siteuser->name }}</p>
-                            <p>{{ $siteuser->phone }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p style="font-weight:550;">User Type</p>
+                        </div>
+                        <div class="col-6">
+                            <p>Staff Member</p>
+                        </div>
+                        <div class="col-6">
+                            <p style="font-weight:550;">Phone Number</p>
+                        </div>
+                        <div class="col-6">
+                            <p>@include('partials.phone_display', ['phone' => $siteuser->phone])</p>
+                        </div>
+                        <div class="col-6">
+                            <p style="font-weight:550;">Email ID</p>
+                        </div>
+                        <div class="col-6">
                             <p>{{ $siteuser->email }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p style="font-weight:550;">Date of Birth</p>
+                        </div>
+                        <div class="col-6">
                             <p>{{  $siteuser->formatted_dob }}</p>
-                            <p>{{ $siteuser->organization }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p style="font-weight:550;">Organization</p>
+                        </div>
+                        <div class="col-6">
+                            <p>{{ $siteuser->organization ?: '—' }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p style="font-weight:550;">Designation/Role</p>
+                        </div>
+                        <div class="col-6">
                             <p>{{ $siteuser->designation }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p style="font-weight:550;">Country</p>
+                        </div>
+                        <div class="col-6">
                             <p>{{ $siteuser->country }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p style="font-weight:550;">State/County</p>
+                        </div>
+                        <div class="col-6">
                             <p>{{ $siteuser->state }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p style="font-weight:550;">City/Town</p>
+                        </div>
+                        <div class="col-6">
                             <p>{{ $siteuser->city }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p style="font-weight:550;">Postcode</p>
+                        </div>
+                        <div class="col-6">
                             <p>{{ $siteuser->pincode }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p style="font-weight:550;">Timezone</p>
+                        </div>
+                        <div class="col-6">
                             <p>{{ $siteuser->timezone }}</p>
-
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-4 profile-pic" style="border: 1px solid lightgrey;">
-                    <div class="row">
-                        <div class="col-10"></div>
-                        <div class="col-2">
-                            <img onclick="document.getElementById('update_img_box').style.display='flex';" src="{{ asset('web_assets/images/edit.png') }}"width="20" height="20" alt="">
+                <div class="col-12 col-lg-4 profile-pic profile-card-panel mt-3 mt-lg-0">
+                    <div class="row align-items-center profile-picture-block">
+                        <div class="col-10">
+                            <p class="profile-logo-label mb-0">Profile Picture</p>
+                        </div>
+                        <div class="col-2 text-end">
+                            <img style="cursor: pointer;" onclick="document.getElementById('siteuser_update_img_box').style.display='flex';" src="{{ asset('web_assets/images/edit.png') }}"width="20" height="20" alt="Edit profile picture" title="Edit Profile Picture">
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-lg-7 profilepic-row">
+                        <div class="col-12 profilepic-row">
                             @if($siteuser->profile_img != "")
-                            <img src="{{ asset('web_assets/users/user'.$siteuser->id.'/'.$siteuser->profile_img) }}" width="200" height="200" alt="">
+                            <img src="{{ asset('web_assets/users/user'.$siteuser->id.'/'.$siteuser->profile_img) }}" width="200" height="200" alt="Profile picture">
                             @else
-                            <img src="{{ asset('web_assets/images/profile.jpg') }}" width="200" height="200" alt="">
+                            <img src="{{ asset('web_assets/images/profile.jpg') }}" width="200" height="200" alt="Profile picture">
                             @endif
                         </div>
-                        <div class="col-lg-5"></div>
                     </div>
                 </div>
             </div>
@@ -65,17 +114,16 @@
     </div>
 
   </div>
-  <div id="update_box" style="width:100%;display: none;flex-direction: column;position: fixed;top: 0;left: 0;height: 100vh;overflow: scroll; background: rgba(0, 0, 0, 0.3);">
-    <div class="row">
-        <div class="col-lg-4"></div>
-        <div class="col-lg-4 loginouter-box">
-            <div class="col text-end"><button class="btn btn-danger" style="width:fit-content;" onclick="document.getElementById('update_box').style.display='none';">Close</button></div>
+  <div id="siteuser_update_box" class="profile-modal-overlay" style="display: none;">
+    <div class="row justify-content-center g-0">
+        <div class="col-12 col-md-10 col-lg-6 col-xl-5 loginouter-box profile-modal-panel">
+            <div class="col text-end"><button type="button" class="btn btn-danger" style="width:fit-content;" onclick="document.getElementById('siteuser_update_box').style.display='none';">Close</button></div>
             <form class="details-box login-box" method="POST" action="{{ route('update_siteuser') }}">
             @csrf
             <input type="hidden" name="local_time" class="localtime" />
             <input type="hidden" name="id" value="{{ $siteuser->id }}">
-            <input type="hidden" name="profile" value="profile">
-                <h3 class="mb-5 pt-3 text-center">Update Profile</h3>
+            <input type="hidden" name="staff_profile" value="1">
+                <h3 class="mb-5 pt-3 text-center">Update Staff Profile</h3>
                 <div class="log-img mb-5">
                 @if($siteuser->profile_img == "")
                 <img src="{{ asset('web_assets/images/loginimg.png') }}" width="60" height="60" alt="">
@@ -84,94 +132,81 @@
                 @endif
                 </div>
                 <div class="mb-4">
-                    <input name="name" minlength="3" maxlength="100" value="{{ $siteuser->name }}" required type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Name">
+                    <input name="name" minlength="3" maxlength="100" value="{{ old('name', $siteuser->name) }}" required type="text" class="form-control" placeholder="Name">
                 </div>
                 <div class="mb-4">
-                    <input name="phone" value="{{ $siteuser->phone }}" required type="text" pattern="\d*" minlength="9" maxlength="12" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Phone">
+                    <input name="phone" value="{{ old('phone', \App\Support\PhoneNumber::displayE164($siteuser->phone)) }}" data-phone-e164="{{ \App\Support\PhoneNumber::displayE164($siteuser->phone) }}" required type="tel" class="form-control" placeholder="Phone">
                 </div>
                 <div class="mb-4">
-                    <input name="dob" value="{{ $siteuser->dob }}" required type="date" max="{{ date('Y-m-d') }}" class="form-control date" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Date of Birth">
+                    <input name="dob" value="{{ old('dob', $siteuser->dob) }}" required type="date" max="{{ date('Y-m-d') }}" class="form-control date" placeholder="Date of Birth">
                 </div>
                 <div class="mb-4">
-                    <input name="organization" minlength="3" maxlength="100" value="{{ $siteuser->organization }}" required type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Organization Name">
-                </div>
-                <div class="mb-4">
-                    {{-- <input name="designation" value="{{ $siteuser->designation }}" required type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Your designation"> --}}
-                    <select name="designation" class="form-control form-select @error('designation') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required autocomplete="designation">
+                    <select name="designation" class="form-control form-select @error('designation') is-invalid @enderror" required autocomplete="designation">
                         <option value="">Select Designation/Role</option>
-                        <option {{ ($siteuser->designation == "Branch Manager") ? 'selected' : '' }} value="Branch Manager">Branch Manager</option>
-                        <option {{ ($siteuser->designation == "Consultant/Advisor") ? 'selected' : '' }} value="Consultant/Advisor">Consultant/Advisor</option>
-                        <option {{ ($siteuser->designation == "Administrator") ? 'selected' : '' }} value="Administrator">Administrator</option>
-                        <option {{ ($siteuser->designation == "HR Executive") ? 'selected' : '' }} value="HR Executive">HR Executive</option>
-                        <option {{ ($siteuser->designation == "Sales Team Member") ? 'selected' : '' }} value="Sales Team Member">Sales Team Member</option>
-                        <option {{ ($siteuser->designation == "Accounts Team Member") ? 'selected' : '' }} value="Accounts Team Member">Accounts Team Member</option>
-                        <option {{ ($siteuser->designation == "Support Team Member") ? 'selected' : '' }} value="Support Team Member">Support Team Member</option>
-                        <option {{ ($siteuser->designation == "Other") ? 'selected' : '' }} value="Other">Other</option>
+                        <option {{ old('designation', $siteuser->designation) == "Branch Manager" ? 'selected' : '' }} value="Branch Manager">Branch Manager</option>
+                        <option {{ old('designation', $siteuser->designation) == "Solicitor Partner" ? 'selected' : '' }} value="Solicitor Partner">Solicitor Partner</option>
+                        <option {{ old('designation', $siteuser->designation) == "Associate Solicitor" ? 'selected' : '' }} value="Associate Solicitor">Associate Solicitor</option>
+                        <option {{ old('designation', $siteuser->designation) == "Consultant/Advisor" ? 'selected' : '' }} value="Consultant/Advisor">Consultant/Advisor</option>
+                        <option {{ old('designation', $siteuser->designation) == "Para-legal Team" ? 'selected' : '' }} value="Para-legal Team">Para-legal Team</option>
+                        <option {{ old('designation', $siteuser->designation) == "Administrator" ? 'selected' : '' }} value="Administrator">Administrator</option>
+                        <option {{ old('designation', $siteuser->designation) == "HR Executive" ? 'selected' : '' }} value="HR Executive">HR Executive</option>
+                        <option {{ old('designation', $siteuser->designation) == "Sales Team Member" ? 'selected' : '' }} value="Sales Team Member">Sales Team Member</option>
+                        <option {{ old('designation', $siteuser->designation) == "Accounts Team Member" ? 'selected' : '' }} value="Accounts Team Member">Accounts Team Member</option>
+                        <option {{ old('designation', $siteuser->designation) == "Support Team Member" ? 'selected' : '' }} value="Support Team Member">Support Team Member</option>
+                        <option {{ old('designation', $siteuser->designation) == "Other" ? 'selected' : '' }} value="Other">Other</option>
                     </select>
                 </div>
                 <div class="mb-4">
-                <div class="mb-4">
-                    <select name="employee_strength" required class="form-select" id="exampleInputEmail1" aria-describedby="emailHelp">
-                    <option value="">Employee Strength</option>
-                    <option {{ ($siteuser->employee_strength == "1-10") ? 'selected' : ''}} value="1-10">1-10</option>
-                    <option {{ ($siteuser->employee_strength == "10-20") ? 'selected' : ''}} value="10-20">10-20</option>
-                    <option {{ ($siteuser->employee_strength == "20-50") ? 'selected' : ''}} value="20-50">20-50</option>
-                    <option {{ ($siteuser->employee_strength == "50-100") ? 'selected' : ''}} value="50-100">50-100</option>
-                    <option {{ ($siteuser->employee_strength == "Above 100") ? 'selected' : ''}} value="Above 100">Above 100</option>
-                    </select>
-                </div>
-                </div>
-                <div class="mb-4">
-                    <input name="address_line" minlength="3" maxlength="150" value="{{ $siteuser->address_line }}" required type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Address line">
-                </div>
-                <div class="mb-4">
-                    <select name="country" id="country" required class="form-select" aria-label="Default select example">
+                    <select name="country" id="siteuser_country" required class="form-select" aria-label="Country">
                         <option value="">Country</option>
-                        @foreach($countries as $country)
-                        <option {{ ($siteuser->country == $country->country_name) ? 'selected' : ''}} value="{{ $country->id }}">{{ $country->country_name }}</option>
-                        @endforeach
+                        @include('partials.country_select_options', [
+                            'countries' => $countries,
+                            'phoneForPrefill' => $siteuser->phone ?? null,
+                            'savedCountry' => $siteuser->country ?? null,
+                            'savedIsCountryName' => true,
+                        ])
                     </select>
                 </div>
                 <div class="mb-4">
-                    <select name="state" id="state" required class="form-select" aria-label="Default select example">
+                    <select name="state" id="siteuser_state" required class="form-select" aria-label="State">
                         @foreach ($states as $state)
-                            <option {{ $siteuser->state == $state->name ? 'selected' : '' }}
+                            <option {{ old('state', $siteuser->state) == $state->name ? 'selected' : '' }}
                                 value="{{ $state->name }}">{{ $state->name }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="mb-4">
-                    <input type="text" minlength="3" maxlength="100" value="{{ $siteuser->city }}" name="city" required class="form-control" aria-label="Default select example" placeholder="City">
+                    <input type="text" minlength="3" maxlength="100" value="{{ old('city', $siteuser->city) }}" name="city" required class="form-control" placeholder="City">
                 </div>
                 <div class="mb-4">
-                    <input name="pincode" minlength="3" maxlength="10" style="text-transform:uppercase" value="{{ $siteuser->pincode }}" required type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Postcode">
+                    <input name="pincode" minlength="3" maxlength="10" style="text-transform:uppercase" value="{{ old('pincode', $siteuser->pincode) }}" required type="text" class="form-control" placeholder="Postcode">
                 </div>
                 <div class="mb-4">
-                    <select name="timezone" id="timezone" required class="form-select" aria-label="Default select example">
+                    <select name="timezone" id="siteuser_timezone" required class="form-select" aria-label="Timezone">
                         <option value="">Select Timezone</option>
                         @foreach($tzlist as $zone)
-                        <option {{ ($siteuser->timezone == $zone) ? 'selected' : ''}} value="{{ $zone }}">{{ $zone }}</option>
+                        <option {{ old('timezone', $siteuser->timezone) == $zone ? 'selected' : ''}} value="{{ $zone }}">{{ $zone }}</option>
                         @endforeach
                     </select>
                 </div>
-                <button type="submit" class="form-control btn btn-primary mb-4">Save</button>
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary mb-4" style="width: fit-content;">Save</button>
+                </div>
                 
             </form>
         </div>
-        <div class="col-lg-4"></div>
     </div>
 </div>
-<div id="update_img_box" style="width:100%;display: none;flex-direction: column;position: fixed;top: 0;left: 0;height: 100vh;overflow: scroll; background: rgba(0, 0, 0, 0.3);justify-content: center;">
-    <div class="row">
-        <div class="col-lg-4"></div>
-        <div class="col-lg-4 loginouter-box">
-            <div class="col text-end"><button class="btn btn-danger" style="width:fit-content;" onclick="document.getElementById('update_img_box').style.display='none';">Close</button></div>
+<div id="siteuser_update_img_box" class="profile-modal-overlay" style="display: none;">
+    <div class="row justify-content-center g-0 align-items-center min-vh-100">
+        <div class="col-12 col-md-10 col-lg-6 col-xl-5 loginouter-box profile-modal-panel">
+            <div class="col text-end"><button type="button" class="btn btn-danger" style="width:fit-content;" onclick="document.getElementById('siteuser_update_img_box').style.display='none';">Close</button></div>
             <form class="details-box login-box" method="POST" action="{{ route('update_siteuser') }}" enctype="multipart/form-data">
             @csrf
             <input type="hidden" name="local_time" class="localtime" />
             <input type="hidden" name="id" value="{{ $siteuser->id }}">
-            <input type="hidden" name="profile_image" value="profile_image">
-                <h3 class="mb-5 pt-3 text-center">Update Profile Image</h3>
+            <input type="hidden" name="staff_profile_image" value="1">
+                <h3 class="mb-5 pt-3 text-center">Update Staff Profile Image</h3>
                 <div class="log-img mb-5">
                 @if($siteuser->profile_img == "")
                 <img src="{{ asset('web_assets/images/loginimg.png') }}" width="60" height="60" alt="">
@@ -180,35 +215,40 @@
                 @endif
                 </div>
 
-                <div class="col d-flex justify-content-center align-items-center mb-5" onclick="document.getElementById('select_pic').click();">
+                <div class="col d-flex justify-content-center align-items-center mb-5" onclick="document.getElementById('siteuser_select_pic').click();">
                     <div style="width:100%;height:200px;box-shadow: 0px 0px 5px 0px lightgrey;border-radius: 10px;justify-content: center;align-items: center;display: flex;position:relative;" title="click to upload file">
-                        <input id="select_pic" type="file" name="profile_img" style="display: none;">
+                        <input id="siteuser_select_pic" type="file" name="profile_img" style="display: none;">
                         <p style="position:absolute;">Click to Upload File</p>
-                        <img id="profile_pic_preview" style="width: auto;height: auto;max-width: 100%;max-height: 100%;" src="">
+                        <img id="siteuser_profile_pic_preview" style="width: auto;height: auto;max-width: 100%;max-height: 100%;" src="">
                     </div>
                 </div>
 
-                <button type="submit" disabled="disabled" id="save_photo" class="form-control btn btn-primary mb-4">Save</button>
+                <button type="submit" disabled="disabled" id="siteuser_save_photo" class="btn btn-primary mb-4" style="width: fit-content;">Save</button>
                 
             </form>
         </div>
-        <div class="col-lg-4"></div>
     </div>
 </div>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
-</script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script>
     $(document).ready(() => {
-        $("#select_pic").change(function () {
+        @if(request()->query('edit'))
+        document.getElementById('siteuser_update_box').style.display = 'flex';
+        @endif
+        @if($errors->any() && ! $errors->has('profile_img'))
+        document.getElementById('siteuser_update_box').style.display = 'flex';
+        @endif
+
+        $("#siteuser_select_pic").change(function () {
             const file = this.files[0];
             var filepath = $(this).val();
             var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.JPG|\.JPEG|\.PNG)$/i;
             if (!allowedExtensions.exec(filepath)) {
                 Swal.fire({
-                    title: "Oops..",
-                    icon:"info",
-                    html: "Please select valid file format <br>( jpg, jpeg, png )"
+                    title: "Oops!",
+                    icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                    html: "Please select a valid file format.<br>(jpg, jpeg, png)"
                 });
                 $(this).val("");
                 return false;
@@ -216,9 +256,9 @@
             const size = (this.files[0].size / 1024 / 1024).toFixed(2);
             if (size > 4) {
                 Swal.fire({
-                    title: "Oops..",
-                    icon:"info",
-                    html: "Please select file upto 4MB"
+                    title: "Oops!",
+                    icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                    html: "Please select a file up to 4 MB."
                 });
                 $(this).val("");
                 return false;
@@ -226,13 +266,13 @@
             if (file) {
                 let reader = new FileReader();
                 reader.onload = function (event) {
-                    $("#profile_pic_preview").attr("src", event.target.result);
+                    $("#siteuser_profile_pic_preview").attr("src", event.target.result);
                 };
                 reader.readAsDataURL(file);
             }
-            $("#save_photo").removeAttr('disabled');
+            $("#siteuser_save_photo").removeAttr('disabled');
         });
-        $("#country").change(function(){
+        $("#siteuser_country").change(function(){
             var country = $(this).val();
             //   console.log(country);
             $.ajax({
@@ -245,7 +285,7 @@
                 cache:false,
                 success: function(data){
                     // console.log(data);
-                    $("#state").html(data);
+                    $("#siteuser_state").html(data);
                 }
             });
             $.ajax({
@@ -258,7 +298,7 @@
                 cache:false,
                 success: function(data){
                     // console.log("zones = "+data);
-                    $("#timezone").html(data);
+                    $("#siteuser_timezone").html(data);
                 }
             });
         });
@@ -268,9 +308,9 @@
     <script>
       Swal.fire({
 
-        icon: 'error',
-        title: 'Oops...',
-        text: 'Please select valid Image!'
+        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+        title: 'Oops!',
+        text: 'Please select a valid image.'
       })
     </script>
 @enderror
@@ -279,7 +319,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Congratulations',
-        text: 'Profile has been Updated!'
+        text: 'Staff profile has been updated!'
       })
     </script>
 

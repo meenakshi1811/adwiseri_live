@@ -34,7 +34,7 @@
                             <div class="mb-3">
                                 <label for="phone" class="form-label">Phone<span
                                         class="text-danger">*</span></label>
-                                <input name="phone" type="text" pattern="\d*" minlength="9" maxlength="12"
+                                <input name="phone" type="tel"
                                     class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1"
                                     aria-describedby="emailHelp" value="{{ old('phone') }}" required
                                     placeholder="Phone Number" autocomplete="phone">
@@ -65,7 +65,7 @@
                         <div class="col-md-4">
                             <div class="mb-3">
                                     <label>Alternate No.</label>
-                                    <input name="alternate_no" type="text" pattern="\d*" minlength="9" maxlength="12" class="form-control @error('alternate_no') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('alternate_no') }}" placeholder="Alternate Number" autocomplete="alternate_no">
+                                    <input name="alternate_no" type="tel" class="form-control @error('alternate_no') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('alternate_no') }}" placeholder="Alternate Number" autocomplete="alternate_no">
                                     @error('alternate_no')
                                         <span class="invalid-feedback" role="alert">
                                             <strong>{{ $message }}</strong>
@@ -127,9 +127,10 @@
                                     <label>Country<span class="text-danger" style="font-size: 18px;">*</span></label>
                                     <select name="country" id="country" class="form-control form-select @error('country') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
                                         <option value="">Select Country</option>
-                                        @foreach($countries as $country)
-                                        <option {{(old('country') == $country->id) ? 'selected':''}} value="{{ $country->id }}">{{ $country->country_name }}</option>
-                                        @endforeach
+                                        @include('partials.country_select_options', [
+                                            'countries' => $countries,
+                                            'phoneForPrefill' => old('phone'),
+                                        ])
                                     </select>
                                     @error('country')
                                         <span class="invalid-feedback" role="alert">
@@ -167,7 +168,7 @@
                             <label>Phone<span class="text-danger" style="font-size: 18px;">*</span></label>
                         </div>
                         <div class="col-md-8 p-1">
-                            <input name="phone" type="text" pattern="\d*" minlength="9" maxlength="12" class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('phone') }}" required placeholder="Phone Number" autocomplete="phone">
+                            <input name="phone" type="tel" class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('phone') }}" required placeholder="Phone Number" autocomplete="phone">
                             @error('phone')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -228,14 +229,15 @@
                                                 <strong>{{ $message }}</strong>
                                             </span>
                                         @enderror
+                                </div>
                             </div>
-
                         </div>
 
-                        <div class="col-12 d-flex justify-content-center p-1 mt-2">
-                            <button type="submit" class="btn btn-primary w-50">Submit</button>
+                        <div class="row">
+                            <div class="col-md-12 p-1 text-center">
+                                <button type="submit" class="btn btn-primary px-4">Submit</button>
+                            </div>
                         </div>
-                    </div>
                 </form>
             </div>
 
@@ -272,8 +274,8 @@
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'Client Added Successfully.'
+      title: 'Success',
+      text: 'Client added successfully.'
     })
   </script>
 

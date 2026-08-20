@@ -37,7 +37,7 @@ class AdminStaffController extends Controller
             $request,
             [
                 'name' => 'required|string|max:255',
-                'phone' => 'required|unique:users',
+                'phone' => 'required|phone_intl|unique:users',
                 'email' => 'required|string|email|max:255|unique:users',
                 'dob' => 'required',
                 'designation' => 'required|string|max:255',
@@ -92,123 +92,22 @@ class AdminStaffController extends Controller
                 $r->delete();
             }
         }
-        $clients = new UserRoles();
-        $clients->user_id = $data->id;
-        $clients->subscriber_id = $data->added_by;
-        $clients->name = $data->name;
-        $clients->email = $data->email;
-        $clients->module = "Clients";
-        $clients->read_only = 1;
-        $clients->write_only = 1;
-        $clients->update_only = 1;
-        $clients->delete_only = 1;
-        $clients->read_write_only = 1;
-        $clients->save();
 
-        $applications = new UserRoles();
-        $applications->user_id = $data->id;
-        $applications->subscriber_id = $data->added_by;
-        $applications->name = $data->name;
-        $applications->email = $data->email;
-        $applications->module = "Applications";
-        $applications->read_only = 1;
-        $applications->write_only = 1;
-        $applications->update_only = 1;
-        $applications->delete_only = 1;
-        $applications->read_write_only = 1;
-        $applications->save();
-
-        $communication = new UserRoles();
-        $communication->user_id = $data->id;
-        $communication->subscriber_id = $data->added_by;
-        $communication->name = $data->name;
-        $communication->email = $data->email;
-        $communication->module = "Communication";
-        $communication->read_only = 1;
-        $communication->write_only = 1;
-        $communication->update_only = 1;
-        $communication->delete_only = 1;
-        $communication->read_write_only = 1;
-        $communication->save();
-
-        $invoices = new UserRoles();
-        $invoices->user_id = $data->id;
-        $invoices->subscriber_id = $data->added_by;
-        $invoices->name = $data->name;
-        $invoices->email = $data->email;
-        $invoices->module = "Invoices";
-        $invoices->read_only = 1;
-        $invoices->write_only = 1;
-        $invoices->update_only = 1;
-        $invoices->delete_only = 1;
-        $invoices->read_write_only = 1;
-        $invoices->save();
-
-        $payments = new UserRoles();
-        $payments->user_id = $data->id;
-        $payments->subscriber_id = $data->added_by;
-        $payments->name = $data->name;
-        $payments->email = $data->email;
-        $payments->module = "Payments";
-        $payments->read_only = 1;
-        $payments->write_only = 1;
-        $payments->update_only = 1;
-        $payments->delete_only = 1;
-        $payments->read_write_only = 1;
-        $payments->save();
-
-        $reports = new UserRoles();
-        $reports->user_id = $data->id;
-        $reports->subscriber_id = $data->added_by;
-        $reports->name = $data->name;
-        $reports->email = $data->email;
-        $reports->module = "Reports";
-        $reports->read_only = 0;
-        $reports->write_only = 0;
-        $reports->update_only = 0;
-        $reports->delete_only = 0;
-        $reports->read_write_only = 0;
-        $reports->save();
-
-        $subscription = new UserRoles();
-        $subscription->user_id = $data->id;
-        $subscription->subscriber_id = $data->added_by;
-        $subscription->name = $data->name;
-        $subscription->email = $data->email;
-        $subscription->module = "Subscription";
-        $subscription->read_only = 0;
-        $subscription->write_only = 0;
-        $subscription->update_only = 0;
-        $subscription->delete_only = 0;
-        $subscription->read_write_only = 0;
-        $subscription->save();
-
-        $settings = new UserRoles();
-        $settings->user_id = $data->id;
-        $settings->subscriber_id = $data->added_by;
-        $settings->name = $data->name;
-        $settings->email = $data->email;
-        $settings->module = "Settings";
-        $settings->read_only = 0;
-        $settings->write_only = 0;
-        $settings->update_only = 0;
-        $settings->delete_only = 0;
-        $settings->read_write_only = 0;
-        $settings->save();
-
-        $support = new UserRoles();
-        $support->user_id = $data->id;
-        $support->subscriber_id = $data->added_by;
-        $support->name = $data->name;
-        $support->email = $data->email;
-        $support->module = "Support";
-        $support->read_only = 1;
-        $support->write_only = 1;
-        $support->update_only = 1;
-        $support->delete_only = 1;
-        $support->read_write_only = 1;
-        $support->save();
-
+        // Admin Staff modules: Subscribers, Activity Logs, Demo Requests
+        foreach (['Subscribers', 'Activity Logs', 'Demo Requests'] as $moduleName) {
+            $moduleRole = new UserRoles();
+            $moduleRole->user_id = $data->id;
+            $moduleRole->subscriber_id = $data->added_by;
+            $moduleRole->name = $data->name;
+            $moduleRole->email = $data->email;
+            $moduleRole->module = $moduleName;
+            $moduleRole->read_only = 1;
+            $moduleRole->write_only = 1;
+            $moduleRole->update_only = 1;
+            $moduleRole->delete_only = 0;
+            $moduleRole->read_write_only = 1;
+            $moduleRole->save();
+        }
 
         $activity = new Activities();
         $activity->subscriber_id = $user->id;
@@ -229,8 +128,17 @@ class AdminStaffController extends Controller
         ]);
 
         $ticket = Tickets::find($validated['ticket_id']);
-        $ticket->served_by= $validated['user_id']; // Assuming you have an `assigned_user_id` column
+        $assignee = User::find($validated['user_id']);
+        $ticket->served_by = $validated['user_id'];
         $ticket->save();
+
+        if ($assignee) {
+            app(\App\Services\TicketActivityService::class)->logAssignment(
+                $ticket,
+                $assignee,
+                Auth::user()
+            );
+        }
 
         return redirect()->back()->with('success_assign', 'User assigned successfully.');
     }

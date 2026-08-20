@@ -85,7 +85,7 @@
                                 <label>Document Name<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="doc_name" type="text" minlength="3" maxlength="100" class="form-control @error('doc_name') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ $document->doc_name }}" required placeholder="Document Name" autocomplete="doc_name">
+                                <input name="doc_name" type="text" minlength="3" maxlength="100" class="form-control @error('doc_name') is-invalid @enderror" id="doc_name" aria-describedby="emailHelp" value="{{ $document->doc_name }}" required placeholder="Document Name" autocomplete="doc_name">
                             @error('doc_name')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -119,10 +119,10 @@
     function deletedocument(id){
       Swal.fire({
         title: 'Are you sure?',
-        text: "You won't be able to revert this!",
+        text: "This action cannot be undone.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
+        confirmButtonColor: '#695EEE',
         cancelButtonColor: '#d33',
         confirmButtonText: 'Yes, delete it!'
       }).then((result) => {
@@ -134,12 +134,12 @@
       function updatedocument(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to update this record!",
+          text: "Do you want to update this record?",
           icon: 'warning',
           showCancelButton: true,
-          confirmButtonColor: '#3085d6',
+          confirmButtonColor: '#695EEE',
           cancelButtonColor: '#d33',
-          confirmButtonText: 'Yes'
+          confirmButtonText: 'Yes, continue'
         }).then((result) => {
           if (result.isConfirmed) {
             window.location.href = "client_document_update/"+id+"";
@@ -181,15 +181,33 @@
                 }
             });
         });
+        var lastAutoDocName = @json(trim($document->doc_name ?? ''));
+
+        function syncDocNameFromType(force) {
+            var type = ($('#doc_type').val() || '').trim();
+            if (type === '') return;
+
+            var $nameInput = $('#doc_name');
+            var currentName = ($nameInput.val() || '').trim();
+            if (force || currentName === '' || currentName === lastAutoDocName) {
+                $nameInput.val(type);
+                lastAutoDocName = type;
+            }
+        }
+
+        $('#doc_type').on('change', function () {
+            syncDocNameFromType(true);
+        });
+
         $(document).on('change', 'input[type=file]', function(){
           const file = this.files[0];
           var filepath = $(this).val();
           var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.pdf|\.JPG|\.JPEG|\.PNG|\.PDF)$/i;
           if (!allowedExtensions.exec(filepath)) {
               Swal.fire({
-                  title: "Oops..",
-                  icon:"info",
-                  html: "Please select valid file format <br>( jpg, jpeg, png or pdf )"
+                  title: "Oops!",
+                  icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                  html: "Please select a valid file format (jpg, jpeg, png, or pdf)."
               });
               $(this).val("");
               return false;
@@ -197,9 +215,9 @@
           const size = (this.files[0].size / 1024 / 1024).toFixed(2);
           if (size > 4) {
               Swal.fire({
-                  title: "Oops..",
-                  icon:"info",
-                  html: "Please select file upto 4MB"
+                  title: "Oops!",
+                  icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                  html: "Please select a file up to 4 MB."
               });
               $(this).val("");
               return false;
@@ -212,8 +230,8 @@
   @if($errors->has('doc_file'))
     <script>
       Swal.fire({
-        title: 'Oops..',
-        icon: 'info',
+        title: 'Oops!',
+        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
         html: @json($errors->first('doc_file'))
       })
     </script>
@@ -224,7 +242,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Application Deleted Successfully!'
+        text: 'Document deleted successfully.'
       })
     </script>
 
@@ -234,7 +252,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'New Document Added Successfully!'
+        text: 'Document added successfully.'
       })
     </script>
 
@@ -244,7 +262,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Document Updated Successfully!'
+        text: 'Document updated successfully.'
       })
     </script>
 

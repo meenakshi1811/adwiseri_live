@@ -22,39 +22,18 @@ else{
   $userid = $invoice->user_id;
 }
 
-$subscriberLogoUrl = null;
-$logoUserIds = ($invoice->type ?? '') === 'ap'
-    ? array_unique(array_filter([1, $invoice->user_id, $invoice->subscriber_id]))
-    : array_unique(array_filter([$invoice->subscriber_id, $invoice->user_id, $userid]));
+$issuerLogo = \App\Support\InvoiceIssuerLogo::resolve($invoice, $u ?? null);
+$subscriberLogoUrl = $issuerLogo['url'];
+$subscriberId = $invoice->subscriber_id ?: ($issuerLogo['owner_user_id'] ?? $userid);
 
-if (!empty($invoice->logo)) {
-    foreach ($logoUserIds as $logoUserId) {
-        $subscriberLogoPath = public_path('web_assets/users/user' . $logoUserId . '/' . $invoice->logo);
-
-        if (file_exists($subscriberLogoPath)) {
-            $subscriberLogoUrl = asset('web_assets/users/user' . $logoUserId . '/' . $invoice->logo);
-            break;
-        }
-    }
-}
-$currencyValue = trim((string) ($user->currency ?? 'USD'));
-$currencySymbols = ['USD' => '$', 'INR' => '₹', 'EUR' => '€', 'GBP' => '£', 'AUD' => 'A$', 'CAD' => 'C$', 'SGD' => 'S$', 'AED' => 'د.إ'];
-if (preg_match('/\((.*?)\)/', $currencyValue, $currencyMatch)) {
-    $currency = $currencyMatch[1];
-} else {
-    $currencyCode = strtoupper(preg_replace('/[^A-Za-z]/', '', $currencyValue));
-    $currency = $currencySymbols[$currencyCode] ?? $currencyValue;
-}
-$descriptionLabel = ($invoice->type ?? '') === 'ap' ? ($invoice->detail ?: 'Plan Purchase / Renewal / Upgrade') : 'Professional Fees (' . $invoice->detail . ')';
-$subtotal = (float) $invoice->amount;
-$discountAmount = $subtotal * ((float) $invoice->discount / 100);
-$taxable = $subtotal - $discountAmount;
-$taxAmount = $taxable * ((float) $invoice->tax / 100);
-$total = $taxable + $taxAmount;
-$formattedSubtotal = number_format($subtotal, 2);
-$formattedDiscountAmount = number_format($discountAmount, 2);
-$formattedTaxAmount = number_format($taxAmount, 2);
-$formattedTotal = number_format($total, 2);
+$invoiceAmount = (float) $invoice->amount;
+$discountAmount = $invoiceAmount * ((float) $invoice->discount / 100);
+$taxableAmount = $invoiceAmount - $discountAmount;
+$taxAmount = $invoice->displaysTaxLine()
+    ? $taxableAmount * ((float) $invoice->tax / 100)
+    : 0;
+$invoiceTotal = (float) $invoice->total;
+$taxLabel = app(\App\Services\InvoiceSnapshotService::class)->resolvedTaxLabel($invoice, $invoiceSetting ?? null);
 @endphp
 <style>
     .invoice-box {
@@ -68,7 +47,7 @@ $formattedTotal = number_format($total, 2);
 
     .invoice-box h3 {
         font-weight: 600;
-        border-bottom: 2px solid #0061f2;
+        border-bottom: 2px solid #695EEE;
         padding-bottom: 10px;
         margin-bottom: 30px;
     }
@@ -109,13 +88,23 @@ $formattedTotal = number_format($total, 2);
         font-weight: 600;
     }
 
+    .table-invoice .desc-col {
+        text-align: left;
+    }
+
+    .table-invoice .amount-col {
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
     .total-row td {
         font-weight: bold;
         background-color: #eef2f6;
     }
 
     .download-btn {
-        background-color: #0061f2;
+        background-color: #695EEE;
         color: #fff;
         padding: 8px 20px;
         border: none;
@@ -124,26 +113,12 @@ $formattedTotal = number_format($total, 2);
     }
 
     .download-btn:hover {
-        background-color: #004ec2;
+        background-color: #564BB0;
         cursor: pointer;
     }
 
     .text-right {
         text-align: right;
-    }
-
-    .payment-link-anchor {
-        color: #0d6efd !important;
-        text-decoration: underline !important;
-        word-break: break-all;
-        border: none !important;
-        background: none !important;
-    }
-
-    .payment-link-anchor:hover,
-    .payment-link-anchor:focus {
-        color: #0a58ca !important;
-        text-decoration: underline !important;
     }
 </style>
 
@@ -156,106 +131,52 @@ $formattedTotal = number_format($total, 2);
                 @else
                     <div class="text-primary fw-bold" style="font-size: 1.35rem;">{{ $invoice->name ?? 'Adwiseri' }}</div>
                 @endif
-                @if(!empty($invoice->email))
+                @if(!empty($invoice->email) && !\App\Support\BrandedMail::isPlatformBrand($invoice->name ?? 'Adwiseri'))
                     <div>{{ $invoice->email }}</div>
                 @endif
             </div>
-            <div>
-                <button 
-                    class="download-btn"
+            <div class="invoice-page-actions">
+                @if($invoice->type !== 'ap' && !empty($invoice->to_email))
+                    <form method="POST" action="{{ route('resend_invoice_email', $invoice->id) }}" class="d-inline"
+                          onsubmit="return confirm('Resend invoice email to {{ $invoice->to_email }}?');">
+                        @csrf
+                        <button type="submit" class="invoice-btn invoice-btn-outline">
+                            <i class="fa-solid fa-paper-plane"></i> Resend Email
+                        </button>
+                    </form>
+                @endif
+                <button
+                    type="button"
+                    class="invoice-btn invoice-btn-primary"
                     @if($invoice_roles->read_only == 1 or $invoice_roles->read_write_only == 1)
                         onclick="download_invoice({{ $invoice->id }})"
                     @endif
-                >Download PDF</button>
+                >
+                    <i class="fa-solid fa-download"></i> Download PDF
+                </button>
+                @if($invoice_roles->write_only == 1 or $invoice_roles->read_write_only == 1)
+                    <a href="{{ $invoice->type === 'ap' ? route('edit_invoice_ap', $invoice->id) : route('edit_invoice', $invoice->id) }}"
+                       class="invoice-btn invoice-btn-outline">
+                        <i class="fa-solid fa-pen-to-square"></i> Edit Invoice
+                    </a>
+                @endif
             </div>
         </div>
 
-        <h3 class="text-primary text-center">Invoice</h3>
+        @include('web.partials.invoice_audit_bar')
 
-        <!-- <div class="invoice-header mb-4">
-             <div>
-                <h5 class="mb-1">{{ $invoice->name }}</h5>
-                <p class="mb-1">{{ $invoice->address }}</p>
-                <p class="mb-1">{{ $invoice->city }}, {{ $invoice->state }}, {{ $invoice->country }} - {{ $invoice->pincode }}</p>
-                <p class="mb-1">Email: {{ $invoice->email }}</p>
-                <p class="mb-1">Phone: {{ $invoice->phone }}</p>
-            </div> 
-            
-            <div>
-                @if($invoice->subscriber_id)
-                    <img src="{{ asset('web_assets/users/user'.$invoice->subscriber_id.'/' . $invoice->logo) }}" alt="Logo">
-                @else
-                    <img src="{{ asset('web_assets/users/user'.$invoice->user_id.'/' . $invoice->logo) }}" alt="Logo">
-                @endif
-            </div>
-        </div> -->
-
-        <!-- <div class="invoice-header mb-4">
-            
-            <div>
-                @if($invoice->subscriber_id)
-                    <img src="{{ asset('web_assets/users/user'.$invoice->subscriber_id.'/' . $invoice->logo) }}" alt="Logo">
-                @else
-                    <img src="{{ asset('web_assets/users/user'.$invoice->user_id.'/' . $invoice->logo) }}" alt="Logo">
-                @endif
-            </div>
-        </div> -->
-
-        <div class="row">
-            <div class="col-6">
-                <h6 class="mb-2"><strong>Bill To:</strong></h6>
-                <p class="mb-1">{{ $invoice->to_name }}</p>
-                <p class="mb-1">{{ $invoice->to_address }}</p>
-                <p class="mb-1">{{ $invoice->to_city }}, {{ $invoice->to_state }}</p>
-                <p class="mb-1">{{ $invoice->to_country }} - {{ $invoice->to_pincode }}</p>
-            </div>
-            <div class="col-6 text-right">
-                <div class="invoice-meta">
-                    <p>Invoice No.: <strong>{{ $invoice->invoice_no }}</strong></p>
-                    <p>Date: <strong>{{ date('d-m-Y', strtotime($invoice->created_at)) }}</strong></p>
-                </div>
-            </div>
+        <div class="text-center mb-3">
+            <h3 class="text-primary mb-0">Invoice</h3>
         </div>
 
-        <table class="table-invoice">
-            <thead>
-                <tr>
-                    <th class="p-1 text-center">Description</th>
-                    <th class="p-1 text-center">Amount ({{ $currency }})</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td class="p-1 text-center">{{ $descriptionLabel }}</td>
-                    <td class="p-1 text-center">{{ $currency }} {{ $formattedSubtotal }}</td>
-                </tr>
-                @if($invoice->discount != 0)
-                <tr>
-                    <td class="p-1 text-center">Discount ({{ $invoice->discount }}%)</td>
-                    <td class="p-1 text-center">-{{ $currency }} {{ $formattedDiscountAmount }}</td>
-                </tr>
-                @endif
-                <tr>
-                    <td class="p-1 text-center">Tax ({{ $invoice->tax }}%)</td>
-                    <td class="p-1 text-center">{{ $currency }} {{ $formattedTaxAmount }}</td>
-                </tr>
-                <tr class="total-row">
-                    <td class="p-1 text-center" class="text-right">Total</td>
-                    <td class="p-1 text-center">
-{{ $currency }} {{ $formattedTotal }}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-        @php
-            $paymentLink = isset($invoiceSetting->payment_link) ? trim((string) $invoiceSetting->payment_link) : '';
-        @endphp
-        @if(!empty($paymentLink) && filter_var($paymentLink, FILTER_VALIDATE_URL))
-            <p><strong>Payment Link:</strong>
-                <a class="payment-link-anchor" target="_blank" rel="noopener noreferrer" href="{{ $paymentLink }}">{{ $paymentLink }}</a>
-            </p>
-        @endif
-        <div style="margin-top: 60px; text-align: center; font-size: 0.9rem; line-height: 1.6;">
+        @include('partials.invoice_document_styles')
+        @include('partials.invoice_document_core', [
+            'forPdf' => false,
+            'qrSubscriberId' => $subscriberId,
+            'showFooterThanks' => false,
+        ])
+
+        <div style="margin-top: 20px; text-align: center; font-size: 0.9rem; line-height: 1.6;">
             @if($invoice->type === 'ap' && !empty($invoice->uploaded_invoice))
                 <div class="mb-3">
                     <strong>Uploaded Invoice:</strong>
@@ -265,12 +186,9 @@ $formattedTotal = number_format($total, 2);
                     <iframe src="{{ asset('web_assets/users/' . $invoice->uploaded_invoice) }}" title="Uploaded Invoice PDF" style="width:100%;height:500px;border:1px solid #ddd;"></iframe>
                 </div>
             @endif
-            <div>
-                Thanks for your business !
-            </div>
-            <!-- <div>
-                {{ $invoice->address }}, {{ $invoice->city }}, {{ $invoice->state }}, {{ $invoice->country }} - {{ $invoice->pincode }}
-            </div> -->
+            @include('partials.invoice_document_footer', [
+                'isAdwiseriInvoice' => \App\Support\BrandedMail::isPlatformBrand($invoice->name ?? 'Adwiseri'),
+            ])
         </div>
 
     </div>
@@ -288,18 +206,45 @@ $formattedTotal = number_format($total, 2);
     </script>
     <script>
         function deleteuser(id) {
-            var conf = confirm('Delete User');
+            var conf = confirm('Are you sure you want to delete this invoice?');
             if (conf == true) {
                 window.location.href = "delete_siteuser/" + id + "";
             }
         }
     </script>
+    @if (session()->has('invoice_updated'))
+        <script>
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: @json(session('invoice_updated', 'Invoice Updated Successfully !'))
+            })
+        </script>
+    @endif
+    @if (session()->has('invoice_email_sent'))
+        <script>
+            Swal.fire({
+                icon: 'success',
+                title: 'Email Sent',
+                text: @json(session('invoice_email_sent'))
+            })
+        </script>
+    @endif
+    @if (session()->has('invoice_email_failed'))
+        <script>
+            Swal.fire({
+                icon: 'error',
+                title: 'Email Failed',
+                text: @json(session('invoice_email_failed'))
+            })
+        </script>
+    @endif
     @if (session()->has('user_added'))
         <script>
             Swal.fire({
                 icon: 'success',
-                title: 'Congratulations',
-                text: 'User Added Successfully.'
+                title: 'Success',
+                text: 'Invoice created successfully.'
             })
         </script>
     @endif
@@ -308,16 +253,16 @@ $formattedTotal = number_format($total, 2);
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'User Deleted Successfully!'
+                text: 'Invoice deleted successfully.'
             })
         </script>
     @endif
     @if (session()->has('user_limit'))
         <script>
             Swal.fire({
-                icon: 'warning',
-                title: 'User Limit!',
-                text: 'Upgrade membership to add more Users!'
+                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                title: 'User Limit Reached',
+                text: 'Upgrade your membership to add more users.'
             })
         </script>
     @endif

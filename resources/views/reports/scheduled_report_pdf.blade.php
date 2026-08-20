@@ -49,7 +49,7 @@ body{
     font-size:15px;
     font-weight:bold;
     margin-bottom:8px;
-    border-left:4px solid #3498db;
+    border-left:4px solid #695EEE;
     padding-left:8px;
 }
 
@@ -61,7 +61,7 @@ table{
 }
 
 th{
-    background:#3498db;
+    background:#695EEE;
     color:white;
     padding:7px;
     font-size:11px;
@@ -137,11 +137,7 @@ tr:nth-child(even){
             <thead>
                 <tr>
                     @foreach ($columns as $column)
-                        @php
-                            $formattedColumn = ucwords(str_replace('_', ' ', $column));
-                            $formattedColumn = preg_replace('/\bId\b/', 'ID', $formattedColumn);
-                        @endphp
-                        <th>{{ $formattedColumn }}</th>
+                        <th>{{ ucfirst(str_replace('_', ' ', $column)) }}</th>
                     @endforeach
                 </tr>
             </thead>
@@ -153,11 +149,6 @@ tr:nth-child(even){
                             <td>
                                 @if ($column === 'created_at' && !empty($row[$column]))
                                     {{ \Carbon\Carbon::parse($row[$column])->format('d-m-Y H:i:s') }}
-                                @elseif ($column === 'status' && in_array($section['title'], ['Subscribers', 'Affiliates'], true))
-                                    @php
-                                        $statusValue = strtolower(trim((string) $row[$column]));
-                                    @endphp
-                                    {{ in_array($statusValue, ['1', 'true', 'active'], true) ? 'Active' : 'Deactive' }}
                                 @else
                                     {{ is_array($row[$column]) ? json_encode($row[$column]) : $row[$column] }}
                                 @endif

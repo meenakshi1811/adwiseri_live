@@ -41,6 +41,7 @@
                             <th class="text-center">Application Name (ID)</th>
                             <th class="text-center">Assigned To</th>
                             <th class="text-center">Assigned On</th>
+                            <th class="text-center">Updated On</th>
                             <th class="text-center">Action</th>
                         </tr>
                         </thead>
@@ -65,7 +66,14 @@
                                 <!-- {{ $assign->user_name ?? '' }} -->
                             </td>
                             <td>
-                                {{ date("d-m-Y ", strtotime($assign->created_at)) }}
+                                {{ date("d-m-Y H:i:s", strtotime($assign->created_at)) }}
+                            </td>
+                            <td class="text-center">
+                                @if($assign->updated_at && $assign->created_at && strtotime($assign->updated_at) > strtotime($assign->created_at))
+                                    {{ date('d-m-Y H:i:s', strtotime($assign->updated_at)) }}
+                                @else
+                                    -
+                                @endif
                             </td>
                             <td>
                                 <i class="fa-solid fa-edit btn text-primary p-1 m-0" style="font-size:14px;" onclick="updateassignmentt({{ $assign->id }})"></i>
@@ -108,10 +116,10 @@
     function deleteassignmentt(id){
       Swal.fire({
         title: 'Are you sure?',
-        text: "You won't be able to revert this!",
+        text: "This action cannot be undone.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
+        confirmButtonColor: '#695EEE',
         cancelButtonColor: '#d33',
         confirmButtonText: 'Yes, delete it!'
       }).then((result) => {
@@ -123,12 +131,12 @@
       function updateassignmentt(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to update this record!",
+          text: "Do you want to update this record?",
           icon: 'warning',
           showCancelButton: true,
-          confirmButtonColor: '#3085d6',
+          confirmButtonColor: '#695EEE',
           cancelButtonColor: '#d33',
-          confirmButtonText: 'Yes'
+          confirmButtonText: 'Yes, continue'
         }).then((result) => {
           if (result.isConfirmed) {
             window.location.href = "app_assignment_update/"+id+"";
@@ -142,7 +150,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Application Assignment Deleted Successfully!'
+        text: 'Application Assignment deleted successfully.'
       })
     </script>
 
@@ -152,7 +160,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'New Assignment Added Successfully!'
+        text: 'Application assigned successfully.'
       })
     </script>
 
@@ -162,7 +170,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Assignment Updated Successfully!'
+        text: 'Application assignment updated.'
       })
     </script>
 

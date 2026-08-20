@@ -1,0 +1,640 @@
+/**
+ * Adwiseri — system-wide responsive layout & button positioning
+ * Loaded after style.css on web, admin, affiliate, and auth layouts.
+ */
+
+/* ------------------------------------------------------------------ */
+/* Page header / action rows (.client-btn)                             */
+/* ------------------------------------------------------------------ */
+
+.client-btn {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin-bottom: 1rem !important;
+    padding-bottom: 0.15rem;
+    text-align: center;
+}
+
+.client-btn > .form-inline,
+.client-btn > form {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+.client-btn h1,
+.client-btn h2,
+.client-btn h3,
+.client-btn h4,
+.client-btn h5,
+.client-btn .page-title,
+.column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center > h3,
+.column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center.mb-3 > h3 {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    margin: 0 0 0.85rem !important;
+    padding-bottom: 0.7rem;
+    border-bottom: 1px solid #dfe3ef;
+    text-align: center;
+    word-break: break-word;
+}
+
+.client-btn p,
+.client-btn .client-accounts-actions,
+.client-btn .subscription-header-actions,
+.client-btn .header-actions,
+.client-btn .module-header-actions {
+    display: flex;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    justify-content: center !important;
+    gap: 0.5rem;
+    margin: 0 0 0.75rem;
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+}
+
+.column-client > .client-btn > p:not(.module-header-actions),
+.column-client .client-dashboard > .col-12.client-btn,
+.column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center,
+.column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center.mb-3 {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0;
+}
+
+.client-btn .module-header-actions,
+.column-client .client-dashboard .module-header-actions {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    justify-content: center !important;
+}
+
+.column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center,
+.column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center.mb-3 {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.85rem;
+    margin-bottom: 1rem !important;
+    padding-bottom: 0.15rem;
+}
+
+.column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center > h3,
+.column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center.mb-3 > h3 {
+    width: 100%;
+    text-align: center;
+    flex: 0 0 auto !important;
+    flex-grow: 0 !important;
+    margin: 0 0 0.85rem !important;
+    padding-bottom: 0.7rem;
+    border-bottom: 1px solid #dfe3ef;
+}
+
+.column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center > .d-flex,
+.column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center > p,
+.column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center.mb-3 > .d-flex,
+.column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center.mb-3 > p {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    width: 100%;
+    gap: 0.5rem;
+    margin: 0 0 0.75rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+}
+
+.column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center > p a,
+.column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center.mb-3 > p a,
+.column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center > .d-flex a,
+.column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center.mb-3 > .d-flex a,
+.client-btn p a,
+.client-btn .module-header-actions a,
+.module-header-actions a {
+    flex: 0 0 auto;
+    width: auto;
+    white-space: nowrap;
+}
+
+.module-header-actions,
+.module-header-actions.flex-wrap,
+.client-btn .module-header-actions.flex-wrap {
+    flex-wrap: nowrap !important;
+    justify-content: center !important;
+}
+
+.column-client td.action-icon,
+.column-client .action-icon {
+    white-space: nowrap;
+}
+
+.client-btn a,
+.client-btn .btn,
+.client-btn button {
+    flex-shrink: 0;
+}
+
+.client-btn input[type="search"],
+.client-btn input[type="text"] {
+    max-width: 100%;
+    flex: 1 1 180px;
+    min-width: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Module tab strips (e.g. AR / AP invoices)                           */
+/* ------------------------------------------------------------------ */
+
+.invoice-module-tabs > [class*="col-"],
+.payment-module-tabs > [class*="col-"],
+.module-tab-strip > [class*="col-"] {
+    min-width: 0;
+}
+
+.invoice-module-tabs,
+.payment-module-tabs,
+.module-tab-strip {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--adwiseri-tab-gap, 0.5rem);
+    border-bottom: 2px solid var(--adwiseri-tab-border, #e2e6f0);
+    padding-bottom: 0;
+}
+
+.invoice-module-tabs .tab-anchor,
+.payment-module-tabs .tab-anchor,
+.module-tab-strip .tab-anchor {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 50%;
+    max-width: 50%;
+    width: 50%;
+    min-height: var(--adwiseri-btn-min-height, 38px);
+    padding: var(--adwiseri-btn-padding-y, 0.45rem) 0.75rem;
+    font-size: var(--adwiseri-btn-font-size, 14px);
+    font-weight: var(--adwiseri-btn-font-weight, 600);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-radius: var(--adwiseri-tab-radius, 10px) var(--adwiseri-tab-radius, 10px) 0 0;
+    margin-bottom: -2px;
+    border-bottom: 2px solid transparent;
+}
+
+.client-btn + .invoice-module-tabs,
+.client-btn + .payment-module-tabs,
+.client-btn + .module-tab-strip,
+.client-btn + .table-filter-toolbar,
+.column-client .client-dashboard > .col-12.d-flex.mb-3 + .table-filter-toolbar,
+.column-client .client-dashboard > .col-12.d-flex.mb-3 + .module-tab-strip,
+.column-client .client-dashboard > .col-12.d-flex.mb-3 + .nav-tabs,
+.column-client .client-dashboard > .col-12.d-flex.mb-3 + .row,
+.column-client .client-dashboard > .client-btn + .table-filter-toolbar {
+    margin-top: 0.75rem;
+}
+
+.table-filter-toolbar,
+.multi-table-filter-toolbar {
+    margin-top: 0.75rem;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+
+/* ------------------------------------------------------------------ */
+/* Sidebar module separators                                           */
+/* ------------------------------------------------------------------ */
+
+.dash-box > a.sidebar-menu-item,
+.dash-box > .sidebar-menu-item {
+    border-bottom: 1px solid #dfe3ef;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+.dash-box > a.sidebar-menu-item:last-child,
+.dash-box > .sidebar-menu-item:last-child {
+    border-bottom: none;
+    margin-bottom: 6px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Tables                                                              */
+/* ------------------------------------------------------------------ */
+
+.table-wrapper,
+.fl-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Space between container top edge and DataTables "Show X entries" row */
+.dataTables_wrapper {
+    padding-top: 0.5rem;
+}
+
+table.fl-table,
+table.table {
+    max-width: 100%;
+}
+
+table.table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ------------------------------------------------------------------ */
+/* Modal footers & form action rows                                    */
+/* ------------------------------------------------------------------ */
+
+.modal-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.modal-footer .btn,
+.modal-body .form-actions .btn,
+.account-form-actions .btn,
+.form-action-row .btn,
+.eb-actions .btn {
+    margin: 0;
+}
+
+.account-form-actions,
+.form-action-row,
+.eb-actions,
+.modal-body .form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Sidebar navigation links                                            */
+/* ------------------------------------------------------------------ */
+
+.dashbox-btn {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.dashbox-btn a {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    flex: 1 1 160px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+/* ------------------------------------------------------------------ */
+/* Column action links (purple link-buttons)                           */
+/* ------------------------------------------------------------------ */
+
+.column-client a:not(.comm-view-btn):not(.comm-action-btn):not(.btn) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    text-align: center;
+}
+
+/* ------------------------------------------------------------------ */
+/* Navbar / topbar button clusters                                     */
+/* ------------------------------------------------------------------ */
+
+.log-btn {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Dashboard shell padding                                             */
+/* ------------------------------------------------------------------ */
+
+.client-row {
+    max-width: 100%;
+}
+
+/* ------------------------------------------------------------------ */
+/* Cards, settings, reports modules                                    */
+/* ------------------------------------------------------------------ */
+
+.card,
+.client-dashboard,
+.member-mainbox {
+    max-width: 100%;
+    min-width: 0;
+}
+
+.settings-module-title-row,
+.reports-module-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Breakpoints                                                         */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 991px) {
+    .client-row {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .client-btn > .form-inline,
+    .client-btn > form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .client-btn h1,
+    .client-btn h2,
+    .client-btn h3,
+    .client-btn h4,
+    .client-btn h5,
+    .client-btn .page-title {
+        text-align: center !important;
+        width: 100%;
+    }
+
+    .client-btn p,
+    .client-btn .module-header-actions,
+    .column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center > p,
+    .column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center.mb-3 > p {
+        flex-wrap: nowrap !important;
+        justify-content: center !important;
+        width: 100%;
+        margin-left: 0;
+    }
+}
+
+@media (max-width: 767px) {
+    .invoice-module-tabs .tab-anchor,
+    .payment-module-tabs .tab-anchor,
+    .module-tab-strip .tab-anchor {
+        flex: 1 1 50%;
+        max-width: 50%;
+        min-height: var(--adwiseri-btn-min-height, 38px);
+        font-size: clamp(11px, 2.8vw, 14px);
+        padding: var(--adwiseri-btn-padding-y, 0.45rem) 0.35rem;
+    }
+
+    .client-btn a:not(.btn),
+    .client-btn .btn,
+    .client-btn button,
+    .column-client .client-btn a.btn,
+    .column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center.mb-3 > p a,
+    .column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center > p a,
+    .module-header-actions a {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        justify-content: center;
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    .client-btn .btn-block,
+    .client-btn a.btn-block,
+    .modal-footer .btn,
+    .account-form-actions .btn,
+    .form-action-row .btn {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .client-btn input[type="search"],
+    .client-btn input[type="text"] {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+
+    .dashbox-btn a {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .dataTables_wrapper .dt-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        float: none !important;
+        margin-bottom: 0.5rem;
+    }
+
+    .dataTables_wrapper .dt-buttons .btn {
+        margin: 0 !important;
+    }
+}
+
+@media (max-width: 560px) {
+    .client-btn a:not(.btn),
+    .client-btn .btn,
+    .client-btn button,
+    .column-client .client-dashboard > .col-12.d-flex.justify-content-between.align-items-center.mb-3 > p a,
+    .module-header-actions a {
+        flex: 0 0 auto !important;
+        width: auto !important;
+    }
+
+    .client-row {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Public marketing pages                                              */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 991px) {
+    .navbar.fixed-top .navbar-collapse {
+        max-height: calc(100vh - 72px);
+        overflow-y: auto;
+    }
+
+    .navbar .navbar-nav .nav-link,
+    .navbar .navbar-nav .btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* Profile pages (subscriber + staff) */
+.profile-card-panel {
+    border: 1px solid lightgrey;
+    border-radius: 8px;
+    padding: 16px;
+    background: #fff;
+}
+
+.profile-page-shell {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.profile-page-title {
+    font-size: clamp(1.25rem, 3.5vw, 1.7rem);
+    font-weight: 500;
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+.profile-detail-responsive {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: stretch;
+}
+
+.profile-detail-responsive > .profile-data,
+.profile-detail-responsive > .profile-pic {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 !important;
+}
+
+.profile-detail-grid .col-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+}
+
+.profile-detail-grid p {
+    word-break: break-word;
+}
+
+.profilepic-row img {
+    width: 100%;
+    max-width: 220px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+.profile-modal-overlay {
+    width: 100%;
+    display: none;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    min-height: 100vh;
+    height: 100%;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 1050;
+    padding: 16px 12px;
+}
+
+.profile-modal-panel {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+@media (min-width: 576px) {
+    .profile-detail-grid .col-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+}
+
+@media (min-width: 992px) {
+    .profile-detail-responsive > .profile-data {
+        flex: 1 1 58%;
+    }
+
+    .profile-detail-responsive > .profile-pic {
+        flex: 1 1 38%;
+    }
+}
+
+@media (max-width: 767px) {
+    .profile-modal-overlay {
+        padding: 12px 8px;
+    }
+
+    .profile-modal-panel.loginouter-box,
+    .profile-modal-panel .login-box {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Documents module — compact file name in data-tables */
+.doc-file-label {
+    display: inline-block;
+    max-width: 11rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.app-doc-list-text strong {
+    display: inline-block;
+    max-width: 14rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+    .doc-file-label,
+    .app-doc-list-text strong {
+        max-width: 8rem;
+    }
+}
+/* ------------------------------------------------------------------ */
+
+@media print {
+    .client-btn,
+    .table-wrapper {
+        overflow: visible;
+    }
+}

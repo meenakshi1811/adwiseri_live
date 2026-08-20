@@ -29,6 +29,17 @@
                             <p class="form-control m-0">{{ $query->client_id }}</p>
                         </div>-->
                         <div class="col-md-4 p-2">
+                            <label style="font-weight:550;">Status</label>
+                        </div>
+                        <div class="col-md-8 p-2 d-flex align-items-center gap-2">
+                            <p class="form-control m-0 flex-grow-1">{{ $query->status }}</p>
+                            @if($query->status == 'Open')
+                                <a href="{{ route('update_query_status', $query->id) }}" class="btn btn-sm text-white" style="background:red;border-color:red;white-space:nowrap;">Mark Closed</a>
+                            @else
+                                <a href="{{ route('update_query_status', $query->id) }}" class="btn btn-sm text-white" style="background:green;border-color:green;white-space:nowrap;">Mark Open</a>
+                            @endif
+                        </div>
+                        <div class="col-md-4 p-2">
                             <label style="font-weight:550;">Query/Issue</label>
                         </div>
                         <div class="col-md-8 p-2">
@@ -103,7 +114,7 @@
   </script>
   <script>
       function deleteuser(id){
-          var conf = confirm('Delete User');
+          var conf = confirm('Are you sure you want to delete this user?');
           if(conf == true){
               window.location.href = "delete_user/"+id+"";
           }
@@ -115,7 +126,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'Query deleted successfully.'
       })
     </script>
   

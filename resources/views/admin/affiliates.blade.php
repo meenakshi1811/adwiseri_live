@@ -251,10 +251,10 @@
                                     <select name="country" id="country" required class="form-select"
                                         aria-label="Default select example">
                                         <option selected value="">Country</option>
-                                        @foreach ($countries as $country)
-                                            <option value="{{ $country->country_name }}">{{ $country->country_name }}
-                                            </option>
-                                        @endforeach
+                                        @include('partials.country_select_options_by_name', [
+                                            'countries' => $countries,
+                                            'phoneForPrefill' => old('phone'),
+                                        ])
                                     </select>
                                     @error('country')
                                         <span class="invalid-feedback" role="alert">
@@ -466,7 +466,11 @@
                 },
                 success: function(data) {
                     // log response into console
-                    Swal.fire("Status changed successfully!");
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: 'Status changed successfully.'
+                    });
                     $('#referalTable').DataTable().ajax.reload();
 
                 }

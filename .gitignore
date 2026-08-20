@@ -27,3 +27,12 @@ wp
 .env
 .env.*
 !.env.example
+.env.*
+
+.htaccess
+index.php
+server.php
+app-backup.zip
+/public/index.php
+/public/server.php
+/public/.htaccess

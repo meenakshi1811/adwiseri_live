@@ -42,11 +42,11 @@
                             {{-- <td>{{ $siteuser->id }}</td> --}}
                             <td data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $siteuser->name }}" class="text-center" style="position: relative;">@if(strlen($siteuser->name) > 22){{ substr($siteuser->name, 0, 22) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$siteuser->name}} ({{ $siteuser->id }})</span> @else {{$siteuser->name}} ({{ $siteuser->id }}) @endif</td>
                             <td data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $siteuser->email }}" class="text-center" style="position: relative;">@if(strlen($siteuser->email) > 22){{ substr($siteuser->email, 0, 22) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$siteuser->email}}</span> @else {{$siteuser->email}} @endif</td>
-                            <td class="text-center">{{ $siteuser->phone }}</td>
+                            <td class="text-center">@include('partials.phone_display', ['phone' => $siteuser->phone])</td>
                             <td class="text-center">{{ $siteuser->country }}</td>
                             <td class="text-center">{{ $siteuser->city }}</td>
                             <td data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $siteuser->designation }}" class="text-center" style="position: relative;">@if(strlen($siteuser->designation) > 22){{ substr($siteuser->designation, 0, 22) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$siteuser->designation}}</span> @else {{$siteuser->designation}} @endif</td>
-                            <td class="text-center">{{  \Carbon\Carbon::parse($siteuser->created_at)->format('d-m-Y') }}</td>
+                            <td class="text-center">{{  \Carbon\Carbon::parse($siteuser->created_at)->format('d-m-Y H:i:s') }}</td>
                             <td class="text-center">@if($siteuser->status == 'true') <a style="background:green;border-color:green;" href="{{ route('subscriber_status', $siteuser->id) }}" class="p-0 px-1">Active</a> @else <a style="background:red;border-color:red;" href="{{ route('subscriber_status', $siteuser->id) }}" class="p-0 px-1">Inactive</a> @endif</td>
                             <td class="text-center">
                                 <a style="background:transparent;border:none;" class="p-0 m-0 text-dark" href="{{ route('view_user', $siteuser->id)}}"><i class="fa-solid fa-eye btn text-info p-1 m-0"></i></a>
@@ -76,7 +76,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'User deleted successfully.'
       })
     </script>
 
@@ -86,7 +86,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Status Changed Successfully!'
+        text: 'User status changed successfully.'
       })
     </script>
 
@@ -95,8 +95,8 @@
     <script>
       Swal.fire({
         icon: 'success',
-        title: 'Congratulations',
-        text: 'User Data Updated Successfully!'
+        title: 'Success',
+        text: 'User updated successfully.'
       })
     </script>
 
@@ -105,8 +105,8 @@
     <script>
       Swal.fire({
         icon: 'success',
-        title: 'Congratulations',
-        text: 'New Staff Added Successfully!'
+        title: 'Success',
+        text: 'Staff member added successfully.'
       })
     </script>
 
@@ -125,10 +125,10 @@
     function deleteuser(id){
       Swal.fire({
         title: 'Are you sure?',
-        text: "You won't be able to revert this!",
+        text: "This action cannot be undone.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
+        confirmButtonColor: '#695EEE',
         cancelButtonColor: '#d33',
         confirmButtonText: 'Yes, delete it!'
       }).then((result) => {
@@ -140,12 +140,12 @@
     function updateuser(id){
       Swal.fire({
         title: 'Are you sure?',
-        text: "You want to update this record!",
+        text: "Do you want to update this record?",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
+        confirmButtonColor: '#695EEE',
         cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes'
+        confirmButtonText: 'Yes, continue'
       }).then((result) => {
         if (result.isConfirmed) {
           window.location.href = "siteuser_update/"+id+"";

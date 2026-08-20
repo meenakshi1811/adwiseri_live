@@ -4,11 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Concerns\BelongsToCurrentSubscriber;
 
 class PaymentARs extends Model
 {
-    use HasFactory, BelongsToCurrentSubscriber;
+    use HasFactory;
 
 
     protected $table ='payment_ar';

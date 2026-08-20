@@ -47,14 +47,14 @@
       </div>
     </div>
     <div class="text-center mt-3">
-        <p class="mb-0">&copy; {{ date('Y') }} adwiseri.&nbsp;All rights reserved </p>
+        <p class="mb-0">&copy; {{ $copyrightYears }} adwiseri.&nbsp;All rights reserved </p>
       </div>
   </div>
 </footer>
 @else
 
 <footer class="mt-2 last-footer">
-    <p>&copy; {{ date('Y') }}  adwiseri.&nbsp;All rights reserved.</p>
+    <p>&copy; {{ $copyrightYears }}  adwiseri.&nbsp;All rights reserved.</p>
   </footer>
   
 @endif
@@ -137,6 +137,8 @@ s0.parentNode.insertBefore(s1,s0);
 <!--End of Tawk.to Script-->
 
 @stack('other-scripts')
+
+@include('partials.intl_phone_scripts')
 
 
 </body>

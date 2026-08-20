@@ -4,11 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Concerns\BelongsToCurrentSubscriber;
 
 class Activities extends Model
 {
-    use HasFactory, BelongsToCurrentSubscriber;
+    use HasFactory;
     protected $table = "activities";
     protected $primaryKey = "id";
     protected $fillable = [

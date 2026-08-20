@@ -1,4 +1,4 @@
-@extends('web.layout.main')
+﻿@extends('web.layout.main')
 
 @section('main-section')
 <div id="loading" style="display: none;">
@@ -48,9 +48,9 @@
             var email = $("#email").val();
             if(email == ""){
                 Swal.fire({
-                icon: 'error',
-                title: 'Oops..',
-                text: 'Please Enter Email.'
+                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                title: 'Oops!',
+                text: 'Please enter your email address.'
                 });
             }
             else{
@@ -86,9 +86,9 @@
   @if(session()->has('nouser'))
   <script>
     Swal.fire({
-      icon: 'error',
-      title: 'Oops..',
-      text: 'No user found.'
+      icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+      title: 'Oops!',
+      text: 'No user account was found.'
     })
   </script>
   @endif

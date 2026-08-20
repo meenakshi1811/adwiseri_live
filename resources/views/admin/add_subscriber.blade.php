@@ -33,7 +33,7 @@
                                 <div class="mb-3">
                                     <label for="phone" class="form-label">Phone<span
                                             class="text-danger">*</span></label>
-                                            <input name="phone" type="text" pattern="\d*" minlength="9" maxlength="12" class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ $subscriber->phone }}" required placeholder="Phone Number" autocomplete="phone">
+                                            <input name="phone" type="tel" class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ \App\Support\PhoneNumber::displayE164($subscriber->phone) }}" data-phone-e164="{{ \App\Support\PhoneNumber::displayE164($subscriber->phone) }}" required placeholder="Phone Number" autocomplete="phone">
                                             @error('phone')
                                                 <span class="invalid-feedback" role="alert">
                                                     <strong>{{ $message }}</strong>
@@ -148,9 +148,12 @@
                                         <label>Country<span class="text-danger" style="font-size: 18px;">*</span></label>
                                         <select name="country" id="country" class="form-control form-select @error('country') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
                                             <option value="">Select Country</option>
-                                            @foreach($countries as $country)
-                                            <option {{ ($subscriber->country == $country->country_name) ? 'selected' : '' }} value="{{ $country->id }}">{{ $country->country_name }}</option>
-                                            @endforeach
+                                            @include('partials.country_select_options', [
+                                                'countries' => $countries,
+                                                'phoneForPrefill' => $subscriber->phone ?? null,
+                                                'savedCountry' => $subscriber->country ?? null,
+                                                'savedIsCountryName' => true,
+                                            ])
                                         </select>
                                         @error('country')
                                             <span class="invalid-feedback" role="alert">
@@ -307,7 +310,7 @@
                                 <div class="mb-3">
                                     <label for="phone" class="form-label">Phone<span
                                             class="text-danger">*</span></label>
-                                    <input name="phone" type="text" pattern="\d*" minlength="9" maxlength="12"
+                                    <input name="phone" type="tel"
                                         class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1"
                                         aria-describedby="emailHelp" value="{{ old('phone') }}" required
                                         placeholder="Phone Number" autocomplete="phone">
@@ -427,9 +430,10 @@
                                         <label>Country<span class="text-danger" style="font-size: 18px;">*</span></label>
                                         <select name="country" id="country" class="form-control form-select @error('country') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
                                             <option value="">Select Country</option>
-                                            @foreach($countries as $country)
-                                            <option {{ (old('country') == $country->id) ? 'selected':'' }} value="{{ $country->id }}">{{ $country->country_name }}</option>
-                                            @endforeach
+                                            @include('partials.country_select_options', [
+                                                'countries' => $countries,
+                                                'phoneForPrefill' => old('phone'),
+                                            ])
                                         </select>
                                         @error('country')
                                             <span class="invalid-feedback" role="alert">
@@ -601,7 +605,7 @@
   </script>
   <script>
       function deleteuser(id){
-          var conf = confirm('Delete User');
+          var conf = confirm('Are you sure you want to delete this subscriber?');
           if(conf == true){
               window.location.href = "delete_user/"+id+"";
           }
@@ -613,7 +617,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'Subscriber deleted successfully.'
       })
     </script>
 

@@ -83,16 +83,16 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Password Changed',
-                text: 'You can now login using new password.'
+                text: 'You can now log in with your new password.'
             })
         </script>
     @endif
     @if (session()->has('deactivated'))
         <script>
             Swal.fire({
-                icon: 'warning',
+                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
                 title: 'Account Deactivated',
-                text: 'Your Account is Deactivated for some reason. Please contact your branch manager.'
+                text: 'Your account has been deactivated. Please contact your branch manager.'
             })
         </script>
     @endif

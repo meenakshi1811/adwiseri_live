@@ -69,9 +69,9 @@
 
                     <button type="submit" class="btn btn-primary form-control mt-2">Login</button>
 
-                    <p class="register-button mt-3 text-center">New here? <a style="color:#0d6efd" href="{{ route('Affiliates.create') }}">Register Now</a>
+                    <p class="register-button mt-3 text-center">New here? <a style="color:#695EEE" href="{{ route('Affiliates.create') }}">Register Now</a>
                     </p>
-                    <p class="text-center"><a style="color:#0d6efd; text-decoration: none;background:none;border:none;font-weight:400;"
+                    <p class="text-center"><a style="color:#695EEE; text-decoration: none;background:none;border:none;font-weight:400;"
                         href="{{ route('forget_password') }}">Forgot Password?</a></p>
 
                 </form>
@@ -83,7 +83,7 @@
     @if(session()->has('g-recaptcha-response'))
 <script>
 Swal.fire({
-  icon: 'error',
+  icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
   title: 'Oops!',
   text: 'Please complete the reCAPTCHA to proceed.',
 });
@@ -94,16 +94,16 @@ Swal.fire({
     Swal.fire({
       icon: 'success',
       title: 'Password Changed',
-      text: 'You can now login using new password.'
+      text: 'You can now log in with your new password.'
     })
   </script>
   @endif
   @if(session()->has('deactivated'))
   <script>
     Swal.fire({
-      icon: 'warning',
+      icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
       title: 'Account Deactivated',
-      text: 'Your Account is Deactivated for some reason. Please contact your branch manager.'
+      text: 'Your account has been deactivated. Please contact your branch manager.'
     })
   </script>
   @endif

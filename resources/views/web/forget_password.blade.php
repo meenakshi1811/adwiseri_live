@@ -86,12 +86,12 @@ $(document).ready(function () {
         const recaptcha = grecaptcha.getResponse(sendCaptcha);
 
         if (!email) {
-            Swal.fire({ icon: "error", title: "Oops...", text: "Please enter your email." });
+            Swal.fire({ icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' }, title: "Oops!", text: "Please enter your email." });
             return;
         }
 
         if (!recaptcha) {
-            Swal.fire({ icon: "error", title: "Oops...", text: "Please complete the reCAPTCHA." });
+            Swal.fire({ icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' }, title: "Oops!", text: "Please complete the reCAPTCHA to proceed." });
             grecaptcha.reset(sendCaptcha);
             return;
         }
@@ -116,7 +116,7 @@ $(document).ready(function () {
                     // Reset confirm OTP captcha when section is shown
                     grecaptcha.reset(verifyCaptcha);
                 } else {
-                    Swal.fire({ icon: "error", title: "Error", text: response.message });
+                    Swal.fire({ icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' }, title: 'Oops!', text: response.message });
                     grecaptcha.reset(sendCaptcha);
                 }
             },
@@ -130,12 +130,12 @@ $(document).ready(function () {
         const recaptcha = grecaptcha.getResponse(verifyCaptcha);
 
         if (!emailOtp) {
-            Swal.fire({ icon: "error", title: "Oops...", text: "Please enter the OTP." });
+            Swal.fire({ icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' }, title: "Oops!", text: "Please enter the OTP." });
             return;
         }
 
         if (!recaptcha) {
-            Swal.fire({ icon: "error", title: "Oops...", text: "Please complete the reCAPTCHA." });
+            Swal.fire({ icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' }, title: "Oops!", text: "Please complete the reCAPTCHA to proceed." });
             grecaptcha.reset(verifyCaptcha);
             return;
         }
@@ -155,7 +155,7 @@ $(document).ready(function () {
                     Swal.fire({ icon: "success", title: "Success", text: response.message })
                         .then(() => { window.location.href = response.redirect_url; });
                 } else {
-                    Swal.fire({ icon: "error", title: "Error", text: response.message });
+                    Swal.fire({ icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' }, title: 'Oops!', text: response.message });
                     grecaptcha.reset(verifyCaptcha);
                 }
             },

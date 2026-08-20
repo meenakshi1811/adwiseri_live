@@ -45,7 +45,7 @@ class ApplicationController extends Controller
         $activity->activity_detail = "New Application of " . $request->job_role . " added by " . $user->name . " at " . date('d M, Y H:i:s');
         $activity->activity_icon = "user.png";
         $activity->save();
-        return response()->json(['success' => true, 'message' => 'New Application Added Successfully']);
+        return response()->json(['success' => true, 'message' => 'Application added successfully.']);
     }
     public function job_id()
     {
@@ -85,7 +85,7 @@ class ApplicationController extends Controller
         $activity->activity_detail = "New Dependent of " . $client->name . " added by " . $user->name . " at " . date('d M, Y H:i:s');
         $activity->activity_icon = "user.png";
         $activity->save();
-        return response()->json(['success' => true, 'message' => 'New Dependant Added Successfully']);
+        return response()->json(['success' => true, 'message' => 'Spouse/Dependant added successfully.']);
     }
     public function manage_dependants()
     {
@@ -120,7 +120,7 @@ class ApplicationController extends Controller
 
         return response()->json([
             'success' => false,
-            'message' => 'Dependent not found',
+            'message' => 'Spouse/Dependant not found.',
         ]);
     }
     public function updateDependant(Request $request, $id)
@@ -143,7 +143,7 @@ class ApplicationController extends Controller
         if (!$dependant) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Dependant not found'
+                'message' => 'Spouse/Dependant not found'
             ], 404);
         }
 
@@ -161,7 +161,7 @@ class ApplicationController extends Controller
         // Return success response
         return response()->json([
             'status' => 'success',
-            'message' => 'Dependant updated successfully',
+            'message' => 'Spouse/Dependant updated successfully.',
             'data' => $dependant
         ]);
     }
@@ -173,7 +173,7 @@ class ApplicationController extends Controller
         if (!$dependant) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Dependant not found'
+                'message' => 'Spouse/Dependant not found'
             ], 404);
         }
 
@@ -183,7 +183,7 @@ class ApplicationController extends Controller
         // Return success response
         return response()->json([
             'status' => 'success',
-            'message' => 'Dependant deleted successfully'
+            'message' => 'Spouse/Dependant deleted successfully.'
         ]);
     }
 }

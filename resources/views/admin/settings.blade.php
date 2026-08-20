@@ -1,19 +1,457 @@
 @extends('admin.layout.main')
+
+@push('css')
+<link rel="stylesheet" href="{{ asset('web_assets/css/settings-module.css') }}">
+@endpush
+
 <style>
     .nav-item {
         margin: 0px !important;
         --bs-nav-tabs-border-radius: 0px !important;
     }
+
+    /* Discounts & Offers tab */
+    .offers-panel {
+        background: #fff;
+        border: 1px solid #e8ebf3;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 1rem;
+    }
+
+    .offers-panel__header {
+        border-bottom: 1px solid #eef1f7;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+    }
+
+    .offers-panel__title {
+        color: var(--adwiseri-primary, #695EEE);
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin: 0 0 .35rem;
+        text-align: center;
+    }
+
+    .offers-panel__subtitle {
+        color: #6b7280;
+        font-size: .875rem;
+        margin: 0;
+    }
+
+    .offers-step {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+        padding: 1.1rem 1.15rem;
+    }
+
+    .offers-step__label {
+        align-items: center;
+        color: #695EEE;
+        display: flex;
+        font-size: .75rem;
+        font-weight: 700;
+        gap: .5rem;
+        letter-spacing: .04em;
+        margin-bottom: .85rem;
+        text-transform: uppercase;
+    }
+
+    .offers-step__number {
+        align-items: center;
+        background: #695EEE;
+        border-radius: 50%;
+        color: #fff;
+        display: inline-flex;
+        font-size: .7rem;
+        height: 1.35rem;
+        justify-content: center;
+        width: 1.35rem;
+    }
+
+    .offers-field-label {
+        color: #374151;
+        font-size: .875rem;
+        font-weight: 600;
+        margin-bottom: .35rem;
+    }
+
+    .offers-field-hint {
+        color: #9ca3af;
+        display: block;
+        font-size: .78rem;
+        margin-top: .35rem;
+    }
+
+    .offers-mode-grid {
+        display: grid;
+        gap: .75rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 767px) {
+        .offers-mode-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .offers-mode-card {
+        background: #fff;
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        cursor: pointer;
+        padding: .95rem 1rem;
+        transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+
+    .offers-mode-card:hover {
+        border-color: #c4b5fd;
+    }
+
+    .offers-mode-card.is-active {
+        background: #F3F2FF;
+        border-color: #695EEE;
+        box-shadow: 0 0 0 3px rgba(105, 94, 238, .12);
+    }
+
+    .offers-mode-card input {
+        display: none;
+    }
+
+    .offers-mode-card__title {
+        color: #111827;
+        font-size: .95rem;
+        font-weight: 700;
+        margin-bottom: .25rem;
+    }
+
+    .offers-mode-card__text {
+        color: #6b7280;
+        font-size: .8rem;
+        line-height: 1.45;
+        margin: 0;
+    }
+
+    .offers-date-grid {
+        display: grid;
+        gap: .75rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 767px) {
+        .offers-date-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .offers-subscriber-picker {
+        background: #fff;
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        max-height: 320px;
+        overflow: hidden;
+    }
+
+    .offers-subscriber-toolbar {
+        align-items: center;
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        flex-shrink: 0;
+        justify-content: space-between;
+        padding: .75rem 1rem;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .offers-subscriber-toolbar .offers-subscriber-item {
+        margin: 0;
+        padding: 0;
+    }
+
+    #offers-settings-form .offers-subscriber-item {
+        align-items: flex-start !important;
+        box-sizing: border-box;
+        display: flex !important;
+        flex-direction: row !important;
+        height: auto !important;
+        min-height: 48px;
+    }
+
+    #offers-settings-form .offers-subscriber-item.offers-section-hidden {
+        display: none !important;
+    }
+
+    #offers-settings-form .offers-subscriber-item__body,
+    #offers-settings-form .offers-subscriber-item__name,
+    #offers-settings-form .offers-subscriber-item__meta {
+        margin-top: 0 !important;
+    }
+
+    .offers-subscriber-list {
+        overflow-y: auto;
+        padding: .35rem .5rem .65rem;
+    }
+
+    .offers-subscriber-item {
+        align-items: flex-start;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        gap: .75rem;
+        margin: 0;
+        padding: .65rem .75rem;
+        transition: background-color .15s ease;
+        width: 100%;
+    }
+
+    .offers-subscriber-item:hover {
+        background: #F3F2FF;
+    }
+
+    .offers-subscriber-item input[type="checkbox"] {
+        accent-color: #695EEE;
+        cursor: pointer;
+        flex-shrink: 0;
+        height: 18px;
+        margin: .15rem 0 0;
+        width: 18px;
+    }
+
+    .offers-subscriber-item__body {
+        display: block;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .offers-subscriber-item__name {
+        color: #111827;
+        display: block;
+        font-size: .875rem;
+        font-weight: 600;
+        line-height: 1.4;
+        margin: 0 0 .2rem;
+        word-break: break-word;
+    }
+
+    .offers-subscriber-item__meta {
+        color: #6b7280;
+        display: block;
+        font-size: .78rem;
+        line-height: 1.35;
+        margin: 0;
+    }
+
+    .offers-subscriber-item__meta strong {
+        color: #695EEE;
+        font-weight: 600;
+    }
+
+    .offers-plan-picker {
+        background: #fff;
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
+        display: grid;
+        gap: .15rem;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        padding: .5rem .65rem;
+    }
+
+    #offers-settings-form .offers-plan-item {
+        align-items: center !important;
+        box-sizing: border-box;
+        cursor: pointer;
+        display: flex !important;
+        flex-direction: row !important;
+        gap: .65rem;
+        margin: 0;
+        min-height: 40px;
+        padding: .45rem .55rem;
+    }
+
+    #offers-settings-form .offers-plan-item input[type="checkbox"] {
+        accent-color: #695EEE;
+        flex-shrink: 0;
+        height: 18px;
+        margin: 0;
+        width: 18px;
+    }
+
+    #offers-settings-form .offers-plan-item__name {
+        color: #111827;
+        font-size: .875rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .offers-subscriber-item--select-all .offers-subscriber-item__name {
+        font-size: .875rem;
+    }
+
+    .offers-selected-count {
+        background: #ede9fe;
+        border-radius: 999px;
+        color: #5b21b6;
+        flex-shrink: 0;
+        font-size: .75rem;
+        font-weight: 600;
+        padding: .35rem .75rem;
+        white-space: nowrap;
+    }
+
+    .offers-subscriber-empty {
+        color: #9ca3af;
+        font-size: .875rem;
+        margin: 0;
+        padding: 1rem .75rem;
+        text-align: center;
+    }
+
+    #subscriber-picker-row {
+        margin-top: .25rem;
+    }
+
+    .offers-subscriber-list::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .offers-subscriber-list::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 999px;
+    }
+
+    .offers-subscriber-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .offers-info-banner {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        color: #1e40af;
+        font-size: .82rem;
+        line-height: 1.5;
+        margin-top: .75rem;
+        padding: .65rem .8rem;
+    }
+
+    .offers-actions {
+        align-items: center;
+        border-top: 1px solid #eef1f7;
+        display: flex;
+        gap: .75rem;
+        justify-content: center;
+        margin-top: .5rem;
+        padding-top: 1.15rem;
+    }
+
+    .offers-section-hidden {
+        display: none !important;
+    }
+
+    #subscriber-picker-row.offers-section-hidden {
+        display: none !important;
+    }
+
+    .offers-history {
+        border-top: 1px solid #eef1f7;
+        margin-top: 1.5rem;
+        padding-top: 1.25rem;
+    }
+
+    .offers-history__title {
+        color: var(--adwiseri-primary, #695EEE);
+        font-size: 1.05rem;
+        font-weight: 600;
+        margin-bottom: .35rem;
+        text-align: center;
+    }
+
+    .offers-history__subtitle {
+        color: #6b7280;
+        font-size: .875rem;
+        margin-bottom: 1rem;
+    }
+
+    .offers-history-table-wrap {
+        overflow-x: auto;
+    }
+
+    .offers-history-table-wrap .dataTables_wrapper .row:first-child,
+    .offers-history-table-wrap .dataTables_wrapper .row:last-child {
+        align-items: center;
+        margin-bottom: .75rem;
+        margin-top: .5rem;
+    }
+
+    .offers-history-table-wrap .dataTables_filter input {
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        margin-left: .5rem;
+        padding: .35rem .65rem;
+    }
+
+    .offers-history-table-wrap .dataTables_length select {
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        margin: 0 .35rem;
+        padding: .25rem .5rem;
+    }
+
+    .offers-history-table-wrap .dataTables_info,
+    .offers-history-table-wrap .dataTables_paginate {
+        font-size: .8125rem;
+    }
+
+    .offers-history-table {
+        font-size: .875rem;
+        margin-bottom: 0;
+        width: 100%;
+    }
+
+    .offers-history-table th {
+        background: #f8fafc;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .offers-history-table td {
+        vertical-align: top;
+    }
+
+    .offers-history-table .offers-history-desc {
+        max-width: 280px;
+        white-space: pre-line;
+    }
+
+    #offers-settings-form .form-control,
+    #offers-settings-form .form-select {
+        border-color: #d1d5db;
+        border-radius: 8px;
+        font-size: .875rem;
+        min-height: 42px;
+    }
+
+    #offers-settings-form .form-control:focus,
+    #offers-settings-form .form-select:focus {
+        border-color: #695EEE;
+        box-shadow: 0 0 0 .2rem rgba(105, 94, 238, .15);
+    }
 </style>
 
 @section('main-section')
     <div class="col-lg-10 column-client">
-        <div class="client-dashboard">
+        <div class="client-dashboard settings-module">
             <div class="client-btn d-flex justify-content-center mb-2">
                 <h3 class="text-primary text-center">Settings</h3>
             </div>
 
-            <ul class="nav nav-tabs border" id="settingsTab" role="tablist">
+            <ul class="nav nav-tabs" id="settingsTab" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="general-tab" data-bs-toggle="tab" href="#general" role="tab"
                         aria-controls="general" aria-selected="true">General</button>
@@ -33,6 +471,14 @@
                 <li class="nav-item">
                     <button class="nav-link" id="email-template-tab" data-bs-toggle="tab" href="#email-template" role="tab"
                         aria-controls="email-template" aria-selected="false">Email Templates</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="notifications-tab" data-bs-toggle="tab" href="#notifications" role="tab"
+                        aria-controls="notifications" aria-selected="false">Notifications</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="admin-dashboard-settings-tab" data-bs-toggle="tab" href="#admin-dashboard-settings" role="tab"
+                        aria-controls="admin-dashboard-settings" aria-selected="false">Dashboard</button>
                 </li>
             </ul>
 
@@ -113,11 +559,33 @@
                         </div>
                         <div class="row p-1 mb-3 align-items-center">
                             <div class="col-6">
+                                <label>Tax Label</label>
+                            </div>
+                            <div class="col-6">
+                                <select name="tax_label" id="tax_label" class="form-control form-select">
+                                    @foreach(\App\Models\Invoice_settings::taxLabelOptions() as $taxLabelOption)
+                                        <option value="{{ $taxLabelOption }}" {{ ((!empty($inv_setting) ? ($inv_setting->tax_label ?? 'Tax') : 'Tax') === $taxLabelOption) ? 'selected' : '' }}>
+                                            {{ $taxLabelOption }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row p-1 mb-3 align-items-center">
+                            <div class="col-6">
                                 <label>Discount(%)</label>
                             </div>
                             <div class="col-6">
                                 <input type="number" min="0" max="100" value="{{ $inv_setting->discount }}"
                                     id="discount" name="discount" class="form-control" placeholder="Discount (%)">
+                            </div>
+                        </div>
+                        <div class="row p-1 mb-3">
+                            <div class="col-12">
+                                <p class="text-muted mb-0" style="font-size:13px;line-height:1.45;">
+                                    Tax and discount apply only to non-subscription service invoices issued to subscribers.
+                                    Subscription purchases, upgrades, and renewals use fixed yearly plan prices and are never taxed or discounted from these settings.
+                                </p>
                             </div>
                         </div>
 
@@ -130,136 +598,268 @@
                             </div>
                         </div>
 
-                        <div class="row p-1 m-0">
-                            <div class="col-md-6">
-
+                        <div class="row p-1 mb-3 align-items-center">
+                            <div class="col-6">
+                                <label>Payment QR Code</label>
+                            </div>
+                            <div class="col-6">
+                                <input type="file" id="payment_qr_code" name="payment_qr_code" class="form-control"
+                                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
+                                <small class="text-muted d-block mt-1">Upload a square UPI/payment QR image (JPG, PNG, max 2MB).</small>
+                                <div class="mt-2" id="payment-qr-preview" style="{{ (!empty($inv_setting) && !empty($inv_setting->payment_qr_code)) ? '' : 'display:none;' }}">
+                                    <img src="{{ (!empty($inv_setting) && !empty($inv_setting->payment_qr_code)) ? asset('web_assets/users/user' . $user->id . '/' . $inv_setting->payment_qr_code) : '' }}"
+                                        alt="Payment QR code preview" id="payment-qr-preview-img"
+                                        style="width: 100px; height: 100px; object-fit: contain; border: 1px solid #ddd; border-radius: 6px; padding: 4px;{{ (!empty($inv_setting) && !empty($inv_setting->payment_qr_code)) ? '' : 'display:none;' }}">
+                                    <div class="mt-1" id="payment-qr-remove-wrap" style="{{ (!empty($inv_setting) && !empty($inv_setting->payment_qr_code)) ? '' : 'display:none;' }}">
+                                        <label class="form-check-label">
+                                            <input type="checkbox" name="remove_payment_qr" value="1" id="remove_payment_qr"> Remove current QR code
+                                        </label>
+                                    </div>
                                 </div>
-                                <div class="col-md-6 text-right">
+                            </div>
+                        </div>
+
+                        <div class="row p-1 mb-3 align-items-start">
+                            <div class="col-6">
+                                <label>Note</label>
+                            </div>
+                            <div class="col-6">
+                                <textarea id="invoice_note" name="invoice_note" class="form-control" rows="4"
+                                    placeholder="Optional note to appear on invoices">{{ $inv_setting->invoice_note ?? '' }}</textarea>
+                                <small class="text-muted d-block mt-1">This note appears under the Note section on new invoices only.</small>
+                            </div>
+                        </div>
+
+                        <div class="row p-1 m-0">
+                            <div class="col-md-6"></div>
+                            <div class="col-md-6 text-right">
                                 <button type="button" class="btn btn-primary" id="save-invoice-settings">Save</button>
                             </div>
                         </div>
                     </form>
                 </div>
 
-                <!-- Add New Service Tab -->
+                <!-- Discounts & Offers Tab -->
                 <div class="tab-pane fade" id="service" role="tabpanel" aria-labelledby="service-tab">
+                    <div class="offers-panel">
+                        <div class="offers-panel__header">
+                            <h4 class="offers-panel__title">Discounts &amp; Offers</h4>
+                            <p class="offers-panel__subtitle">Apply one-time wallet discounts or automated subscription benefits to selected subscribers. Confirmation emails are sent after each successful apply.</p>
+                        </div>
 
+                        <form id="offers-settings-form" method="post" novalidate>
+                            @csrf
+                            <input type="hidden" id="offer_mode" name="offer_mode" value="{{ old('offer_mode') }}">
 
-                    <div class="row p-1 m-0">
-                        <p class="m-0 p-1" style="font-size:18px;font-weight: 550;">Discounts & Offers</p>
+                            <div class="offers-step">
+                                <div class="offers-step__label">
+                                    <span class="offers-step__number">1</span>
+                                    Discount / Offer Type
+                                </div>
+                                <div class="offers-mode-grid">
+                                    <label class="offers-mode-card {{ old('offer_mode', '') === 'manual' ? 'is-active' : '' }}" data-offer-mode="manual">
+                                        <input type="radio" name="offer_mode_choice" value="manual" {{ old('offer_mode') == 'manual' ? 'checked' : '' }}>
+                                        <div class="offers-mode-card__title">Manual / One-time Discount</div>
+                                        <p class="offers-mode-card__text">Cashback, one-time wallet credit, or double subscription term applied immediately.</p>
+                                    </label>
+                                    <label class="offers-mode-card {{ old('offer_mode', '') === 'automated' ? 'is-active' : '' }}" data-offer-mode="automated">
+                                        <input type="radio" name="offer_mode_choice" value="automated" {{ old('offer_mode') == 'automated' ? 'checked' : '' }}>
+                                        <div class="offers-mode-card__title">Automated Offers</div>
+                                        <p class="offers-mode-card__text">Extended term, doubled limits, or Analytics access for a defined offer period.</p>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="offer-details-section" class="offers-step offers-section-hidden">
+                                <div class="offers-step__label">
+                                    <span class="offers-step__number">2</span>
+                                    Offer Detail
+                                </div>
+
+                                <div id="offer-subtype-row" class="mb-3 offers-section-hidden">
+                                    <label class="offers-field-label" id="offer-subtype-label" for="discount_type">Offer Type</label>
+                                    <select id="discount_type" name="discount_type" class="form-control form-select">
+                                        <option value="">Select an option</option>
+                                        <option value="cashback" {{ old('discount_type') == 'cashback' ? 'selected' : '' }}>Cashback</option>
+                                        @foreach (\App\Services\OfferBenefitService::oneOffCreditTypeOptions() as $oneOffType => $oneOffLabel)
+                                            <option value="{{ $oneOffType }}" {{ old('discount_type') == $oneOffType ? 'selected' : '' }}>{{ $oneOffLabel }}</option>
+                                        @endforeach
+                                        <option value="double_term" {{ old('discount_type') == 'double_term' ? 'selected' : '' }}>Double the subscription term</option>
+                                        <option value="free_upgrade" {{ old('discount_type') == 'free_upgrade' ? 'selected' : '' }}>Free Upgrade</option>
+                                        <option value="3_months_extra" {{ old('discount_type') == '3_months_extra' ? 'selected' : '' }}>3 Months Extra</option>
+                                        <option value="6_months_extra" {{ old('discount_type') == '6_months_extra' ? 'selected' : '' }}>6 Months Extra</option>
+                                        <option value="double_features" {{ old('discount_type') == 'double_features' ? 'selected' : '' }}>Double Features</option>
+                                        <option value="double_clients" {{ old('discount_type') == 'double_clients' ? 'selected' : '' }}>Double Clients</option>
+                                        <option value="double_users" {{ old('discount_type') == 'double_users' ? 'selected' : '' }}>Double Users</option>
+                                        <option value="double_messages" {{ old('discount_type') == 'double_messages' ? 'selected' : '' }}>Double Messages</option>
+                                        <option value="double_associates" {{ old('discount_type') == 'double_associates' ? 'selected' : '' }}>Double Associates</option>
+                                        <option value="unlimited_associates" {{ old('discount_type') == 'unlimited_associates' ? 'selected' : '' }}>Unlimited Associates</option>
+                                        <option value="analytics_on" {{ old('discount_type') == 'analytics_on' ? 'selected' : '' }}>Analytics ON</option>
+                                    </select>
+                                    @error('discount_type')
+                                        <span class="text-danger small">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <div id="offer-date-range" class="offers-section-hidden">
+                                    <label class="offers-field-label">Offer Duration</label>
+                                    <div class="offers-date-grid">
+                                        <div>
+                                            <label class="offers-field-hint mb-1" for="offer_start_date">Start Date</label>
+                                            <input type="text" id="offer_start_date" name="offer_start_date" class="form-control offer-date-input" value="{{ old('offer_start_date') }}" placeholder="dd-mm-yyyy" autocomplete="off" />
+                                        </div>
+                                        <div>
+                                            <label class="offers-field-hint mb-1" for="offer_end_date">End Date</label>
+                                            <input type="text" id="offer_end_date" name="offer_end_date" class="form-control offer-date-input" value="{{ old('offer_end_date') }}" placeholder="dd-mm-yyyy" autocomplete="off" />
+                                        </div>
+                                    </div>
+                                    <span class="offers-field-hint">Benefits will be applied for selected subscriber(s) between these dates.</span>
+                                </div>
+
+                        <div id="dynamic-field" class="offers-section-hidden">
+                            <label class="offers-field-label" for="discount_value" id="discount_label">Discount Amount</label>
+                            <input type="number" id="discount_value" name="discount_value" class="form-control"
+                                placeholder="Enter value" min="1" step="any" value="{{ old('discount_value') }}" />
+                            @error('discount_value')
+                                <span class="text-danger small">{{ $message }}</span>
+                            @enderror
+                        </div>
+                        <div id="free-upgrade-hint" class="offers-info-banner offers-section-hidden">
+                            Free Upgrade moves each eligible subscriber to the next higher paid plan (for example Solo to Adwiseri, Adwiseri to Adwiseri+). Subscription dates stay the same and no charge is applied. A confirmation email is sent automatically.
+                        </div>
                     </div>
 
-                    <form id="offers-settings-form" method="post">
-                        @csrf
+                            <div id="offer-audience-section" class="offers-step offers-section-hidden">
+                                <div class="offers-step__label">
+                                    <span class="offers-step__number">3</span>
+                                    <span id="offer-audience-step-title">Select Subscriber(s)</span>
+                                </div>
 
-                        <div class="row p-1 mb-3 align-items-center">
-                            <div class="col-6">
-                                <label>Select Subscriber(s)</label>
-                            </div>
-                            <div class="col-6">
+                                <div class="mb-3">
+                                    <label class="offers-field-label" for="subscriber_type">Subscriber(s)</label>
+                                    <select id="subscriber_type" name="subscriber_type" class="form-control form-select" required>
+                                        <option value="existing" {{ old('subscriber_type', 'existing') == 'existing' ? 'selected' : '' }}>Existing Subscribers</option>
+                                        <option value="loyal" {{ old('subscriber_type') == 'loyal' ? 'selected' : '' }}>Loyal Subscribers (Over 5 Years)</option>
+                                        <option value="new" {{ old('subscriber_type') == 'new' ? 'selected' : '' }}>New Subscribers</option>
+                                    </select>
+                                    <span class="offers-field-hint mb-3" id="subscriber-type-hint">Select one or more subscribers from the checklist below.</span>
+                                </div>
 
-                                <div class="dropdown">
-                                    <div class="form-control dropdown-toggle" data-bs-toggle="dropdown">
-                                        Select Subscriber(s)
+                                <div id="applicable-plans-row" class="mb-3 offers-section-hidden">
+                                    <label class="offers-field-label d-block mb-2">Applicable on (Plan)</label>
+                                    <div class="offers-plan-picker" id="applicable-plans-picker">
+                                        @php
+                                            $oldApplicablePlans = old('applicable_plans', ['all']);
+                                            if (!is_array($oldApplicablePlans)) {
+                                                $oldApplicablePlans = [$oldApplicablePlans];
+                                            }
+                                        @endphp
+                                        @foreach (\App\Services\OfferBenefitService::applicablePlanOptions() as $planKey => $planLabel)
+                                            <label class="offers-plan-item">
+                                                <input type="checkbox"
+                                                    class="applicable-plan-checkbox"
+                                                    name="applicable_plans[]"
+                                                    value="{{ $planKey }}"
+                                                    data-plan-all="{{ $planKey === 'all' ? '1' : '0' }}"
+                                                    {{ in_array($planKey, $oldApplicablePlans, true) ? 'checked' : '' }}>
+                                                <span class="offers-plan-item__name">{{ $planLabel }}</span>
+                                            </label>
+                                        @endforeach
                                     </div>
-                                    <div class="dropdown-menu form-control">
+                                    <span class="offers-field-hint">Select All, or one or more subscription plans this automated offer should apply to.</span>
+                                </div>
 
-                                        <div class="dropdown-item" style="width: 100%;"><input type="checkbox"  id="selectAll"
-                                                name="subscribers[]" value="All" />All</div>
-
-                                        @if ($subscribers)
-                                            @foreach ($subscribers as $suser)
-                                                <div class="dropdown-item" style="width: 100%;">
-                                                    <input type="checkbox"
-                                                     class="subscriber-checkbox"
-                                                        name="subscribers[]" value="{{ $suser->id }}" />
-                                                    {{ $suser->name }} ({{ $suser->id }}) ({{ $suser->user_type }})</div>
-                                            @endforeach
-                                        @endif
-
+                                <div id="subscriber-picker-row">
+                                    <label class="offers-field-label d-block mb-2">Select Subscriber(s)</label>
+                                    <div class="offers-subscriber-picker">
+                                        <div class="offers-subscriber-toolbar" id="offers-subscriber-toolbar">
+                                            <label class="offers-subscriber-item offers-subscriber-item--select-all mb-0">
+                                                <input type="checkbox" id="selectAll">
+                                                <div class="offers-subscriber-item__body">
+                                                    <div class="offers-subscriber-item__name">Select All</div>
+                                                </div>
+                                            </label>
+                                            <span class="offers-selected-count" id="manual-selected-count">0 selected</span>
+                                        </div>
+                                        <div class="offers-subscriber-list">
+                                            @if ($subscribers)
+                                                @foreach ($subscribers as $suser)
+                                                    @php
+                                                        $loyalSince = !empty($suser->membership_start_date)
+                                                            ? \Carbon\Carbon::parse($suser->membership_start_date)
+                                                            : \Carbon\Carbon::parse($suser->created_at);
+                                                    @endphp
+                                                    <label class="offers-subscriber-item" data-subscriber-item>
+                                                        <input type="checkbox" class="subscriber-checkbox" name="subscribers[]" value="{{ $suser->id }}"
+                                                            data-created="{{ \Carbon\Carbon::parse($suser->created_at)->format('Y-m-d') }}"
+                                                            data-loyal-since="{{ $loyalSince->format('Y-m-d') }}">
+                                                        <div class="offers-subscriber-item__body">
+                                                            <div class="offers-subscriber-item__name">{{ $suser->name }}</div>
+                                                            <div class="offers-subscriber-item__meta">ID <strong>{{ $suser->id }}</strong> &middot; {{ $suser->membership }}</div>
+                                                        </div>
+                                                    </label>
+                                                @endforeach
+                                                <p id="offers-audience-empty" class="offers-subscriber-empty offers-section-hidden">No subscribers match the selected audience.</p>
+                                            @else
+                                                <p class="offers-subscriber-empty">No subscribers available.</p>
+                                            @endif
+                                        </div>
                                     </div>
-                                </div>
-                                @error('subscribers')
-                                    <span style="color: red;">{{ $message }}</span>
-                                @enderror
-
-                            </div>
-                        </div>
-                        <div class="row p-1 mb-3 align-items-center">
-                            <div class="col-6">
-                                <label>Select Type of subscribers</label>
-                            </div>
-                            <div class="col-6">
-                                <select id="subscriber_type" name="subscriber_type" class="form-control" required>
-                                    <option value="existing" {{ old('subscriber_type', 'existing') == 'existing' ? 'selected' : '' }}>Existing</option>
-                                    <option value="new" {{ old('subscriber_type') == 'new' ? 'selected' : '' }}>New</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div id="offer-date-range" style="display:none;">
-                            <div class="row p-1 mb-3 align-items-center">
-                                <div class="col-6">
-                                    <label>Select Dates</label>
-                                </div>
-                                <div class="col-3">
-                                    <input type="date" id="offer_start_date" name="offer_start_date" class="form-control" value="{{ old('offer_start_date') }}" />
-                                </div>
-                                <div class="col-3">
-                                    <input type="date" id="offer_end_date" name="offer_end_date" class="form-control" value="{{ old('offer_end_date') }}" />
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row p-1 mb-3 align-items-center">
-                            <div class="col-6">
-                                <label>Type of Discount</label>
-                            </div>
-                            <div class="col-6">
-                                <select id="discount_type" name="discount_type" class="form-control" required>
-                                    <option value="" {{ empty(old('discount_type')) ? 'selected' : '' }}>Select
-                                        Discount Type
-                                    </option>
-                                    <option value="cashback" {{ old('discount_type') == 'cashback' ? 'selected' : '' }}>
-                                        Cashback
-                                    </option>
-                                    <option value="one_off" {{ old('discount_type') == 'one_off' ? 'selected' : '' }}>
-                                        One-off credit
-                                    </option>
-                                    <option value="double_term"
-                                        {{ old('discount_type') == 'double_term' ? 'selected' : '' }}>
-                                        Double the subscription term</option>
-                                </select>
-                                @error('discount_type')
-                                    <span style="color: red;">{{ $message }}</span>
-                                @enderror
-                            </div>
-                        </div>
-                        <div id="dynamic-field" class="form-group" style="display: none;">
-                            <div class="row p-1 mb-3 align-items-center">
-                                <div class="col-6">
-                                    <label for="discount_value" id="discount_label">Discount Amount</label>
-                                </div>
-                                <div class="col-6">
-                                    <input type="number" id="discount_value" name="discount_value" class="form-control"
-                                        placeholder="Enter Discount Value" min="1" step="any"
-                                        value="{{ old('discount_value') }}" required />
-                                    @error('discount_value')
-                                        <span style="color: red;">{{ $message }}</span>
+                                    @error('subscribers')
+                                        <span class="text-danger small d-block mt-1">{{ $message }}</span>
                                     @enderror
-                                    <br />
                                 </div>
+
+                                <div id="offer-audience-info" class="offers-info-banner offers-section-hidden"></div>
+                            </div>
+
+                            <div id="offer-actions-section" class="offers-actions offers-section-hidden">
+                                <button type="submit" class="btn btn-primary px-4" id="save-offers-settings">Apply &amp; Save</button>
+                            </div>
+                        </form>
+
+                        <div class="offers-history">
+                            <h5 class="offers-history__title">Applied Discounts &amp; Offers</h5>
+                            <p class="offers-history__subtitle">This table will have D &amp; O applied successfully. Newest first. Use this list to plan future D &amp; O.</p>
+                            <div class="offers-history-table-wrap">
+                                <table class="table table-bordered table-striped offers-history-table display" id="offers-history-table" width="100%">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Type</th>
+                                            <th>Given To</th>
+                                            <th>D/O Type</th>
+                                            <th>Description</th>
+                                            <th>Date</th>
+                                            <th>Given By</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($offerApplications as $application)
+                                            @php
+                                                $offer = $application->offer;
+                                                $offerType = (string) ($application->type ?? $offer?->discount_type ?? '');
+                                                $description = $offer
+                                                    ? $offerBenefitService->offerDescriptionForRecord($offer, $application->user)
+                                                    : $offerBenefitService->offerTypeLabel($offerType);
+                                            @endphp
+                                            <tr>
+                                                <td>{{ $application->id }}</td>
+                                                <td>{{ $offerBenefitService->offerModeLabelForRecord($offer, $offerType) }}</td>
+                                                <td>{{ $application->user_name ?? optional($application->user)->name ?? '—' }}</td>
+                                                <td>{{ $offerBenefitService->offerTypeLabel($offerType) }}</td>
+                                                <td class="offers-history-desc">{{ $description }}</td>
+                                                <td data-order="{{ $application->created_at ? $application->created_at->timestamp : 0 }}">
+                                                    {{ $application->created_at ? $application->created_at->format('d-m-Y H:i') : '—' }}
+                                                </td>
+                                                <td>{{ $offer?->applied_by_name ?? $application->applied_by_name ?? 'Admin' }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-                        <div class="row p-1 m-0">
-                            <div class="col-md-6">
-
-                                </div>
-                                <div class="col-md-6 text-right">
-                                <button type="submit" class="btn btn-primary" id="save-offers-settings">Apply &amp; Save</button>
-                            </div>
-                        </div>
-
-                    </form>
+                    </div>
                 </div>
                 <div class="tab-pane fade" id="reports" role="tabpanel" aria-labelledby="reports-tab">
                     <div class="row p-1 m-0">
@@ -396,6 +996,26 @@
                         </div>
                     </form>
                 </div>
+
+                <div class="tab-pane fade" id="notifications" role="tabpanel" aria-labelledby="notifications-tab">
+                    <div class="row p-1 m-0">
+                        <p class="m-0 p-1" style="font-size:18px;font-weight: 550;">Notifications</p>
+                    </div>
+                    @php
+                        $adminNotifTypes = $recipientNotificationTypes
+                            ?? (class_exists(\App\Services\NotificationService::class)
+                                ? \App\Services\NotificationService::adminSendableNotificationTypes()
+                                : []);
+                    @endphp
+                    @include('partials.admin_notification_settings', [
+                        'recipientNotificationTypes' => $adminNotifTypes,
+                        'subscribers' => $notificationSubscribers ?? collect(),
+                        'staffUsers' => $staffUsers ?? collect(),
+                        'subscriberLookup' => $subscriberLookup ?? collect(),
+                    ])
+                </div>
+
+                @include('admin.partials.admin_dashboard_settings')
             </div>
         </div>
     </div>
@@ -411,7 +1031,63 @@
     <script>
         const emailTemplateAudience = @json($emailTemplateAudience);
         const emailTemplatesData = @json(($emailTemplates[$emailTemplateAudience] ?? collect()->values()));
+        const oneOffCreditTypes = @json(array_keys(\App\Services\OfferBenefitService::oneOffCreditTypeOptions()));
         let emailTemplateEditor = null;
+
+        function isOneOffCreditType(type) {
+            return oneOffCreditTypes.includes(type);
+        }
+
+        const automatedOfferTypes = @json(\App\Services\OfferBenefitService::automatedOfferTypeKeys());
+
+        function parseDisplayDate(value) {
+            if (!value) {
+                return null;
+            }
+
+            if (/^\d{2}-\d{2}-\d{4}$/.test(value)) {
+                const parts = value.split('-');
+                return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+            }
+
+            if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                const parts = value.split('-');
+                return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+            }
+
+            return null;
+        }
+
+        function validateAutomatedOfferDates(startDate, endDate) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (!startDate || !endDate) {
+                return 'Please select offer start and end dates.';
+            }
+
+            const start = parseDisplayDate(startDate);
+            const end = parseDisplayDate(endDate);
+
+            if (!start || !end) {
+                return 'Please enter valid dates in dd-mm-yyyy format.';
+            }
+
+            if (start < today) {
+                return 'Start date cannot be before today.';
+            }
+
+            if (end < today) {
+                return 'End date cannot be before today.';
+            }
+
+            if (end < start) {
+                return 'End date cannot be earlier than start date.';
+            }
+
+            return '';
+        }
+
         function getTemplatesMap() {
             const rows = (emailTemplatesData || []);
             return rows.reduce((acc, row) => {
@@ -534,8 +1210,8 @@
 
                     if (xhr.status !== 422) {
                         Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
+                            icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                            title: 'Oops!',
                             text: message
                         });
                     }
@@ -552,10 +1228,10 @@
         function deleteapplication(id) {
             Swal.fire({
                 title: 'Are you sure?',
-                text: "You won't be able to revert this!",
+                text: "This action cannot be undone.",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#3085d6',
+                confirmButtonColor: '#695EEE',
                 cancelButtonColor: '#d33',
                 confirmButtonText: 'Yes, delete it!'
             }).then((result) => {
@@ -568,12 +1244,12 @@
         function updateapplication(id) {
             Swal.fire({
                 title: 'Are you sure?',
-                text: "You want to update this record!",
+                text: "Do you want to update this record?",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#3085d6',
+                confirmButtonColor: '#695EEE',
                 cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes'
+                confirmButtonText: 'Yes, continue'
             }).then((result) => {
                 if (result.isConfirmed) {
                     window.location.href = "application_update/" + id + "";
@@ -583,60 +1259,572 @@
 
 
         document.addEventListener('DOMContentLoaded', function() {
+            const subscriberOfferEligibility = @json($subscriberOfferEligibility ?? []);
+            const offerModeInput = document.getElementById('offer_mode');
+            const offerModeCards = document.querySelectorAll('[data-offer-mode]');
+            const offerDetailsSection = document.getElementById('offer-details-section');
+            const offerAudienceSection = document.getElementById('offer-audience-section');
+            const offerActionsSection = document.getElementById('offer-actions-section');
+            const offerSubtypeRow = document.getElementById('offer-subtype-row');
+            const offerSubtypeLabel = document.getElementById('offer-subtype-label');
             const discountType = document.getElementById('discount_type');
             const dynamicField = document.getElementById('dynamic-field');
+            const freeUpgradeHint = document.getElementById('free-upgrade-hint');
             const discountLabel = document.getElementById('discount_label');
             const discountValue = document.getElementById('discount_value');
             const subscriberType = document.getElementById('subscriber_type');
+            const subscriberTypeHint = document.getElementById('subscriber-type-hint');
             const offerDateRange = document.getElementById('offer-date-range');
+            const offerAudienceInfo = document.getElementById('offer-audience-info');
+            const subscriberPickerRow = document.getElementById('subscriber-picker-row');
+            const applicablePlansRow = document.getElementById('applicable-plans-row');
+            const applicablePlanCheckboxes = document.querySelectorAll('.applicable-plan-checkbox');
+            const offerAudienceStepTitle = document.getElementById('offer-audience-step-title');
+            const saveOffersButton = document.getElementById('save-offers-settings');
+            const subscriberToolbar = document.getElementById('offers-subscriber-toolbar');
+            const audienceEmptyMessage = document.getElementById('offers-audience-empty');
+            const manualSelectedCount = document.getElementById('manual-selected-count');
+            const selectAllCheckbox = document.getElementById('selectAll');
+            const subscriberCheckboxes = document.querySelectorAll('.subscriber-checkbox');
+            const offerStartDateInput = document.getElementById('offer_start_date');
+            const offerEndDateInput = document.getElementById('offer_end_date');
+            let previousOfferMode = '';
+            let offerStartDatePicker = null;
+            let offerEndDatePicker = null;
+            let syncingApplicablePlans = false;
 
+            function formatDisplayDate(date) {
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                return `${day}-${month}-${year}`;
+            }
+
+            function addMonthsToDate(date, months) {
+                const copy = new Date(date.getTime());
+                copy.setMonth(copy.getMonth() + months);
+                return copy;
+            }
+
+            function initOfferDatePickers() {
+                if (typeof flatpickr === 'undefined' || !offerStartDateInput || !offerEndDateInput) {
+                    return;
+                }
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                if (!offerStartDatePicker) {
+                    offerStartDatePicker = flatpickr(offerStartDateInput, {
+                        dateFormat: 'd-m-Y',
+                        allowInput: true,
+                        disableMobile: true,
+                        minDate: today,
+                        onChange: function(selectedDates) {
+                            if (offerEndDatePicker && selectedDates[0]) {
+                                offerEndDatePicker.set('minDate', selectedDates[0]);
+                                const endDate = parseDisplayDate(offerEndDateInput.value);
+                                if (endDate && endDate < selectedDates[0]) {
+                                    offerEndDatePicker.setDate(selectedDates[0], true);
+                                }
+                            }
+                            filterSubscriberCheckboxes();
+                        },
+                    });
+                }
+
+                if (!offerEndDatePicker) {
+                    offerEndDatePicker = flatpickr(offerEndDateInput, {
+                        dateFormat: 'd-m-Y',
+                        allowInput: true,
+                        disableMobile: true,
+                        minDate: today,
+                        onChange: function() {
+                            filterSubscriberCheckboxes();
+                        },
+                    });
+                }
+            }
+
+            function applyAutomatedOfferDateRules(resetDefaults) {
+                if (!offerStartDateInput || !offerEndDateInput) {
+                    return;
+                }
+
+                initOfferDatePickers();
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const endDefault = addMonthsToDate(today, 1);
+
+                offerStartDatePicker?.set('minDate', today);
+                offerEndDatePicker?.set('minDate', today);
+
+                if (resetDefaults || !offerStartDateInput.value.trim()) {
+                    offerStartDatePicker?.setDate(today, true);
+                }
+
+                const startDate = parseDisplayDate(offerStartDateInput.value) || today;
+                const endMinDate = startDate < today ? today : startDate;
+                offerEndDatePicker?.set('minDate', endMinDate);
+
+                if (resetDefaults || !offerEndDateInput.value.trim()) {
+                    offerEndDatePicker?.setDate(endDefault, true);
+                } else {
+                    const endDate = parseDisplayDate(offerEndDateInput.value);
+                    if (endDate && endDate < endMinDate) {
+                        offerEndDatePicker?.setDate(endMinDate, true);
+                    }
+                }
+            }
+
+            initOfferDatePickers();
+
+            function showSection(el) {
+                if (el) el.classList.remove('offers-section-hidden');
+            }
+
+            function hideSection(el) {
+                if (el) el.classList.add('offers-section-hidden');
+            }
+
+            function setOfferMode(mode) {
+                offerModeInput.value = mode || '';
+                offerModeCards.forEach(function(card) {
+                    card.classList.toggle('is-active', card.dataset.offerMode === mode);
+                    const radio = card.querySelector('input[type="radio"]');
+                    if (radio) radio.checked = card.dataset.offerMode === mode;
+                });
+            }
+
+            function isSubscriberItemVisible(item) {
+                return item && !item.classList.contains('offers-section-hidden');
+            }
+
+            function showNoLoyalSubscribersAlert() {
+                Swal.fire({
+                    icon: 'warning',
+                    customClass: { icon: 'adwiseri-oops-icon' },
+                    title: 'Oops!',
+                    text: 'There is no subscriber who meets criteria to be termed as "Loyal Subscriber".',
+                });
+            }
+
+            function getSelectedApplicablePlans() {
+                return Array.from(applicablePlanCheckboxes)
+                    .filter(function(box) { return box.checked; })
+                    .map(function(box) { return box.value; });
+            }
+
+            function syncApplicablePlanCheckboxes(changedBox) {
+                if (syncingApplicablePlans || !applicablePlanCheckboxes.length) {
+                    return;
+                }
+
+                syncingApplicablePlans = true;
+
+                const allBox = Array.from(applicablePlanCheckboxes).find(function(box) {
+                    return box.dataset.planAll === '1';
+                });
+                const planBoxes = Array.from(applicablePlanCheckboxes).filter(function(box) {
+                    return box.dataset.planAll !== '1';
+                });
+
+                if (changedBox && changedBox.dataset.planAll === '1') {
+                    planBoxes.forEach(function(box) {
+                        box.checked = changedBox.checked;
+                    });
+                } else if (allBox) {
+                    if (changedBox && changedBox.checked === false) {
+                        allBox.checked = false;
+                    } else {
+                        const allPlansChecked = planBoxes.length > 0 && planBoxes.every(function(box) {
+                            return box.checked;
+                        });
+                        allBox.checked = allPlansChecked;
+                        if (allPlansChecked) {
+                            planBoxes.forEach(function(box) {
+                                box.checked = true;
+                            });
+                        }
+                    }
+                }
+
+                if (getSelectedApplicablePlans().length === 0 && allBox) {
+                    allBox.checked = true;
+                    planBoxes.forEach(function(box) {
+                        box.checked = true;
+                    });
+                }
+
+                syncingApplicablePlans = false;
+            }
+
+            function ensureDefaultApplicablePlans() {
+                if (!applicablePlanCheckboxes.length) {
+                    return;
+                }
+
+                const allBox = Array.from(applicablePlanCheckboxes).find(function(box) {
+                    return box.dataset.planAll === '1';
+                });
+                const planBoxes = Array.from(applicablePlanCheckboxes).filter(function(box) {
+                    return box.dataset.planAll !== '1';
+                });
+                const selected = getSelectedApplicablePlans();
+
+                if (selected.length === 0 || selected.includes('all')) {
+                    if (allBox) {
+                        allBox.checked = true;
+                    }
+                    planBoxes.forEach(function(box) {
+                        box.checked = true;
+                    });
+                    return;
+                }
+
+                syncApplicablePlanCheckboxes();
+            }
+
+            function updateDiscountTypeOptions(mode) {
+                if (!discountType) {
+                    return;
+                }
+
+                const isAutomated = mode === 'automated';
+                const currentValue = discountType.value;
+                let currentStillValid = false;
+
+                Array.from(discountType.options).forEach(function(option) {
+                    if (!option.value) {
+                        return;
+                    }
+
+                    const isAutomatedType = automatedOfferTypes.includes(option.value);
+                    const showOption = isAutomated ? isAutomatedType : true;
+
+                    option.hidden = !showOption;
+                    option.disabled = !showOption;
+
+                    if (option.value === currentValue && showOption) {
+                        currentStillValid = true;
+                    }
+                });
+
+                if (!currentStillValid) {
+                    discountType.value = '';
+                    updateDiscountField('');
+                }
+            }
+
+            function filterSubscriberCheckboxes(options) {
+                const showLoyalAlert = options && options.showLoyalAlert;
+                const audience = subscriberType.value;
+                const mode = offerModeInput.value;
+                const isAutomated = mode === 'automated';
+
+                if (isAutomated) {
+                    subscriberCheckboxes.forEach(function(box) {
+                        box.checked = false;
+                    });
+                    if (selectAllCheckbox) {
+                        selectAllCheckbox.checked = false;
+                    }
+                    if (subscriberToolbar) {
+                        hideSection(subscriberToolbar);
+                    }
+                    if (audienceEmptyMessage) {
+                        hideSection(audienceEmptyMessage);
+                    }
+                    updateSelectedCount();
+                    return 0;
+                }
+
+                const startDate = offerStartDateInput ? offerStartDateInput.value : '';
+                const endDate = offerEndDateInput ? offerEndDateInput.value : '';
+                const selectedOfferType = discountType ? discountType.value : '';
+                const now = new Date();
+                const loyalCutoff = new Date(now);
+                loyalCutoff.setFullYear(loyalCutoff.getFullYear() - 5);
+                let visibleCount = 0;
+
+                subscriberCheckboxes.forEach(function(box) {
+                    const item = box.closest('[data-subscriber-item]');
+                    const created = new Date(box.dataset.created + 'T00:00:00');
+                    const loyalSince = new Date((box.dataset.loyalSince || box.dataset.created) + 'T00:00:00');
+                    let visible = true;
+
+                    if (audience === 'loyal') {
+                        visible = loyalSince <= loyalCutoff;
+                    } else if (audience === 'new') {
+                        if (startDate && endDate) {
+                            const start = parseDisplayDate(startDate);
+                            const end = parseDisplayDate(endDate);
+                            if (start && end) {
+                                end.setHours(23, 59, 59, 999);
+                                visible = created >= start && created <= end;
+                            }
+                        } else {
+                            const recentCutoff = new Date(now);
+                            recentCutoff.setDate(recentCutoff.getDate() - 90);
+                            visible = created >= recentCutoff;
+                        }
+                    }
+
+                    if (selectedOfferType) {
+                        const eligibility = subscriberOfferEligibility[box.value];
+                        visible = visible && eligibility && eligibility[selectedOfferType] === true;
+                    }
+
+                    item.classList.toggle('offers-section-hidden', !visible);
+                    if (!visible) {
+                        box.checked = false;
+                    } else {
+                        visibleCount++;
+                    }
+                });
+
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = false;
+                }
+                updateSelectedCount();
+
+                if (visibleCount === 0) {
+                    if (subscriberToolbar) {
+                        hideSection(subscriberToolbar);
+                    }
+                    if (audienceEmptyMessage) {
+                        showSection(audienceEmptyMessage);
+                    }
+                    if (audience === 'loyal') {
+                        hideSection(offerAudienceInfo);
+                        if (showLoyalAlert) {
+                            showNoLoyalSubscribersAlert();
+                        }
+                    } else if (offerAudienceInfo) {
+                        if (selectedOfferType) {
+                            offerAudienceInfo.textContent = 'No subscribers are currently eligible for the selected offer type.';
+                        } else {
+                            offerAudienceInfo.textContent = 'Select an offer type to see eligible subscribers for manual assignment.';
+                        }
+                        showSection(offerAudienceInfo);
+                    }
+                } else {
+                    if (subscriberToolbar) {
+                        showSection(subscriberToolbar);
+                    }
+                    if (audienceEmptyMessage) {
+                        hideSection(audienceEmptyMessage);
+                    }
+                    updateAudienceInfo(audience, offerModeInput.value);
+                }
+
+                return visibleCount;
+            }
+
+            function updateSelectedCount() {
+                if (!manualSelectedCount) return;
+                let count = 0;
+                subscriberCheckboxes.forEach(function(box) {
+                    const item = box.closest('[data-subscriber-item]');
+                    if (box.checked && isSubscriberItemVisible(item)) {
+                        count++;
+                    }
+                });
+                manualSelectedCount.textContent = count + ' selected';
+            }
             function updateDiscountField(type) {
                 if (type === 'cashback') {
-                    dynamicField.style.display = 'block';
+                    showSection(dynamicField);
                     discountLabel.textContent = 'Cashback (%)';
-                    discountValue.placeholder = 'Enter percentage (e.g., 20)';
+                    discountValue.placeholder = 'Enter percentage (e.g. 20)';
                     discountValue.setAttribute('max', '100');
                     discountValue.setAttribute('required', 'required');
-                } else if (type === 'one_off') {
-                    dynamicField.style.display = 'block';
-                    discountLabel.textContent = 'Credit Amount';
-                    discountValue.placeholder = 'Enter amount (e.g., $100)';
-                    discountValue.setAttribute('max', '500');
+                } else if (isOneOffCreditType(type)) {
+                    showSection(dynamicField);
+                    discountLabel.textContent = 'Credit Amount (USD)';
+                    discountValue.placeholder = 'Enter amount (e.g. 100)';
+                    discountValue.removeAttribute('max');
                     discountValue.setAttribute('required', 'required');
-                } else {
-                    dynamicField.style.display = 'none';
+                } else if (type === 'free_upgrade') {
+                    hideSection(dynamicField);
+                    if (freeUpgradeHint) {
+                        showSection(freeUpgradeHint);
+                    }
                     discountValue.removeAttribute('required');
+                    discountValue.removeAttribute('max');
+                    discountValue.value = '';
+                } else {
+                    if (freeUpgradeHint) {
+                        hideSection(freeUpgradeHint);
+                    }
+                    hideSection(dynamicField);
+                    discountValue.removeAttribute('required');
+                    discountValue.removeAttribute('max');
                     discountValue.value = '';
                 }
             }
 
-            function updateSubscriberTypeField(type) {
-                const startDateInput = document.getElementById('offer_start_date');
-                const endDateInput = document.getElementById('offer_end_date');
+            function updateAudienceHint(audience, mode) {
+                if (mode === 'automated') {
+                    const automatedHints = {
+                        existing: 'This offer will apply automatically to all existing paid subscribers during the offer period. No manual selection is required.',
+                        loyal: 'This offer will apply automatically to loyal subscribers (5+ years) during the offer period. No manual selection is required.',
+                        new: 'This offer will apply automatically to new subscribers who register during the offer period. No manual selection is required.',
+                    };
+                    subscriberTypeHint.textContent = automatedHints[audience] || '';
+                    return;
+                }
 
-                if (type === 'new') {
-                    offerDateRange.style.display = 'block';
-                    startDateInput.setAttribute('required', 'required');
-                    endDateInput.setAttribute('required', 'required');
-                } else {
-                    offerDateRange.style.display = 'none';
-                    startDateInput.removeAttribute('required');
-                    endDateInput.removeAttribute('required');
-                    startDateInput.value = '';
-                    endDateInput.value = '';
+                const hints = {
+                    existing: 'All existing paid subscribers are listed. Select one or more from the checklist.',
+                    loyal: 'Only subscribers with accounts over 5 years old are shown. Select from the checklist.',
+                    new: 'Subscribers registered in the last 90 days are shown. Select from the checklist.',
+                };
+                subscriberTypeHint.textContent = hints[audience] || '';
+            }
+
+            function updateAudienceInfo(audience, mode) {
+                hideSection(offerAudienceInfo);
+                if (mode === 'automated') {
+                    const automatedInfo = {
+                        existing: 'Automated offer for all existing paid subscribers between the offer start and end dates in Step 2.',
+                        loyal: 'Automated offer for loyal subscribers (5+ years) between the offer start and end dates in Step 2.',
+                        new: 'Automated offer for new subscribers who register between the offer start and end dates in Step 2.',
+                    };
+                    offerAudienceInfo.textContent = automatedInfo[audience] || 'Automated offers are scheduled in advance. Subscriber checklist selection is not used.';
+                    showSection(offerAudienceInfo);
+                } else if (audience === 'loyal') {
+                    offerAudienceInfo.textContent = 'The checklist is filtered to loyal subscribers (account age over 5 years).';
+                    showSection(offerAudienceInfo);
                 }
             }
 
-            discountType.addEventListener('change', function() {
-                updateDiscountField(this.value);
+            function updateOfferForm() {
+                const mode = offerModeInput.value;
+                const audience = subscriberType.value;
+
+                if (!mode) {
+                    hideSection(offerDetailsSection);
+                    hideSection(offerAudienceSection);
+                    hideSection(offerActionsSection);
+                    discountType.removeAttribute('required');
+                    return;
+                }
+
+                showSection(offerDetailsSection);
+                showSection(offerAudienceSection);
+                showSection(offerActionsSection);
+                showSection(offerSubtypeRow);
+                discountType.setAttribute('required', 'required');
+                offerSubtypeLabel.textContent = 'Offer Type';
+                updateDiscountTypeOptions(mode);
+                updateDiscountField(discountType.value);
+                updateAudienceHint(audience, mode);
+                updateAudienceInfo(audience, mode);
+
+                const isAutomated = mode === 'automated';
+
+                if (offerAudienceStepTitle) {
+                    offerAudienceStepTitle.textContent = isAutomated ? 'Select Audience' : 'Select Subscriber(s)';
+                }
+
+                if (saveOffersButton) {
+                    saveOffersButton.textContent = isAutomated ? 'Save Offer' : 'Apply & Save';
+                }
+
+                if (isAutomated) {
+                    hideSection(subscriberPickerRow);
+                    if (applicablePlansRow) {
+                        showSection(applicablePlansRow);
+                    }
+                    ensureDefaultApplicablePlans();
+                } else {
+                    showSection(subscriberPickerRow);
+                    if (applicablePlansRow) {
+                        hideSection(applicablePlansRow);
+                    }
+                }
+
+                if (isAutomated) {
+                    showSection(offerDateRange);
+                    offerStartDateInput.setAttribute('required', 'required');
+                    offerEndDateInput.setAttribute('required', 'required');
+                    applyAutomatedOfferDateRules(previousOfferMode !== 'automated');
+                } else {
+                    hideSection(offerDateRange);
+                    offerStartDateInput.removeAttribute('required');
+                    offerEndDateInput.removeAttribute('required');
+                    offerStartDatePicker?.clear();
+                    offerEndDatePicker?.clear();
+                }
+
+                previousOfferMode = mode;
+
+                if (isAutomated && audience === 'loyal') {
+                    const loyalCutoff = new Date();
+                    loyalCutoff.setFullYear(loyalCutoff.getFullYear() - 5);
+                    let loyalCount = 0;
+                    subscriberCheckboxes.forEach(function(box) {
+                        const loyalSince = new Date((box.dataset.loyalSince || box.dataset.created) + 'T00:00:00');
+                        if (loyalSince <= loyalCutoff) {
+                            loyalCount++;
+                        }
+                    });
+                    if (loyalCount === 0) {
+                        showNoLoyalSubscribersAlert();
+                    }
+                }
+
+                filterSubscriberCheckboxes({ showLoyalAlert: !isAutomated && audience === 'loyal' });
+            }
+
+            offerModeCards.forEach(function(card) {
+                card.addEventListener('click', function() {
+                    setOfferMode(card.dataset.offerMode);
+                    updateOfferForm();
+                });
             });
 
             subscriberType.addEventListener('change', function() {
-                updateSubscriberTypeField(this.value);
+                updateOfferForm();
+            });
+            discountType.addEventListener('change', function() {
+                updateDiscountField(this.value);
+                filterSubscriberCheckboxes();
             });
 
-            updateDiscountField(discountType.value);
-            updateSubscriberTypeField(subscriberType.value);
+            applicablePlanCheckboxes.forEach(function(box) {
+                box.addEventListener('change', function() {
+                    syncApplicablePlanCheckboxes(box);
+                });
+            });
+
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener('change', function() {
+                    subscriberCheckboxes.forEach(function(box) {
+                        const item = box.closest('[data-subscriber-item]');
+                        if (isSubscriberItemVisible(item)) {
+                            box.checked = selectAllCheckbox.checked;
+                        }
+                    });
+                    updateSelectedCount();
+                });
+            }
+
+            subscriberCheckboxes.forEach(function(box) {
+                box.addEventListener('change', function() {
+                    if (selectAllCheckbox && !box.checked) {
+                        selectAllCheckbox.checked = false;
+                    }
+                    updateSelectedCount();
+                });
+            });
+
+            if (offerModeInput.value) {
+                setOfferMode(offerModeInput.value);
+            }
+            updateOfferForm();
         });
 
         $(document).ready(() => {
@@ -673,7 +1861,7 @@
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Currency Updated Successfully!'
+                                text: 'Currency updated successfully.'
                             })
                         }
                     }
@@ -695,7 +1883,7 @@
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Timezone Updated Successfully!'
+                                text: 'Timezone updated successfully.'
                             })
                         }
                     }
@@ -706,12 +1894,12 @@
                 const currency = $('#currenc').val();
 
                 if (!timezone) {
-                    Swal.fire({ icon: 'warning', title: '‼️ Oops !', text: 'Please select a timezone.' });
+                    Swal.fire({ icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' }, title: 'Oops!', text: 'Please select a timezone.' });
                     return;
                 }
 
                 if (!currency) {
-                    Swal.fire({ icon: 'warning', title: '‼️ Oops !', text: 'Please select a currency.' });
+                    Swal.fire({ icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' }, title: 'Oops!', text: 'Please select a currency.' });
                     return;
                 }
 
@@ -725,14 +1913,14 @@
                         Swal.fire({
                             icon: 'success',
                             title: 'Success',
-                            text: 'Settings Updated Successfully!',
+                            text: 'Settings updated successfully.',
                         });
                     },
                     error: function(xhr) {
                         const errorText = xhr?.responseJSON?.message || 'Failed to update settings!';
                         Swal.fire({
-                            icon: 'error',
-                            title: '‼️ Oops !',
+                            icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                            title: 'Oops!',
                             text: errorText,
                         });
                     },
@@ -743,22 +1931,37 @@
                 const discount = $.trim($('#discount').val());
 
                 if (tax !== '' && (isNaN(tax) || Number(tax) < 0 || Number(tax) > 100)) {
-                    Swal.fire({ icon: 'warning', title: '‼️ Oops !', text: 'Tax must be between 0 and 100.' });
+                    Swal.fire({ icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' }, title: 'Oops!', text: 'Tax must be between 0 and 100.' });
                     return;
                 }
 
                 if (discount !== '' && (isNaN(discount) || Number(discount) < 0 || Number(discount) > 100)) {
-                    Swal.fire({ icon: 'warning', title: '‼️ Oops !', text: 'Discount must be between 0 and 100.' });
+                    Swal.fire({ icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' }, title: 'Oops!', text: 'Discount must be between 0 and 100.' });
                     return;
                 }
 
-                let formData = $('#invoice-settings-form').serialize();
+                let formData = new FormData($('#invoice-settings-form')[0]);
 
                 $.ajax({
                     url: "{{ route('invoice_settings') }}",
                     method: 'POST',
                     data: formData,
+                    processData: false,
+                    contentType: false,
                     success: function(response) {
+                        if (response.settings) {
+                            $('#payment_qr_code').val('');
+                            $('#remove_payment_qr').prop('checked', false);
+                            if (response.settings.payment_qr_url) {
+                                $('#payment-qr-preview').show();
+                                $('#payment-qr-preview-img').attr('src', response.settings.payment_qr_url).show();
+                                $('#payment-qr-remove-wrap').show();
+                            } else {
+                                $('#payment-qr-preview-img').attr('src', '').hide();
+                                $('#payment-qr-remove-wrap').hide();
+                                $('#payment-qr-preview').hide();
+                            }
+                        }
                         Swal.fire({
                             icon: 'success',
                             title: 'Success',
@@ -768,12 +1971,50 @@
                     error: function(xhr) {
                         const errorText = xhr?.responseJSON?.message || 'Failed to update invoice settings!';
                         Swal.fire({
-                            icon: 'error',
-                            title: '‼️ Oops !',
+                            icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                            title: 'Oops!',
                             text: errorText,
                         });
                     },
                 });
+            });
+
+            $('#payment_qr_code').on('change', function () {
+                var file = this.files && this.files[0] ? this.files[0] : null;
+                if (!file) {
+                    return;
+                }
+
+                if (!file.type || file.type.indexOf('image/') !== 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        customClass: { icon: 'adwiseri-oops-icon' },
+                        title: 'Oops!',
+                        text: 'Please select a valid image file (JPG, PNG).',
+                    });
+                    $(this).val('');
+                    return;
+                }
+
+                if (file.size > 2 * 1024 * 1024) {
+                    Swal.fire({
+                        icon: 'warning',
+                        customClass: { icon: 'adwiseri-oops-icon' },
+                        title: 'Oops!',
+                        text: 'QR image must be 2MB or smaller.',
+                    });
+                    $(this).val('');
+                    return;
+                }
+
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    $('#payment-qr-preview').show();
+                    $('#payment-qr-preview-img').attr('src', e.target.result).show();
+                    $('#payment-qr-remove-wrap').show();
+                    $('#remove_payment_qr').prop('checked', false);
+                };
+                reader.readAsDataURL(file);
             });
             // const discountInput = document.getElementById('discount_value');
 
@@ -794,8 +2035,8 @@
 
             //     if (discountValue === '' || parseFloat(discountValue) < 1) {
             //         Swal.fire({
-            //             icon: 'error',
-            //             title: 'Error',
+            //             icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+            //             title: 'Oops!',
             //             text: 'Discount value must be greater than or equal to 1!',
             //         });
             //         return; // Stop form submission
@@ -817,7 +2058,7 @@
             //         error: function(xhr) {
             //             Swal.fire({
             //                 icon: 'error',
-            //                 title: 'Error',
+            //                 title: 'Oops!',
             //                 text: 'Failed to apply discount!',
             //             });
             //         },
@@ -860,7 +2101,7 @@
                         Swal.fire({ icon: 'success', title: 'Success', text: response.message });
                     },
                     error: function () {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to save email template!' });
+                        Swal.fire({ icon: 'error', title: 'Oops!', text: 'Failed to save email template.' });
                     }
                 });
             });
@@ -868,103 +2109,234 @@
                 renderEmailTemplateDetails();
             });
 
+            function formatOfferSwalMessage(message) {
+                return String(message || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/\n\n/g, '<br><br>')
+                    .replace(/\n/g, '<br>');
+            }
+
             $('#offers-settings-form').on('submit', function (e) {
                 e.preventDefault();
 
+                const offerMode = $('#offer_mode').val();
                 const discountValue = $('#discount_value').val();
                 const discountType = $('#discount_type').val();
                 const subscriberType = $('#subscriber_type').val();
                 const offerStartDate = $('#offer_start_date').val();
                 const offerEndDate = $('#offer_end_date').val();
-                const saveButton = $('#save-offers-settings');
+                const isAutomated = offerMode === 'automated';
 
-                if ((discountType === 'cashback' || discountType === 'one_off') && (discountValue === '' || parseFloat(discountValue) < 1)) {
+                if (!offerMode) {
                     Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        title: 'Oops!',
+                        text: 'Please choose Manual / One-time Discount or Automated Offers.',
+                    });
+                    return;
+                }
+
+                if (!discountType) {
+                    Swal.fire({
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        title: 'Oops!',
+                        text: 'Please select a discount or offer.',
+                    });
+                    return;
+                }
+
+                if ((discountType === 'cashback' || isOneOffCreditType(discountType)) && (discountValue === '' || parseFloat(discountValue) < 1)) {
+                    Swal.fire({
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        title: 'Oops!',
                         text: 'Discount value must be greater than or equal to 1!',
                     });
                     return;
                 }
 
-                if (subscriberType === 'new' && (!offerStartDate || !offerEndDate)) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Please select start and end dates for new subscribers.',
-                    });
-                    return;
+                if (isAutomated) {
+                    const dateValidationMessage = validateAutomatedOfferDates(offerStartDate, offerEndDate);
+                    if (dateValidationMessage) {
+                        Swal.fire({
+                            icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                            title: 'Oops!',
+                            text: dateValidationMessage,
+                        });
+                        return;
+                    }
+
+                    if (!automatedOfferTypes.includes(discountType)) {
+                        Swal.fire({
+                            icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                            title: 'Oops!',
+                            text: 'Please select an automated offer type (for example, Double Users, Analytics ON, or 3 Months Extra).',
+                        });
+                        return;
+                    }
+
+                    if ($('.applicable-plan-checkbox:checked').length === 0) {
+                        Swal.fire({
+                            icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                            title: 'Oops!',
+                            text: 'Please select at least one plan under Applicable on (Plan).',
+                        });
+                        return;
+                    }
                 }
 
                 let selectedSubscribers = [];
-                if ($('#selectAll').is(':checked')) {
-                    selectedSubscribers.push('All');
-                } else {
-                    $('.subscriber-checkbox:checked').each(function () {
-                        selectedSubscribers.push($(this).val());
+                if (!isAutomated) {
+                    let visibleSubscriberCount = 0;
+                    $('.subscriber-checkbox').each(function () {
+                        if (!$(this).closest('[data-subscriber-item]').hasClass('offers-section-hidden')) {
+                            visibleSubscriberCount++;
+                        }
                     });
-                }
 
-                if (selectedSubscribers.length === 0) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Please select at least one subscriber!',
+                    if (subscriberType === 'loyal' && visibleSubscriberCount === 0) {
+                        Swal.fire({
+                            icon: 'warning',
+                            customClass: { icon: 'adwiseri-oops-icon' },
+                            title: 'Oops!',
+                            text: 'There is no subscriber who meets criteria to be termed as "Loyal Subscriber".',
+                        });
+                        return;
+                    }
+
+                    $('.subscriber-checkbox:checked').each(function () {
+                        const item = $(this).closest('[data-subscriber-item]');
+                        if (!item.hasClass('offers-section-hidden')) {
+                            selectedSubscribers.push($(this).val());
+                        }
                     });
-                    return;
+
+                    if (selectedSubscribers.length === 0) {
+                        if (subscriberType === 'loyal') {
+                            Swal.fire({
+                                icon: 'warning',
+                                customClass: { icon: 'adwiseri-oops-icon' },
+                                title: 'Oops!',
+                                text: 'There is no subscriber who meets criteria to be termed as "Loyal Subscriber".',
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                                title: 'Oops!',
+                                text: 'Please select at least one subscriber from the checklist.',
+                            });
+                        }
+                        return;
+                    }
                 }
 
                 const formData = {
-                    _token: "{{ csrf_token() }}",
+                    _token: $('meta[name="csrf-token"]').attr('content'),
+                    offer_mode: offerMode,
                     discount_value: discountValue,
-                    subscribers: selectedSubscribers,
                     discount_type: discountType,
                     subscriber_type: subscriberType,
-                    offer_start_date: offerStartDate,
-                    offer_end_date: offerEndDate,
                 };
 
-                saveButton.prop('disabled', true).text('Applying...');
+                selectedSubscribers.forEach(function (subscriberId, index) {
+                    formData['subscribers[' + index + ']'] = subscriberId;
+                });
+
+                if (isAutomated) {
+                    formData.offer_start_date = offerStartDate;
+                    formData.offer_end_date = offerEndDate;
+
+                    const selectedPlans = [];
+                    $('.applicable-plan-checkbox:checked').each(function () {
+                        selectedPlans.push($(this).val());
+                    });
+
+                    if (selectedPlans.includes('all')) {
+                        formData['applicable_plans[0]'] = 'all';
+                    } else {
+                        selectedPlans.forEach(function (planKey, index) {
+                            formData['applicable_plans[' + index + ']'] = planKey;
+                        });
+                    }
+                }
 
                 $.ajax({
                     url: "{{ url('offers_store') }}",
                     method: 'POST',
+                    dataType: 'json',
                     data: formData,
                     headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        'Accept': 'application/json',
                     },
                     success: function (response) {
                         Swal.fire({
                             icon: 'success',
                             title: 'Success',
-                            text: response.message || 'Discounts & offers applied successfully!',
+                            html: formatOfferSwalMessage(response.message || 'Discounts & offers applied successfully!'),
+                        }).then(function () {
+                            window.location.reload();
                         });
                     },
                     error: function (xhr) {
-                        let message = xhr?.responseJSON?.message || 'Failed to apply discount!';
+                        let message = xhr?.responseJSON?.message
+                            || xhr?.responseJSON?.error?.message
+                            || 'Failed to apply discount!';
                         if (xhr?.responseJSON?.errors) {
                             const firstError = Object.values(xhr.responseJSON.errors)[0];
                             if (firstError && firstError[0]) {
                                 message = firstError[0];
                             }
                         }
-                        if (xhr.status === 419) {
-                            message = 'Your session expired. Please refresh the page and try again.';
-                        }
                         Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: message,
+                            icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                            title: 'Oops!',
+                            html: formatOfferSwalMessage(message),
                         });
-                    },
-                    complete: function () {
-                        saveButton.prop('disabled', false).text('Apply & Save');
                     },
                 });
             });
 
 
         });
+
+        let offersHistoryTable = null;
+
+        function initOffersHistoryTable() {
+            const tableEl = $('#offers-history-table');
+            if (!tableEl.length || $.fn.DataTable.isDataTable(tableEl)) {
+                return;
+            }
+
+            offersHistoryTable = tableEl.DataTable({
+                order: [[5, 'desc']],
+                pageLength: 25,
+                lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'All']],
+                autoWidth: false,
+                columnDefs: [
+                    { targets: [4], orderable: true },
+                    { targets: '_all', className: 'align-top' },
+                ],
+                language: {
+                    emptyTable: 'No discounts or offers have been applied yet.',
+                    zeroRecords: 'No matching discounts or offers found.',
+                    search: 'Search:',
+                    lengthMenu: 'Show _MENU_ entries',
+                },
+            });
+        }
+
+        $('#service-tab').on('shown.bs.tab', function () {
+            initOffersHistoryTable();
+            if (offersHistoryTable) {
+                offersHistoryTable.columns.adjust().draw(false);
+            }
+        });
+
+        if ($('#service').hasClass('active') || window.location.hash === '#service') {
+            initOffersHistoryTable();
+        }
+
           document.addEventListener('DOMContentLoaded', function () {
         const selectAllCheckbox = document.getElementById('selectAll');
         const subscriberCheckboxes = document.querySelectorAll('.subscriber-checkbox');
@@ -1003,7 +2375,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Application Deleted Successfully!'
+                text: 'Application deleted successfully.'
             })
         </script>
     @endif
@@ -1012,7 +2384,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'General Settings Updated Successfully!'
+                text: 'General settings updated successfully.'
             })
         </script>
     @endif
@@ -1021,7 +2393,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Invoice Settings Updated Successfully!'
+                text: 'Invoice settings updated successfully.'
             })
         </script>
     @endif
@@ -1030,7 +2402,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Application Updated Successfully!'
+                text: 'Service updated successfully.'
             })
         </script>
     @endif
@@ -1039,8 +2411,18 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Discounts & Offers Applied Successfully!'
+                text: 'Discounts and offers applied successfully.'
             })
         </script>
     @endif
+    @if (session()->has('notification_sent'))
+        <script>
+            Swal.fire({
+                icon: 'success',
+                title: 'Notification sent',
+                text: @json(session('notification_sent'))
+            });
+        </script>
+    @endif
+    @include('web.partials.settings_tab_row_lines_script')
 @endpush

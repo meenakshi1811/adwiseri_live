@@ -1,7 +1,7 @@
 
 
   <footer class="mt-2 last-footer">
-    <p>&copy; {{ date('Y') }}  adwiseri.&nbsp;All rights reserved.</p>
+    <p>&copy; {{ $copyrightYears }}  adwiseri.&nbsp;All rights reserved.</p>
   </footer>
   {{-- <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
   <script src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
@@ -23,26 +23,51 @@
  <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
  <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
 
-  <script src="https://kit.fontawesome.com/b140011afa.js" crossorigin="anonymous"></script>
+  {{-- Font Awesome Kit (SVG/JS) removed: it conflicts with the webfont CSS and DataTables re-rendering, causing action icons in data-tables to disappear. Webfont CSS is loaded in header.blade.php / nav.blade.php. --}}
+  {{-- <script src="https://kit.fontawesome.com/b140011afa.js" crossorigin="anonymous"></script> --}}
 
   {{-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> --}}
   <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="{{ asset('web_assets/js/adwiseri-alerts.js') }}"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
   <script src="https://cdn.anychart.com/releases/8.0.1/js/anychart-core.min.js"></script>
 
  <script src="https://cdn.anychart.com/releases/8.0.1/js/anychart-pie.min.js"></script>
  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
-
-
+ <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+   integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+   crossorigin="anonymous"></script>
 
   <script>
     $(document).ready(() => {
-        $('#subscriberTable').DataTable({"aaSorting": []});
-        $('#clientTable').DataTable({"aaSorting": []});
-        $('#userTable').DataTable({"aaSorting": []});
+        if ($('#subscriberTable').length) {
+            if (!$.fn.DataTable.isDataTable('#subscriberTable')) {
+                $('#subscriberTable').DataTable({"aaSorting": []});
+            }
+            if (typeof window.initSubscriberTableFilters === 'function') {
+                window.initSubscriberTableFilters($('#subscriberTable').DataTable());
+            }
+        }
+        if ($('#emailSubscriberTable').length) {
+            $('#emailSubscriberTable').DataTable({
+                aaSorting: [[2, 'desc']],
+                pageLength: 25
+            });
+        }
+        if ($('#clientTable').length) {
+            $('#clientTable').DataTable({"aaSorting": []});
+        }
+        if ($('#userTable').length) {
+            $('#userTable').DataTable({"aaSorting": []});
+        }
+        if ($('#errorLogTable').length) {
+            $('#errorLogTable').DataTable({
+                order: [[0, 'desc']],
+                pageLength: 25
+            });
+        }
         $("#manage_btn").click(function(){
           var managebox = $("#manage_box").css('display');
           if(managebox == 'flex'){
@@ -60,6 +85,9 @@
 
       dateInputs.forEach((input) => {
           if (input.dataset.calendarInit === '1') return;
+          if (input.classList.contains('app-modal-datepicker')) return;
+          if (input.classList.contains('offer-date-input')) return;
+          if (input.closest('#myModal')) return;
 
           const minDate = input.getAttribute('min') || null;
           const maxDate = input.getAttribute('max') || null;
@@ -106,6 +134,8 @@
 
 
 @stack('scripts')
+
+@include('partials.intl_phone_scripts')
 
 
 

@@ -6,9 +6,7 @@
             
             <div class="client-dashboard">
                 <div class="client-btn d-flex mb-2 ">
-                    <form class="form-inline d-flex justify-content-between w-100">
-                        <h3 class="text-primary">Update Application Assignment</h3>
-                    </form>
+                    <h3 class="text-primary text-center flex-grow-1 text-center m-0">Update Application Assignment</h3>
                 </div>
                 <div class="col">
                     <form id="registration_form" class="register-box login-box" method="POST" action="{{ route('user_app_assignment') }}" enctype="multipart/form-data">
@@ -17,28 +15,32 @@
                         <input type="hidden" value="{{ $assignment->id }}" name="id" />
                         <div class="row">
                             <div class="col-md-4 p-1">
-                                <label>Client ID<span class="text-danger" style="font-size: 18px;">*</span></label>
+                                <label>Client (ID)<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input readonly name="client_id" value="{{ $client->id }}" id="client_id" required class="form-control @error('client_id') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp">
-                                   
+                                @php
+                                    $clientLabel = ($client->name ?? '') . '(' . ($client->id ?? $assignment->client_id) . ')';
+                                    $selectedApp = collect($applications)->firstWhere('application_id', $assignment->application_id);
+                                    $applicationLabel = $selectedApp
+                                        ? trim(($selectedApp->application_name ?? '') . ' (' . $selectedApp->application_id . ')')
+                                        : (string) $assignment->application_id;
+                                @endphp
+                                <input type="text" class="form-control" value="{{ $clientLabel }}" readonly>
+                                <input type="hidden" name="client_id" id="client_id" value="{{ $assignment->client_id }}">
                                 @error('client_id')
-                                    <span class="invalid-feedback" role="alert">
+                                    <span class="invalid-feedback d-block" role="alert">
                                         <strong>{{ $message }}</strong>
                                     </span>
                                 @enderror
                             </div>
                             <div class="col-md-4 p-1">
-                                <label>Application ID<span class="text-danger" style="font-size: 18px;">*</span></label>
+                                <label>Application (ID)<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <select name="application_id" id="application_id" class="form-control @error('application_id') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
-                                    @foreach($applications as $app)
-                                    <option {{ ($app->application_id == $assignment->application_id) ? 'selected' : ''}} value="{{ $app->application_id }}">{{ $app->application_id }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="text" class="form-control" value="{{ $applicationLabel }}" readonly>
+                                <input type="hidden" name="application_id" id="application_id" value="{{ $assignment->application_id }}">
                                 @error('application_id')
-                                    <span class="invalid-feedback" role="alert">
+                                    <span class="invalid-feedback d-block" role="alert">
                                         <strong>{{ $message }}</strong>
                                     </span>
                                 @enderror
@@ -47,9 +49,10 @@
                                 <label>User/Advisor<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <select name="user_id" id="user_id" class="form-control form-select @error('user_id') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
+                                <select name="user_id" id="user_id" class="form-control form-select @error('user_id') is-invalid @enderror" aria-describedby="emailHelp" required>
+                                    <option value="">Select User/Advisor</option>
                                     @foreach($advisors as $u)
-                                    <option {{ ($u->id == $assignment->user_id) ? 'selected' : ''}} value="{{ $u->id }}">{{ $u->name."(".$u->designation.")" }}</option>
+                                    <option {{ ($u->id == $assignment->user_id) ? 'selected' : ''}} value="{{ $u->id }}">{{ $u->name }} ({{ $u->designation }})</option>
                                     @endforeach
                                 </select>
                                 @error('user_id')
@@ -58,7 +61,8 @@
                                     </span>
                                 @enderror
                             </div>
-                            <div class="col text-start p-1">
+                            <div class="col-md-4 p-1"></div>
+                            <div class="col-md-8 p-1">
                                 <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
                             </div>
                         </div>
@@ -74,10 +78,10 @@
     function deleteassignmentt(id){
       Swal.fire({
         title: 'Are you sure?',
-        text: "You won't be able to revert this!",
+        text: "This action cannot be undone.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
+        confirmButtonColor: '#695EEE',
         cancelButtonColor: '#d33',
         confirmButtonText: 'Yes, delete it!'
       }).then((result) => {
@@ -89,12 +93,12 @@
       function updateassignmentt(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to update this record!",
+          text: "Do you want to update this record?",
           icon: 'warning',
           showCancelButton: true,
-          confirmButtonColor: '#3085d6',
+          confirmButtonColor: '#695EEE',
           cancelButtonColor: '#d33',
-          confirmButtonText: 'Yes'
+          confirmButtonText: 'Yes, continue'
         }).then((result) => {
           if (result.isConfirmed) {
             window.location.href = "app_assignment_update/"+id+"";
@@ -104,47 +108,13 @@
   </script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
   </script>
-  <script>
-      $(document).ready(() => {
-        
-        $("#new_assign").click(function(){
-            $("#new_assign").css('display','none');
-            $("#back").css('display','block');
-            $("#new_assignment").css('display','block');
-            $("#assignments").css('display','none');
-        });
-        $("#back").click(function(){
-            $("#new_assign").css('display','block');
-            $("#back").css('display','none');
-            $("#new_assignment").css('display','none');
-            $("#assignments").css('display','block');
-        });
-          $("#client_id").change(function(){
-            var id = $(this).val();
-            // console.log(counrty);
-            $.ajax({
-                url: 'get_applications',
-                method: 'POST',
-                data: {
-                    "_token": "{{ csrf_token() }}",
-                    id: id,
-                },
-                cache:false,
-                success: function(data){
-                  console.log(data);
-                    $("#application_id").html(data);
-                }
-            });
-          });
-      });
-  </script>
   
   @if(session()->has('deleted'))
     <script>
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Application Assignment Deleted Successfully!'
+        text: 'Application Assignment deleted successfully.'
       })
     </script>
   
@@ -154,7 +124,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'New Assignment Added Successfully!'
+        text: 'Application assigned successfully.'
       })
     </script>
   
@@ -164,11 +134,10 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Assignment Updated Successfully!'
+        text: 'Application assignment updated.'
       })
     </script>
   
   @endif
 
 @endsection()
-            

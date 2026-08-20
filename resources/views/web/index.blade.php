@@ -1,8 +1,15 @@
 @extends('web.layout.main')
 
 @section('main-section')
+    @php
+        $homepageSections = $homepageSectionVisibility ?? \App\Models\HomepageSectionSetting::defaultVisibility();
+        $showHomepageSection = function (string $key) use ($homepageSections): bool {
+            return \App\Models\HomepageSectionSetting::castVisibility($homepageSections[$key] ?? true, true);
+        };
+        $img = asset('web_assets/images/havedemo.png');
+    @endphp
+    @if($showHomepageSection('banner'))
     <!---Banner-->
-    @php $img = asset('web_assets/images/havedemo.png'); @endphp
     {{-- <div class="main-banner" style="background-image: url('{{ $img }}');"> --}}
         {{-- <p>One stop solution for <br>
             Visas & Immigration
@@ -15,8 +22,9 @@
             @error('email')
                 <script>
                     Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
+                        icon: 'warning',
+                        customClass: { icon: 'adwiseri-oops-icon' },
+                        title: 'Oops!',
                         text: '{{$message}}'
                     })
                 </script>
@@ -48,95 +56,88 @@
                 <input required id="email" name="email" type="email" placeholder="Enter Your email address">
                 <button type="submit">Subscribe</button>
             </div>
-            <span>Subscribe our newsletters to get latest news, updates, and offers.</span>
+            <span>Subscribe our newsletters to get latest news, updates and offers.</span>
         </form> -->
-       <form class="Signup__form mt-4" id="newsletter" method="POST" 
+       <form class="Signup__form mt-4" id="homepage-newsletter-form" method="POST" 
             action="{{ route('email_subscription') }}" 
             style="max-width: 500px; width: 100%; margin-top: 20px;" novalidate>
             @csrf
-            @error('email')
-                <script>
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Oops!',
-                        text: '{{ $message }}',
-                        confirmButtonText: 'OK',
-                        confirmButtonColor: '#6C63FF',
-                        customClass: {
-                            popup: 'small-swal-popup'
-                        },
-                        didOpen: (popup) => {
-                            const okButton = popup.querySelector('.swal2-confirm');
-                            if (okButton) okButton.focus();
-                        }
-                    });
-                </script>
-            @enderror
 
             <div class="input-container">
-                <input id="email" name="email" type="email" placeholder="Enter your email address" required>
-                <button type="submit">Subscribe</button>
+                <input id="homepage-newsletter-email" name="email" type="email" placeholder="Enter your email address" autocomplete="email" inputmode="email">
+                <button type="button" id="homepage-newsletter-btn" class="newsletter-subscribe-btn">Subscribe</button>
             </div>
-            <span>Subscribe our newsletters to get latest news, updates, and offers.</span>
+            <span>Subscribe our newsletters to get latest news, updates and offers.</span>
         </form>
-
-        <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const form = document.getElementById("newsletter");
-            const email = document.getElementById("email");
-
-            form.addEventListener("submit", function (e) {
-                e.preventDefault(); 
-                const value = email.value.trim();
-                const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-                if (!value || !regex.test(value)) {
-                    Swal.fire({
-                        icon: "warning",
-                        title: "Oops!",
-                        text: "Please enter valid email address.",
-                        confirmButtonText: 'OK',
-                        confirmButtonColor: '#6C63FF',
-                        customClass: {
-                            popup: 'small-swal-popup'
-                        },
-                        didOpen: (popup) => {
-                            const okButton = popup.querySelector('.swal2-confirm');
-                            if (okButton) okButton.focus();
-                        }
-                    });
-                    email.focus();
-                    return false;
-                }else{
-                    Swal.fire({
-                        icon: "success",
-                        title: "Success",
-                        text: "Email Subscription Successful. Thank You!",
-                        customClass: {
-                            popup: "small-swal-popup" // 👈 applies your custom class
-                        },
-                        didOpen: () => {
-                            const okButton = Swal.getConfirmButton();
-                            okButton.focus(); // 👈 focuses "OK" automatically
-                        }
-                    });
-                }
-                form.submit();
-            });
-        });
-        </script>
 
         <style>
         /* Make popup smaller */
         .small-swal-popup {
-            transform: translateY(-60px) !important; /* 👈 moves popup 200px up */
+            transform: translateY(-60px) !important;
+        }
+
+        #homepage-newsletter-form.Signup__form input.newsletter-input-invalid {
+            box-shadow: 0 0 0 2px #ff6b6b inset !important;
+        }
+
+        /* Mobile-safe newsletter row: button stays glued to the input height */
+        #homepage-newsletter-form.Signup__form .input-container {
+            position: relative !important;
+            display: block !important;
+            width: 100% !important;
+            height: 48px !important;
+            overflow: hidden;
+            border-radius: 10px;
+        }
+        #homepage-newsletter-form.Signup__form .input-container input[type="email"] {
+            height: 48px !important;
+            margin: 0 !important;
+            padding: 0 118px 0 16px !important;
+            box-sizing: border-box !important;
+        }
+        #homepage-newsletter-form.Signup__form .input-container .newsletter-subscribe-btn {
+            position: absolute !important;
+            top: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            left: auto !important;
+            height: auto !important;
+            margin: 0 !important;
+            transform: none !important;
+            border-radius: 0 10px 10px 0 !important;
+            z-index: 3 !important;
+        }
+        @media (max-width: 767px) {
+            #homepage-newsletter-form.Signup__form .input-container,
+            #homepage-newsletter-form.Signup__form .input-container input[type="email"] {
+                height: 46px !important;
+            }
+            #homepage-newsletter-form.Signup__form .input-container input[type="email"] {
+                padding: 0 108px 0 14px !important;
+                font-size: 14px !important;
+            }
+        }
+        @media (max-width: 560px) {
+            #homepage-newsletter-form.Signup__form .input-container,
+            #homepage-newsletter-form.Signup__form .input-container input[type="email"] {
+                height: 44px !important;
+            }
+            #homepage-newsletter-form.Signup__form .input-container input[type="email"] {
+                padding: 0 100px 0 12px !important;
+            }
+            #homepage-newsletter-form.Signup__form .input-container .newsletter-subscribe-btn {
+                font-size: 12px !important;
+                padding: 0 10px !important;
+            }
         }
         </style>
 
     </div>
+    @endif
 
 
 
+    @if($showHomepageSection('about_highlights'))
     <!---About us-->
     <div class="container about-container mb-5">
         <div class="row about-row">
@@ -158,9 +159,17 @@
             </div>
         </div>
     </div>
+    @endif
 
+    @if(
+        $showHomepageSection('key_features')
+        || $showHomepageSection('about_us')
+        || $showHomepageSection('price_plans')
+        || $showHomepageSection('discounts_offers')
+    )
     <!---Top features--->
     <div class="container-fluid top-feature mb-5">
+        @if($showHomepageSection('key_features'))
         <div class="container">
             <div class="row feature-row mb-3">
                 <div class="col-sm-12 col-lg-4 feature-img" style="overflow: hidden;">
@@ -177,7 +186,9 @@
                 </div>
             </div>
         </div>
+        @endif
 
+        @if($showHomepageSection('about_us'))
         <!--- Have a demo --->
 
         <div class="container-fluid have-demo pt-3 pb-3">
@@ -193,8 +204,10 @@
                 </div>
             </div>
         </div>
+        @endif
 
 
+        @if($showHomepageSection('price_plans'))
         <!--- Membership --->
 
         {{-- <div class="container-fluid member-mainbox mt-5 mb-5">
@@ -247,175 +260,434 @@
             </div>
 
         </div> --}}
-        <div class="container-fluid member-mainbox mt-5 mb-5">
-            <h1 class="text-center mb-4">Price Plans</h1>
+        <div class="container-fluid member-mainbox plans-section mt-5 mb-5">
+            <div class="plans-section-head text-center mb-4">
+                <h1>Price Plans</h1>
+                <p class="plans-section-sub">Choose the plan that fits your practice — upgrade anytime.</p>
+            </div>
             <div class="owl-carousel owl-theme" id="subscription-plan">
                 @foreach($price_plans as $plan)
+                @php
+                    $isFreePlan = ($plan->price_per_year == 0) || in_array($plan->plan_name, ['Free', 'Free Plan'], true);
+                    $isPopular = stripos((string) $plan->plan_name, '+') !== false
+                        || strcasecmp((string) $plan->plan_name, 'Adwiseri+') === 0;
+                @endphp
                 @if(empty($myplan) )
-                <div class="plan-card">
-                    <h4 class="plan-title">{{ $plan->plan_name }}
-                        </h4>
-                    <ul class="plan-features">
-                        <li>Client Limit: {{ $plan->client_limit }}</li>
-                        <li>User License: {{ $plan->no_of_users }}</li>
-                        <li>Messages: {{ $plan->messaging }}</li>
-                        <li>Reports: {{ $plan->reports }}</li>
-                        <li>Invoicing:
-                            @if($plan->invoicing == 'Yes')
-                                <i class="fa fa-check icon-circle text-success"></i>
-                            @else
-                                <i class="fa fa-times icon-circle text-danger"></i>
-                            @endif
-                        </li>
-                        <li>Analytics:
-                            @if($plan->analytics === 'Yes')
-                                <i class="fa fa-check icon-circle text-success"></i>
-                            @else
-                                <i class="fa fa-times icon-circle text-danger"></i>
-                            @endif
-                        </li>
-                        <li>Multi-Device Support:
-                            @if($plan->multi_device_support === 'Yes')
-                                <i class="fa fa-check icon-circle text-success"></i>
-                            @else
-                                <i class="fa fa-times icon-circle text-danger"></i>
-                            @endif
-                        </li>
-                        <li>Secure Environment:
-                            @if($plan->secure_environment === 'Yes')
-                                <i class="fa fa-check icon-circle text-success"></i>
-                            @else
-                                <i class="fa fa-times icon-circle text-danger"></i>
-                            @endif
-                        </li>
-                        <li>Multi-Currency Support:
-                            @if($plan->multi_currency_support === 'Yes')
-                                <i class="fa fa-check icon-circle text-success"></i>
-                            @else
-                                <i class="fa fa-times icon-circle text-danger"></i>
-                            @endif
-                        </li>
-                        <li>Validity: {{ $plan->validity }} Days
-
-                        </li>
-
-
-                    </ul>
-                    <h5 class="plan-price"> {{ ($plan->price_per_year != 0 ) ? 'USD '.$plan->price_per_year  : 'Free'}}</h5>
-                    {{-- <button class="subscribe-btn"
-                        @if(isset($user))
-                            onclick="window.location.href = '{{ route('membership') }}';"
+                <div class="plan-card{{ $isPopular ? ' plan-card--popular' : '' }}">
+                    @if($isPopular)
+                        <span class="plan-badge">Most Popular</span>
+                    @endif
+                    <h4 class="plan-title">{{ $plan->plan_name }}</h4>
+                    <div class="plan-price-block">
+                        @if($isFreePlan)
+                            <h5 class="plan-price">$0/{{ $plan->validity ?? 30 }} Days</h5>
                         @else
-                            onclick="window.location.href = '{{ route('user_register_plan', $plan->plan_name) }}';"
-                        @endif>
-                        Subscribe
-                    </button> --}}
-
-                    <button  class="subscribe-btn" onclick="window.location.href = '{{ route('user_register_plan',$plan->plan_name) }}';">Subscribe</button>
-
+                            <h5 class="plan-price">${{ $plan->price_per_year }}/Year</h5>
+                        @endif
+                    </div>
+                    <ul class="plan-features">
+                        <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
+                        <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
+                        <li><span class="plan-feat-label">Messages</span><span class="plan-feat-value">{{ $plan->messaging }}</span></li>
+                        <li><span class="plan-feat-label">Reports</span><span class="plan-feat-value">{{ $plan->reports }}</span></li>
+                        <li>
+                            <span class="plan-feat-label">Invoicing</span>
+                            <span class="plan-feat-value">
+                            @if($plan->invoicing == 'Yes')
+                                <i class="fa fa-check icon-circle plan-check"></i>
+                            @else
+                                <i class="fa fa-times icon-circle text-danger"></i>
+                            @endif
+                            </span>
+                        </li>
+                        <li>
+                            <span class="plan-feat-label">Analytics</span>
+                            <span class="plan-feat-value">
+                            @if($plan->analytics === 'Yes')
+                                <i class="fa fa-check icon-circle plan-check"></i>
+                            @else
+                                <i class="fa fa-times icon-circle text-danger"></i>
+                            @endif
+                            </span>
+                        </li>
+                        <li>
+                            <span class="plan-feat-label">Multi-Device</span>
+                            <span class="plan-feat-value">
+                            @if($plan->multi_device_support === 'Yes')
+                                <i class="fa fa-check icon-circle plan-check"></i>
+                            @else
+                                <i class="fa fa-times icon-circle text-danger"></i>
+                            @endif
+                            </span>
+                        </li>
+                        <li>
+                            <span class="plan-feat-label">Secure Environment</span>
+                            <span class="plan-feat-value">
+                            @if($plan->secure_environment === 'Yes')
+                                <i class="fa fa-check icon-circle plan-check"></i>
+                            @else
+                                <i class="fa fa-times icon-circle text-danger"></i>
+                            @endif
+                            </span>
+                        </li>
+                        <li>
+                            <span class="plan-feat-label">Multi-Currency</span>
+                            <span class="plan-feat-value">
+                            @if($plan->multi_currency_support === 'Yes')
+                                <i class="fa fa-check icon-circle plan-check"></i>
+                            @else
+                                <i class="fa fa-times icon-circle text-danger"></i>
+                            @endif
+                            </span>
+                        </li>
+                    </ul>
+                    <button class="subscribe-btn" onclick="window.location.href = '{{ route('user_register_plan',$plan->plan_name) }}';">Subscribe</button>
                 </div>
                 @elseif( $plan->plan_name != 'Free')
-                <div class="plan-card">
-                    <h4 class="plan-title">{{ $plan->plan_name }}
-                        </h4>
-                    <ul class="plan-features">
-                        <li>Client Limit: {{ $plan->client_limit }}</li>
-                        <li>User License: {{ $plan->no_of_users }}</li>
-                        <li>Messages: {{ $plan->messaging }}</li>
-                        <li>Reports: {{ $plan->reports }}</li>
-                        <li>Invoicing:
-                            @if($plan->invoicing == 'Yes')
-                                <i class="fa fa-check icon-circle text-success"></i>
-                            @else
-                                <i class="fa fa-times icon-circle text-danger"></i>
-                            @endif
-                        </li>
-                        <li>Analytics:
-                            @if($plan->analytics === 'Yes')
-                                <i class="fa fa-check icon-circle text-success"></i>
-                            @else
-                                <i class="fa fa-times icon-circle text-danger"></i>
-                            @endif
-                        </li>
-                        <li>Multi-Device Support:
-                            @if($plan->multi_device_support === 'Yes')
-                                <i class="fa fa-check icon-circle text-success"></i>
-                            @else
-                                <i class="fa fa-times icon-circle text-danger"></i>
-                            @endif
-                        </li>
-                        <li>Secure Environment:
-                            @if($plan->secure_environment === 'Yes')
-                                <i class="fa fa-check icon-circle text-success"></i>
-                            @else
-                                <i class="fa fa-times icon-circle text-danger"></i>
-                            @endif
-                        </li>
-                        <li>Multi-Currency Support:
-                            @if($plan->multi_currency_support === 'Yes')
-                                <i class="fa fa-check icon-circle text-success"></i>
-                            @else
-                                <i class="fa fa-times icon-circle text-danger"></i>
-                            @endif
-                        </li>
-                        <li>Validity: {{ $plan->validity }} Days
-
-                        </li>
-
-
-                    </ul>
-                    <h5 class="plan-price"> {{ ($plan->price_per_year != 0 ) ? 'USD '.$plan->price_per_year  : 'Free'}}</h5>
-                    {{-- <button class="subscribe-btn"
-                        @if(isset($user))
-                            onclick="window.location.href = '{{ route('membership') }}';"
+                @php
+                    $isCurrentPlan = isset($myplan) && $plan->plan_name === $myplan->plan_name;
+                    $isHigherPlan = isset($myplan) && \App\Services\SubscriptionTermPricing::isUpgradePlan($myplan, $plan);
+                @endphp
+                @if(isset($myplan) && !$isCurrentPlan && !$isHigherPlan)
+                    @continue
+                @endif
+                <div class="plan-card{{ $isPopular ? ' plan-card--popular' : '' }}">
+                    @if($isPopular)
+                        <span class="plan-badge">Most Popular</span>
+                    @endif
+                    <h4 class="plan-title">{{ $plan->plan_name }}</h4>
+                    <div class="plan-price-block">
+                        @if($isFreePlan)
+                            <h5 class="plan-price">$0/{{ $plan->validity ?? 30 }} Days</h5>
                         @else
-                            onclick="window.location.href = '{{ route('user_register_plan', $plan->plan_name) }}';"
-                        @endif>
-                        Subscribe
-                    </button> --}}
+                            <h5 class="plan-price">${{ $plan->price_per_year }}/Year</h5>
+                        @endif
+                    </div>
+                    <ul class="plan-features">
+                        <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
+                        <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
+                        <li><span class="plan-feat-label">Messages</span><span class="plan-feat-value">{{ $plan->messaging }}</span></li>
+                        <li><span class="plan-feat-label">Reports</span><span class="plan-feat-value">{{ $plan->reports }}</span></li>
+                        <li>
+                            <span class="plan-feat-label">Invoicing</span>
+                            <span class="plan-feat-value">
+                            @if($plan->invoicing == 'Yes')
+                                <i class="fa fa-check icon-circle plan-check"></i>
+                            @else
+                                <i class="fa fa-times icon-circle text-danger"></i>
+                            @endif
+                            </span>
+                        </li>
+                        <li>
+                            <span class="plan-feat-label">Analytics</span>
+                            <span class="plan-feat-value">
+                            @if($plan->analytics === 'Yes')
+                                <i class="fa fa-check icon-circle plan-check"></i>
+                            @else
+                                <i class="fa fa-times icon-circle text-danger"></i>
+                            @endif
+                            </span>
+                        </li>
+                        <li>
+                            <span class="plan-feat-label">Multi-Device</span>
+                            <span class="plan-feat-value">
+                            @if($plan->multi_device_support === 'Yes')
+                                <i class="fa fa-check icon-circle plan-check"></i>
+                            @else
+                                <i class="fa fa-times icon-circle text-danger"></i>
+                            @endif
+                            </span>
+                        </li>
+                        <li>
+                            <span class="plan-feat-label">Secure Environment</span>
+                            <span class="plan-feat-value">
+                            @if($plan->secure_environment === 'Yes')
+                                <i class="fa fa-check icon-circle plan-check"></i>
+                            @else
+                                <i class="fa fa-times icon-circle text-danger"></i>
+                            @endif
+                            </span>
+                        </li>
+                        <li>
+                            <span class="plan-feat-label">Multi-Currency</span>
+                            <span class="plan-feat-value">
+                            @if($plan->multi_currency_support === 'Yes')
+                                <i class="fa fa-check icon-circle plan-check"></i>
+                            @else
+                                <i class="fa fa-times icon-circle text-danger"></i>
+                            @endif
+                            </span>
+                        </li>
+                    </ul>
                     @if(isset($user))
-                    @if($plan->plan_name == $myplan->plan_name)
-                      @if((new DateTime("now")) > (new DateTime($subscriber->membership_expiry_date)))
-                      <button @if($user->user_type == "Subscriber") onclick="window.location.href = '{{ route('upgrade_membership', $plan->plan_name) }}';" @endif>Renew</button>
+                    @if($isCurrentPlan)
+                      @if(isset($subscriber) && \App\Services\SubscriptionTermPricing::isSubscriptionLapsed($subscriber))
+                        <button class="subscribe-btn subscribe-btn--active" type="button">Lapsed</button>
+                      @elseif((new DateTime("now")) > (new DateTime($subscriber->membership_expiry_date)))
+                      <button class="subscribe-btn" @if($user->user_type == "Subscriber") onclick="window.location.href = '{{ route('upgrade_membership', $plan->plan_name) }}';" @endif>Renew</button>
                       @else
                         @if($user->membership_type == "Trial")
-                        <button @if($user->user_type == "Subscriber") onclick="window.location.href = '{{ route('upgrade_membership', $plan->plan_name) }}';" @endif>Active</button>
+                        <button class="subscribe-btn" @if($user->user_type == "Subscriber") onclick="window.location.href = '{{ route('upgrade_membership', $plan->plan_name) }}';" @endif>Active</button>
                         @else
-                        <button class="subscribe-btn" >Active</button>
+                        <button class="subscribe-btn subscribe-btn--active" type="button">Current Plan</button>
                         @endif
                       @endif
-                    @else
-                      @if(isset($myplan))
-                        @if($plan->plan_order < $myplan->plan_order)
-                          @if($plan->plan_name == "Free" or $plan->plan_name == "Free Plan")
-                          <button class="subscribe-btn" onclick="Swal.fire({ icon: 'warning', title: 'New Subscriber Only', html: 'FREE plan is available to new subscribers only.' });">Free</button>
-                          @elseif(count($total_users)>$plan->no_of_users or count($total_clients)>$plan->client_limit)
-                          <button class="subscribe-btn" onclick="Swal.fire({ icon: 'warning', title: 'User/Client Limit', text: 'User/Client limit of this plan is less than your registered no. of users/clients.' });">Downgrade</button>
-                          @elseif((new DateTime("now")) > (new DateTime($subscriber->membership_expiry_date)))
-                          <button class="subscribe-btn" @if($user->user_type == "Subscriber") @endif >
-                            Downgrade
-                          </button>
-                          @else
-                          <button class="subscribe-btn" @if($user->user_type == "Subscriber") @endif >
-                            Downgrade
-                          </button>
-                          @endif
-                        @else
-                        <button class="subscribe-btn" @if($user->user_type == "Subscriber") onclick="window.location.href = '{{ route('upgrade_membership', $plan->plan_name) }}';" @endif >
+                    @elseif($isHigherPlan)
+                        <button class="subscribe-btn" @if($user->user_type == "Subscriber") onclick="window.location.href = '{{ route('upgrade_membership', $plan->plan_name) }}';" @endif>
                           Upgrade
                         </button>
-                        @endif
-                      @endif
                     @endif
                   @else
-                    <button  class="subscribe-btn" onclick="window.location.href = '{{ route('user_register_plan',$plan->plan_name) }}';">Subscribe</button>
+                    <button class="subscribe-btn" onclick="window.location.href = '{{ route('user_register_plan',$plan->plan_name) }}';">Subscribe</button>
                   @endif
-
                 </div>
                 @endif
                 @endforeach
             </div>
         </div>
+        @endif
+
+        @if($showHomepageSection('discounts_offers') && $landingPromoSettings && ($landingDiscountItems->count() || $landingOfferItems->count()))
+        <section class="landing-promo-section" aria-labelledby="landing-promo-heading">
+            <style>
+                .landing-promo-section {
+                    --lp-ink: #1E2433;
+                    --lp-muted: #5A6275;
+                    --lp-line: #E2E6F0;
+                    --lp-primary: #695EEE;
+                    --lp-deep: #4C3BB7;
+                    --lp-soft: rgba(105, 94, 238, 0.12);
+                    --lp-surface: #F6F7FB;
+                    position: relative;
+                    padding: 3.25rem 0 3.75rem;
+                    margin: 2.5rem 0 1.5rem;
+                    background:
+                        radial-gradient(ellipse 80% 50% at 10% 0%, rgba(105, 94, 238, 0.08), transparent 55%),
+                        radial-gradient(ellipse 70% 45% at 90% 100%, rgba(76, 59, 183, 0.07), transparent 50%),
+                        linear-gradient(180deg, #FBFBFE 0%, #F4F5FA 100%);
+                    overflow: hidden;
+                }
+                .landing-promo-section::before {
+                    content: "";
+                    position: absolute;
+                    inset: 0 0 auto 0;
+                    height: 1px;
+                    background: linear-gradient(90deg, transparent, rgba(105, 94, 238, 0.25), transparent);
+                }
+                .landing-promo-section .lp-inner {
+                    position: relative;
+                    z-index: 1;
+                }
+                .landing-promo-section .lp-head {
+                    text-align: center;
+                    max-width: 640px;
+                    margin: 0 auto 1.85rem;
+                }
+                .landing-promo-section .lp-eyebrow {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.4rem;
+                    margin-bottom: 0.7rem;
+                    padding: 0.28rem 0.85rem;
+                    border-radius: 999px;
+                    background: var(--lp-soft);
+                    color: var(--lp-deep);
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    letter-spacing: 0.06em;
+                    text-transform: uppercase;
+                }
+                .landing-promo-section .lp-head h1 {
+                    font-size: clamp(1.7rem, 3.2vw, 2.35rem);
+                    font-weight: 700;
+                    color: var(--lp-deep);
+                    margin: 0;
+                    letter-spacing: -0.02em;
+                    line-height: 1.2;
+                }
+                .landing-promo-section .lp-grid {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 1.5rem;
+                    align-items: stretch;
+                }
+                .landing-promo-section .lp-card {
+                    display: flex;
+                    flex-direction: column;
+                    border: 1px solid rgba(226, 230, 240, 0.95);
+                    border-radius: 16px;
+                    background: #fff;
+                    overflow: hidden;
+                    box-shadow: 0 10px 28px rgba(30, 36, 51, 0.06);
+                    transition: transform 0.25s ease, box-shadow 0.25s ease;
+                }
+                .landing-promo-section .lp-card:hover {
+                    transform: translateY(-3px);
+                    box-shadow: 0 16px 36px rgba(30, 36, 51, 0.1);
+                }
+                .landing-promo-section .lp-card-head {
+                    display: block;
+                    padding: 11px 16px 12px;
+                    border-bottom: none;
+                    background-color: var(--lp-primary);
+                    text-align: center;
+                }
+                .landing-promo-section .lp-card-icon {
+                    display: none;
+                }
+                .landing-promo-section .lp-card-head h3 {
+                    margin: 0;
+                    font-size: 15px;
+                    font-weight: 700;
+                    color: #fff;
+                    letter-spacing: 0.02em;
+                }
+                .landing-promo-section .lp-card-head span.lp-card-sub {
+                    display: block;
+                    margin-top: 0.2rem;
+                    font-size: 0.75rem;
+                    color: rgba(255, 255, 255, 0.88);
+                    font-weight: 500;
+                }
+                .landing-promo-section .lp-rows {
+                    list-style: none;
+                    margin: 0;
+                    padding: 0.35rem 0;
+                    flex: 1;
+                }
+                .landing-promo-section .lp-row {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 1rem;
+                    padding: 1rem 1.35rem;
+                    border-bottom: 1px solid #F0F2F7;
+                }
+                .landing-promo-section .lp-row:last-child {
+                    border-bottom: none;
+                }
+                .landing-promo-section .lp-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-width: 4.5rem;
+                    padding: 0.45rem 0.9rem;
+                    border-radius: 10px;
+                    background: linear-gradient(135deg, var(--lp-primary) 0%, var(--lp-deep) 100%);
+                    color: #fff;
+                    font-weight: 800;
+                    font-size: 0.95rem;
+                    letter-spacing: 0.01em;
+                    white-space: nowrap;
+                    box-shadow: 0 4px 12px rgba(105, 94, 238, 0.28);
+                }
+                .landing-promo-section .lp-row-detail {
+                    flex: 1;
+                    text-align: right;
+                    font-size: 0.98rem;
+                    font-weight: 600;
+                    color: var(--lp-ink);
+                    line-height: 1.35;
+                }
+                .landing-promo-section .lp-row-label {
+                    display: block;
+                    margin-bottom: 0.15rem;
+                    font-size: 0.7rem;
+                    font-weight: 700;
+                    letter-spacing: 0.05em;
+                    text-transform: uppercase;
+                    color: #8A93A8;
+                }
+                .landing-promo-section .lp-note {
+                    margin: 0;
+                    padding: 0.95rem 1.35rem 1.15rem;
+                    font-size: 0.8rem;
+                    line-height: 1.55;
+                    color: #7A8194;
+                    border-top: 1px dashed var(--lp-line);
+                    background: var(--lp-surface);
+                }
+                .landing-promo-section .lp-note strong {
+                    color: var(--lp-primary);
+                }
+                @media (max-width: 768px) {
+                    .landing-promo-section {
+                        padding: 2.5rem 0 3rem;
+                    }
+                    .landing-promo-section .lp-grid {
+                        grid-template-columns: 1fr;
+                    }
+                    .landing-promo-section .lp-row {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 0.55rem;
+                    }
+                    .landing-promo-section .lp-row-detail {
+                        text-align: left;
+                    }
+                }
+            </style>
+            <div class="container lp-inner">
+                <div class="lp-head">
+                    <span class="lp-eyebrow"><i class="fa-solid fa-tags" aria-hidden="true"></i> Exclusive deals</span>
+                    <h1 id="landing-promo-heading">{{ $landingPromoSettings->heading }}</h1>
+                </div>
+                <div class="lp-grid">
+                    @if($landingDiscountItems->count())
+                    <article class="lp-card">
+                        <div class="lp-card-head">
+                            <span class="lp-card-icon"><i class="fa-solid fa-percent" aria-hidden="true"></i></span>
+                            <div>
+                                <h3>Discounts</h3>
+                                <span class="lp-card-sub">Multi-year subscription savings</span>
+                            </div>
+                        </div>
+                        <ul class="lp-rows">
+                            @foreach($landingDiscountItems as $item)
+                            <li class="lp-row">
+                                <span class="lp-badge">{{ $item->benefit }}</span>
+                                <div class="lp-row-detail">
+                                    <span class="lp-row-label">Subscription term</span>
+                                    {{ $item->detail }}
+                                </div>
+                            </li>
+                            @endforeach
+                        </ul>
+                        @if($landingPromoSettings->discount_note)
+                        <p class="lp-note"><strong>*</strong> {{ $landingPromoSettings->discount_note }}</p>
+                        @endif
+                    </article>
+                    @endif
+
+                    @if($landingOfferItems->count())
+                    <article class="lp-card">
+                        <div class="lp-card-head">
+                            <span class="lp-card-icon"><i class="fa-solid fa-wallet" aria-hidden="true"></i></span>
+                            <div>
+                                <h3>Offers</h3>
+                                <span class="lp-card-sub">Cashback on selected plans</span>
+                            </div>
+                        </div>
+                        <ul class="lp-rows">
+                            @foreach($landingOfferItems as $item)
+                            <li class="lp-row">
+                                <span class="lp-badge">{{ $item->benefit }}</span>
+                                <div class="lp-row-detail">
+                                    <span class="lp-row-label">Plan</span>
+                                    {{ $item->detail }}
+                                </div>
+                            </li>
+                            @endforeach
+                        </ul>
+                        @if($landingPromoSettings->offer_note)
+                        <p class="lp-note"><strong>*</strong> {{ $landingPromoSettings->offer_note }}</p>
+                        @endif
+                    </article>
+                    @endif
+                </div>
+            </div>
+        </section>
+        @endif
 
 
         <!--- testimonials --->
@@ -509,83 +781,81 @@
             </div>
         </div> --}}
     </div>
+    @endif
 
 
 
 
 
+        @if($showHomepageSection('why_adwiseri'))
         <!--- why adwiseri --->
-        
-        <div class="container why-advi mb-5">
-            <h1 class="text-center">Why adwiseri?</h1>
+        <section class="why-advi why-advi-section mb-5" aria-labelledby="why-adwiseri-heading">
+            <div class="container">
+                <div class="why-advi-head text-center">
+                    <h1 id="why-adwiseri-heading">Why adwiseri?</h1>
+                </div>
 
-            <div class="row advi-img-row mt-5">
-                <div class="col-md-6 col-lg-6 col-xl-3 hr-line">
-                    <img src="{{ asset('web_assets/images/datasecurity.png') }}"
-                        alt="">
-                    <h3>Data Security</h3>
-                </div>
-                <div class="col-md-6 col-lg-6 col-xl-3 hr-line">
-                    <img src="{{ asset('web_assets/images/100client.png') }}"
-                        alt="">
-                    <h3>Dedicated Support</h3>
-                </div>
-                <div class="col-md-6 col-lg-6 col-xl-3 hr-line">
-                    <img src="{{ asset('web_assets/images/securepayment.png') }}"
-                        alt="">
-                    <h3>Secure payment <br>
-                        system</h3>
-                </div>
-                <div class="col-md-6 col-lg-6 col-xl-3 ">
-                    <img src="{{ asset('web_assets/images/50count.png') }}"
-                        alt="">
-                    <h3>Available in multiple regions</h3>
+                <div class="row advi-img-row why-advi-grid g-4 mt-4">
+                    <div class="col-md-6 col-lg-6 col-xl-3">
+                        <article class="why-advi-card">
+                            <div class="why-advi-icon">
+                                <img src="{{ asset('web_assets/images/datasecurity.png') }}" alt="Data Security">
+                            </div>
+                            <h3>Data Security</h3>
+                        </article>
+                    </div>
+                    <div class="col-md-6 col-lg-6 col-xl-3">
+                        <article class="why-advi-card">
+                            <div class="why-advi-icon">
+                                <img src="{{ asset('web_assets/images/100client.png') }}" alt="Dedicated Support">
+                            </div>
+                            <h3>Dedicated Support</h3>
+                        </article>
+                    </div>
+                    <div class="col-md-6 col-lg-6 col-xl-3">
+                        <article class="why-advi-card">
+                            <div class="why-advi-icon">
+                                <img src="{{ asset('web_assets/images/securepayment.png') }}" alt="Secure payment system">
+                            </div>
+                            <h3>Secure payment <br>system</h3>
+                        </article>
+                    </div>
+                    <div class="col-md-6 col-lg-6 col-xl-3">
+                        <article class="why-advi-card">
+                            <div class="why-advi-icon">
+                                <img src="{{ asset('web_assets/images/50count.png') }}" alt="Available in multiple regions">
+                            </div>
+                            <h3>Available in multiple regions</h3>
+                        </article>
+                    </div>
                 </div>
             </div>
-
-        </div>
+        </section>
+        @endif
 
         <!-- <div class="container-fluid testimonial-mainhead mb-5" >
             <div class="container review-head">
-            <h1 class="text-center mb-4">Discounts & Offers</h1>
-                <div class="row owl-carousel owl-theme mt-5" id="testimonials">
-                @foreach($discounts as $discount)
-                    <div class="col-4 card" style="width:400px;">
-
-                        <div class="text-img d-flex">
-                            <div class="test-image">
-                                <img src="https://png.pngtree.com/png-vector/20230408/ourmid/pngtree-price-tag-with-the-discount-icon-vector-png-image_6686659.png" alt="">
-                            </div>
-                            <div class="test-text">
-                                <h4>{{ $discount->discount_type }}</h4>
-                            </div>
-                        </div>
-
-                        <div class="card-body">
-                        <h5 class="plan-price">{{ $discount->discount_value }}</h5>
-                            
-
-                        </div>
-                    </div>
-                @endforeach
-                </div>
+            <h1 class="text-center mb-4">Legacy discounts carousel (retired)</h1>
             </div>
         </div> -->
-    </div>
-
+    @if($showHomepageSection('affiliates'))
     <div class="collab-box" id="affiliates">
-        <div class="Affiliates-banner">
-            <img src="web_assets/images/collbcopy.jpg" alt="Affiliate Background" width="100%" height="auto">
-
-            <div class="affiliate-copy-wrap">
-                <p class="item-font-fix affiliate-copy-text">
-                    Want to earn extra from referrals?<br>
-                    Join our Affiliate Program by clicking
-                    <a href="{{ url('/') }}/Affiliates_Reg">here</a>
+        <section class="Affiliates-banner" aria-label="Affiliate program">
+            <div class="affiliate-banner-glow" aria-hidden="true"></div>
+            <div class="affiliate-banner-inner">
+                <span class="affiliate-eyebrow">Affiliate Program</span>
+                <h2 class="affiliate-title">Want to earn extra from referrals?</h2>
+                <p class="affiliate-subtitle">
+                    Refer consultancies you know and earn commissions when they subscribe.
                 </p>
+                <a href="{{ url('/') }}/Affiliates_Reg" class="affiliate-cta-btn">
+                    Join Affiliate Program
+                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </a>
             </div>
-        </div>
+        </section>
     </div>
+    @endif
 
 
         {{-- <div class="container faq-section my-5">
@@ -686,11 +956,102 @@
 
 @if (session()->has('subscribed'))
 <script>
-    // Swal.fire({
-    //     icon: 'success',
-    //     title: 'Success',
-    //     text: 'Email Subscription Successful. Thank You!'
-    // })
+    if (window.AdwiseriAlert) {
+        AdwiseriAlert.success('Subscription successful. Thank you!');
+    } else if (typeof Swal !== 'undefined') {
+        Swal.fire({ icon: 'success', title: 'Success', text: 'Subscription successful. Thank you!' });
+    }
 </script>
 @endif
+
+@push('scripts')
+<script>
+(function () {
+    function showNewsletterValidationError(message) {
+        var emailInput = document.getElementById('homepage-newsletter-email');
+
+        if (emailInput) {
+            emailInput.focus();
+        }
+
+        if (window.AdwiseriAlert && typeof window.AdwiseriAlert.oops === 'function') {
+            window.AdwiseriAlert.oops(message);
+            return;
+        }
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Oops!',
+                text: message,
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#695EEE',
+                customClass: { icon: 'adwiseri-oops-icon', popup: 'small-swal-popup' }
+            });
+            return;
+        }
+        window.alert(message);
+    }
+
+    function initHomepageNewsletterValidation() {
+        var form = document.getElementById('homepage-newsletter-form');
+        var emailInput = document.getElementById('homepage-newsletter-email');
+        var submitBtn = document.getElementById('homepage-newsletter-btn');
+
+        if (!form || !emailInput || !submitBtn) {
+            return;
+        }
+
+        function validateAndSubmit() {
+            if (form.dataset.newsletterSubmitting === '1') {
+                return true;
+            }
+
+            var value = (emailInput.value || '').trim();
+            var regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            if (!value) {
+                showNewsletterValidationError('This field is required.');
+                return false;
+            }
+            if (!regex.test(value)) {
+                showNewsletterValidationError('Please enter a valid email address.');
+                return false;
+            }
+
+            form.dataset.newsletterSubmitting = '1';
+            HTMLFormElement.prototype.submit.call(form);
+            return true;
+        }
+
+        submitBtn.addEventListener('click', function (event) {
+            event.preventDefault();
+            validateAndSubmit();
+        });
+
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            validateAndSubmit();
+        });
+
+        emailInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                validateAndSubmit();
+            }
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initHomepageNewsletterValidation);
+    } else {
+        initHomepageNewsletterValidation();
+    }
+
+    @if ($errors->has('email'))
+    showNewsletterValidationError(@json($errors->first('email')));
+    @endif
+})();
+</script>
+@endpush
+
     @endsection()

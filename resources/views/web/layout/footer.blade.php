@@ -1,14 +1,15 @@
 <!--- footer --->
 @guest
 <footer class="text-light py-4">
-    <div class="container">
+    <div class="container-fluid">
       <div class="row align-items-start">
         <!-- Logo and Address -->
-        <div class="col-md-4 mb-4">
-          <!-- <h4 class="fw-bold">adwiseri</h4> -->
-          <h4 class="fw-bold"><img src="{{ asset('web_assets/images/style2.png') }}" width="40" alt=""></h4>
+        <div class="col-md-4 mb-4 footer-brand-col">
+          <a class="footer-brand" href="{{ route('/') }}">
+            <img class="logo-fix" width="170" src="{{ asset('web_assets/images/Style2.png') }}" alt="adwiseri" />
+          </a>
 
-          <p>Our Support team is available:</p>
+          <p class="footer-support-label">Our Support team is available:</p>
           <p>Monday - Friday,<br> 10am - 6pm GMT</p>
           <p>
             <strong>Email Us:</strong><br>
@@ -17,7 +18,7 @@
           </p>
           {{-- <p>
             <strong>Contact No:</strong><br>
-            <i class="fas fa-phone"></i>   {{ $contact->contact_no }}
+            <i class="fas fa-phone"></i>   @include('partials.phone_display', ['phone' => $contact->contact_no])
           </p> --}}
         </div>
 
@@ -25,7 +26,6 @@
         <div class="col-md-2 mb-4">
           <ul class="list-unstyled">
             <li><a href="{{ route('/') }}" class="text-light text-decoration-none">Home</a></li>
-            <li><a href="{{ route('aboutadvisori') }}" class="text-light text-decoration-none">About Us</a></li>
             <li><a href="{{ route('contactus') }}" class="text-light text-decoration-none">Contact Us</a></li>
 
             <li><a href="{{ route('features') }}" class="text-light text-decoration-none">Features</a></li>
@@ -67,7 +67,7 @@
 
       <!-- Bottom Footer -->
       <div class="text-center mt-3">
-        <p class="mb-0">&copy; 2023-{{ date('Y') }} adwiseri.&nbsp;All rights reserved.</p>
+        <p class="mb-0">&copy; {{ $copyrightYears }} adwiseri.&nbsp;All rights reserved.</p>
       </div>
     </div>
   </footer>
@@ -76,14 +76,14 @@
 @auth
 
 <footer class="mt-2 last-footer">
-    <p>&copy; 2023-{{ date('Y') }}  adwiseri.&nbsp;All rights reserved.</p>
+    <p>&copy; {{ $copyrightYears }}  adwiseri.&nbsp;All rights reserved.</p>
   </footer>
   
 @endauth
 
 
 {{-- <footer class="mt-2 last-footer mb-0">
-  <p>&copy; 2023-{{ date('Y') }} |  adwiseri &nbsp;&nbsp;|&nbsp;&nbsp;   </p>
+  <p>&copy; {{ $copyrightYears }} |  adwiseri &nbsp;&nbsp;|&nbsp;&nbsp;   </p>
 </footer> --}}
 
 <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
@@ -102,13 +102,31 @@
   var local_time = new Date();
   console.log(local_time.toString());
   $(document).ready(() => {
-      $('#subscriberTable').DataTable({"aaSorting": []});
-      $('#clientTable').DataTable({"aaSorting": []});
-      $('#userTable').DataTable({"aaSorting": []});
-      $('#usersTable').DataTable({"aaSorting": []});
+      if ($('#subscriberTable').length) {
+          $('#subscriberTable').DataTable({"aaSorting": []});
+      }
+      if ($('#clientTable').length) {
+          $('#clientTable').DataTable({"aaSorting": []});
+      }
+      if ($('#associateTable').length) {
+          $('#associateTable').DataTable({"aaSorting": []});
+      }
+      if ($('#businessTable').length) {
+          $('#businessTable').DataTable({"aaSorting": []});
+      }
+      if ($('#userTable').length) {
+          $('#userTable').DataTable({"aaSorting": []});
+      }
+      if ($('#usersTable').length) {
+          $('#usersTable').DataTable({"aaSorting": []});
+      }
       // $('.dataTables_length').css('text-align','left');
       $(".localtime").attr("value",local_time.toString());
-      $("#subscription-plan").owlCarousel({
+      var $planCarousel = $("#subscription-plan");
+      if ($planCarousel.length) {
+          var planCount = $planCarousel.children(".plan-card").length;
+          if (planCount > 3) {
+              $planCarousel.owlCarousel({
     items: 4,
     margin: 15,
     loop: true,
@@ -124,6 +142,10 @@
         992: { items: 4 }
     }
     });
+          } else {
+              $planCarousel.removeClass("owl-carousel owl-theme").addClass("plans-static-row");
+          }
+      }
     $('.owl-carousel').owlCarousel({
                 loop: true,
                 margin: 10,
@@ -158,6 +180,9 @@
 
       dateInputs.forEach((input) => {
           if (input.dataset.calendarInit === '1') return;
+          if (input.classList.contains('app-modal-datepicker')) return;
+          if (input.closest('#myModal')) return;
+          if (input.type === 'datetime-local' || input.type === 'time') return;
 
           const minDate = input.getAttribute('min') || null;
           const maxDate = input.getAttribute('max') || null;
@@ -220,6 +245,8 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
 integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
 crossorigin="anonymous"></script>
+
+@include('partials.intl_phone_scripts')
 
 
 <!--Start of Tawk.to Script-->
@@ -292,10 +319,18 @@ $('#star-rating .star').on('click', function() {
             },
             success: function (response) {
                 $('#feedbackModal').modal('hide');
-                Swal.fire('Thank You!', response.message, 'success');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Thank you',
+                    text: response.message
+                });
             },
             error: function (errors) {
-                Swal.fire('Oops!', errors.responseJSON.errors.rating[0], 'error');
+                Swal.fire({
+                    icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                    title: 'Oops!',
+                    text: errors.responseJSON.errors.rating[0]
+                });
             }
         });
     });
@@ -305,6 +340,8 @@ $('#star-rating .star').on('click', function() {
 
 
 <!--End of Tawk.to Script-->
+
+@stack('scripts')
 
 </body>
 

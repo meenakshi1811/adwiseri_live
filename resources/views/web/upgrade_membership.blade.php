@@ -35,13 +35,14 @@
                                 <p class="text-dark" style="font-size: 16px;">Duration</p>
                             </div>
                             <div class="col-md-6">
-                                <Select id="plan_duration" name="plan_duration">
-                                    <option value="1">1 Year</option>
-                                    <option value="2">2 Years</option>
-                                    <option value="3">3 Years</option>
-                                    <option value="5">5 Years</option>
-                                </Select>
-                                {{-- <p class="text-dark" style="font-size: 16px;">{{ $membership->price_per_year }} USD</p> --}}
+                                @include('partials.subscription_duration_select', [
+                                    'name' => 'plan_duration',
+                                    'id' => 'plan_duration',
+                                    'selected' => old('plan_duration', 1),
+                                    'class' => 'form-select',
+                                    'required' => true,
+                                ])
+                                <small class="text-muted">Long-term signup available — 1, 2, 3, 4, or 5 years with built-in savings.</small>
                             </div>
                         </div>
                         <div class="row mb-2">
@@ -139,89 +140,41 @@
             }
         @endif
         $(document).ready(function() {
-            var pay_amount = {{ $membership->price_per_year}};
-                amount = Math.round((pay_amount * 1) * 1);
-                var wallet = document.getElementById('wallet_amount');
-                $("#plan_amount").attr('value',amount);
-                $("#plan_amt").html(amount);
-                if(wallet){
-                    amount = amount - $("#wallet_amount").val();
-                    if(amount <= 0){
-                        amount = 0;
-                    }
-                }
-                $("#payable_amount").attr('value',amount);
-                $("#payable_amt").html(amount);
+            var termAmounts = @json(\App\Services\SubscriptionTermPricing::amountsByDuration((float) $membership->price_per_year));
+            var wallet = document.getElementById('wallet_amount');
 
-            $("#plan_duration").change(function(){
-                var duration = $(this).val();
-                var amt = {{ $membership->price_per_year }};
-                if(duration == 2){
-                    amount = Math.round((amt * 2) * 0.9);
-                    $("#plan_amount").attr('value',amount);
-                    $("#plan_amt").html(amount);
-                    if(wallet){
-                        amount = amount - $("#wallet_amount").val();
-                        if(amount <= 0){
-                            amount = 0;
-                        }
+            function updatePayableAmount(duration) {
+                var amount = termAmounts[duration] || termAmounts[1] || 0;
+
+                $("#plan_amount").attr('value', amount);
+                $("#plan_amt").html(amount);
+
+                var payable = amount;
+                if (wallet) {
+                    payable = amount - $("#wallet_amount").val();
+                    if (payable <= 0) {
+                        payable = 0;
                     }
-                    // console.log(amount);
-                    $("#payable_amount").attr('value',amount);
-                    $("#payable_amt").html(amount);
                 }
-                else if(duration == 3){
-                    amount = Math.round((amt * 3) * 0.8);
-                    $("#plan_amount").attr('value',amount);
-                    $("#plan_amt").html(amount);
-                    if(wallet){
-                        amount = amount - $("#wallet_amount").val();
-                        if(amount <= 0){
-                            amount = 0;
-                        }
-                    }
-                    // console.log(amount);
-                    $("#payable_amount").attr('value',amount);
-                    $("#payable_amt").html(amount);
-                }
-                else if(duration == 5){
-                    amount = Math.round((amt * 5) * 0.5);
-                    $("#plan_amount").attr('value',amount);
-                    $("#plan_amt").html(amount);
-                    if(wallet){
-                        amount = amount - $("#wallet_amount").val();
-                        if(amount <= 0){
-                            amount = 0;
-                        }
-                    }
-                    // console.log(amount);
-                    $("#payable_amount").attr('value',amount);
-                    $("#payable_amt").html(amount);
-                }
-                else {
-                    amount = Math.round((amt * 1) * 1);
-                    $("#plan_amount").attr('value',amount);
-                    $("#plan_amt").html(amount);
-                    if(wallet){
-                        amount = amount - $("#wallet_amount").val();
-                        if(amount <= 0){
-                            amount = 0;
-                        }
-                    }
-                    // console.log(amount);
-                    $("#payable_amount").attr('value',amount);
-                    $("#payable_amt").html(amount);
-                }
-            })
+
+                $("#payable_amount").attr('value', payable);
+                $("#payable_amt").html(payable);
+            }
+
+            updatePayableAmount($("#plan_duration").val() || 1);
+
+            $("#plan_duration").change(function() {
+                updatePayableAmount($(this).val());
+            });
         });
     </script>
 
     {{-- @if (session()->has('error'))
         <script>
             Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: 'Invalid Refferal Code'
+                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                title: 'Oops!',
+                text: 'Invalid referral code.'
             })
         </script>
     @endif --}}

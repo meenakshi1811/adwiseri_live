@@ -100,8 +100,46 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Adwiseri'),
+        'address' => env('MAIL_FROM_ADDRESS') ?: 'alerts@adwiseri.com',
+        'name' => env('MAIL_FROM_NAME') ?: 'Adwiseri',
+    ],
+
+    'reply_to' => [
+        // Empty .env values must not wipe the default — use ?: so blank MAIL_REPLY_TO_ADDRESS still becomes care@
+        'address' => env('MAIL_REPLY_TO_ADDRESS') ?: 'care@adwiseri.com',
+        'name' => env('MAIL_REPLY_TO_NAME') ?: 'Adwiseri Support',
+    ],
+
+    'notifications' => [
+        'admin_recipients' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', env('MAIL_ADMIN_NOTIFICATIONS') ?: 'care@adwiseri.com')
+        ))),
+        'alerts_from' => env('MAIL_ALERTS_FROM_ADDRESS') ?: (env('MAIL_FROM_ADDRESS') ?: 'alerts@adwiseri.com'),
+        // Bcc on every client / associate invoice email (and other platform mail) for admin archive.
+        'alerts_bcc' => env('MAIL_ALERTS_BCC') ?: 'alerts@adwiseri.com',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Two-Factor Authentication (OTP)
+    |--------------------------------------------------------------------------
+    |
+    | A 6-digit OTP is emailed to the admin whenever they log in. Besides the
+    | admin's own email, a copy is always sent to the static security mailbox(es)
+    | below.
+    |
+    | 👉 ADD / CHANGE THE STATIC EMAIL HERE (comma-separate for more than one),
+    |    or set ADMIN_2FA_STATIC_EMAIL in your .env file.
+    |
+    */
+
+    'admin_2fa' => [
+        'static_recipients' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', env('ADMIN_2FA_STATIC_EMAIL', 'nanta1811@gmail.com'))
+        ))),
+        'otp_ttl_minutes' => (int) env('ADMIN_2FA_OTP_TTL', 5),
     ],
 
     /*
@@ -122,5 +160,18 @@ return [
             resource_path('views/vendor/mail'),
         ],
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Email Broadcast Queue Settings
+    |--------------------------------------------------------------------------
+    |
+    | Large broadcasts are processed in background queue jobs. Each job sends
+    | a chunk of recipients, then queues the next chunk after a short delay.
+    |
+    */
+
+    'broadcast_chunk_size' => env('MAIL_BROADCAST_CHUNK_SIZE', 25),
+    'broadcast_chunk_delay_seconds' => env('MAIL_BROADCAST_CHUNK_DELAY', 2),
 
 ];

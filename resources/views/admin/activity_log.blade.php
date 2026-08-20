@@ -13,6 +13,12 @@
                       </form>
                       {{-- <i class="fa-solid fa-magnifying-glass"></i> --}}
                 </div>
+                @include('partials.table_filter_toolbar', [
+                    'filterItems' => $activityUserFilters ?? [],
+                    'tableId' => 'clientTable',
+                    'toolbarTitle' => 'Users by Activity Count',
+                    'totalCount' => count($activities),
+                ])
                 <div class="table-wrapper">
                     <table class="table table-hover table-bordered fl-table" id="clientTable">
                         <thead>
@@ -26,7 +32,11 @@
                         </thead>
                         <tbody>
                         @foreach($activities as $key => $act)
-                        <tr>
+                        @php
+                            $activityUser = trim((string) ($act->user_name ?? '')) ?: 'Unspecified';
+                            $activityFilterKey = \App\Services\TableFilterCountService::keyFor($activityUser);
+                        @endphp
+                        <tr data-filter-value="{{ $activityFilterKey }}">
                             <td class="text-center">{{ $key+1 }}</td>
                             <td class="text-center">{{ $act->activity_name }}</td>
                             <td class="text-center">{{ $act->user_name }}</td>
@@ -50,7 +60,7 @@
   </div>
   <script>
       function deleteclient(id){
-          var conf = confirm('Delete Client');
+          var conf = confirm('Are you sure you want to delete this client?');
           if(conf == true){
               window.location.href = "delete_clients/"+id+"";
           }
@@ -62,7 +72,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Client Deleted Successfully!'
+        text: 'Client deleted successfully.'
       })
     </script>
 

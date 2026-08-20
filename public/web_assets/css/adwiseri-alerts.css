@@ -1,0 +1,9 @@
+/* Green exclamation icon for informational / validation alerts ("Oops!") */
+.swal2-icon.adwiseri-oops-icon {
+    border-color: #28a745 !important;
+    color: #28a745 !important;
+}
+
+.swal2-icon.adwiseri-oops-icon .swal2-icon-content {
+    color: #28a745 !important;
+}

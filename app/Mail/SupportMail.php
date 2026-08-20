@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Services\EmailTemplateService;
+use App\Support\BrandedMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
@@ -25,38 +26,26 @@ class SupportMail extends Mailable
         $owner = $templateService->resolveTemplateOwner($data);
         $template = $templateService->getTemplateForUser($owner, 'admin', 'support_ticket_notification_email');
 
-        if (!$template) {
-            if ($data->attachment) {
-                return $this->subject('New Support Ticket Raised(' . $data->ticket_id . ')')
-                    ->view('web.supporttemplate', compact('data'))
-                    ->attach('web_assets/users/ticket_images/' . $data->attachment);
-            }
+        $defaultSubject = 'New Support Ticket Raised (' . ($data->ticket_id ?? '') . ')';
+        $headerTitle = 'Support Ticket Notification';
+        $placeholderData = BrandedMail::dataFromObject($data);
 
-            return $this->subject('New Support Ticket Raised(' . $data->ticket_id . ')')->view('web.supporttemplate', compact('data'));
+        if ($template && !empty(trim((string) $template->body))) {
+            $content = BrandedMail::replacePlaceholders($template->body, $placeholderData);
+            $subject = BrandedMail::replacePlaceholders($template->subject ?: $defaultSubject, $placeholderData);
+        } else {
+            $content = BrandedMail::renderBody('emails.bodies.support_fallback', compact('data'));
+            $subject = $defaultSubject;
         }
 
-        $content = $this->replacePlaceholders($template->body, $data);
-        $subject = $this->replacePlaceholders($template->subject ?: 'New Support Ticket Raised(' . $data->ticket_id . ')', $data);
-        $mail = $this->subject($subject)->view('web.dynamic_email_template', compact('content'));
+        $mail = BrandedMail::applyPlatformEnvelope(
+            $this->subject($subject)->view(BrandedMail::LAYOUT, compact('content', 'headerTitle'))
+        );
 
-        if ($data->attachment) {
+        if (!empty($data->attachment)) {
             $mail->attach('web_assets/users/ticket_images/' . $data->attachment);
         }
 
         return $mail;
-    }
-
-    private function replacePlaceholders(?string $text, $data): string
-    {
-        $content = (string) $text;
-        $map = is_object($data) ? (array) $data : (array) $data;
-
-        foreach ($map as $key => $value) {
-            if (is_scalar($value) || is_null($value)) {
-                $content = str_replace('{{' . $key . '}}', (string) $value, $content);
-            }
-        }
-
-        return $content;
     }
 }

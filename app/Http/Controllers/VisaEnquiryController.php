@@ -16,6 +16,7 @@ use App\Models\EnquiryRefusalHistory;
 use App\Models\EnquiryWorkExperience;
 use App\Models\EnquiryChild;
 use App\Models\EnquiryFundingSource;
+use App\Services\LeadEnquiryService;
 
 class VisaEnquiryController extends Controller
 {
@@ -88,7 +89,7 @@ class VisaEnquiryController extends Controller
         $request->validate([
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
-            'contact_no' => 'required|string|max:25',
+            'contact_no' => 'required|phone_intl',
             'dob' => ['nullable', function ($attribute, $value, $fail) {
                 $normalizedDob = $this->normalizeDateValue($value);
                 if ($value !== null && trim((string) $value) !== '' && $normalizedDob === null) {
@@ -104,13 +105,25 @@ class VisaEnquiryController extends Controller
             'country_pref.*' => 'nullable|string|max:255|distinct',
             'visa_category' => 'required|string|max:255',
             'address' => 'required|string|min:3|max:1000',
-            'postcode' => 'nullable|string|max:50',
+            'postcode' => 'nullable|regex:/^[A-Za-z0-9\s\-]{3,10}$/',
             'country' => 'required|string|max:255',
             'spouse_apply_together' => 'nullable|boolean',
             'spouse_age' => 'nullable|integer|min:0|max:120',
             'spouse_qualification' => 'nullable|string|max:255',
             'spouse_work_experience_years' => 'nullable|numeric|min:0|max:80',
         ]);
+
+        $subscriber = User::find($request->subscriber_id);
+        if ($subscriber) {
+            $ccErrors = app(\App\Services\CountryCategorySettingsService::class)->validateEnquirySelection(
+                $subscriber,
+                $request->country_pref ?? [],
+                $request->visa_category
+            );
+            if (!empty($ccErrors)) {
+                return back()->withInput()->withErrors($ccErrors);
+            }
+        }
 
         DB::beginTransaction();
 
@@ -171,6 +184,12 @@ class VisaEnquiryController extends Controller
             } elseif (Schema::hasColumn('visa_enquiries', 'sign_name')) {
                 $enquiryData['sign_name'] = $request->print_name;
             }
+
+            $leadService = app(LeadEnquiryService::class);
+            $enquiryData = array_merge(
+                $enquiryData,
+                $leadService->leadFollowUpFieldsForEnquiryForm($request, auth()->user())
+            );
 
             $enquiry = VisaEnquiry::create($enquiryData);
 

@@ -39,7 +39,7 @@
             font-weight: 700;
             color: #fff;
         }
-        .accepted { background: #16a34a; }
+        .accepted { background: #695EEE; }
         .declined { background: #dc2626; }
         .neutral { background: #6b7280; }
         h1 {

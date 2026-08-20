@@ -2,37 +2,65 @@
 
 namespace App\Console\Commands;
 
+use App\Mail\ApplicationReminderMail;
+use App\Mail\DocumentReminderMail;
 use App\Mail\PaymentReminderMail;
+use App\Models\ApplicationReminder;
+use App\Models\AssociateInvoice;
 use App\Models\Invoice_settings;
 use App\Models\PaymentARs;
 use App\Models\PaymentReminderSetting;
 use App\Models\User;
+use App\Services\DocumentReminderService;
+use App\Services\ReminderScheduleService;
+use App\Support\BrandedMail;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 
 class SendPaymentReminderEmails extends Command
 {
     protected $signature = 'payments:send-reminders';
 
-    protected $description = 'Send payment reminder emails to clients based on subscriber payment reminder settings.';
+    protected $description = 'Send payment, document, and application reminder emails based on subscriber reminder settings.';
+
+    public function __construct(
+        private ReminderScheduleService $scheduleService,
+        private DocumentReminderService $documentReminderService
+    ) {
+        parent::__construct();
+    }
 
     public function handle()
     {
-        $settings = PaymentReminderSetting::all();
-        
-        foreach ($settings as $setting) {
-            if (!$this->shouldRunForFrequency($setting)) {
-                continue;
-            }
+        $this->sendPaymentReminders();
+        $this->sendDocumentReminders();
+        $this->sendApplicationReminders();
 
+        return Command::SUCCESS;
+    }
+
+    private function sendPaymentReminders(): void
+    {
+        $settings = PaymentReminderSetting::query()->payments()->get();
+
+        foreach ($settings as $setting) {
             $subscriber = User::find($setting->user_id);
             if (!$subscriber) {
                 continue;
             }
 
-            $rows = $this->outstandingRowsForSubscriber($subscriber->id, $setting->client_group);
-                // echo'<pre>';print_r($rows);exit();
+            if (!$this->scheduleService->shouldRunAtScheduledTime($subscriber)) {
+                continue;
+            }
+
+            if (!$this->scheduleService->shouldRunForFrequency($setting->last_sent_at, (string) $setting->email_frequency, $subscriber)) {
+                continue;
+            }
+
+            $rows = $setting->sendsToAssociates()
+                ? $this->outstandingAssociateRowsForSubscriber($subscriber->id, $setting->client_group)
+                : $this->outstandingRowsForSubscriber($subscriber->id, $setting->client_group);
 
             $invoiceSetting = Invoice_settings::where('user_id', $subscriber->id)->first();
             $paymentLink = trim((string) ($invoiceSetting?->payment_link ?? ''));
@@ -40,7 +68,11 @@ class SendPaymentReminderEmails extends Command
             $sentCount = 0;
 
             foreach ($rows as $row) {
-                if (empty($row->client_email) || (float) $row->outstanding_amount <= 0) {
+                $recipientEmail = $setting->sendsToAssociates()
+                    ? trim((string) ($row->associate_email ?? ''))
+                    : trim((string) ($row->client_email ?? ''));
+
+                if ($recipientEmail === '' || (float) $row->outstanding_amount <= 0) {
                     continue;
                 }
 
@@ -48,17 +80,17 @@ class SendPaymentReminderEmails extends Command
                 if ($dueDateObject && $dueDateObject->isFuture()) {
                     continue;
                 }
-                // echo'<pre>';print_r($row);exit();
 
                 $outstandingAmount = number_format((float) $row->outstanding_amount, 2, '.', '');
                 $serviceDescription = (string) ($row->service_description ?: '-');
                 $dueDate = $dueDateObject ? $dueDateObject->format('d-m-Y') : '-';
+                $clientName = (string) ($row->client_name ?? '-');
 
                 $payload = [
                     'subscriber_name' => (string) $subscriber->name,
-                    'client_first_name' => $this->firstName((string) $row->client_name),
-                    'client_name' => (string) $row->client_name,
-                    'name' => (string) $row->client_name,
+                    'client_first_name' => $this->scheduleService->firstName($clientName),
+                    'client_name' => $clientName,
+                    'name' => $clientName,
                     'currency_symbol' => $this->currencySymbol((string) $subscriber->currency),
                     'amount' => $outstandingAmount,
                     'outstanding_amount' => $outstandingAmount,
@@ -71,24 +103,140 @@ class SendPaymentReminderEmails extends Command
                     'payment_link' => $paymentLink,
                 ];
 
-                // $mail = Mail::to("nanta1811@gmail.com");
-                $mail = Mail::to($row->client_email);
-                if ($setting->email_to === 'client_bcc_subscriber' && !empty($subscriber->email)) {
-                    $mail->bcc($subscriber->email);
-                }
-
-                $mail->send(new PaymentReminderMail($subscriber, $payload));
+                $payload['recipient_email'] = $recipientEmail;
+                BrandedMail::sendWithAlertsArchive(
+                    $recipientEmail,
+                    fn () => new PaymentReminderMail($subscriber, $payload),
+                    function ($mail) use ($setting, $subscriber) {
+                        if ($setting->bccSubscriber() && !empty($subscriber->email)) {
+                            $mail->bcc($subscriber->email);
+                        }
+                    }
+                );
                 $sentCount++;
-                exit();
             }
 
             $setting->last_sent_at = now();
             $setting->save();
 
-            $this->info('Processed payment reminders for subscriber_id ' . $subscriber->id . ' (' . $sentCount . ' overdue outstanding invoice reminders sent).');
+            $this->info('Processed payment reminders for subscriber_id ' . $subscriber->id . ' (' . $sentCount . ' sent).');
+        }
+    }
+
+    private function sendDocumentReminders(): void
+    {
+        $settings = PaymentReminderSetting::query()->documents()->get();
+
+        foreach ($settings as $setting) {
+            $subscriber = User::find($setting->user_id);
+            if (!$subscriber) {
+                continue;
+            }
+
+            if (!$this->scheduleService->shouldRunAtScheduledTime($subscriber)) {
+                continue;
+            }
+
+            if (!$this->scheduleService->shouldRunForFrequency($setting->last_sent_at, (string) $setting->email_frequency, $subscriber)) {
+                continue;
+            }
+
+            $sentCount = 0;
+
+            foreach ($this->documentReminderService->applicationsWithMissingDocuments($subscriber) as $row) {
+                /** @var \App\Models\Applications $application */
+                $application = $row['application'];
+                $recipientEmail = trim((string) $row['client_email']);
+                if ($recipientEmail === '') {
+                    continue;
+                }
+
+                $payload = [
+                    'subscriber_name' => (string) $subscriber->name,
+                    'client_name' => $row['client_name'],
+                    'client_first_name' => $this->scheduleService->firstName($row['client_name']),
+                    'application_name' => (string) ($application->application_name ?? ''),
+                    'missing_documents' => $row['missing_documents'],
+                    'recipient_email' => $recipientEmail,
+                ];
+
+                BrandedMail::sendWithAlertsArchive(
+                    $recipientEmail,
+                    fn () => new DocumentReminderMail($subscriber, $payload),
+                    function ($mail) use ($setting, $subscriber) {
+                        if ($setting->bccSubscriber() && !empty($subscriber->email)) {
+                            $mail->bcc($subscriber->email);
+                        }
+                    }
+                );
+                $sentCount++;
+            }
+
+            $setting->last_sent_at = now();
+            $setting->save();
+
+            $this->info('Processed document reminders for subscriber_id ' . $subscriber->id . ' (' . $sentCount . ' sent).');
+        }
+    }
+
+    private function sendApplicationReminders(): void
+    {
+        if (!Schema::hasTable('application_reminders')) {
+            return;
         }
 
-        return Command::SUCCESS;
+        $reminders = ApplicationReminder::query()
+            ->where('is_active', true)
+            ->with(['subscriber', 'client', 'application', 'notifyUser'])
+            ->get();
+
+        foreach ($reminders as $reminder) {
+            $subscriber = $reminder->subscriber;
+            if (!$subscriber) {
+                continue;
+            }
+
+            if (!$this->scheduleService->shouldRunAtScheduledTime($subscriber)) {
+                continue;
+            }
+
+            if (!$this->scheduleService->shouldRunForFrequency($reminder->last_sent_at, (string) $reminder->email_frequency, $subscriber)) {
+                continue;
+            }
+
+            $notifyUser = $reminder->notifyUser ?: $subscriber;
+            $recipientEmail = trim((string) ($notifyUser->email ?? ''));
+            if ($recipientEmail === '') {
+                continue;
+            }
+
+            $payload = [
+                'subscriber_name' => (string) $subscriber->name,
+                'user_name' => (string) ($notifyUser->name ?? $subscriber->name),
+                'recipient_name' => (string) ($notifyUser->name ?? $subscriber->name),
+                'client_name' => (string) optional($reminder->client)->name,
+                'application_name' => (string) optional($reminder->application)->application_name,
+                'subject' => (string) $reminder->subject,
+                'description' => (string) ($reminder->description ?? ''),
+                'deadline' => $reminder->deadline ? $reminder->deadline->format('d-m-Y') : '-',
+                'recipient_email' => $recipientEmail,
+            ];
+
+            BrandedMail::sendWithAlertsArchive(
+                $recipientEmail,
+                fn () => new ApplicationReminderMail($subscriber, $payload),
+                function ($mail) use ($reminder, $subscriber, $recipientEmail) {
+                    if ($reminder->bccSubscriber() && !empty($subscriber->email) && $subscriber->email !== $recipientEmail) {
+                        $mail->bcc($subscriber->email);
+                    }
+                }
+            );
+
+            $reminder->last_sent_at = now();
+            $reminder->save();
+
+            $this->info('Processed application reminder #' . $reminder->id . ' for subscriber_id ' . $subscriber->id . '.');
+        }
     }
 
     private function outstandingRowsForSubscriber(int $subscriberId, string $clientGroup)
@@ -106,46 +254,37 @@ class SendPaymentReminderEmails extends Command
             ->selectRaw('payment_ar.client_id, payment_ar.invoice_no, payment_ar.service_description, clients.name as client_name, clients.email as client_email, internal_invoices.due_date, SUM(payment_ar.amount - payment_ar.paid_amount) as outstanding_amount')
             ->havingRaw('SUM(payment_ar.amount - payment_ar.paid_amount) > 0');
 
-        if ($clientGroup === 'over_500') {
-            $query->havingRaw('SUM(payment_ar.amount - payment_ar.paid_amount) > 500');
-        }
-
-        if ($clientGroup === 'over_100') {
-            $query->havingRaw('SUM(payment_ar.amount - payment_ar.paid_amount) > 100');
-        }
+        $this->applyAmountThreshold($query, $clientGroup, 'SUM(payment_ar.amount - payment_ar.paid_amount)', true);
 
         return $query->get();
     }
 
-    private function shouldRunForFrequency(PaymentReminderSetting $setting): bool
+    private function outstandingAssociateRowsForSubscriber(int $subscriberId, string $clientGroup)
     {
-        $lastSentAt = $setting->last_sent_at ? Carbon::parse($setting->last_sent_at) : null;
+        $query = AssociateInvoice::query()
+            ->from('associate_invoices')
+            ->join('associates', 'associates.id', '=', 'associate_invoices.associate_id')
+            ->where('associate_invoices.subscriber_id', $subscriberId)
+            ->whereIn('associate_invoices.status', ['UnPaid', 'PartiallyPaid'])
+            ->whereRaw('(associate_invoices.fees - associate_invoices.paid) > 0')
+            ->selectRaw('associate_invoices.invoice_no, associate_invoices.client_name, associate_invoices.service_provided as service_description, associate_invoices.due_date, associates.email as associate_email, (associate_invoices.fees - associate_invoices.paid) as outstanding_amount');
 
-        if (!$lastSentAt) {
-            return true;
-        }
+        $this->applyAmountThreshold($query, $clientGroup, '(associate_invoices.fees - associate_invoices.paid)', false);
 
-        if ($setting->email_frequency === 'daily') {
-            return $lastSentAt->startOfDay()->lte(now()->subDay()->startOfDay());
-        }
-
-        if ($setting->email_frequency === 'weekly') {
-            // Compare start of last sent week vs start of last week
-            return $lastSentAt->startOfWeek()->lte(now()->subWeek()->startOfWeek());
-        }
-
-        if ($setting->email_frequency === 'monthly') {
-            // Compare start of last sent month vs start of last month
-            return $lastSentAt->startOfMonth()->lte(now()->subMonth()->startOfMonth());
-        }
-
-        return $lastSentAt->lte(now()->subMonths(3));
+        return $query->get();
     }
 
-    private function firstName(string $fullName): string
+    private function applyAmountThreshold($query, string $clientGroup, string $amountExpression, bool $useHaving = false): void
     {
-        $parts = preg_split('/\s+/', trim($fullName));
-        return $parts[0] ?? $fullName;
+        $threshold = PaymentReminderSetting::CLIENT_GROUP_THRESHOLDS[$clientGroup] ?? null;
+
+        if ($threshold !== null) {
+            if ($useHaving) {
+                $query->havingRaw($amountExpression . ' > ?', [$threshold]);
+            } else {
+                $query->whereRaw($amountExpression . ' > ?', [$threshold]);
+            }
+        }
     }
 
     private function currencySymbol(string $currency): string

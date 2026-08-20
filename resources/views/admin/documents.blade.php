@@ -42,7 +42,7 @@
                             <th class="text-center">Application (ID)</th>
                             <th class="text-center">Doc_Type</th>
                             <th class="text-center">Doc_Name</th>
-                            <th class="text-center">File</th>
+                            <th class="text-center">File Name</th>
                             <th class="text-center">File_Size</th>
                             <th class="text-center">Uploaded Date</th>
                             <th class="text-center">Action</th>
@@ -69,14 +69,17 @@
                                     @endphp
 
                                     @if (file_exists($filePath) && $doc->doc_file)
-                                        <!-- File exists, display the download link and file name -->
+                                        @php
+                                            $shortFileName = \App\Support\DocumentFileName::forTable($doc->doc_file, $doc->doc_name);
+                                        @endphp
                                         <a href="{{ asset('web_assets/users/client' . $doc->client_id . '/docs/' . $doc->doc_file) }}"
                                             download="{{ $doc->doc_file }}" class="p-0 m-0"
-                                            style="text-decoration: none;border:none;background:none;">
+                                            style="text-decoration: none;border:none;background:none;"
+                                            title="{{ $doc->doc_file }}">
                                             <i class="fa-solid fa-download btn p-1 text-primary"
                                                 style="font-size:14px;"></i>
                                         </a>
-                                        {{ $doc->doc_file }}
+                                        <span class="doc-file-label" title="{{ $doc->doc_file }}">{{ $shortFileName }}</span>
                                     @else
                                         <!-- No file found -->
                                     @endif
@@ -92,7 +95,7 @@
                                     @endphp
                                     {{ $fileSize }}
                                 </td>
-                                <td class="text-center">{{ date('d-m-Y', strtotime($doc->created_at)) }}</td>
+                                <td class="text-center">{{ date('d-m-Y H:i:s', strtotime($doc->created_at)) }}</td>
                                 <td class="text-center">
                                     {{-- <a style="background:transparent;border:none;" class="p-0 m-0 text-dark" href="{{ route('application_view', $doc->id)}}"><i class="fa-solid fa-eye btn text-info p-1 m-0"></i></a> --}}
                                     <i class="fa-solid fa-edit btn text-primary p-1 m-0" style="font-size:14px;"
@@ -124,10 +127,10 @@
         function deletedocument(id) {
             Swal.fire({
                 title: 'Are you sure?',
-                text: "You won't be able to revert this!",
+                text: "This action cannot be undone.",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#3085d6',
+                confirmButtonColor: '#695EEE',
                 cancelButtonColor: '#d33',
                 confirmButtonText: 'Yes, delete it!'
             }).then((result) => {
@@ -140,12 +143,12 @@
         function updatedocument(id) {
             Swal.fire({
                 title: 'Are you sure?',
-                text: "You want to update this record!",
+                text: "Do you want to update this record?",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#3085d6',
+                confirmButtonColor: '#695EEE',
                 cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes'
+                confirmButtonText: 'Yes, continue'
             }).then((result) => {
                 if (result.isConfirmed) {
                     window.location.href = "document_update/" + id + "";
@@ -159,7 +162,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Application Deleted Successfully!'
+                text: 'Application deleted successfully.'
             })
         </script>
     @endif
@@ -168,7 +171,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'New Document Added Successfully!'
+                text: 'Document added successfully.'
             })
         </script>
     @endif
@@ -177,7 +180,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Document Updated Successfully!'
+                text: 'Document updated successfully.'
             })
         </script>
     @endif

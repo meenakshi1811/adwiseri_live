@@ -1,4 +1,4 @@
-@extends('web.layout.main')
+﻿@extends('web.layout.main')
 
 @section('main-section')
 
@@ -44,8 +44,9 @@
                             <span class="invalid-feedback" role="alert">
                                 {{ $message }}
                             </span>
-                        @enderror -->
+                                @enderror -->
                     </div>
+                    @include('web.partials.application_visa_detail_fields', ['application' => $application])
                     <div class="col-md-4 p-1">
                         <label>Visa Country<span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>
@@ -105,6 +106,9 @@
                     <div class="col-md-8 p-1">
                         @php
                             $currentApplicationStatus = old('job_status', $application->application_status ?? '');
+                            if ($currentApplicationStatus === 'Apointment Booked') {
+                                $currentApplicationStatus = 'Appointment Booked';
+                            }
                             $isTerminalApplicationStatus = in_array($currentApplicationStatus, ['Withdrawn', 'Cancelled'], true);
                             $endDateEditableStatuses = ['Decision', 'Appeal Decision', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
                             $isEndDateEditable = in_array($currentApplicationStatus, $endDateEditableStatuses, true);
@@ -114,7 +118,7 @@
                             <option {{ ($currentApplicationStatus == "Client Registered") ? 'selected' : '' }} value="Client Registered" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Client Registered") disabled @endif>Client Registered</option>
                             <option {{ ($currentApplicationStatus == "Client Counselled") ? 'selected' : '' }} value="Client Counselled" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Client Counselled") disabled @endif>Client Counselled</option>
                             <option {{ ($currentApplicationStatus == "Preparation") ? 'selected' : '' }} value="Preparation" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Preparation") disabled @endif>Preparation</option>
-                            <option {{ ($currentApplicationStatus == "Apointment Booked") ? 'selected' : '' }} value="Apointment Booked" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Apointment Booked") disabled @endif>Apointment Booked</option>
+                            <option {{ ($currentApplicationStatus == "Appointment Booked") ? 'selected' : '' }} value="Appointment Booked" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Appointment Booked") disabled @endif>Appointment Booked</option>
                             <option {{ ($currentApplicationStatus == "Applied") ? 'selected' : '' }} value="Applied" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Applied") disabled @endif>Applied</option>
                             <option {{ ($currentApplicationStatus == "Decision") ? 'selected' : '' }} value="Decision" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Decision") disabled @endif>Decision</option>
                             <option {{ ($currentApplicationStatus == "Appeal Lodged") ? 'selected' : '' }} value="Appeal Lodged" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Appeal Lodged") disabled @endif>Appeal Lodged</option>
@@ -204,10 +208,16 @@
                         <label>Visa Country<span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>
                     <div class="col-md-8 p-1">
+                                @php
+                                    $defaultVisaCountry = old('visa_country');
+                                    if (!$defaultVisaCountry && $countries->count() === 1) {
+                                        $defaultVisaCountry = $countries->first()->country_name;
+                                    }
+                                @endphp
                                 <select name="visa_country" id="visa_country" class="form-control form-select @error('visa_country') is-invalid @enderror" aria-describedby="emailHelp" required>
                                     <option value="">Select Visa Country</option>
                                     @foreach($countries as $country)
-                                    <option {{ (old('visa_country') == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
+                                    <option {{ ($defaultVisaCountry == $country->country_name) ? 'selected':'' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
                                     @endforeach
                                 </select>
                                 @error('visa_country')
@@ -257,6 +267,7 @@
                             </span>
                         @enderror -->
                     </div>
+                    @include('web.partials.application_visa_detail_fields')
                     <div class="col-md-4 p-1">
                         <label>Application Start Date<span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>
@@ -294,7 +305,7 @@
                             <option {{ (old('job_status') == "Client Registered") ? 'selected':'' }} value="Client Registered">Client Registered</option>
                             <option {{ (old('job_status') == "Client Counselled") ? 'selected':'' }} value="Client Counselled">Client Counselled</option>
                             <option {{ (old('job_status') == "Preparation") ? 'selected':'' }} value="Preparation">Preparation</option>
-                            <option {{ (old('job_status') == "Apointment Booked") ? 'selected':'' }} value="Apointment Booked">Apointment Booked</option>
+                            <option {{ (old('job_status') == "Appointment Booked") ? 'selected':'' }} value="Appointment Booked">Appointment Booked</option>
                             <option {{ (old('job_status') == "Applied") ? 'selected':'' }} value="Applied">Applied</option>
                             <option {{ (old('job_status') == "Decision") ? 'selected':'' }} value="Decision">Decision</option>
                             <option {{ (old('job_status') == "Appeal Lodged") ? 'selected':'' }} value="Appeal Lodged">Appeal Lodged</option>
@@ -389,41 +400,100 @@
         const clientEl = document.getElementById('client');
         var id = clientEl ? clientEl.value : '';
         const isClientSelect = clientEl && clientEl.tagName === 'SELECT';
-        if(isClientSelect && id != ''){
-            $.ajax({
-                url: '/fetch_visa_country/' + id,
-                method: 'GET',
+
+        function loadFilteredVisaCountries(clientId, selectedCountry) {
+            return $.ajax({
+                url: "{{ route('get_cc_countries') }}",
+                method: 'POST',
                 data: {
-                    "_token": "{{ csrf_token() }}",
-                    // id: id,
+                    _token: "{{ csrf_token() }}",
+                    client_id: clientId || '',
+                    @if(isset($subscriber))
+                    subscriber_id: {{ $subscriber->id }},
+                    @endif
+                    selected: selectedCountry || ''
                 },
-                cache:false,
-                success: function(data){
-                    if (data) {
-                        $("#visa_country").val(data);
+                success: function (html) {
+                    $("#visa_country").html(html);
+                }
+            });
+        }
+
+        function loadFilteredApplicationTypes(clientId, selectedType, isSubscriber) {
+            if (!clientId) {
+                @if(isset($subscriber))
+                clientId = {{ $subscriber->id }};
+                isSubscriber = true;
+                @else
+                $("#job_role").html('<option value="">Select Application Type</option>');
+                return $.Deferred().resolve().promise();
+                @endif
+            }
+
+            const payload = {
+                _token: "{{ csrf_token() }}",
+                id: clientId,
+                selected: selectedType || ''
+            };
+
+            if (isSubscriber) {
+                payload.name = 'subscriber';
+            }
+
+            return $.ajax({
+                url: "{{ route('get_job_role') }}",
+                method: 'POST',
+                data: payload,
+                success: function (data) {
+                    $("#job_role").html(data);
+                    if (typeof window.syncApplicationVisaDetailFields === 'function') {
+                        window.syncApplicationVisaDetailFields();
                     }
                 }
             });
         }
 
-        $("#client").change(function(){
-            var id = $(this).val();
-            // console.log(counrty);
+        @if(isset($subscriber) && !isset($application))
+        loadFilteredVisaCountries('', @json(old('visa_country')));
+        loadFilteredApplicationTypes({{ $subscriber->id }}, @json(old('job_role')), true);
+        @endif
+
+        if(isClientSelect && id != ''){
             $.ajax({
-                url: 'fetch_visa_country/'+id,
+                url: 'fetch_visa_country/' + id,
                 method: 'GET',
-                data: {
-                    "_token": "{{ csrf_token() }}",
-                    // id: id,
-                },
                 cache:false,
                 success: function(data){
-                  console.log(data);
-                    if (data) {
-                        $("#visa_country").val(data);
-                    }
+                    loadFilteredVisaCountries(id, data);
                 }
             });
+
+            loadFilteredApplicationTypes(id);
+        }
+
+        $("#client").change(function(){
+            var id = $(this).val();
+
+            if (!id) {
+                $("#job_role").html('<option value="">Select Application Type</option>');
+                @if(isset($subscriber))
+                loadFilteredVisaCountries('');
+                @else
+                $("#visa_country").html('<option value="">Select Visa Country</option>');
+                @endif
+                return;
+            }
+
+            $.ajax({
+                url: 'fetch_visa_country/' + id,
+                method: 'GET',
+                cache:false,
+                success: function(data){
+                    loadFilteredVisaCountries(id, data);
+                }
+            });
+
+            loadFilteredApplicationTypes(id);
           });
 
         $(document).on("change", ".js-app-status", syncEndDateEditability);
@@ -476,24 +546,6 @@
           });
             // Keep server-rendered dates/country intact on edit load; no client-side auto-clearing here.
 
-        $("#client").change(function(){
-            var id = $(this).val();
-            // console.log(counrty);
-            $.ajax({
-                url: 'get_job_role',
-                method: 'POST',
-                data: {
-                    "_token": "{{ csrf_token() }}",
-                    id: id,
-                },
-                cache:false,
-                success: function(data){
-                  console.log(data);
-                    $("#job_role").html(data);
-                }
-            });
-          });
-          
         //   $("#client").change(function(){
         //     var id = $(this).val();
         //     // console.log(counrty);
@@ -513,9 +565,10 @@
         //   });
       });
   </script>
+  @include('web.partials.application_visa_detail_fields_script')
   <script>
       function deleteuser(id){
-          var conf = confirm('Delete User');
+          var conf = confirm('Are you sure you want to delete this application?');
           if(conf == true){
               window.location.href = "delete_user/"+id+"";
           }
@@ -527,7 +580,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'Application deleted successfully.'
       })
     </script>
 

@@ -4,6 +4,17 @@
 
         <div class="col-lg-10 column-client">
             <div class="client-dashboard">
+                <ul class="nav nav-tabs module-tabs mb-3" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="subscribers-list-tab" data-bs-toggle="tab" data-bs-target="#subscribers-list" type="button" role="tab">All Subscribers</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="subscriber-journey-tab" data-bs-toggle="tab" data-bs-target="#subscriber-journey" type="button" role="tab">Journey Log</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                <div class="tab-pane fade show active" id="subscribers-list" role="tabpanel">
                 <div class="client-btn d-flex mb-2 ">
 
                     {{-- <form class="form-inline justify-content-between align-items-center mt-3 w-100"> --}}
@@ -43,6 +54,37 @@
                         Displaying {{$subscribers->count()}} of {{ $subscribers->total() }} subscriber(s).
                     </p></div>
                 </div> --}}
+                @include('partials.multi_table_filter_toolbar', [
+                    'filterGroups' => [
+                        [
+                            'key' => 'plan',
+                            'label' => 'By Plan',
+                            'rowAttribute' => 'data-plan',
+                            'items' => $subscriberFilters['plans'] ?? [],
+                            'totalCount' => $subscribers->count(),
+                        ],
+                        [
+                            'key' => 'duration',
+                            'label' => 'By Duration',
+                            'rowAttribute' => 'data-duration',
+                            'items' => $subscriberFilters['durations'] ?? [],
+                        ],
+                        [
+                            'key' => 'expiry',
+                            'label' => 'By Expiry',
+                            'rowAttribute' => 'data-expiry-days',
+                            'match' => 'threshold',
+                            'thresholds' => [
+                                '1_day' => 1,
+                                '1_week' => 7,
+                                '1_month' => 30,
+                                '1_quarter' => 90,
+                            ],
+                            'items' => $subscriberFilters['expiries'] ?? [],
+                        ],
+                    ],
+                    'tableId' => 'subscriberTable',
+                ])
                 <div class="table-wrapper">
                     <table class="fl-table table table-hover p-0 m-0" id="subscriberTable" width="100%">
                     {{-- <table class="table table-hover table-bordered fl-table" id="subscriberTable" width="100%"> --}}
@@ -65,11 +107,16 @@
                         </thead>
                         <tbody>
                             @foreach($subscribers as $key => $subscriber)
-                            <tr>
+                            @php
+                                $filterPlan = $subscriberFilterService->planKey($subscriber->membership);
+                                $filterDuration = $subscriberFilterService->durationKey($subscriber) ?? '';
+                                $filterExpiryDays = $subscriberFilterService->expiryDaysUntil($subscriber);
+                            @endphp
+                            <tr data-plan="{{ $filterPlan }}" data-duration="{{ $filterDuration }}" data-expiry-days="{{ $filterExpiryDays ?? '' }}">
                                 <td class="text-center">{{ $key+1 }}</td>
                                 <td  data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $subscriber->name }}" class="text-center" style="position: relative;">@if(strlen($subscriber->name) > 10){{ substr($subscriber->name, 0, 22) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$subscriber->name}}</span> @else {{$subscriber->name}} @endif</td>
                                 <td  data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $subscriber->email }}" class="text-center" style="position: relative;">@if(strlen($subscriber->email) > 10){{ substr($subscriber->email, 0, 22) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$subscriber->email}}</span> @else {{$subscriber->email}} @endif</td>
-                                <td class="text-center">{{ $subscriber->phone }}</td>
+                                <td class="text-center">@include('partials.phone_display', ['phone' => $subscriber->phone])</td>
                                 <td class="text-center">{{ $subscriber->country }}</td>
                                 {{-- <td>{{ $subscriber->city }}</td> --}}
                                 <td class="text-center">{{ $subscriber->city }}</td>
@@ -110,26 +157,54 @@
                         <button>Next</button>
                     </div> --}}
                 </div>
+                </div>{{-- end subscribers-list tab --}}
 
-            </div>
+                <div class="tab-pane fade" id="subscriber-journey" role="tabpanel">
+                    <div class="client-btn d-flex mb-2">
+                        <h3 class="text-primary text-center flex-grow-1 text-center m-0">Subscriber Journey Log</h3>
+                    </div>
+                    @include('admin.partials.journey_log_panel', [
+                        'panelId' => 'subscriberJourneyPanel',
+                        'entityFilterId' => 'subscriberJourneyEntity',
+                        'durationFilterId' => 'subscriberJourneyDuration',
+                        'tableId' => 'subscriberJourneyTable',
+                        'chartId' => 'subscriberJourneyChart',
+                        'dataUrl' => route('admin_subscriber_journey_log_data'),
+                        'entityParam' => 'subscriber_id',
+                        'entityLabel' => 'Select Subscriber',
+                        'entities' => $subscriberOptions ?? collect(),
+                        'panelTitle' => 'Subscriber Journey Log',
+                    ])
+                </div>
+                </div>{{-- end tab-content --}}
         </div>
     </div>
 
   </div>
+
   <script>
      document.addEventListener("DOMContentLoaded", function() {
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+
+    var journeyTab = document.getElementById('subscriber-journey-tab');
+    if (journeyTab) {
+        journeyTab.addEventListener('shown.bs.tab', function () {
+            if (typeof initsubscriberJourneyPanel === 'function') {
+                initsubscriberJourneyPanel();
+            }
+        });
+    }
 });
     function deleteuser(id){
       Swal.fire({
         title: 'Are you sure?',
-        text: "You won't be able to revert this!",
+        text: "This action cannot be undone.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
+        confirmButtonColor: '#695EEE',
         cancelButtonColor: '#d33',
         confirmButtonText: 'Yes, delete it!'
       }).then((result) => {
@@ -141,12 +216,12 @@
       function updateuser(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to update this record!",
+          text: "Do you want to update this record?",
           icon: 'warning',
           showCancelButton: true,
-          confirmButtonColor: '#3085d6',
+          confirmButtonColor: '#695EEE',
           cancelButtonColor: '#d33',
-          confirmButtonText: 'Yes'
+          confirmButtonText: 'Yes, continue'
         }).then((result) => {
           if (result.isConfirmed) {
             window.location.href = "update_subscriber/"+id+"";
@@ -160,7 +235,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'Subscriber deleted successfully.'
       })
     </script>
 
@@ -170,7 +245,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Subscriber Status Changed Successfully!'
+        text: 'Subscriber status changed successfully.'
       })
     </script>
 
@@ -179,8 +254,8 @@
     <script>
       Swal.fire({
         icon: 'success',
-        title: 'Congratulations',
-        text: 'Subscriber Data Updated Successfully!'
+        title: 'Success',
+        text: 'Subscriber updated successfully.'
       })
     </script>
 
@@ -189,8 +264,8 @@
     <script>
       Swal.fire({
         icon: 'success',
-        title: 'Congratulations',
-        text: 'New Subscriber Added Successfully!'
+        title: 'Success',
+        text: 'Subscriber added successfully.'
       })
     </script>
 

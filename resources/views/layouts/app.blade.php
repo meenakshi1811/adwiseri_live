@@ -21,6 +21,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
     <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ asset('web_assets/js/adwiseri-alerts.js') }}"></script>
+    <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-alerts.css') }}">
+    <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-responsive.css') }}">
+    <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-tabs.css') }}">
     <!-- Styles -->
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">

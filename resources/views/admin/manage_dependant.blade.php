@@ -62,13 +62,13 @@
             <div class="client-btn d-flex mb-2 ">
                 {{-- <form class="form-inline d-flex justify-content-between w-100"> --}}
                 {{-- <h3 class="text-primary">Clients</h3> --}}
-                <h3 class="text-primary text-center flex-grow-1 text-center m-0">Spouse/Dependants</h3>
+                <h3 class="text-primary text-center flex-grow-1 text-center m-0">Dependants</h3>
                 <p>
 
                     {{-- <a href="{{ route('clients_export') }}" class="m-0">Export</a> --}}
                     {{-- <a href="{{ route('new_client') }}" class="m-0">Add New</a>
                     <a href="javascript:void(0)" id="AddApplication" class="btn btn-primary">Add Application</a> --}}
-                    <a href="javascript:void(0)" id="AddDependent" class="m-0">Add Spouse/Dependant</a>
+                    <a href="javascript:void(0)" id="AddDependent" class="m-0">Add Dependants</a>
                 </p>
 
                 {{-- <div class="d-flex ">
@@ -93,7 +93,7 @@
                     <thead>
                         <tr>
                             <th class="p-1 text-center">Sr No.</th>
-                            <th class="p-1 text-center">Spouse/Dependant (ID)</th>
+                            <th class="p-1 text-center">Dependant (ID)</th>
                             <th class="p-1 text-center">Client(ID)</th>
                             {{-- <th class="p-1 text-center">Sub(ID)</th> --}}
                             <th class="p-1 text-center">Gender</th>
@@ -120,7 +120,7 @@
                                 <td class="text-center">{{ $dependent->relation }}</td>
                                 <td class="text-center">{{ \Carbon\Carbon::parse($dependent->dob)->format('d-m-Y') }}</td>
                                 <td class="text-center">{{ $dependent->passport_no }}</td>
-                                <td class="text-center">{{ \Carbon\Carbon::parse($dependent->created_at)->format('d-m-Y') }}
+                                <td class="text-center">{{ \Carbon\Carbon::parse($dependent->created_at)->format('d-m-Y H:i:s') }}
                                 </td>
                                 <td class="text-center">
                                     {{-- <a style="background:transparent;border:none;" class="p-0 m-0 text-dark" href="{{ route('application_view', $doc->id)}}"><i class="fa-solid fa-eye btn text-info p-1 m-0"></i></a> --}}
@@ -140,7 +140,7 @@
                     <div class="modal-content">
                         <!-- Modal Header -->
                         <div class="modal-header">
-                            <h5 class="modal-title text-primary">Add Spouse/Dependant</h5>
+                            <h5 class="modal-title text-primary">Add Dependant</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
 
@@ -170,7 +170,7 @@
                                 <!-- Application Type -->
                                 <div class="mb-3">
                                     <label for="name" class="form-label">Name <span class="text-danger" style="font-size: 18px;">*</span></label>
-                                    <input name="name" type="text" id="app_end_date" placeholder="Spouse/Dependant Name"
+                                    <input name="name" type="text" id="app_end_date" placeholder="Dependant Name"
                                         class="form-control @error('name') is-invalid @enderror">
                                     @error('name')
                                     <span class="invalid-feedback">
@@ -277,7 +277,7 @@
 
                                 <!-- Submit Button -->
                                 <div class="d-grid">
-                                    <button type="submit" class="btn btn-success">Add Spouse/Dependant</button>
+                                    <button type="submit" class="btn btn-success">Add Dependant</button>
                                 </div>
                             </form>
                         </div>
@@ -293,7 +293,7 @@
                     <div class="modal-content">
                         <!-- Modal Header -->
                         <div class="modal-header">
-                            <h5 class="modal-title text-primary">Edit Spouse/Dependant</h5>
+                            <h5 class="modal-title text-primary">Edit Dependant</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
 
@@ -335,10 +335,10 @@
                                     @enderror
                                 </div>
 
-                                <!-- Spouse/Dependant Name -->
+                                <!-- Dependent Name -->
                                 <div class="mb-3">
                                     <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
-                                    <input name="name" type="text" id="name" placeholder="Spouse/Dependant Name"
+                                    <input name="name" type="text" id="name" placeholder="Dependent Name"
                                         class="form-control @error('name') is-invalid @enderror">
                                     @error('name')
                                         <span class="invalid-feedback">
@@ -429,7 +429,7 @@
 
                                 <!-- Submit Button -->
                                 <div class="d-grid">
-                                    <button type="submit" class="btn btn-success">Update Spouse/Dependant</button>
+                                    <button type="submit" class="btn btn-success">Update Dependant</button>
                                 </div>
                             </form>
                             <input type="hidden" id="dependant" />
@@ -449,7 +449,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Client Deleted Successfully!'
+                text: 'Client deleted successfully.'
             })
         </script>
     @endif
@@ -458,7 +458,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'New Client Added Successfully!'
+                text: 'Client added successfully.'
             })
         </script>
     @endif
@@ -467,7 +467,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Client Updated Successfully!'
+                text: 'Client updated successfully.'
             })
         </script>
     @endif
@@ -487,7 +487,7 @@ function validateInput(input) {
                 // Check if the input date is in the future
                 if (inputDate > today) {
                     inputField.value = ""; // Clear the invalid value
-                    inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
+                    inputField.placeholder = "Future dates are not allowed."; // Show error in the placeholder
                     inputField.classList.add('is-invalid'); // Add red border for invalid input
                 } else {
                     inputField.classList.remove('is-invalid'); // Remove error state
@@ -696,8 +696,8 @@ function validateInput(input) {
                 error: function(xhr) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error',
-                        text: 'Failed to add client application !',
+                        title: 'Oops!',
+                        text: 'Failed to save dependant details.',
                     });
                 },
             });
@@ -720,7 +720,7 @@ function validateInput(input) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Success',
-                        text: 'Dependant Updated Successfully!'
+                        text: 'Dependant updated successfully.'
                     })
                     setTimeout(function() {
                         location.reload();
@@ -730,8 +730,8 @@ function validateInput(input) {
                 error: function(xhr) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error',
-                        text: 'Failed to add client application !',
+                        title: 'Oops!',
+                        text: 'Failed to save dependant details.',
                     });
                 },
             });
@@ -739,11 +739,11 @@ function validateInput(input) {
         function deleteDependant(dependantId) {
     Swal.fire({
         title: 'Are you sure?',
-        text: "You won't be able to revert this!",
+        text: "This action cannot be undone.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
+        cancelButtonColor: '#695EEE',
         confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -759,7 +759,7 @@ function validateInput(input) {
                         Swal.fire({
                             icon: 'success',
                             title: 'Success',
-                            text: 'Dependant Deleted Successfully!'
+                            text: 'Dependant deleted successfully.'
                         });
 
                         // Optionally, remove the row from the UI or reload the page
@@ -769,7 +769,7 @@ function validateInput(input) {
                     } else {
                         Swal.fire({
                             icon: 'error',
-                            title: 'Error',
+                            title: 'Oops!',
                             text: response.message || 'Failed to delete dependant.'
                         });
                     }
@@ -778,7 +778,7 @@ function validateInput(input) {
                     console.error('Error:', xhr.responseText);
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error',
+                        title: 'Oops!',
                         text: 'An error occurred while deleting the dependant.'
                     });
                 }

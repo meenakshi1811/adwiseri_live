@@ -1,22 +1,24 @@
-@extends('web.layout.main')
+﻿@extends('web.layout.main')
 
 @section('main-section')
 
         <div class="col-lg-10 column-client">
             <div class="client-dashboard">
-                @if(isset($update))
                 <div id="new_assignment" class="col">
-                  <h5>Edit User Access Rights</h5>
-                  <form id="user_role_form" class="register-box login-box" method="POST" action="{{ route('user_role_post') }}" enctype="multipart/form-data">
+                  <h5 class="text-center text-primary">Edit UAR (User Access Rights)</h5>
+                  <form id="user_role_form" class="register-box login-box" method="POST" action="{{ route('user_role_post') }}" enctype="multipart/form-data" style="width: 100%;">
                     @csrf
                     <input type="hidden" name="local_time" class="localtime" />
-                    <div class="row">
+                    <div class="row" style="padding-top: 1.25rem;">
                         <div class="col-md-4 p-1">
                             <label>User/Advisor<span class="text-danger" style="font-size: 18px;">*</span></label>
                         </div>
                         <div class="col-md-8 p-1">
-                            <select name="user_id" id="user_id" class="form-control form-select @error('user_id') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
-                                <option value="{{$staff->id}}">{{$staff->name}}({{ $staff->id }})</option>
+                            <select name="user_id" id="user_id" class="form-control form-select @error('user_id') is-invalid @enderror" required>
+                                <option value="">Select User/Advisor</option>
+                                @foreach($siteusers as $u)
+                                <option value="{{ $u->id }}" {{ isset($staff) && (string) $staff->id === (string) $u->id ? 'selected' : ((string) old('user_id') === (string) $u->id ? 'selected' : '') }}>{{ $u->name }} ({{ $u->id }})</option>
+                                @endforeach
                             </select>
                             @error('user_id')
                                 <span class="invalid-feedback" role="alert">
@@ -24,336 +26,156 @@
                                 </span>
                             @enderror
                         </div>
-                        <div class="col-md-12 p-1">
-                            <label>Access Rights<span class="text-danger" style="font-size: 18px;">*</span></label>
+                        <div class="col-md-12 p-1 text-center">
+                            <label class="mb-0">Select Access Rights<span class="text-danger" style="font-size: 18px;">*</span></label>
                         </div>
-                        <div class="col-md-12 p-1">
-                          <div class="row m-0">
-                            <div class="col-md-6 py-1">
-                              <input type="radio" name="access_type" onclick="change_access(this);" value="full_access" /> Full Access
-                            </div>
-                            <div class="col-md-6 py-1">
-                              <input type="radio" name="access_type" onclick="change_access(this);" checked value="limited_access" /> Limited Access
-                            </div>
-                        </div>
-                        <div class="col-md-12 p-1" id="access_table" style="display: block;">
-                          <div class="table-wrapper m-0">
-                            <table class="fl-table table table-hover p-0 m-0" id="clientTable">
-                              <tr>
-                                <th class="text-center">Module</th>
-                                <th class="text-center">Read</th>
-                                <th class="text-center">Insert</th>
-                                <th class="text-center">Update</th>
-                                <th class="text-center">Delete</th>
-                                <th class="text-center">Read/Write</th>
-                                {{-- <th class="text-center">All</th> --}}
-                              </tr>
-                              @foreach($roles as $role)
-                              <tr>
-                                <td>{{$role->module}}</td>
-                                <td class="text-center"><input type="checkbox" class="client" {{($role->read_only == 1) ? 'checked':''}} name="{{strtolower($role->module)}}_read_only" value="1" /></td>
-                                <td class="text-center"><input type="checkbox" class="client" {{($role->write_only == 1) ? 'checked':''}} name="{{strtolower($role->module)}}_write_only" value="1" /></td>
-                                <td class="text-center"><input type="checkbox" class="client" {{($role->update_only == 1) ? 'checked':''}} name="{{strtolower($role->module)}}_update_only" value="1" /></td>
-                                <td class="text-center"><input type="checkbox" class="client" {{($role->delete_only == 1) ? 'checked':''}} name="{{strtolower($role->module)}}_delete_only" value="1" /></td>
-                                <td class="text-center"><input type="checkbox" class="client" {{($role->read_write_only == 1) ? 'checked':''}} name="{{strtolower($role->module)}}_read_write_only" value="1" /></td>
-                                {{-- <td class="text-center"><input type="checkbox" id="clientall" name="client_all" value="1" /></td> --}}
-                              </tr>
-                              @endforeach
-                            </table>
-                          </div>
-                            {{-- <div class="row m-0">
-                              <div class="col-md-2 px-0">
-                                Clients
-                              </div>
-                              <div class="col-md-2 px-0">
-                                  <input type="checkbox" name="read_only" value="1" />&nbsp;&nbsp;Read
-                              </div>
-                              <div class="col-md-2 px-0">
-                                  <input type="checkbox" name="write_only" value="1" />&nbsp;&nbsp;Insert
-                              </div>
-                              <div class="col-md-2 px-0">
-                                  <input type="checkbox" name="update_only" value="1" />&nbsp;&nbsp;Update
-                              </div>
-                              <div class="col-md-2 px-0">
-                                  <input type="checkbox" name="delete_only" value="1" />&nbsp;&nbsp;Delete
-                              </div>
-                              <div class="col-md-2 px-0">
-                                  <input type="checkbox" name="read_write_only" value="1" />&nbsp;&nbsp;Read & Write
-                              </div>
-                            </div> --}}
-                            @error('user_id')
-                                <span class="invalid-feedback" role="alert">
-                                    <strong>{{ $message }}</strong>
+                        <div class="col-md-12 p-1 d-flex justify-content-center">
+                          <div class="access-rights-box">
+                            @foreach($accessPresets as $presetKey => $preset)
+                            <div class="access-rights-option">
+                              <label class="d-flex align-items-start mb-0" style="cursor: pointer;">
+                                <input type="radio" name="access_type" onclick="change_access(this);" value="{{ $presetKey }}" class="mt-1 me-2 access-type-radio" {{ ($detectedAccessType ?? 'limited_access') === $presetKey ? 'checked' : '' }} />
+                                <span class="text-start">
+                                  <strong>{{ $preset['label'] }}</strong>
+                                  <br><small class="text-muted">{{ $preset['description'] }}</small>
                                 </span>
-                            @enderror
+                              </label>
+                            </div>
+                            @endforeach
+                          </div>
                         </div>
-                        <div class="col text-start p-1">
-                            <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
+                        <div class="col-md-12 p-1" id="access_table">
+                          @include('partials.user_access_matrix', ['matrixRoles' => $matrixRoles])
+                        </div>
+                        <div class="col-md-12 p-1">
+                            <button type="submit" class="btn btn-primary" style="width: 100%; display: block;">Apply Changes</button>
                         </div>
                     </div>
                 </form>
-                    {{-- <form id="user_role_form" class="register-box login-box" method="POST" action="{{ route('user_role_post') }}" enctype="multipart/form-data">
-                        @csrf
-                        <input type="hidden" name="local_time" class="localtime" />
-                        <div class="row">
-                            <div class="col-md-4 p-1">
-                                <label>User/Advisor<span class="text-danger" style="font-size: 18px;">*</span></label>
-                            </div>
-                            <div class="col-md-8 p-1">
-                                <select name="user_id" id="user_id" class="form-control form-select @error('user_id') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
-                                    <option value="{{$role->user_id}}">{{$role->name}}({{$role->user_id}})</option>
-                                </select>
-                                @error('user_id')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
-                            <div class="col-md-4 p-1">
-                                <label>Roles<span class="text-danger" style="font-size: 18px;">*</span></label>
-                            </div>
-                            <div class="col-md-8 p-1">
-                                <div class="row m-0">
-                                    <div class="col-md-6">
-                                        <input {{($role->read_only != 0) ? 'checked':''}} type="checkbox" name="read_only" value="1" />&nbsp;&nbsp;Read
-                                    </div>
-                                    <div class="col-md-6">
-                                        <input {{($role->write_only != 0) ? 'checked':''}} type="checkbox" name="write_only" value="1" />&nbsp;&nbsp;Insert
-                                    </div>
-                                    <div class="col-md-6">
-                                        <input {{($role->update_only != 0) ? 'checked':''}} type="checkbox" name="update_only" value="1" />&nbsp;&nbsp;Update
-                                    </div>
-                                    <div class="col-md-6">
-                                        <input {{($role->delete_only != 0) ? 'checked':''}} type="checkbox" name="delete_only" value="1" />&nbsp;&nbsp;Delete
-                                    </div>
-                                    <div class="col-md-6">
-                                        <input {{($role->read_write_only != 0) ? 'checked':''}} type="checkbox" name="read_write_only" value="1" />&nbsp;&nbsp;Read & Write
-                                    </div>
-                                </div>
-                                @error('user_id')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
-                            <div class="col text-start p-1">
-                                <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
-                            </div>
-                        </div>
-                    </form> --}}
                 </div>
-                @else
-                <div class="col">
-                  <h5>New User Access</h5>
-                    <form id="user_role_form" class="register-box login-box" method="POST" action="{{ route('user_role_post') }}" enctype="multipart/form-data">
-                        @csrf
-                        <input type="hidden" name="local_time" class="localtime" />
-                        <div class="row">
-                            <div class="col-md-4 p-1">
-                                <label>User/Advisor<span class="text-danger" style="font-size: 18px;">*</span></label>
-                            </div>
-                            <div class="col-md-8 p-1">
-                                <select name="user_id" id="user_id" class="form-control form-select @error('user_id') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
-                                    <option value="">Select User/Advisor</option>
-                                    @foreach($siteusers as $u)
-                                    @if(in_array($u->id, $existing))
-                                    @php continue; @endphp
-                                    @else
-                                    <option value="{{ $u->id }}">{{ $u->name }}({{ $u->id }})</option>
-                                    @endif
-                                    @endforeach
-                                </select>
-                                @error('user_id')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
-                            <div class="col-md-12 p-1">
-                                <label>Access Rights<span class="text-danger" style="font-size: 18px;">*</span></label>
-                            </div>
-                            <div class="col-md-12 p-1">
-                              <div class="row m-0">
-                                <div class="col-md-6 py-1">
-                                  <input type="radio" name="access_type" onclick="change_access(this);" checked value="full_access" /> Full Access
-                                </div>
-                                <div class="col-md-6 py-1">
-                                  <input type="radio" name="access_type" onclick="change_access(this);" value="limited_access" /> limited Access
-                                </div>
-                            </div>
-                            <div class="col-md-12 p-1" id="access_table" style="display: none;">
-                              <div class="table-wrapper m-0">
-                                <table class="fl-table table table-hover p-0 m-0" id="clientTable">
-                                  <tr>
-                                    <th class="text-center">Module</th>
-                                    <th class="text-center">Read</th>
-                                    <th class="text-center">Insert</th>
-                                    <th class="text-center">Update</th>
-                                    <th class="text-center">Delete</th>
-                                    <th class="text-center">Read/Write</th>
-                                    {{-- <th class="text-center">All</th> --}}
-                                  </tr>
-                                  <tr>
-                                    <td>Clients</td>
-                                    <td class="text-center"><input type="checkbox" class="client" checked name="clients_read_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="client" checked name="clients_write_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="client" checked name="clients_update_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="client" checked name="clients_delete_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="client" checked name="clients_read_write_only" value="1" /></td>
-                                    {{-- <td class="text-center"><input type="checkbox" id="clientall" name="client_all" value="1" /></td> --}}
-                                  </tr>
-                                  <tr>
-                                    <td>Applications</td>
-                                    <td class="text-center"><input type="checkbox" class="application" checked name="applications_read_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="application" checked name="applications_write_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="application" checked name="applications_update_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="application" checked name="applications_delete_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="application" checked name="applications_read_write_only" value="1" /></td>
-                                    {{-- <td class="text-center"><input type="checkbox" id="applicationall" name="application_all" value="1" /></td> --}}
-                                  </tr>
-                                  <tr>
-                                    <td>Communication</td>
-                                    <td class="text-center"><input type="checkbox" class="communication" checked name="communication_read_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="communication" checked name="communication_write_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="communication" checked name="communication_update_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="communication" checked name="communication_delete_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="communication" checked name="communication_read_write_only" value="1" /></td>
-                                    {{-- <td class="text-center"><input type="checkbox" id="communicationall" name="communication_all" value="1" /></td> --}}
-                                  </tr>
-                                  <tr>
-                                    <td>Invoices</td>
-                                    <td class="text-center"><input type="checkbox" class="invoices" checked name="invoices_read_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="invoices" checked name="invoices_write_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="invoices" checked name="invoices_update_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="invoices" checked name="invoices_delete_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="invoices" checked name="invoices_read_write_only" value="1" /></td>
-                                    {{-- <td class="text-center"><input type="checkbox" id="invoicesall" name="invoice_all" value="1" /></td> --}}
-                                  </tr>
-                                  <tr>
-                                    <td>Payments</td>
-                                    <td class="text-center"><input type="checkbox" class="payment" checked name="payments_read_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="payment" checked name="payments_write_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="payment" checked name="payments_update_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="payment" checked name="payments_delete_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="payment" checked name="payments_read_write_only" value="1" /></td>
-                                    {{-- <td class="text-center"><input type="checkbox" id="paymentall" name="payment_all" value="1" /></td> --}}
-                                  </tr>
-                                  <tr>
-                                    <td>Reports</td>
-                                    <td class="text-center"><input type="checkbox" class="report" checked name="reports_read_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="report" checked name="reports_write_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="report" checked name="reports_update_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="report" checked name="reports_delete_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="report" checked name="reports_read_write_only" value="1" /></td>
-                                    {{-- <td class="text-center"><input type="checkbox" id="reportall" name="report_all" value="1" /></td> --}}
-                                  </tr>
-                                  <tr>
-                                    <td>Subscription</td>
-                                    <td class="text-center"><input type="checkbox" class="subscription" checked name="subscription_read_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="subscription" checked name="subscription_write_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="subscription" checked name="subscription_update_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="subscription" checked name="subscription_delete_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="subscription" checked name="subscription_read_write_only" value="1" /></td>
-                                    {{-- <td class="text-center"><input type="checkbox" id="subscriptionall" name="subscription_all" value="1" /></td> --}}
-                                  </tr>
-                                  <tr>
-                                    <td>Settings</td>
-                                    <td class="text-center"><input type="checkbox" class="setting" checked name="settings_read_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="setting" checked name="settings_write_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="setting" checked name="settings_update_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="setting" checked name="settings_delete_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="setting" checked name="settings_read_write_only" value="1" /></td>
-                                    {{-- <td class="text-center"><input type="checkbox" id="settingall" name="setting_all" value="1" /></td> --}}
-                                  </tr>
-                                  <tr>
-                                    <td>Support</td>
-                                    <td class="text-center"><input type="checkbox" class="support" checked name="support_read_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="support" checked name="support_write_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="support" checked name="support_update_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="support" checked name="support_delete_only" value="1" /></td>
-                                    <td class="text-center"><input type="checkbox" class="support" checked name="support_read_write_only" value="1" /></td>
-                                    {{-- <td class="text-center"><input type="checkbox" id="supportall" name="support_all" value="1" /></td> --}}
-                                  </tr>
-                                </table>
-                              </div>
-                                {{-- <div class="row m-0">
-                                  <div class="col-md-2 px-0">
-                                    Clients
-                                  </div>
-                                  <div class="col-md-2 px-0">
-                                      <input type="checkbox" name="read_only" value="1" />&nbsp;&nbsp;Read
-                                  </div>
-                                  <div class="col-md-2 px-0">
-                                      <input type="checkbox" name="write_only" value="1" />&nbsp;&nbsp;Insert
-                                  </div>
-                                  <div class="col-md-2 px-0">
-                                      <input type="checkbox" name="update_only" value="1" />&nbsp;&nbsp;Update
-                                  </div>
-                                  <div class="col-md-2 px-0">
-                                      <input type="checkbox" name="delete_only" value="1" />&nbsp;&nbsp;Delete
-                                  </div>
-                                  <div class="col-md-2 px-0">
-                                      <input type="checkbox" name="read_write_only" value="1" />&nbsp;&nbsp;Read & Write
-                                  </div>
-                                </div> --}}
-                                @error('user_id')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
-                            <div class="col text-start p-1">
-                                <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                @endif
             </div>
         </div>
     </div>
 
   </div>
+
+  <style>
+    #access_table.access-matrix-locked {
+      opacity: 0.85;
+    }
+
+    #access_table.access-matrix-locked .access-matrix-checkbox {
+      cursor: not-allowed;
+    }
+
+    #user_role_form {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    #user_role_form button[type="submit"] {
+      width: 100% !important;
+      display: block;
+    }
+
+    /* Access Rights options: a single centered box, radios stacked in a straight vertical line */
+    .access-rights-box {
+      width: 100%;
+      max-width: 560px;
+      margin: 0 auto;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      background-color: #fff;
+      padding: 0.25rem 1.25rem;
+    }
+
+    .access-rights-option {
+      padding: 0.65rem 0;
+    }
+
+    .access-rights-option + .access-rights-option {
+      border-top: 1px solid #f0f0f0;
+    }
+  </style>
+
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
   </script>
   <script>
-    function change_access(elem){
-      var elem = elem;
-      var access = elem.value;
-      if(access == "full_access"){
-        $("#access_table").css('display','none');
-      }
-      else{
-        $("#access_table").css('display','block');
-      }
-    }
-  </script>
-  <script>
-      $(document).ready(() => {
+    const accessPresetPermissions = @json($presetPermissionsForJs);
+    const permissionFields = ['read_only', 'write_only', 'update_only', 'delete_only', 'read_write_only'];
 
-        $("#clientall").on('click', function(){
-          if($(this).is(":checked")){
-            $(".client").attr('checked',true);
-          }
-          else{
-            $(".client").attr('checked',false);
-          }
-        });
-        $(".client").on('click', function(){
-          if($("#clientall").is(":checked")){
-            $("#clientall").attr('checked',false);
-          }
-        });
+    function applyPresetPermissions(accessType) {
+      const permissions = accessPresetPermissions[accessType];
+      if (!permissions) {
+        return;
+      }
 
+      Object.keys(permissions).forEach(function(module) {
+        const prefix = module.toLowerCase() + '_';
+        permissionFields.forEach(function(field) {
+          const checked = Number(permissions[module][field]) === 1;
+          $('input[name="' + prefix + field + '"]').prop('checked', checked);
+        });
       });
+    }
+
+    function lockAccessMatrix(locked) {
+      $('#access_table .access-matrix-checkbox').prop('disabled', locked);
+      $('#access_table').toggleClass('access-matrix-locked', locked);
+    }
+
+    function change_access(elem) {
+      const access = elem.value;
+
+      if (access === 'limited_access') {
+        lockAccessMatrix(false);
+        return;
+      }
+
+      applyPresetPermissions(access);
+      lockAccessMatrix(true);
+    }
+
+    $(document).ready(function() {
+      const selectedAccess = $('input[name="access_type"]:checked').val();
+
+      if (selectedAccess && selectedAccess !== 'limited_access') {
+        applyPresetPermissions(selectedAccess);
+        lockAccessMatrix(true);
+      } else {
+        lockAccessMatrix(false);
+      }
+
+      $('#user_id').on('change', function() {
+        const userId = $(this).val();
+        if (!userId) {
+          return;
+        }
+        window.location.href = '{{ url('/add_user_role') }}/' + userId;
+      });
+
+      $('#user_role_form').on('submit', function() {
+        $('#access_table .access-matrix-checkbox').prop('disabled', false);
+      });
+    });
   </script>
+
+  @if(session()->has('role_added'))
+    <script>
+      Swal.fire({
+        icon: 'success',
+        title: 'Success',
+        text: '{{ session('role_added') }}'
+      })
+    </script>
+  @endif
 
   @if(session()->has('deleted'))
     <script>
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Application Assignment Deleted Successfully!'
+        text: 'Application Assignment deleted successfully.'
       })
     </script>
 
@@ -363,7 +185,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'New Assignment Added Successfully!'
+        text: 'Application assigned successfully.'
       })
     </script>
 
@@ -373,7 +195,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Assignment Updated Successfully!'
+        text: 'Application assignment updated.'
       })
     </script>
 

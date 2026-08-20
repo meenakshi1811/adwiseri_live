@@ -1,4 +1,4 @@
-@extends('admin.layout.main')
+﻿@extends('admin.layout.main')
 
 @section('main-section')
 
@@ -75,8 +75,6 @@
                         <textarea name="content" rows="5" required class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Client Limit">{{ $feature->content }}</textarea>
                     </div>
                     <button type="submit" class="form-control btn btn-primary mb-4">Save</button>
-                    <!-- <a href="dashboard.html" class="btn btn-primary mb-4">Next</a> -->
-                    <!-- <p class="text-center reg-logbtn">Already have an account! <a href="{{ route('user_login') }}" class="text-dark"> <strong>Login</strong></a></p> -->
                 </form>
             </div>
             <div class="col-lg-4"></div>
@@ -101,8 +99,8 @@
     <script>
       Swal.fire({
         icon: 'success',
-        title: 'Congratulations',
-        text: 'Feature Updated Successfully.'
+        title: 'Success',
+        text: 'Feature updated successfully.'
       })
     </script>
   
@@ -110,8 +108,9 @@
 @error('icon')
   <script>
   Swal.fire({
-    icon: 'error',
-    title: 'Oops...',
+    icon: 'warning',
+    customClass: { icon: 'adwiseri-oops-icon' },
+    title: 'Oops!',
     text: '{{ $message }}'
   })
 </script>

@@ -1,9 +1,24 @@
 @extends('admin.layout.main')
 
+@php
+    $staffUserOptions = $staffUserOptions ?? \App\Models\User::where('user_type', 'User')->orderBy('name')->get(['id', 'name', 'email', 'added_by']);
+@endphp
+
 @section('main-section')
 
         <div class="col-lg-10 column-client">
             <div class="client-dashboard">
+                <ul class="nav nav-tabs module-tabs mb-3" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="users-list-tab" data-bs-toggle="tab" data-bs-target="#users-list" type="button" role="tab">All Users (Staff)</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="user-activity-tab" data-bs-toggle="tab" data-bs-target="#user-activity" type="button" role="tab">Activity Log</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                <div class="tab-pane fade show active" id="users-list" role="tabpanel">
                 <div class="client-btn d-flex mb-2 ">
                     {{-- <form class="form-inline d-flex justify-content-between w-100">
                         <h3 class="text-primary">Users (Staff)</h3> --}}
@@ -33,7 +48,7 @@
                             <th class="text-center">Country</th>
                             <th class="text-center">City</th>
                             <th class="text-center">Designation</th>
-                            <th class="text-center">Created </th>
+                            <th class="text-center">Created Date</th>
                             <th class="text-center">Status</th>
                             <th class="text-center">Action</th>
                         </tr>
@@ -46,11 +61,11 @@
                             {{-- <td>{{ $siteuser->id }}</td> --}}
                             <td class="text-center"  data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $siteuser->name }}" style="position: relative;">@if(strlen($siteuser->name) > 22){{ substr($siteuser->name, 0, 22) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$siteuser->name}} ({{ $siteuser->id }})</span> @else {{$siteuser->name}} ({{ $siteuser->id }}) @endif</td>
                             <td class="text-center"  data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $siteuser->email }}" style="position: relative;">@if(strlen($siteuser->email) > 22){{ substr($siteuser->email, 0, 22) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$siteuser->email}}</span> @else {{$siteuser->email}} @endif</td>
-                            <td class="text-center">{{ $siteuser->phone }}</td>
+                            <td class="text-center">@include('partials.phone_display', ['phone' => $siteuser->phone])</td>
                             <td class="text-center">{{ $siteuser->country }}</td>
                             <td class="text-center">{{ $siteuser->city }}</td>
                             <td class="text-center"  data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $siteuser->designation }}" style="position: relative;">@if(strlen($siteuser->designation) > 22){{ substr($siteuser->designation, 0, 22) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$siteuser->designation}}</span> @else {{$siteuser->designation}} @endif</td>
-                            <td class="text-center">{{  \Carbon\Carbon::parse($siteuser->created_at)->format('d-m-Y') }}</td>
+                            <td class="text-center">{{  \Carbon\Carbon::parse($siteuser->created_at)->format('d-m-Y H:i:s') }}</td>
                             <!-- <td class="text-center">@if($siteuser->status == 'true') <a style="background:green;border-color:green;" href="{{ route('subscriber_status', $siteuser->id) }}" class="p-0 px-1">Active</a> @else <a style="background:red;border-color:red;" href="{{ route('subscriber_status', $siteuser->id) }}" class="p-0 px-1">Inactive</a> @endif</td> -->
                             @php
                                 $isActive = false;
@@ -85,11 +100,26 @@
                         <tbody>
                     </table>
                 </div>
-                {{-- <div class="table-btn">
-                    <button>Previous</button>
-                    <button>1</button>
-                    <button>Next</button>
-                </div> --}}
+                </div>{{-- end users-list tab --}}
+
+                <div class="tab-pane fade" id="user-activity" role="tabpanel">
+                    <div class="client-btn d-flex mb-2">
+                        <h3 class="text-primary text-center flex-grow-1 text-center m-0">Users Activity Log</h3>
+                    </div>
+                    @include('admin.partials.journey_log_panel', [
+                        'panelId' => 'userActivityPanel',
+                        'entityFilterId' => 'userActivityEntity',
+                        'durationFilterId' => 'userActivityDuration',
+                        'tableId' => 'userActivityTable',
+                        'chartId' => 'userActivityChart',
+                        'dataUrl' => route('admin_user_activity_log_data'),
+                        'entityParam' => 'user_id',
+                        'entityLabel' => 'Select User (Staff)',
+                        'entities' => $staffUserOptions,
+                        'panelTitle' => 'Users Activity Log',
+                    ])
+                </div>
+                </div>{{-- end tab-content --}}
             </div>
         </div>
     </div>
@@ -101,14 +131,23 @@
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+
+    var activityTab = document.getElementById('user-activity-tab');
+    if (activityTab) {
+        activityTab.addEventListener('shown.bs.tab', function () {
+            if (typeof inituserActivityPanel === 'function') {
+                inituserActivityPanel();
+            }
+        });
+    }
 });
       function deleteuser(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You won't be able to revert this!",
+          text: "This action cannot be undone.",
           icon: 'warning',
           showCancelButton: true,
-          confirmButtonColor: '#3085d6',
+          confirmButtonColor: '#695EEE',
           cancelButtonColor: '#d33',
           confirmButtonText: 'Yes, delete it!'
         }).then((result) => {
@@ -120,12 +159,12 @@
       function updateuser(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to update this record!",
+          text: "Do you want to update this record?",
           icon: 'warning',
           showCancelButton: true,
-          confirmButtonColor: '#3085d6',
+          confirmButtonColor: '#695EEE',
           cancelButtonColor: '#d33',
-          confirmButtonText: 'Yes'
+          confirmButtonText: 'Yes, continue'
         }).then((result) => {
           if (result.isConfirmed) {
             window.location.href = "siteuser_update/"+id+"";
@@ -139,7 +178,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'User deleted successfully.'
       })
     </script>
 
@@ -149,7 +188,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Status Changed Successfully!'
+        text: 'User status changed successfully.'
       })
     </script>
 
@@ -158,8 +197,8 @@
     <script>
       Swal.fire({
         icon: 'success',
-        title: 'Congratulations',
-        text: 'User Data Updated Successfully!'
+        title: 'Success',
+        text: 'User updated successfully.'
       })
     </script>
 
@@ -168,8 +207,8 @@
     <script>
       Swal.fire({
         icon: 'success',
-        title: 'Congratulations',
-        text: 'New User Added Successfully!'
+        title: 'Success',
+        text: 'User added successfully.'
       })
     </script>
 

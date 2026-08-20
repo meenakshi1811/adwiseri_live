@@ -1,4 +1,4 @@
-@extends('web.layout.main')
+﻿@extends('web.layout.main')
 
 @section('main-section')
 @php
@@ -60,7 +60,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                     <p style="font-weight:550;">Phone Number</p>
                                 </div>
                                 <div class="col-6">
-                                    <p>{{ $client->phone }}</p>
+                                    @include('partials.phone_display', ['phone' => $client->phone])
                                 </div>
                                 <div class="col-6">
                                     <p style="font-weight:550;">Email ID</p>
@@ -72,7 +72,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                     <p style="font-weight:550;">Alternate No.</p>
                                 </div>
                                 <div class="col-6">
-                                    <p>{{ $client->alternate_no }}</p>
+                                    @include('partials.phone_display', ['phone' => $client->alternate_no, 'emptyText' => '—'])
                                 </div>
                                 <div class="col-6">
                                     <p style="font-weight:550;">Nationality</p>
@@ -374,7 +374,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     </div>
                     <div class="mb-3">
                         <label>Line Manager Phone</label>
-                        <input type="text" name="line_manager_phone" class="form-control" maxlength="50">
+                        <input type="tel" name="line_manager_phone" class="form-control" value="{{ old('line_manager_phone') }}">
                     </div>
                     <div class="mb-3">
                         <label>Line Manager Email</label>
@@ -439,7 +439,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Name">
                     </div>
                     <div class="mb-4">
-                        <input name="phone" value="{{ $client->phone }}" required type="text" pattern="\d*" minlength="9" maxlength="12" class="form-control"
+                        <input name="phone" value="{{ \App\Support\PhoneNumber::displayE164($client->phone) }}" data-phone-e164="{{ \App\Support\PhoneNumber::displayE164($client->phone) }}" required type="tel" class="form-control"
                             id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Phone">
                     </div>
                     <div class="mb-4">
@@ -447,7 +447,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Email">
                     </div>
                     <div class="mb-4">
-                        <input name="alternate_no" value="{{ $client->alternate_no }}" type="text" pattern="\d*" minlength="9" maxlength="12"
+                        <input name="alternate_no" value="{{ \App\Support\PhoneNumber::displayE164($client->alternate_no) }}" data-phone-e164="{{ \App\Support\PhoneNumber::displayE164($client->alternate_no) }}" type="tel"
                             class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"
                             placeholder="Alternate No.">
                     </div>
@@ -473,10 +473,12 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         <select name="country" id="country" required class="form-select"
                             aria-label="Default select example">
                             <option selected value="">Country</option>
-                            @foreach ($countries as $country)
-                                <option {{ $client->country == $country->country_name ? 'selected' : '' }}
-                                    value="{{ $country->id }}">{{ $country->country_name }}</option>
-                            @endforeach
+                            @include('partials.country_select_options', [
+                                'countries' => $countries,
+                                'phoneForPrefill' => $client->phone ?? null,
+                                'savedCountry' => $client->country ?? null,
+                                'savedIsCountryName' => true,
+                            ])
                         </select>
                     </div>
                     <div class="mb-4">
@@ -649,9 +651,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.JPG|\.JPEG|\.PNG)$/i;
                 if (!allowedExtensions.exec(filepath)) {
                     Swal.fire({
-                        title: "Oops..",
-                        icon:"info",
-                        html: "Please select valid file format <br>( jpg, jpeg, png )"
+                        title: "Oops!",
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        html: "Please select a valid file format.<br>(jpg, jpeg, png)"
                     });
                     $(this).val("");
                     return false;
@@ -659,9 +661,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 const size = (this.files[0].size / 1024 / 1024).toFixed(2);
                 if (size > 4) {
                     Swal.fire({
-                        title: "Oops..",
-                        icon:"info",
-                        html: "Please select file upto 4MB"
+                        title: "Oops!",
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        html: "Please select a file up to 4 MB."
                     });
                     $(this).val("");
                     return false;
@@ -680,9 +682,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.pdf|\.JPG|\.JPEG|\.PNG|\.PDF)$/i;
                 if (!allowedExtensions.exec(filepath)) {
                     Swal.fire({
-                        title: "Oops..",
-                        icon: "info",
-                        html: "Please select valid file format <br>( jpg, jpeg, png or pdf )"
+                        title: "Oops!",
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        html: "Please select a valid file format (jpg, jpeg, png, or pdf)."
                     });
                     $(this).val("");
                     return false;
@@ -690,9 +692,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 const size = (this.files[0].size / 1024 / 1024).toFixed(2);
                 if (size > 4) {
                     Swal.fire({
-                        title: "Oops..",
-                        icon: "info",
-                        html: "Please select file upto 4MB"
+                        title: "Oops!",
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        html: "Please select a file up to 4 MB."
                     });
                     $(this).val("");
                     return false;
@@ -743,8 +745,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 @if ($errors->has('doc_file'))
 <script>
     Swal.fire({
-        title: 'Oops..',
-        icon: 'info',
+        title: 'Oops!',
+        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
         html: @json($errors->first('doc_file'))
     })
 </script>
@@ -755,7 +757,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
         icon: 'success',
         title: 'Congratulations',
-        text: 'Profile Updated Successfully.'
+        text: 'Profile updated successfully.'
     })
 </script>
 @endif
@@ -764,7 +766,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         Swal.fire({
             icon: 'success',
             title: 'Congratulations',
-            text: 'Document Uploaded Successfully.'
+            text: 'Document Uploaded successfully.'
         })
     </script>
 @endif
@@ -773,7 +775,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         Swal.fire({
             icon: 'success',
             title: 'Congratulations',
-            text: 'Document Updated Successfully.'
+            text: 'Document updated successfully.'
         })
     </script>
 @endif
@@ -790,8 +792,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 @if (session()->has('ccl_exists'))
 <script>
     Swal.fire({
-        icon: 'info',
-        title: 'Notice',
+        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+        title: 'Oops!',
         text: @json(session('ccl_exists'))
     })
 </script>
@@ -799,8 +801,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 @if ($errors->has('correction_note'))
 <script>
     Swal.fire({
-        icon: 'info',
-        title: 'Oops..',
+        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+        title: 'Oops!',
         text: @json($errors->first('correction_note'))
     })
 </script>
@@ -818,8 +820,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 @if ($errors->any() && !$errors->has('correction_note'))
 <script>
     Swal.fire({
-        icon: 'info',
-        title: 'Validation',
+        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+        title: 'Oops!',
         text: @json($errors->first())
     })
 </script>

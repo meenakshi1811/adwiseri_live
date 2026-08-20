@@ -16,32 +16,13 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 @endphp
     <div class="col-lg-10 column-client">
         <div class="client-dashboard">
-                <div class="client-btn d-flex justify-content-between align-items-center mt-3 ">
-
-
-                <form class="form-inline d-flex justify-content-between w-100">
-                     <h3 class="text-primary text-center flex-grow-1 text-center m-0">Invoices (AP)</h3>
-                     <p>
-                        <a @if($invoice_roles->write_only == 1 or $invoice_roles->read_write_only == 1) href="{{ route('new_invoice') }}" @else href="#" @endif class="m-0 mb-2">Add Invoice (Payments Received) Record</a>
-                        <a @if($invoice_roles->write_only == 1 or $invoice_roles->read_write_only == 1) href="{{ route('new_invoice_ap') }}" @else href="#" @endif class="m-0 mb-2">Add Invoice (Payments Made) Record</a>
-                    </p>
-                        {{-- <div class="d-flex ">
-                  <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
-              </div> --}}
-                </form>
-                {{-- <i class="fa-solid fa-magnifying-glass"></i> --}}
-            </div>
-            <div class="row m-0 pb-2">
-
-
-                <div class="col-6 border p-1 text-center tab-anchor top_modules" onclick="window.location.href = '{{ route('invoices') }}';">
-                    Invoices (Payments Received)
-                    </div>
-                    <div class="col-6 border p-1 text-center bg-info text-white tab-anchor">
-                    Invoices (Payments Made)
-                </div>
-
-            </div>
+            @include('partials.invoice_ar_ap_module_header', ['activeTab' => 'ap', 'invoice_roles' => $invoice_roles])
+            @include('partials.table_filter_toolbar', [
+                'filterItems' => $invoiceStatusFilters ?? [],
+                'tableId' => 'clientTable',
+                'toolbarTitle' => 'Invoices By Status',
+                'totalCount' => count($invoices),
+            ])
             <div class="table-wrapper">
                 <table class="table table-hover table-bordered fl-table" id="clientTable">
                     <thead>
@@ -64,13 +45,17 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     </thead>
                     <tbody>
                         @foreach ($invoices as $key => $invoice)
-                            <tr>
+                            @php
+                                $invoiceStatusLabel = \App\Services\TableFilterCountService::invoiceStatusLabel($invoice->status);
+                                $invoiceFilterKey = \App\Services\TableFilterCountService::keyFor($invoiceStatusLabel);
+                            @endphp
+                            <tr data-filter-value="{{ $invoiceFilterKey }}">
                                 <td class="p-1 text-center">{{ $key + 1 }}</td>
                                 <td class="p-1 text-center">{{ $invoice->invoice_no }}</td>
                                 <td  data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $invoice->to_name }}"  class="p-1 text-center" style="position: relative;">@if(strlen($invoice->to_name) > 22){{ substr($invoice->to_name, 0, 22) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">
-                                {{$invoice->to_name}}{{ !empty($invoice->vendor_id) ? ' (' . $invoice->vendor_id . ')' : '' }}</span>
+                                {{ $invoice->apVendorDisplay() }}</span>
                                 @else
-                                {{$invoice->to_name}}{{ !empty($invoice->vendor_id) ? ' (' . $invoice->vendor_id . ')' : '' }}
+                                {{ $invoice->apVendorDisplay() }}
                                 @endif</td>
                                 <td class="p-1 text-center">{{ $invoice->detail }}</td>
                                 {{-- <td style="position: relative;">@if(strlen($invoice->to_email) > 22){{ substr($invoice->to_email, 0, 22) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$invoice->to_email}}</span> @else {{$invoice->to_email}} @endif</td> --}}
@@ -88,9 +73,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 <td class="p-1 text-center">
                                     @if($user->user_type == "Subscriber")
                                     <select class="form-control" id="inv_status{{$invoice->id}}" style="font-size: 14px;">
-                                        <option {{($invoice->status == "PartiallyPaid") ? "selected":""}} value="PartiallyPaid">PartiallyPaid</option>
+                                        <option {{($invoice->status == "PartiallyPaid") ? "selected":""}} value="PartiallyPaid">Partially Paid</option>
                                         <option {{($invoice->status == "Paid") ? "selected":""}} value="Paid">Paid</option>
-                                        <option {{($invoice->status == "UnPaid") ? "selected":""}} value="UnPaid">UnPaid</option>
+                                        <option {{($invoice->status == "UnPaid") ? "selected":""}} value="UnPaid">Unpaid</option>
                                         <option {{($invoice->status == "Cancelled") ? "selected":""}} value="Cancelled">Cancelled</option>
                                     </select>
                                     @else
@@ -100,7 +85,11 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 <td class="p-1 text-center">{{ $invoice->formatted_due_date }} </td>
                                 <td class="p-1 text-center"><a style="background:none; border:none;" @if($invoice_roles->read_only == 1 or $invoice_roles->read_write_only == 1)
                                         href="{{ route('view_invoice', $invoice->id) }}" @else href="#" @endif class="m-0 p-0"><i
-                                            class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a></td>
+                                            class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>
+                                    @if($invoice_roles->write_only == 1 or $invoice_roles->read_write_only == 1)
+                                        <a style="background:none; border:none;" href="{{ route('edit_invoice_ap', $invoice->id) }}" class="m-0 p-0" title="Edit Invoice"><i class="fa-solid fa-pen-to-square p-1 text-primary" style="font-size:14px;"></i></a>
+                                    @endif
+                                </td>
                             </tr>
                         @endforeach
 
@@ -140,7 +129,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 });
         function deleteinvoice(id) {
             var localtime = new Date();
-            var conf = confirm('Delete Invoice');
+            var conf = confirm('Are you sure you want to delete this invoice?');
             if (conf == true) {
                 window.location.href = "delete_invoice/" + id + "/" + localtime.toString() + "";
             }
@@ -167,7 +156,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Invoice Status Updated Successfully!'
+                                text: 'Invoice status updated successfully.'
                             })
                         }
                     }
@@ -175,12 +164,21 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             });
         @endforeach
     </script>
+    @if (session()->has('invoice_updated'))
+        <script>
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: @json(session('invoice_updated'))
+            })
+        </script>
+    @endif
     @if (session()->has('user_added'))
         <script>
             Swal.fire({
                 icon: 'success',
-                title: 'Congratulations',
-                text: 'User Added Successfully.'
+                title: 'Success',
+                text: 'Invoice created successfully.'
             })
         </script>
     @endif
@@ -189,15 +187,15 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'User Deleted Successfully!'
+                text: 'Invoice deleted successfully.'
             })
         </script>
     @endif
     @if (session()->has('noclient'))
         <script>
             Swal.fire({
-                icon: 'warning',
-                title: 'Oops...',
+                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                title: 'Oops!',
                 text: 'No clients found.'
             })
         </script>

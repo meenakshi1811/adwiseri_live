@@ -1,4 +1,4 @@
-@extends('web.layout.main')
+﻿@extends('web.layout.main')
 
 @section('main-section')
 
@@ -80,8 +80,6 @@
                     @enderror
                 </div>
                 <button type="submit" class="form-control btn btn-primary mb-4">Save</button>
-                <!-- <a href="dashboard.html" class="btn btn-primary mb-4">Next</a> -->
-                <!-- <p class="text-center reg-logbtn">Already have an account! <a href="{{ route('user_login') }}" class="text-dark"> <strong>Login</strong></a></p> -->
             </form>
         </div>
         <div class="col-lg-4"></div>
@@ -94,7 +92,7 @@
         document.getElementById('job_role_job').setAttribute('value', job_role);
     }
     function deletejob(id){
-        var conf = confirm('Delete Job Role');
+        var conf = confirm('Are you sure you want to delete this job role?');
         var localtime = new Date();
         if(conf == true){
             window.location.href = "delete_job_role/"+id+"/"+localtime.toString()+"";
@@ -104,9 +102,9 @@
 @error('job_role')
 <script>
     Swal.fire({
-      icon: 'error',
-      title: 'Oops...',
-      text: 'Please Enter valid Job Role.'
+      icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+      title: 'Oops!',
+      text: 'Please enter a valid job role.'
     })
 </script>
 @enderror
@@ -114,8 +112,8 @@
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'Job Added Successfully.'
+      title: 'Success',
+      text: 'Job added successfully.'
     })
   </script>
 
@@ -124,8 +122,8 @@
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'Job Updated Successfully.'
+      title: 'Success',
+      text: 'Job updated successfully.'
     })
   </script>
 
@@ -135,7 +133,7 @@
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Job Deleted Successfully!'
+      text: 'Job deleted successfully.'
     })
   </script>
 

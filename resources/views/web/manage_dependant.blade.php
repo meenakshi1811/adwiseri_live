@@ -79,18 +79,7 @@
             {{-- <i class="fa-solid fa-magnifying-glass"></i> --}}
 
         </div>
-        <div class="row m-0 pb-2">
-            <div class="col-4 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('client') }}';">
-                Clients
-            </div>
-            <div class="col-4 border p-1 text-center bg-info text-white">
-                Spouse/Dependants
-            </div>
-            <div class="col-4 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('enquiries') }}';">
-                Enquiries
-            </div>
-
-        </div>
+        @include('partials.client_module_tabs', ['activeTab' => 'dependents'])
 
         <div class="table-wrapper">
             <table class="table table-hover table-bordered fl-table" id="clientTable">
@@ -121,7 +110,7 @@
                         <td class="p-1 text-center">{{ $dependent->relation }}</td>
                         <td class="p-1 text-center">{{ \Carbon\Carbon::parse($dependent->dob)->format('d-m-Y') }}</td>
                         <td class="p-1 text-center">{{ $dependent->passport_no }}</td>
-                        <td class="p-1 text-center">{{ \Carbon\Carbon::parse($dependent->created_at)->format('d-m-Y') }}</td>
+                        <td class="p-1 text-center">{{ \Carbon\Carbon::parse($dependent->created_at)->format('d-m-Y H:i:s') }}</td>
                         <td class="text-center">
                             {{-- <a style="background:transparent;border:none;" class="p-0 m-0 text-dark" href="{{ route('application_view', $doc->id)}}"><i class="fa-solid fa-eye btn text-info p-1 m-0"></i></a> --}}
                             <i class="fa-solid fa-edit btn text-primary p-1 m-0" style="font-size:14px;"
@@ -319,7 +308,7 @@
                                 </span>
                                 @enderror
                             </div>
-                            <!-- Spouse/Dependant Name -->
+                            <!-- Dependent Name -->
                             <div class="mb-3">
                                 <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
                                 <input name="name" type="text" id="edit-name" placeholder="Spouse/Dependant Name"
@@ -433,7 +422,7 @@
     Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Client Deleted Successfully!'
+        text: 'Client deleted successfully.'
     })
 </script>
 @endif
@@ -442,7 +431,7 @@
     Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'New Client Added Successfully!'
+        text: 'Client added successfully.'
     })
 </script>
 @endif
@@ -451,7 +440,7 @@
     Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Client Updated Successfully!'
+        text: 'Client updated successfully.'
     })
 </script>
 @endif
@@ -474,7 +463,7 @@ function validateInput(input) {
                 // Check if the input date is in the future
                 if (inputDate > today) {
                     inputField.value = ""; // Clear the invalid value
-                    inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
+                    inputField.placeholder = "Future dates are not allowed."; // Show error in the placeholder
                     inputField.classList.add('is-invalid'); // Add red border for invalid input
                 } else {
                     inputField.classList.remove('is-invalid'); // Remove error state
@@ -588,8 +577,8 @@ function validateInput(input) {
                 error: function(xhr) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error',
-                        text: 'Failed to add client application !',
+                        title: 'Oops!',
+                        text: 'Failed to save spouse/dependant details.',
                     });
                 },
             });
@@ -612,7 +601,7 @@ function validateInput(input) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Success',
-                        text: 'Dependant Updated Successfully!'
+                        text: 'Spouse/Dependant updated successfully.'
                     })
                     setTimeout(function() {
                         location.reload();
@@ -622,8 +611,8 @@ function validateInput(input) {
                 error: function(xhr) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error',
-                        text: 'Failed to add client application !',
+                        title: 'Oops!',
+                        text: 'Failed to save spouse/dependant details.',
                     });
                 },
             });
@@ -664,11 +653,11 @@ function validateInput(input) {
     function deleteDependant(dependantId) {
         Swal.fire({
             title: 'Are you sure?',
-            text: "You won't be able to revert this!",
+            text: "This action cannot be undone.",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
+            cancelButtonColor: '#695EEE',
             confirmButtonText: 'Yes, delete it!'
         }).then((result) => {
             if (result.isConfirmed) {
@@ -684,7 +673,7 @@ function validateInput(input) {
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Dependant Deleted Successfully!'
+                                text: 'Spouse/Dependant deleted successfully.'
                             });
 
                             // Optionally, remove the row from the UI or reload the page
@@ -694,8 +683,8 @@ function validateInput(input) {
                         } else {
                             Swal.fire({
                                 icon: 'error',
-                                title: 'Error',
-                                text: response.message || 'Failed to delete dependant.'
+                                title: 'Oops!',
+                                text: response.message || 'Failed to delete spouse/dependant.'
                             });
                         }
                     },
@@ -703,8 +692,8 @@ function validateInput(input) {
                         console.error('Error:', xhr.responseText);
                         Swal.fire({
                             icon: 'error',
-                            title: 'Error',
-                            text: 'An error occurred while deleting the dependant.'
+                            title: 'Oops!',
+                            text: 'An error occurred while deleting the spouse/dependant.'
                         });
                     }
                 });

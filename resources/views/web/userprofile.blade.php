@@ -6,7 +6,7 @@
         {{-- <h3>Profile</h3> --}}
         <!-- <div class="client-btn d-flex justify-content-between mb-4"> -->
         <div class="col-12 d-flex justify-content-between align-items-center mb-3">
-            <h3 style="font-size: 1.7rem;font-weight: 500;line-height: 1.2" class="text-primary text-center flex-grow-1 text-center m-0">Profile</h3>
+            <h3 style="font-size: 1.7rem;font-weight: 500;line-height: 1.2" class="text-primary text-center flex-grow-1 text-center m-0">User Profile</h3>
             <a href="#" onclick="document.getElementById('change_password').style.display='flex';">Change Password</a>
         </div>
         <div class="profile-detail">
@@ -26,10 +26,27 @@
                         <p>{{ $user->name }}</p>
                     </div>
                     <div class="col-6">
+                        <p style="font-weight:550;">User Type</p>
+                    </div>
+                    <div class="col-6">
+                        <p>
+                            @php
+                                $profileUserType = match (strtolower((string) $user->user_type)) {
+                                    'subscriber' => 'Subscriber',
+                                    'affiliate' => 'Affiliate',
+                                    'admin' => 'Admin',
+                                    'user' => 'Staff Member',
+                                    default => $user->user_type ?: '—',
+                                };
+                            @endphp
+                            {{ $profileUserType }}
+                        </p>
+                    </div>
+                    <div class="col-6">
                         <p style="font-weight:550;">Phone Number</p>
                     </div>
                     <div class="col-6">
-                        <p>{{ $user->phone }}</p>
+                        @include('partials.phone_display', ['phone' => $user->phone])
                     </div>
                     <div class="col-6">
                         <p style="font-weight:550;">Email ID</p>
@@ -86,6 +103,12 @@
                         <p>{{ $user->address_line }}</p>
                     </div>
                     <div class="col-6">
+                        <p style="font-weight:550;">Website</p>
+                    </div>
+                    <div class="col-6">
+                        <p>@if(!empty($user->website))<a href="{{ \App\Support\BrandedMail::normalizeWebsiteUrl($user->website) }}" target="_blank" rel="noopener">{{ $user->website }}</a>@else — @endif</p>
+                    </div>
+                    <div class="col-6">
                         <p style="font-weight:550;">Postcode</p>
                     </div>
                     <div class="col-6">
@@ -101,46 +124,48 @@
                 </div>
             </div>
             <div class="col-lg-4 profile-pic" style="border: 1px solid lightgrey;">
-                <div class="row">
-                    <div class="col-10"></div>
-                    <div class="col-2">
+                <div class="row align-items-center profile-picture-block">
+                    <div class="col-10">
+                        <p class="profile-logo-label mb-0">Profile Picture</p>
+                    </div>
+                    <div class="col-2 text-end">
                         <img style="cursor: pointer;" onclick="document.getElementById('update_img_box').style.display='flex';"
-                            src="{{ asset('web_assets/images/edit.png') }}"width="20" height="20" alt="">
+                            src="{{ asset('web_assets/images/edit.png') }}" width="20" height="20" alt="Edit profile picture" title="Edit Profile Picture">
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-lg-7 profilepic-row">
+                    <div class="col-12 profilepic-row">
                         @if ($user->profile_img != '')
                             <img src="{{ asset('web_assets/users/user' . $user->id . '/' . $user->profile_img) }}" width="200"
-                                height="200" alt="">
+                                height="200" alt="Profile picture">
                         @else
                             <img src="{{ asset('web_assets/images/profile.jpg') }}" width="200" height="200"
-                                alt="">
+                                alt="Profile picture">
                         @endif
                     </div>
-                    <div class="col-lg-5"></div>
                 </div>
                 @if ($user->user_type == 'Subscriber')
                     <hr>
-                    <div class="row">
-                        <div class="col-10"></div>
-                        <div class="col-2">
+                    <div class="row align-items-start profile-logo-block">
+                        <div class="col-10">
+                            <p class="profile-logo-label mb-2">Organization Logo</p>
+                        </div>
+                        <div class="col-2 text-end">
                             <img style="cursor: pointer;" onclick="document.getElementById('update_logo_box').style.display='flex';"
-                                src="{{ asset('web_assets/images/edit.png') }}"width="20" height="20"
-                                alt="">
+                                src="{{ asset('web_assets/images/edit.png') }}" width="20" height="20"
+                                alt="Edit logo" title="Edit Logo">
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-lg-7 profilepic-row">
+                        <div class="col-12 profile-logo-wrap">
                             @if ($user->organization_logo != '')
-                                <img src="{{ asset('web_assets/users/user' . $user->id . '/' . $user->organization_logo) }}"
-                                    width="100%" height="auto" alt="">
+                                <img class="profile-logo-img" src="{{ asset('web_assets/users/user' . $user->id . '/' . $user->organization_logo) }}"
+                                    alt="Organization logo">
                             @else
-                                <img src="{{ asset('web_assets/images/default_logo.png') }}" width="100%" height="auto"
-                                    alt="">
+                                <img class="profile-logo-img" src="{{ asset('web_assets/images/default_logo.png') }}"
+                                    alt="Default logo">
                             @endif
                         </div>
-                        <div class="col-lg-5"></div>
                     </div>
                 @endif
             </div>
@@ -176,9 +201,9 @@
                             placeholder="Name">
                     </div>
                     <div class="mb-4">
-                        <input name="phone" value="{{ $user->phone }}" required type="text" pattern="\d*"
-                            minlength="10" maxlength="10" class="form-control" id="exampleInputEmail1"
-                            aria-describedby="emailHelp" placeholder="Phone">
+                        <input name="phone" value="{{ \App\Support\PhoneNumber::displayE164($user->phone) }}" data-phone-e164="{{ \App\Support\PhoneNumber::displayE164($user->phone) }}" required type="tel"
+                            class="form-control" id="profile_phone_input" aria-describedby="emailHelp"
+                            placeholder="Phone">
                     </div>
                     <div class="mb-4">
                         <input name="organization" minlength="3" maxlength="100" value="{{ $user->organization }}"
@@ -214,13 +239,20 @@
                             aria-describedby="emailHelp" placeholder="Address line">
                     </div>
                     <div class="mb-4">
+                        <input name="website" maxlength="255" value="{{ $user->website ?? '' }}"
+                            type="url" class="form-control" id="profile_website_input"
+                            aria-describedby="emailHelp" placeholder="Website (https://example.com)">
+                    </div>
+                    <div class="mb-4">
                         <select name="country" id="country" required class="form-select"
                             aria-label="Default select example">
                             <option selected value="">Country</option>
-                            @foreach ($countries as $country)
-                                <option {{ $user->country == $country->country_name ? 'selected' : '' }}
-                                    value="{{ $country->id }}">{{ $country->country_name }}</option>
-                            @endforeach
+                            @include('partials.country_select_options', [
+                                'countries' => $countries,
+                                'phoneForPrefill' => $user->phone ?? null,
+                                'savedCountry' => $user->country ?? null,
+                                'savedIsCountryName' => true,
+                            ])
                         </select>
                     </div>
                     <div class="mb-4">
@@ -252,7 +284,9 @@
                             @endforeach
                         </select>
                     </div>
-                    <button type="submit" class="form-control btn btn-primary mb-4">Save</button>
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary mb-4" style="width: fit-content;">Save</button>
+                    </div>
                     <!-- <a href="dashboard.html" class="btn btn-primary mb-4">Next</a> -->
                     <!-- <p class="text-center reg-logbtn">Already have an account! <a href="{{ route('login') }}" class="text-dark"> <strong>Login</strong></a></p> -->
                 </form>
@@ -296,7 +330,7 @@
                     </div>
 
                     <button type="submit" disabled="disabled" id="save_photo"
-                        class="form-control btn btn-primary mb-4">Save</button>
+                        class="btn btn-primary mb-4" style="width: fit-content;">Save</button>
                     <!-- <a href="dashboard.html" class="btn btn-primary mb-4">Next</a> -->
                     <!-- <p class="text-center reg-logbtn">Already have an account! <a href="{{ route('login') }}" class="text-dark"> <strong>Login</strong></a></p> -->
                 </form>
@@ -340,7 +374,7 @@
                     </div>
 
                     <button type="submit" disabled id="save_logo"
-                        class="form-control btn btn-primary mb-4">Save</button>
+                        class="btn btn-primary mb-4" style="width: fit-content;">Save</button>
                     <!-- <a href="dashboard.html" class="btn btn-primary mb-4">Next</a> -->
                     <!-- <p class="text-center reg-logbtn">Already have an account! <a href="{{ route('login') }}" class="text-dark"> <strong>Login</strong></a></p> -->
                 </form>
@@ -378,7 +412,7 @@
                     <div class="mb-4">
                         <input name="password" pattern="^[a-zA-Z0-9$#@!&%_=+-]+$" minlength="8" maxlength="100" required type="password" class="form-control" id="password" aria-describedby="emailHelp" placeholder="Confirm Password">
                     </div>
-                    <button type="submit" id="save_password" disabled class="form-control btn btn-primary mb-4">Save</button>
+                    <button type="submit" id="save_password" disabled class="btn btn-primary mb-4" style="width: fit-content;">Save</button>
                     <!-- <a href="dashboard.html" class="btn btn-primary mb-4">Next</a> -->
                     <!-- <p class="text-center reg-logbtn">Already have an account! <a href="{{ route('login') }}" class="text-dark"> <strong>Login</strong></a></p> -->
                 </form>
@@ -396,9 +430,9 @@
                 var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.JPG|\.JPEG|\.PNG)$/i;
                 if (!allowedExtensions.exec(filepath)) {
                     Swal.fire({
-                        title: "Oops..",
-                        icon: "info",
-                        html: "Please select valid file format <br>( jpg, jpeg, png )"
+                        title: "Oops!",
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        html: "Please select a valid file format.<br>(jpg, jpeg, png)"
                     });
                     $(this).val("");
                     return false;
@@ -406,9 +440,9 @@
                 const size = (this.files[0].size / 1024 / 1024).toFixed(2);
                 if (size > 4) {
                     Swal.fire({
-                        title: "Oops..",
-                        icon: "info",
-                        html: "Please select file upto 4MB"
+                        title: "Oops!",
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        html: "Please select a file up to 4 MB."
                     });
                     $(this).val("");
                     return false;
@@ -428,9 +462,9 @@
                 var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.JPG|\.JPEG|\.PNG)$/i;
                 if (!allowedExtensions.exec(filepath)) {
                     Swal.fire({
-                        title: "Oops..",
-                        icon: "info",
-                        html: "Please select valid file format <br>( jpg, jpeg, png )"
+                        title: "Oops!",
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        html: "Please select a valid file format.<br>(jpg, jpeg, png)"
                     });
                     $(this).val("");
                     return false;
@@ -438,9 +472,9 @@
                 const size = (this.files[0].size / 1024 / 1024).toFixed(2);
                 if (size > 4) {
                     Swal.fire({
-                        title: "Oops..",
-                        icon: "info",
-                        html: "Please select file upto 4MB"
+                        title: "Oops!",
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        html: "Please select a file up to 4 MB."
                     });
                     $(this).val("");
                     return false;
@@ -471,7 +505,7 @@
                     }
                 });
                 $.ajax({
-                    url: '{{ route('get_timezone') }}',
+                    url: @json(route('get_timezone')),
                     method: 'POST',
                     data: {
                         "_token": "{{ csrf_token() }}",
@@ -510,9 +544,9 @@
         <script>
             Swal.fire({
 
-                icon: 'error',
-                title: 'Oops...',
-                text: 'Please select valid Image!'
+                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                title: 'Oops!',
+                text: 'Please select a valid image.'
             })
         </script>
     @enderror
@@ -539,8 +573,8 @@
   <script>
     Swal.fire({
       icon: 'warning',
-      title: 'Your Subscription Plan has Expired',
-      html: 'Please <a @if($user->user_type == "Subscriber") href="{{ route('membership') }}" @else href="#" @endif>Renew/Upgrade</a> to Continue!'
+      title: 'Your subscription plan has expired',
+      html: @json('Please <a href="' . ($user->user_type == 'Subscriber' ? route('membership') : '#') . '">renew or upgrade</a> your plan to continue.')
     })
   </script>
 
@@ -548,9 +582,9 @@
     @if (session()->has('wrong_password'))
         <script>
             Swal.fire({
-                icon: 'error',
+                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
                 title: 'Wrong Password!',
-                text: 'Please Enter Correct Old Password'
+                text: 'The old password you entered is incorrect.'
             })
         </script>
     @endif

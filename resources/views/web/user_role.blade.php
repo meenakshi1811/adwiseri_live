@@ -1,4 +1,4 @@
-@extends('web.layout.main')
+﻿@extends('web.layout.main')
 
 @section('main-section')
 
@@ -6,8 +6,8 @@
             <div class="client-dashboard">
                 <div class="col-12 d-flex justify-content-between align-items-center mb-3">
                     <h3 class="text-primary text-center flex-grow-1 text-center m-0">User Access Rights</h3>
-                    <p class="m-0">
-                        <a href="{{ route('add_user_role') }}">Add Access Rights+</a>
+                    <p>
+                        <a href="{{ route('add_user_role') }}">Edit UAR (User Access Rights)</a>
                     </p>
                 </div>
 
@@ -26,8 +26,10 @@
                         <tr>
                            <th class="p-1 text-center">Sr No.</th>
                             <th class="p-1 text-center">User Name</th>
+                            <th class="p-1 text-center">Designation</th>
                             <th class="p-1 text-center">Email</th>
-                            {{-- <th>Access/Role</th> --}}
+                            <th class="p-1 text-center">Access Right</th>
+                            <th class="p-1 text-center">Updated Date</th>
                             <th class="p-1 text-center">Action</th>
                         </tr>
                         </thead>
@@ -37,12 +39,18 @@
                         <tr>
                         <td class="p-1 text-center">{{$key+1}}</td>
                             <td class="p-1 text-center"  style="position: relative;">{{$role['name']}}</td>
+                            <td class="p-1 text-center"  style="position: relative;">{{ $role['designation'] ?? '—' }}</td>
                             <td class="p-1 text-center"  style="position: relative;">{{$role['email']}}</td>
-                            {{-- <td>{{ ($role->read_only != 0) ? 'Read':'' }}{{ ($role->write_only != 0) ? ', Insert':'' }}{{ ($role->update_only != 0) ? ', Update':'' }}{{ ($role->delete_only != 0) ? ', Delete':'' }}{{ ($role->read_write_only != 0) ? ', Read/Write ':'' }}</td> --}}
+                            <td class="p-1 text-center"  style="position: relative;">{{ $role['access_right'] ?? '—' }}</td>
+                            <td class="p-1 text-center"  style="position: relative;">
+                                @if(!empty($role['updated_at']))
+                                    {{ \Carbon\Carbon::parse($role['updated_at'])->format('d-m-Y H:i:s') }}
+                                @else
+                                    —
+                                @endif
+                            </td>
                             <td  class="p-1 text-center action-icon">
                                 <a href="{{ route('add_user_role', $role['user_id']) }}" style="text-decoration:none;"><i class="fa-solid fa-edit btn p-1 text-info" style="font-size:14px;"></i></a>
-                                <!--<a href="{{ route('delete_user_role', $role['user_id']) }}" style="text-decoration:none;"><i class="fa-solid fa-trash btn p-1 text-danger" style="font-size:14px;"></i></a>-->
-                                {{-- <i class="fa-solid fa-trash btn p-1 text-danger" style="font-size:14px;" onclick="deleteuser({{ $role->id }})"></i> --}}
                             </td>
                         </tr>
                         @endforeach
@@ -51,15 +59,8 @@
                     </table>
                 </div>
                 @else
-                <p class="text-secondary px-3">Access Rights Not Added...</p>
+                <p class="text-secondary px-3 text-center">Access Rights Not Added...</p>
                 @endif
-                {{-- <div class="table-btn">
-                    <button>Previous</button>
-                    <button>1</button>
-                    <button>2</button>
-                    <button>3</button>
-                    <button>Next</button>
-                </div> --}}
             </div>
         </div>
 
@@ -69,14 +70,14 @@
 <script>
   function deleteuser(id){
       var localtime = new Date();
-      var conf = confirm('Delete User');
+      var conf = confirm('Are you sure you want to delete this user?');
       if(conf == true){
           window.location.href = "delete_role/"+id+"/"+localtime.toString()+"";
       }
   }
     function userstatus(id){
         var localtime = new Date();
-        var conf = confirm('Change Status');
+        var conf = confirm('Are you sure you want to change this user''s status?');
         if(conf == true){
             window.location.href = "subscriber_status/"+id+"/"+localtime.toString()+"";
         }
@@ -85,9 +86,9 @@
 @if(session()->has('all_access'))
   <script>
     Swal.fire({
-      icon: 'info',
-      title: 'Oops..',
-      text: 'All users have assigned their access rights.'
+      icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+      title: 'Oops!',
+      text: 'All users have been assigned their access rights.'
     })
   </script>
 
@@ -95,9 +96,9 @@
 @if(session()->has('no_user'))
   <script>
     Swal.fire({
-      icon: 'info',
-      title: 'Oops..',
-      text: 'There is no user created yet.'
+      icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+      title: 'Oops!',
+      text: 'No users have been created yet.'
     })
   </script>
 
@@ -107,7 +108,7 @@
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'User Deleted Successfully!'
+      text: 'User deleted successfully.'
     })
   </script>
 
@@ -115,12 +116,12 @@
 @if(session()->has('user_limit'))
   <script>
     Swal.fire({
-      icon: 'warning',
+      icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
       title: 'User Limit Reached!',
-      text: 'Upgrade membership to add more Users!',
+      text: 'Upgrade your membership to add more users.',
       showCancelButton: true,
       confirmButtonText: 'Upgrade',
-      cancelButtonText: 'Will do it later',
+      cancelButtonText: 'Later',
       buttonsStyling: true
     }).then((result) => {
       if (result.isConfirmed) {
@@ -136,7 +137,7 @@
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'User Status Changed Successfully!'
+      text: 'User status changed successfully.'
     })
   </script>
 

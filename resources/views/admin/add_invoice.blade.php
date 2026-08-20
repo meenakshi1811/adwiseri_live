@@ -4,13 +4,15 @@
 
         <div class="col-lg-10 column-client">
             <div class="client-dashboard">
-                <div class="client-btn d-flex mb-2 ">
-                    <form class="form-inline d-flex justify-content-between w-100">
-                        <h3 class="text-primary">Create New Invoice</h3>
-                    </form>
+                <div class="invoice-form-card">
+                <div class="invoice-form-header">
+                    <div>
+                        <h3 class="text-primary mb-0">Create New Invoice</h3>
+                        <p class="text-muted mb-0">Generate a subscriber invoice with one or more services</p>
+                    </div>
                 </div>
-                <div class="col">
-                    <form id="registration_form" class="register-box login-box" method="POST" action="{{ route('admin_new_invoice_post') }}" onsubmit="document.getElementById('invoice_submit').setAttribute('disabled','true');">
+                <div class="col px-0">
+                    <form id="registration_form" class="register-box login-box invoice-edit-form" method="POST" action="{{ route('admin_new_invoice_post') }}" onsubmit="document.getElementById('invoice_submit').setAttribute('disabled','true');">
                         @csrf
                         <div class="row">
                             <div class="col-md-4 p-1">
@@ -29,58 +31,25 @@
                                     </span>
                                 @enderror
                             </div>
-                            <div class="col-md-4 p-1">
-                                <label>Service Description<span class="text-danger" style="font-size: 18px;">*</span></label>
-                            </div>
-                            <div class="col-md-8 p-1">
-                                <input name="detail" minlength="3" maxlength="150" type="text" class="form-control @error('detail') is-invalid @enderror" id="exampleInputage1" aria-describedby="ageHelp" value="{{ old('detail') }}" required placeholder="Service Description" autocomplete="detail">
-                                @error('detail')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
-                            <div class="col-md-4 p-1">
-                                <label>Amount<span class="text-danger" style="font-size: 18px;">*</span></label>
-                            </div>
-                            <div class="col-md-8 p-1">
-                                <input name="amount" min="0" required type="number" class="form-control @error('amount') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('amount') }}" placeholder="Amount" autocomplete="amount">
-                                @error('amount')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
-                            {{-- <div class="col-md-4 p-1">
-                                <label>Discount</label>
-                            </div>
-                            <div class="col-md-8 p-1">
-                                <input name="discount" type="number" class="form-control @error('discount') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('discount') }}" required placeholder="Discount" autocomplete="discount">
-                                @error('discount')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
-                            <div class="col-md-4 p-1">
-                                <label>Tax (%)</label>
-                            </div>
-                            <div class="col-md-8 p-1">
-                                <input name="tax" type="number" min=0 max="100" class="form-control @error('tax') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('tax') }}" required placeholder="tax percent(%)" autocomplete="tax">
-                                @error('tax')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div> --}}
+                            @include('web.partials.invoice_service_rows', [
+                                'showApplication' => false,
+                                'detailLabel' => 'Service Description',
+                                'detailPlaceholder' => 'Service Description',
+                                'amountLabel' => 'Amount',
+                                'amountPlaceholder' => 'Amount',
+                            ])
+                            @include('web.partials.invoice_note_form_field', [
+                                'invoiceNote' => $invoiceNote ?? '',
+                                'isLocked' => false,
+                            ])
                             <div class="col-md-4 p-1">
                                 <label>Invoice Status<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
                                 <select name="status" id="status" class="form-control form-select @error('status') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
                                     <option value="">Select Status</option>
-                                    <option {{ (old('status') == "PartiallyPaid") ? 'selected' : ''}} value="PartiallyPaid">PartiallyPaid</option>
-                                    <option {{ (old('status') == "UnPaid") ? 'selected' : ''}} value="UnPaid">UnPaid</option>
+                                    <option {{ (old('status') == "PartiallyPaid") ? 'selected' : ''}} value="PartiallyPaid">Partially Paid</option>
+                                    <option {{ (old('status') == "UnPaid") ? 'selected' : ''}} value="UnPaid">Unpaid</option>
                                     <option {{ (old('status') == "Paid") ? 'selected' : ''}} value="Paid">Paid</option>
                                     <option {{(old('status') == "Cancelled") ? 'selected':''}} value="Cancelled">Cancelled</option>
                                 </select>
@@ -102,11 +71,17 @@
                                 </span>
                             @enderror
                             </div>
-                            <div class="col-12 p-1 adwiseri-form-actions">
-                                <button type="submit" id="invoice_submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
+                            <div class="col-md-4 p-1"></div>
+                            <div class="col-md-8 p-1">
+                                <div class="invoice-form-actions">
+                                <button type="submit" id="invoice_submit" class="invoice-btn invoice-btn-primary">
+                                    <i class="fa-solid fa-check"></i> Submit
+                                </button>
+                                </div>
                             </div>
                         </div>
                     </form>
+                </div>
                 </div>
                 
             </div>
@@ -127,47 +102,15 @@
             clickOpens: true
           });
 
-          $("#country").change(function(){
-            var country = $(this).val();
-            // console.log(counrty);
-            $.ajax({
-                url: 'get_states',
-                method: 'POST',
-                data: {
-                    "_token": "{{ csrf_token() }}",
-                    country: country,
-                },
-                cache:false,
-                success: function(data){
-                  console.log(data);
-                    $("#state").html(data);
-                }
-            });
-          });
-          $("#subscriber").change(function(){
-            var id = $(this).val();
-            var name = 'subscriber';
-            // console.log(counrty);
-            $.ajax({
-                url: 'get_job_role',
-                method: 'POST',
-                data: {
-                    "_token": "{{ csrf_token() }}",
-                    id: id,
-                    name: name,
-                },
-                cache:false,
-                success: function(data){
-                  console.log(data);
-                    $("#job_role").html(data);
-                }
-            });
+          initInvoiceServiceRows({
+              showApplication: false,
+              subscriberSelector: '#subscriber'
           });
       });
   </script>
   <script>
       function deleteuser(id){
-          var conf = confirm('Delete User');
+          var conf = confirm('Are you sure you want to delete this invoice?');
           if(conf == true){
               window.location.href = "delete_user/"+id+"";
           }
@@ -179,7 +122,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'Invoice deleted successfully.'
       })
     </script>
   

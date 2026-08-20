@@ -4,11 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Concerns\BelongsToCurrentSubscriber;
 
 class Tickets extends Model
 {
-    use HasFactory, BelongsToCurrentSubscriber;
+    use HasFactory;
     protected $table = "tickets";
     protected $primaryKey = "id";
     protected $fillable = [
@@ -19,7 +18,8 @@ class Tickets extends Model
         'status',
         'related_to',
         'served_by',
-        'subscriber_id'
+        'subscriber_id',
+        'user_id',
     ];
 
     public function servedBy(){
@@ -33,6 +33,27 @@ class Tickets extends Model
     }
     public function user(){
         return $this->belongsTo(User::class,'user_id');
+    }
+
+    public function activityLogs()
+    {
+        return $this->hasMany(TicketActivityLog::class, 'ticket_id')->orderByDesc('created_at');
+    }
+
+    public function ticketRaiser(): ?User
+    {
+        $this->loadMissing(['user', 'subscriber']);
+
+        if ($this->user) {
+            return $this->user;
+        }
+
+        return $this->subscriber;
+    }
+
+    public function ticketViewRoute(): string
+    {
+        return route('my_query', $this->id);
     }
 
 }

@@ -12,6 +12,9 @@ date_default_timezone_set("Asia/Kolkata");
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
   <link rel="stylesheet" href="{{ asset('web_assets/css/style.css') }}">
+  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-responsive.css') }}">
+  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-tabs.css') }}">
+  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-alerts.css') }}">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,12 +38,16 @@ date_default_timezone_set("Asia/Kolkata");
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
-  <script src="https://kit.fontawesome.com/b140011afa.js" crossorigin="anonymous"></script>
+  @include('partials.intl_phone_assets')
+
+  {{-- Font Awesome Kit (SVG/JS) removed: it conflicts with the webfont CSS and DataTables re-rendering, causing action icons in data-tables to disappear. Webfont CSS is loaded above / in auth_nav.blade.php. --}}
+  {{-- <script src="https://kit.fontawesome.com/b140011afa.js" crossorigin="anonymous"></script> --}}
   <!-- Owl Carousel CSS -->
 
   <link rel="stylesheet" href="{{ asset('web_assets/css/owl.carousel.css') }}">
   <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="{{ asset('web_assets/js/adwiseri-alerts.js') }}"></script>
   <script src="https://cdn.anychart.com/releases/8.0.1/js/anychart-core.min.js"></script>
       <script src="https://cdn.anychart.com/releases/8.0.1/js/anychart-pie.min.js"></script>
       <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
@@ -102,13 +109,13 @@ select.form-control {
      }  
   </style>
 
-
+  @stack('css')
 
 </head>
 
 <body>
 
-    @if(auth()->user() && auth()->user()->user_type == 'Subscriber')
+    @if(auth()->user() && in_array(strtolower((string) auth()->user()->user_type), ['subscriber', 'user'], true))
 
 
     <div id="feedbackModal" class="modal fade" tabindex="-1" role="dialog">
@@ -117,6 +124,9 @@ select.form-control {
                 <!-- Modal Header -->
                 <div class="modal-header d-block">
                     <h5 class="modal-title text-center fw-bold">We Value Your Feedback</h5>
+                    <p class="text-muted text-center small mb-0 mt-2">
+                        First review on your 90th day; after that, once per year for each user.
+                    </p>
                 </div>
 
                 <!-- Feedback Form -->

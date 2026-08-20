@@ -20,7 +20,7 @@
                     <th class="text-center">Issue</th>
                     <th class="text-center">Department</th>
                     <th class="text-center">Status</th>
-                    <th class="text-center">UserName(UserID)</th>
+                    <th class="text-center">User(ID)</th>
                     <th class="text-center">Date</th>
                     <th class="text-center">Attachment</th>
                     <th class="text-center">Action</th>
@@ -30,13 +30,34 @@
                 @foreach($tickets as $key => $tic)
                 <tr>
                     <td class="text-center">{{ $key+1 }}</td>
-                    <td class="text-center">{{ $tic->ticket_no }}</td>
+                    <td class="text-center">
+                        <a href="javascript:void(0);"
+                           class="text-primary fw-semibold text-decoration-underline"
+                           onclick="openTicketActivityLog({{ $tic->id }}, @json($tic->ticket_no));">
+                            {{ $tic->ticket_no }}
+                        </a>
+                    </td>
                     <td class="text-center">{{ $tic->subscriber ? $tic->subscriber->name .'('.$tic->subscriber_id.')' : '' }}</td>
-                    <td class="text-center"><div style="max-height: 80px;overflow:auto;">{{ $tic->issue }}</div></td>
+                    <td class="text-center">
+                        <div style="max-height: 80px;overflow:auto;">
+                            <a href="javascript:void(0);"
+                               class="text-primary text-decoration-underline"
+                               onclick="openTicketActivityLog({{ $tic->id }}, @json($tic->ticket_no));">
+                                {{ $tic->ticket_no }}
+                            </a>
+                            — {{ $tic->issue }}
+                        </div>
+                    </td>
                     <td class="text-center">{{ $tic->support }}</td>
-                    <td class="text-center">@if($tic->status == 'Open') <a style="background:green;border-color:green;" href="{{ route('update_query_status', $tic->id) }}" class="p-0 px-1">Open</a> @else <a style="background:red;border-color:red;" href="{{ route('update_query_status', $tic->id) }}" class="p-0 px-1">Closed</a> @endif</td>
+                    <td class="text-center">
+                        @if($tic->status == 'Open')
+                            <a style="background:green;border-color:green;" href="{{ route('update_query_status', $tic->id) }}" class="btn btn-sm p-0 px-2 text-white" title="Click to close ticket">Open</a>
+                        @else
+                            <a style="background:red;border-color:red;" href="{{ route('update_query_status', $tic->id) }}" class="btn btn-sm p-0 px-2 text-white" title="Click to reopen ticket">Closed</a>
+                        @endif
+                    </td>
                     {{-- <td><a style="background:none;border:none;padding:0px;" onclick="{{ route('update_query_status', $tic->id) }}">{{ $tic->status }}</a></td> --}}
-                    <td class="text-center">{{ $tic->served_by ? $tic->servedBy->name .'('.$tic->served_by.')' : "" }}</td>
+                    <td class="text-center">{{ $tic->user ? $tic->user->name .'('.$tic->user_id.')' : '' }}</td>
                     <td class="text-center">{{ $tic->created_at }}</td>
                     <td class="text-center">
                         @if($tic->attachment && file_exists("web_assets/users/ticket_images/".$tic->attachment))
@@ -108,7 +129,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Query Deleted Successfully!'
+        text: 'Query deleted successfully.'
       })
     </script>
 
@@ -124,6 +145,10 @@
 
 @endif
 
+@include('admin.partials.ticket_activity_log_modal', [
+    'activityDataUrl' => route('admin_ticket_activity_log_data', ['id' => '__ID__']),
+])
+
 @endsection()
 
   @push('scripts')
@@ -132,10 +157,10 @@
   function deletequery(id){
       Swal.fire({
         title: 'Are you sure?',
-        text: "You won't be able to revert this!",
+        text: "This action cannot be undone.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
+        confirmButtonColor: '#695EEE',
         cancelButtonColor: '#d33',
         confirmButtonText: 'Yes, delete it!'
       }).then((result) => {
@@ -147,12 +172,12 @@
       function queryresponse(id){
         Swal.fire({
           title: 'Are you sure?',
-          text: "You want to response this record!",
+          text: "Do you want to respond to this record?",
           icon: 'warning',
           showCancelButton: true,
-          confirmButtonColor: '#3085d6',
+          confirmButtonColor: '#695EEE',
           cancelButtonColor: '#d33',
-          confirmButtonText: 'Yes'
+          confirmButtonText: 'Yes, continue'
         }).then((result) => {
           if (result.isConfirmed) {
             window.location.href = "query_response/"+id+"";

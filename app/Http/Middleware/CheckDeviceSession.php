@@ -22,7 +22,13 @@ class CheckDeviceSession
 
             if (!$session) {
                 Auth::logout(); // Log out if no session exists
-                return redirect()->route('login')->withErrors(['message' => 'You are logged out due to multiple logins from the same device.']);
+                $message = 'You are logged out due to multiple logins from the same device.';
+
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['message' => $message], 401);
+                }
+
+                return redirect()->route('login')->withErrors(['message' => $message]);
             }
         }
 

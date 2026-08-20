@@ -60,8 +60,6 @@
                       </select>
                   </div>
                   <button type="submit" class="form-control btn btn-primary mb-4">Next</button>
-                  <!-- <a href="dashboard.html" class="btn btn-primary mb-4">Next</a> -->
-                  <!-- <p class="text-center reg-logbtn">Already have an account! <a href="{{ route('user_login') }}" class="text-dark"> <strong>Login</strong></a></p> -->
             </form>
         </div>
         <div class="col-lg-4"></div>
@@ -74,7 +72,6 @@
     $(document).ready(function(){
         $("#country").change(function(){
           var country = $(this).val();
-          // console.log(counrty);
           $.ajax({
               url: "{{route('get_states')}}",
               method: 'POST',
@@ -84,7 +81,6 @@
               },
               cache:false,
               success: function(data){
-                console.log(data);
                   $("#state").html(data);
               }
           });
@@ -97,7 +93,6 @@
               },
               cache:false,
               success: function(data){
-                console.log(data);
                   $("#timezone").html(data);
               }
           });

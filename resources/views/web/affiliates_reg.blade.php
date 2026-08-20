@@ -6,7 +6,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Password Changed',
-                text: 'You can now login using new password.'
+                text: 'You can now log in with your new password.'
             })
         </script>
     @endif
@@ -84,12 +84,10 @@
                         <div class="col-md-6 mb-4">
                             <select name="country" id="country" required class="form-select">
                                 <option value="" {{ old('country') == '' ? 'selected' : '' }}>Country</option>
-                                @foreach ($countries as $country)
-                                    <option value="{{ $country->country_name }}"
-                                        {{ old('country') == $country->country_name ? 'selected' : '' }}>
-                                        {{ $country->country_name }}
-                                    </option>
-                                @endforeach
+                                @include('partials.country_select_options_by_name', [
+                                    'countries' => $countries,
+                                    'phoneForPrefill' => old('phone'),
+                                ])
                             </select>
                             @error('country')
                                 <span class="invalid-feedback" role="alert">
@@ -162,23 +160,23 @@
                 Swal.fire({
                     icon: 'success',
                     title: 'Password Changed',
-                    text: 'You can now login using new password.'
+                    text: 'You can now log in with your new password.'
                 })
             </script>
         @endif
         @if (session()->has('deactivated'))
             <script>
                 Swal.fire({
-                    icon: 'warning',
+                    icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
                     title: 'Account Deactivated',
-                    text: 'Your Account is Deactivated for some reason. Please contact your branch manager.'
+                    text: 'Your account has been deactivated. Please contact your branch manager.'
                 })
             </script>
         @endif
         @if (session()->has('g-recaptcha-response'))
             <script>
                 Swal.fire({
-                    icon: 'error',
+                    icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
                     title: 'Oops!',
                     text: 'Please complete the reCAPTCHA to proceed.',
                 });
@@ -200,7 +198,7 @@
                     } else if (!recaptchaResponse) {
                         event.preventDefault(); // Prevent form submission
                         Swal.fire({
-                            icon: 'error',
+                            icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
                             title: 'Oops!',
                             text: 'Please complete the reCAPTCHA to proceed.',
                         });

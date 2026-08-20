@@ -20,8 +20,6 @@ class AdminAuthenticate extends Middleware
         $blockedRoutes = [
             'new_user',
             'view_user',
-            'communication',
-            
         ];
 
         if ($today->greaterThanOrEqualTo($expiryDate)) {

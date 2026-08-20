@@ -29,10 +29,14 @@ use App\Models\Referrals;
 use App\Models\UserRoles;
 use App\Models\AffiliateCommissionEarnt;
 use App\Models\PaymentARs;
+use App\Services\InvoiceAuditService;
+use App\Services\SubscriptionTermPricing;
 
 use App\Mail\EmailVerification;
 use App\Mail\WelcomeMail;
 use App\Mail\PlanSubscriptionMail;
+use App\Support\EmailAddress;
+use Illuminate\Support\Facades\Log;
 
 use function App\Helpers\commission_amount;
 
@@ -84,7 +88,8 @@ class StripeController extends Controller
         $internalInvoice->pincode = $company->pincode;
         $internalInvoice->address = $company->address_line;
         $internalInvoice->logo = $company->organization_logo;
-        $internalInvoice->to_name = $subscriber->name;
+        $internalInvoice->vendor_id = Internal_Invoices::ADWISERI_VENDOR_ID;
+        $internalInvoice->to_name = Internal_Invoices::ADWISERI_VENDOR_NAME;
         $internalInvoice->to_email = $subscriber->email;
         $internalInvoice->to_phone = $subscriber->phone;
         $internalInvoice->to_country = $subscriber->country;
@@ -100,19 +105,15 @@ class StripeController extends Controller
         $internalInvoice->status = "Paid";
         $internalInvoice->type = 'ap';
         $internalInvoice->due_date = date("Y-m-d");
-        $internalInvoice->created_at = now();
         $internalInvoice->token = $this->generateInternalInvoiceToken();
-
-        if ($amount <= 0) {
-            return $internalInvoice;
-        }
-
+        $actingUser = Auth::user() ?: $subscriber;
+        app(InvoiceAuditService::class)->markCreated($internalInvoice, $actingUser);
         $internalInvoice->save();
 
         PaymentARs::create([
             'subscriber_id' => $subscriber->id,
             'invoice_no' => $internalInvoice->invoice_no,
-            'service_provider' => $company->organization ?: 'adwiseri.com',
+            'service_provider' => Internal_Invoices::ADWISERI_VENDOR_NAME,
             'service_taken' => $detail,
             'amount' => $amount,
             'paid_amount' => $amount,
@@ -124,54 +125,35 @@ class StripeController extends Controller
         return $internalInvoice;
     }
 
-    private function calculateInclusiveExpiryDate(int $durationYears): Carbon
+    private function sendPaymentEmailSafely(string $email, $mailable, ?int $userId = null): bool
     {
-        return Carbon::now()->addYears($durationYears)->subDay();
-    }
+        if (!EmailAddress::isValidRecipient($email)) {
+            Log::warning('Payment email skipped: invalid recipient', [
+                'email' => $email,
+                'user_id' => $userId,
+            ]);
 
-    private function formatPlanDuration(int $durationYears): string
-    {
-        return $durationYears . ' ' . ($durationYears === 1 ? 'Year' : 'Years');
-    }
-
-    private function formatMailDate($date): string
-    {
-        if (empty($date)) {
-            return '-';
+            return false;
         }
 
-        if ($date instanceof \DateTimeInterface) {
-            return $date->format('d M Y');
-        }
+        try {
+            Mail::to($email)->send($mailable);
 
-        return date('d M Y', strtotime((string) $date));
+            return !Mail::failures();
+        } catch (\Throwable $e) {
+            Log::error('Payment email failed', [
+                'email' => $email,
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
     private function buildInvoicePdfData(Internal_Invoices $internalInvoice, User $subscriber, User $company): object
     {
-        return (object) [
-            'invoice_no' => $internalInvoice->invoice_no,
-            'invoice_date' => $internalInvoice->created_at,
-            'due_date' => $internalInvoice->due_date,
-            'status' => $internalInvoice->status,
-            'detail' => $internalInvoice->detail,
-            'amount' => $internalInvoice->amount,
-            'discount' => $internalInvoice->discount,
-            'tax' => $internalInvoice->tax,
-            'total' => $internalInvoice->total,
-            'currency' => 'USD',
-            'name' => $subscriber->name,
-            'to_email' => $subscriber->email,
-            'to_address' => $subscriber->address_line,
-            'to_city' => $subscriber->city,
-            'to_state' => $subscriber->state,
-            'to_country' => $subscriber->country,
-            'to_pincode' => $subscriber->pincode,
-            'company_name' => $company->organization ?: 'adwiseri',
-            'from_email' => $company->email,
-            'display_from_email' => $company->email,
-            'logo_path' => !empty($company->organization_logo) ? 'web_assets/users/user' . $company->id . '/' . $company->organization_logo : null,
-        ];
+        return \App\Services\InternalInvoicePdfDataFactory::make($internalInvoice, $subscriber, $company);
     }
 
     public function transaction_id()
@@ -240,21 +222,32 @@ class StripeController extends Controller
 
         Session::flash('success', 'Payment successful!');
 
-        $duration = $data['plan_duration'];
-        if((new DateTime($user->membership_expiry_date)) < (new DateTime("now"))){
-            $expired = "expired";
-            $wallet_amount = 0;
-            $discount = 0;
-        }
-        else{
-            $wallet_amount = $user->wallet;
-            $discount = $wallet_amount;
-        }
+        $duration = SubscriptionTermPricing::normalizeDuration((int) ($data['plan_duration'] ?? 1));
+        $previousPlanName = $user->membership;
+        $previousExpiry = !empty($user->membership_expiry_date)
+            ? \Carbon\Carbon::parse($user->membership_expiry_date)
+            : null;
+        $previousWalletBalance = (float) $user->wallet;
+        $journeyLog = app(\App\Services\UserJourneyLogService::class);
+        $purchaseCategory = $journeyLog->classifySubscriptionPurchase(
+            false,
+            $previousExpiry,
+            $previousPlanName,
+            $data['plan_name']
+        );
+        $wallet_amount = SubscriptionTermPricing::walletCreditForSubscriptionPayment($user, $purchaseCategory);
+        $discount = min((float) $wallet_amount, (float) ($data['plan_amount'] ?? 0));
         $user->membership = $data['plan_name'];
         $user->membership_type = "Subscription";
-        $user->membership_start_date = new DateTime("now");
-        $user->membership_expiry_date = $this->calculateInclusiveExpiryDate((int) $duration);
-        $user->wallet = 0;
+        SubscriptionTermPricing::applyMembershipDates(
+            $user,
+            $duration,
+            $purchaseCategory,
+            $previousExpiry
+        );
+        $user->wallet = SubscriptionTermPricing::shouldForfeitWalletOnPurchase($user, $purchaseCategory)
+            ? 0
+            : max(0, $previousWalletBalance - $discount);
         $user->save();
         $my_users = User::where('added_by','=',$user->id)->get();
         foreach($my_users as $myuser){
@@ -288,14 +281,37 @@ class StripeController extends Controller
         $activity->activity_icon = "mmbrcp.png";
         $activity->local_time = $data['local_time'];
         $activity->save();
+        $journeyLog->logSubscriptionPurchase(
+            $user,
+            $purchaseCategory,
+            $data['plan_name'],
+            $duration,
+            $user->id,
+            ['previous_plan' => $previousPlanName]
+        );
         $plan = Membership::where('plan_name','=',$data['plan_name'])->first();
+        if ($discount > 0 && $plan) {
+            app(\App\Services\WalletLedgerService::class)->recordSubscriptionDebit(
+                $user,
+                (float) $discount,
+                $previousWalletBalance,
+                0.0,
+                app(\App\Services\WalletLedgerService::class)->subscriptionDebitDescription($previousPlanName, $plan)
+            );
+        }
         $service_fee = $data['plan_amount'];
         // $discount = 0;
         // $tax = ($service_fee + $discount) * (18/100);
         $tax = 0;
         $company = User::where('user_type','=','admin')->first();
         $chargedAmount = $service_fee - $discount + $tax;
-        $internalInvoice = $this->createAdminApInvoiceAndPayment($user, $company, $chargedAmount, "Card", "Subscription Fees ({$plan->plan_name})");
+        $internalInvoice = $this->createAdminApInvoiceAndPayment($user, $company, $chargedAmount, "Card", SubscriptionTermPricing::subscriptionFeeDetail($plan->plan_name, $duration));
+        app(\App\Services\RenewalCommissionService::class)->processRenewalCommission(
+            $user,
+            (float) $chargedAmount,
+            $purchaseCategory,
+            $previousExpiry
+        );
         $invoice = new Invoices();
         $invoice->user_id = $user->id;
         $invoice->invoice = $this->transaction_id();
@@ -330,15 +346,25 @@ class StripeController extends Controller
         $activity->activity_icon = "invoice.jpg";
         $activity->local_time = $data['local_time'];
         $activity->save();
-        Mail::to($user->email)->send(new PlanSubscriptionMail(
+        $emailSent = $this->sendPaymentEmailSafely($user->email, new PlanSubscriptionMail(
             $user->name,
-            $plan['membership'],
-            $plan['validity'],
-            'Your Subscription Plan Has Been Upgraded',
-            $this->buildInvoicePdfData($internalInvoice, $user, $company)
-        ));
+            $plan->plan_name ?? $data['plan_name'],
+            $plan->validity ?? $duration,
+            'Your Subscription Plan Has Been Updated',
+            $this->buildInvoicePdfData($internalInvoice, $user, $company),
+            $chargedAmount,
+            $previousPlanName,
+            (int) $duration,
+            $purchaseCategory
+        ), $user->id);
         session()->forget('pay_data');
-        return redirect()->route('user_membership')->with('payment_success','Payment completed successfully.');
+
+        $redirect = redirect()->route('user_membership')->with('payment_success', 'Payment completed successfully.');
+        if (!$emailSent) {
+            $redirect->with('email_warning', 'Your payment was successful, but the confirmation email could not be sent. Please contact support if you need a copy.');
+        }
+
+        return $redirect;
 
         // return back();
     }
@@ -353,22 +379,9 @@ class StripeController extends Controller
 
         $data = session('reg_data');
         $plan = $data['membership'];
-        $duration = $data['duration'];
+        $duration = \App\Services\SubscriptionTermPricing::normalizeDuration((int) ($data['duration'] ?? 1));
         $membership = Membership::where('plan_name','=',$plan)->first();
-        $plan_amt = $membership->price_per_year;
-        if($duration == 1){
-            $plan_amount = round(($plan_amt * 1) * 1);
-        }
-        if($duration == 2){
-            $plan_amount = round(($plan_amt * 2) * 0.9);
-        }
-        if($duration == 3){
-            $plan_amount = round(($plan_amt * 3) * 0.8);
-        }
-        if($duration == 5){
-            $plan_amount = round(($plan_amt * 5) * 0.5);
-        }
-        $amount = $plan_amount;
+        $amount = \App\Services\SubscriptionTermPricing::calculate((float) $membership->price_per_year, $duration);
         try{
         Stripe\Stripe::setApiKey(env('STRIPE_SECRET'));
 
@@ -444,7 +457,7 @@ class StripeController extends Controller
         //     $data->membership_type = "Trial";
         //     $data->membership_expiry_date = (new DateTime("now"))->modify("+30 days");
         // }
-        $enddate = $this->calculateInclusiveExpiryDate((int) $duration);
+        $enddate = (new DateTime("now"))->modify("+".$duration." Years");
         $user->membership_start_date = new DateTime("now");
         $user->membership_expiry_date = $enddate;
         $user->wallet = 0;
@@ -456,6 +469,8 @@ class StripeController extends Controller
         $user->status = "true";
         $user->password = Hash::make($data['password']);
         $user->save();
+
+        app(\App\Services\OfferBenefitService::class)->applyEligibleNewSubscriberOffers($user);
 
         $role = UserRoles::where('user_id','=',$user->id)->get();
             if($role){
@@ -621,12 +636,12 @@ class StripeController extends Controller
         }
         $service_fee = $data['amount'];
         $discount = 0;
-        $tax = ($service_fee + $discount) * (18/100);
+        // Packaged subscription prices are fixed — never apply Invoice Settings or GST markup.
         $tax = 0;
         $company = User::where('user_type','=','admin')->first();
 
         $subs = User::find($user->id);
-        $internal_invoice = $this->createAdminApInvoiceAndPayment($subs, $company, (float) $amount, "Card", "Subscription Fees ({$plan->plan_name})");
+        $internal_invoice = $this->createAdminApInvoiceAndPayment($subs, $company, (float) $amount, "Card", SubscriptionTermPricing::subscriptionFeeDetail($plan->plan_name, $duration));
 
         $invoice = new Invoices();
         $invoice->user_id = $user->id;
@@ -669,37 +684,38 @@ class StripeController extends Controller
         $welcomedata->name = $data['name'];
         $welcomedata->email = $email;
         $welcomedata->plan_name = $plan->plan_name;
-        $welcomedata->duration = $this->formatPlanDuration((int) $duration);
+        $welcomedata->duration = $duration." Year(s)";
         $welcomedata->amount = $amount;
         $welcomedata->invoice_id = $internal_invoice->id;
         $welcomedata->token = $internal_invoice->token;
         $welcomedata->subscription = "Paid";
         $welcomedata->subscription_type = $plan->plan_name;
-        $welcomedata->start_date = $this->formatMailDate($user->membership_start_date);
-        $welcomedata->end_date = $this->formatMailDate($user->membership_expiry_date);
+        $welcomedata->start_date = !empty($user->membership_start_date)
+            ? date('d M Y', strtotime($user->membership_start_date))
+            : '-';
+        $welcomedata->end_date = !empty($user->membership_expiry_date)
+            ? date('d M Y', strtotime($user->membership_expiry_date))
+            : '-';
         $welcomedata->paid_amount = number_format((float) $amount, 2);
         $welcomedata->from_email = $company->email;
         $welcomedata->from_name = $company->organization ?: 'adwiseri';
         $welcomedata->invoice_pdf_data = $this->buildInvoicePdfData($internal_invoice, $subs, $company);
-        Mail::to('care@adwiseri.com')->bcc($email)->send(new WelcomeMail($welcomedata));
-            if (Mail::failures()) {
-                echo 'Sorry! Please try again latter';
-            }else{
-                echo 'Great! Successfully send in your mail';
-            }
+        $welcomeSent = $this->sendPaymentEmailSafely($email, new WelcomeMail($welcomedata), $user->id ?? null);
 
         $maildata = new \stdClass();
         $maildata->name = $data['name'];
         $maildata->email = $email;
         $maildata->otp = $eotp;
-        Mail::to($email)->send(new EmailVerification($maildata));
-            if (Mail::failures()) {
-                echo 'Sorry! Please try again latter';
-            }else{
-                echo 'Great! Successfully send in your mail';
-            }
+        $verificationSent = $this->sendPaymentEmailSafely($email, new EmailVerification($maildata), $user->id ?? null);
+
         session()->forget('reg_data');
-        return redirect()->route('otp', $email);
+
+        $redirect = redirect()->route('otp', $email);
+        if (!$welcomeSent || !$verificationSent) {
+            $redirect->with('email_warning', 'Registration completed, but one or more emails could not be sent. Please contact support if you do not receive your verification code.');
+        }
+
+        return $redirect;
 
         // return back();
     }

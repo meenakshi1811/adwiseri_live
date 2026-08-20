@@ -160,8 +160,8 @@
                     <option value="" selected>Select Chart Type</option>
                     <option value="bar">Bar</option>
                     <option value="line">Line</option>
-                    <option value="pie">Pie</option>
                     <option value="doughnut">Doughnut</option>
+                    <option value="pie">Pie</option>
                 </select>
             </div>
         </div>
@@ -170,7 +170,7 @@
                 <button class="login-btn" onclick="onClickGetReport()">View Data-Chart</button>
             </div>
             <div class="col-md-3">
-                <button class="login-btn" id="downloadPdf" style="display: none">Download (PDF)</button>
+                <button class="login-btn" id="downloadPdf" style="display: none">Download Chart</button>
             </div>
 
         </div>
@@ -191,9 +191,6 @@
 <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
-<script>
-Chart.defaults.scales.category.offset = false;
-</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
 
@@ -252,12 +249,7 @@ Chart.defaults.scales.category.offset = false;
         function checkIfDataIsEmpty(data, title) {
             if (data.length === 0 || (data && data.data && data.data.length === 0)) {
                 $('#downloadPdf').prop('disabled', true);
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'No Data Available',
-                    text: 'No Data found for Chart : ' + title,
-                    confirmButtonText: 'OK'
-                });
+                AdwiseriAlert.noData('No Data found for Report : ' + title);
                 return true; // Returns true if data is empty
             }
             return false; // Returns false if data is not empty
@@ -418,8 +410,8 @@ Chart.defaults.scales.category.offset = false;
                         value: "ByApplicationType"
                     },
                     {
-                        text: "By Application Counts By No. of Dependants",
-                        value: "ByApplicationCountsByDependants"
+                        text: "By No. of Applicants per Application (Single/Joint)",
+                        value: "ByNo.ofApplicantsperApplication"
                     },
                     {
                         text: "By Payment Mode",
@@ -1076,7 +1068,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
 
                         }
@@ -1217,7 +1209,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -1354,7 +1346,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -1491,7 +1483,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -1623,7 +1615,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -1755,7 +1747,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -1887,7 +1879,7 @@ Chart.defaults.scales.category.offset = false;
                     success: function(data) {
                         console.log(data.data);
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -2020,7 +2012,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -2152,7 +2144,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -2283,7 +2275,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
 
@@ -4260,7 +4252,7 @@ Chart.defaults.scales.category.offset = false;
 
                     });
                 });
-            } else if (selectedFilter == "ByApplicationCountsByDependants") {
+            } else if (selectedFilter == "ByNo.ofApplicantsperApplication") {
 
                 let chartStatus = Chart.getChart("myChart"); // <canvas> id
                 if (chartStatus != undefined) {
@@ -4271,7 +4263,7 @@ Chart.defaults.scales.category.offset = false;
                     url: "{{ route('subscribersReport') }}",
 
                     data: {
-                        type: 'byApplicationCountsByDependantsChart',
+                        type: 'byNoofApplicantsPerApplicationChart',
                         subid: subID,
                         startDate: startDate,
                         endDate: endDate
@@ -4286,11 +4278,13 @@ Chart.defaults.scales.category.offset = false;
                         console.log(result);
 
                         var labels = [];
-                        var numbers = [];
+                        var singleCounts = [];
+                        var jointCounts = [];
 
                         result.forEach(function(currentElement) {
-                            labels.push(currentElement.dependant_bucket);
-                            numbers.push(currentElement.application_count);
+                            labels.push(currentElement.application_name);
+                            singleCounts.push(currentElement.single_clients); // Single count
+                            jointCounts.push(currentElement.joint_clients); // Joint count
                         });
 
                         const ctx = document.getElementById('myChart');
@@ -4299,12 +4293,20 @@ Chart.defaults.scales.category.offset = false;
                             type: chartType,
                             data: {
                                 labels: labels,
-                                datasets: [{
-                                    label: selectedAttribute + ' ' + $('#filters option:selected').text(),
-                                    data: numbers,
-                                    borderWidth: 1,
-                                    backgroundColor: dynamicColors,
-                                }]
+                                datasets: [
+                                    {
+                                        label: 'Single Clients',
+                                        data: singleCounts,
+                                        borderWidth: 1,
+                                        backgroundColor: 'rgba(54, 162, 235, 0.6)' // Blue for single
+                                    },
+                                    {
+                                        label: 'Joint Clients',
+                                        data: jointCounts,
+                                        borderWidth: 1,
+                                        backgroundColor: 'rgba(255, 99, 132, 0.6)' // Red for joint
+                                    }
+                                ]
                             },
                             options: {
                                 responsive: false,
@@ -9279,7 +9281,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -9411,7 +9413,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -9542,7 +9544,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -9677,7 +9679,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -9807,7 +9809,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -9927,7 +9929,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10047,7 +10049,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10179,7 +10181,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10307,7 +10309,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10439,7 +10441,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10571,7 +10573,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10703,7 +10705,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10834,7 +10836,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -10967,7 +10969,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -11095,7 +11097,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -11227,7 +11229,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
 
@@ -11368,7 +11370,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
 
@@ -11493,7 +11495,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
 
@@ -11618,7 +11620,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
 
@@ -11743,7 +11745,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
                         var result = data
@@ -11881,7 +11883,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found');
+                            alert('No data found.');
                             return;
                         }
                         var result = data
@@ -12018,7 +12020,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -12150,7 +12152,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;
@@ -12282,7 +12284,7 @@ Chart.defaults.scales.category.offset = false;
                     },
                     success: function(data) {
                         if (data.data.length === 0) {
-                            alert('No data found')
+                            alert('No data found.')
                             return
                         }
                         var result = data.data;

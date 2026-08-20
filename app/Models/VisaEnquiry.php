@@ -4,11 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Concerns\BelongsToCurrentSubscriber;
 
 class VisaEnquiry extends Model
 {
-    use HasFactory, BelongsToCurrentSubscriber;
+    use HasFactory;
 
     protected $table = 'visa_enquiries';
 
@@ -47,8 +46,22 @@ class VisaEnquiry extends Model
         'sign_name',
         'print_name',
         'signature',
-        'consent_to_store_data'
+        'consent_to_store_data',
+        'status',
+        'lead_source',
+        'lead_status',
+        'lead_worked_by_user_id',
+        'lead_worked_at',
     ];
+
+    protected $casts = [
+        'lead_worked_at' => 'datetime',
+    ];
+
+    public function workedByUser()
+    {
+        return $this->belongsTo(User::class, 'lead_worked_by_user_id');
+    }
 
     public function residencyHistory()
     {
@@ -78,6 +91,11 @@ class VisaEnquiry extends Model
     public function fundingSources()
     {
         return $this->hasMany(EnquiryFundingSource::class,'enquiry_id');
+    }
+
+    public function followUpLogs()
+    {
+        return $this->hasMany(LeadFollowUpLog::class, 'enquiry_id');
     }
 
 }

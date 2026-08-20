@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Services\EmailTemplateService;
+use App\Support\BrandedMail;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -26,22 +27,33 @@ class WelcomeMail extends Mailable
         $owner = $templateService->resolveTemplateOwner($data);
         $template = $templateService->getTemplateForUser($owner, 'admin', 'welcome_email_admin_to_subscriber');
 
-        $defaultSubject = 'Welcome to adwiseri';
-        $mail = $this->subject($defaultSubject);
+        $defaultSubject = 'Welcome to Adwiseri';
+        $headerTitle = 'Welcome to Adwiseri';
+        $content = null;
 
         if ($template && !empty(trim((string) $template->body))) {
             $payload = $this->buildPlaceholderData($data);
-            $content = $this->replacePlaceholders($template->body, $payload);
-            $subject = $this->replacePlaceholders($template->subject ?: $defaultSubject, $payload);
-
-            $mail = $mail->subject($subject)->view('web.welcometemplate', compact('data', 'content'));
+            $content = BrandedMail::replacePlaceholders($template->body, $payload);
+            $subject = BrandedMail::replacePlaceholders($template->subject ?: $defaultSubject, $payload);
         } else {
-            $mail = $mail->view('web.welcometemplate', compact('data'));
+            $subject = $defaultSubject;
         }
+
+        $bodyHtml = BrandedMail::renderBody('emails.bodies.welcome', compact('data', 'content'));
+        $mail = $this->subject($subject ?? $defaultSubject)
+            ->view(BrandedMail::LAYOUT, [
+                'content' => $bodyHtml,
+                'headerTitle' => $headerTitle,
+            ]);
 
         if (!empty($data->from_email)) {
-            $mail->from($data->from_email, $this->sanitizeFromNameForWelcome($data->from_name ?? null));
+            $mail->from($data->from_email, $this->sanitizeFromName($data->from_name ?? null));
+        } else {
+            BrandedMail::applyPlatformFrom($mail);
         }
+
+        // Reply-To: care@adwiseri.com (never the From/SMTP address)
+        BrandedMail::applyDefaultReplyTo($mail);
 
         if (!empty($data->invoice_pdf_data)) {
             $invoiceData = is_array($data->invoice_pdf_data)
@@ -58,12 +70,14 @@ class WelcomeMail extends Mailable
             ]);
         }
 
+        BrandedMail::applyAlertsBcc($mail);
+
         return $mail;
     }
 
     private function buildPlaceholderData($data): array
     {
-        $map = is_array($data) ? $data : (array) $data;
+        $map = BrandedMail::dataFromObject($data);
 
         if (empty($map['invoice_link']) && !empty($map['invoice_id']) && !empty($map['token'])) {
             $map['invoice_link'] = route('invoice_preview', $map['invoice_id'] . '/' . $map['token']);
@@ -73,85 +87,15 @@ class WelcomeMail extends Mailable
             $map['subscription_type'] = $map['plan_name'];
         }
 
-        $planName = trim((string) ($map['plan_name'] ?? $map['subscription_type'] ?? 'Free'));
-        $paidAmount = $map['paid_amount'] ?? ($map['amount'] ?? null);
-        $numericPaidAmount = is_numeric(str_replace(',', '', (string) $paidAmount))
-            ? (float) str_replace(',', '', (string) $paidAmount)
-            : null;
-        $isPaid = strtolower((string) ($map['subscription'] ?? '')) === 'paid'
-            || ($numericPaidAmount !== null && $numericPaidAmount > 0)
-            || strtolower($planName) !== 'free';
-
-        $map['plan_name'] = $planName;
-        $map['subscription_type'] = $map['subscription_type'] ?? $planName;
         $map['start_date'] = $map['start_date'] ?? '-';
         $map['end_date'] = $map['end_date'] ?? '-';
-        $map['currency_symbol'] = $map['currency_symbol'] ?? '$';
-        $map['paid_amount'] = $this->formatAmountForWelcome($paidAmount ?? ($isPaid ? '0.00' : 0));
-        $map['duration'] = $this->normalizeDurationForWelcome($map['duration'] ?? '-');
+        $map['paid_amount'] = $map['paid_amount'] ?? ($map['amount'] ?? '0.00');
         $map['invoice_link'] = $map['invoice_link'] ?? '#';
-        $map['invoice_link_section'] = $map['invoice_link'] !== '#'
-            ? '<p style="margin-bottom:16px;line-height:1.9;">View invoice: <a href="' . $map['invoice_link'] . '">Click here</a></p>'
-            : '';
-        $planLabel = preg_match('/\bplan$/i', $planName) ? $planName : $planName . ' Plan';
-        $map['plan_activation_line'] = 'Your <strong>' . $planLabel . '</strong> is activated successfully. The plan details are as follows:';
 
         return $map;
     }
 
-
-    private function normalizeDurationForWelcome($duration): string
-    {
-        $duration = trim((string) $duration);
-
-        if ($duration === '') {
-            return '-';
-        }
-
-        if (preg_match('/^(\d+)\s+Year\(s\)$/i', $duration, $matches)) {
-            $years = (int) $matches[1];
-
-            return $years . ' ' . ($years === 1 ? 'Year' : 'Years');
-        }
-
-        if (preg_match('/^(\d+)\s+Day\(s\)$/i', $duration, $matches)) {
-            $days = (int) $matches[1];
-
-            return $days . ' ' . ($days === 1 ? 'Day' : 'Days');
-        }
-
-        return $duration;
-    }
-
-    private function formatAmountForWelcome($amount): string
-    {
-        $normalizedAmount = str_replace(',', '', (string) $amount);
-
-        if (is_numeric($normalizedAmount)) {
-            return number_format((float) $normalizedAmount, 2);
-        }
-
-        $trimmedAmount = trim((string) $amount);
-
-        return $trimmedAmount === '' ? '0.00' : $trimmedAmount;
-    }
-
-    private function replacePlaceholders(?string $text, array $data): string
-    {
-        $content = (string) $text;
-
-        foreach ($data as $key => $value) {
-            if (!is_scalar($value) && !is_null($value)) {
-                continue;
-            }
-
-            $content = preg_replace('/{{\s*' . preg_quote((string) $key, '/') . '\s*}}/', (string) $value, $content);
-        }
-
-        return preg_replace('/{{\s*[A-Za-z0-9_]+\s*}}/', '-', $content);
-    }
-
-    private function sanitizeFromNameForWelcome(?string $fromName): ?string
+    private function sanitizeFromName(?string $fromName): ?string
     {
         if ($fromName === null) {
             return null;

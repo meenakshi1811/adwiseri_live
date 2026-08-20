@@ -62,14 +62,16 @@
                             <td>{{ $invoice->total }}</td>
                             <td>
                               <select class="form-control" id="inv_status{{$invoice->id}}" style="font-size: 14px;">
-                              <option {{($invoice->status == "PartiallyPaid") ? "selected":""}} value="PartiallyPaid">PartiallyPaid</option>    
+                              <option {{($invoice->status == "PartiallyPaid") ? "selected":""}} value="PartiallyPaid">Partially Paid</option>    
                               <option {{($invoice->status == "Paid") ? "selected":""}} value="Paid">Paid</option>
-                                  <option {{($invoice->status == "UnPaid") ? "selected":""}} value="UnPaid">UnPaid</option>
+                                  <option {{($invoice->status == "UnPaid") ? "selected":""}} value="UnPaid">Unpaid</option>
                                   <option {{($invoice->status == "Cancelled") ? "selected":""}} value="Cancelled">Cancelled</option>
                               </select>
                             </td>
                             <td>{{ date("d-m-Y", strtotime($invoice->due_date)) }}</td>
-                            <td><a style="background:none; border:none;" href="{{ route('invoice_detail', $invoice->id) }}" class="m-0 p-0"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a></td>
+                            <td><a style="background:none; border:none;" href="{{ route('invoice_detail', $invoice->id) }}" class="m-0 p-0"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>
+                                <a style="background:none; border:none;" href="{{ route('admin_edit_invoice', $invoice->id) }}" class="m-0 p-0" title="Edit Invoice"><i class="fa-solid fa-pen-to-square btn p-1 text-primary" style="font-size:14px;"></i></a>
+                            </td>
                         </tr>
                         @endforeach
 
@@ -103,7 +105,7 @@
       // }, 1000);
     }
       function deleteclient(id){
-          var conf = confirm('Delete Client');
+          var conf = confirm('Are you sure you want to delete this client?');
           if(conf == true){
               window.location.href = "delete_clients/"+id+"";
           }
@@ -130,7 +132,7 @@
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Invoice Status Updated Successfully!'
+                                text: 'Invoice status updated successfully.'
                             })
                         }
                     }
@@ -144,17 +146,35 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Client Deleted Successfully!'
+        text: 'Invoice deleted successfully.'
       })
     </script>
 
   @endif
+  @if(session()->has('invoice_generated'))
+    <script>
+      Swal.fire({
+        icon: 'success',
+        title: 'Success',
+        text: @json(session('invoice_generated'))
+      })
+    </script>
+  @endif
+  @if(session()->has('invoice_email_failed'))
+    <script>
+      Swal.fire({
+        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+        title: 'Invoice Created',
+        text: @json(session('invoice_email_failed'))
+      })
+    </script>
+  @endif
   @if(session()->has('nouser'))
     <script>
       Swal.fire({
-        icon: 'info',
-        title: 'Oops...',
-        text: 'Invoice user do not exists any more.';
+        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+        title: 'Oops!',
+        text: 'The invoice user no longer exists.'
       })
     </script>
 

@@ -1,4 +1,4 @@
-@extends('web.layout.main')
+﻿@extends('web.layout.main')
 
 @section('main-section')
 
@@ -38,6 +38,11 @@
 @php
 $isEdit = $isEdit ?? false;
 $homeCountryOptions = $allCountries ?? $countries;
+$enquiryFormSettingsService = app(\App\Services\EnquiryFormSettingsService::class);
+$enquiryFormSections = $enquiryFormSettingsService->normalizeSections(
+    $enquiryFormSections ?? $enquiryFormSettingsService->defaultSections()
+);
+$efShow = static fn (string $key): bool => $enquiryFormSettingsService->isEnabled($enquiryFormSections, $key);
 @endphp
 <form method="POST" id="enquiry_form" action="{{ $isEdit ? route('visa_enquiries.update', $enquiry->id) : route('visa.enquiry.store') }}">
 @csrf
@@ -46,6 +51,42 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 <h3 class="mb-4 text-center">Enquiry Form</h3>
 
+@if(!empty($leadSources ?? null) || !empty($leadService ?? null))
+@php
+$availableLeadSources = $leadSources ?? ($leadService->sources() ?? []);
+$availableLeadStatuses = $leadStatuses ?? ($leadService->statuses() ?? []);
+$selectedLeadSource = old('lead_source', $enquiry->lead_source ?? ($defaultLeadSource ?? 'Walk-in'));
+$selectedLeadStatus = old('lead_status', $enquiry->lead_status ?? 'Open');
+@endphp
+@if($isEdit)
+<div class="row mb-3">
+<div class="col-md-6 mb-3">
+<label>Lead Source</label>
+<select name="lead_source" class="form-control">
+@foreach($availableLeadSources as $sourceOption)
+<option value="{{ $sourceOption }}" {{ $selectedLeadSource === $sourceOption ? 'selected' : '' }}>{{ $sourceOption }}</option>
+@endforeach
+</select>
+</div>
+<div class="col-md-6 mb-3">
+<label>Follow-up Status</label>
+<select name="lead_status" class="form-control">
+@foreach($availableLeadStatuses as $statusOption)
+<option value="{{ $statusOption }}" {{ $selectedLeadStatus === $statusOption ? 'selected' : '' }}>{{ $statusOption }}</option>
+@endforeach
+</select>
+</div>
+</div>
+@else
+<input type="hidden" name="lead_source" value="{{ old('lead_source', request()->query('source') ? ($defaultLeadSource ?? 'Walk-in') : 'Walk-in') }}">
+<input type="hidden" name="lead_status" value="Open">
+@endif
+@else
+<input type="hidden" name="lead_source" value="Walk-in">
+<input type="hidden" name="lead_status" value="Open">
+@endif
+
+@if($efShow('default'))
 <h5 class="mt-3">1. Personal Details</h5>
 
 <div class="row">
@@ -67,7 +108,10 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 <div class="col-md-6 mb-3">
 <label>Contact Number *</label>
-<input type="text" name="contact_no" class="form-control" placeholder="Contact Number" value="{{ old('contact_no', $enquiry->contact_no ?? '') }}" required>
+<input type="tel" name="contact_no" class="form-control @error('contact_no') is-invalid @enderror" placeholder="Contact Number" value="{{ old('contact_no', $enquiry->contact_no ?? '') }}" required>
+@error('contact_no')
+<div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
 </div>
 
 <div class="col-md-6 mb-3">
@@ -103,9 +147,11 @@ $homeCountryOptions = $allCountries ?? $countries;
 <label>Home Country *</label>
 <select name="country" class="form-control form-select @error('country') is-invalid @enderror" required>
 <option value="">Select Home Country</option>
-@foreach($homeCountryOptions as $country)
-<option value="{{ $country->country_name }}" {{ old('country', $enquiry->country ?? '') == $country->country_name ? 'selected' : '' }}>{{ $country->country_name }}</option>
-@endforeach
+@include('partials.country_select_options_by_name', [
+    'countries' => $homeCountryOptions,
+    'phoneForPrefill' => old('contact_no', $enquiry->contact_no ?? null),
+    'savedCountry' => old('country', $enquiry->country ?? null),
+])
 </select>
 @error('country')
 <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -153,20 +199,28 @@ $homeCountryOptions = $allCountries ?? $countries;
 <div class="col-md-6 mt-3">
 <label>Preferred Visa Category *</label>
 <select name="visa_category" id="visa_category" class="form-control" required>
+@php
+    $visaCategoryOptions = collect($visaCategories ?? [])->filter()->values();
+    $selectedVisaCategory = old('visa_category', $enquiry->visa_category ?? '');
+    if ($visaCategoryOptions->isEmpty()) {
+        $visaCategoryOptions = collect(['Visit', 'Training', 'Study', 'Work', 'Dependent', 'PR', 'Business', 'Investor']);
+    }
+    if ($selectedVisaCategory !== '' && !$visaCategoryOptions->contains($selectedVisaCategory)) {
+        $visaCategoryOptions->push($selectedVisaCategory);
+    }
+@endphp
 <option value="">Visa Category</option>
-<option value="Visit" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Visit' ? 'selected' : '' }}>Visit</option>
-<option value="Training" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Training' ? 'selected' : '' }}>Training</option>
-<option value="Study" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Study' ? 'selected' : '' }}>Study</option>
-<option value="Work" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Work' ? 'selected' : '' }}>Work</option>
-<option value="Dependent" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Dependent' ? 'selected' : '' }}>Dependent</option>
-<option value="PR" {{ old('visa_category', $enquiry->visa_category ?? '') == 'PR' ? 'selected' : '' }}>PR</option>
-<option value="Business" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Business' ? 'selected' : '' }}>Business</option>
-<option value="Investor" {{ old('visa_category', $enquiry->visa_category ?? '') == 'Investor' ? 'selected' : '' }}>Investor</option>
+@foreach($visaCategoryOptions as $category)
+<option value="{{ $category }}" {{ $selectedVisaCategory == $category ? 'selected' : '' }}>{{ $category }}</option>
+@endforeach
 </select>
 </div>
 
 </div>
 
+@endif
+
+@if($efShow('q1'))
 <h5 class="mt-4">3. Abroad Residency History</h5>
 
 <div id="residency_history">
@@ -194,6 +248,9 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 </div>
 
+@endif
+
+@if($efShow('q2'))
 <h5 class="mt-4">4. Travel History</h5>
 
 <div id="travel_history">
@@ -218,6 +275,9 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 </div>
 
+@endif
+
+@if($efShow('q3'))
 <h5 class="mt-4">5. Visa Refusal History</h5>
 
 <div id="refusal_history">
@@ -245,6 +305,9 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 </div>
 
+@endif
+
+@if($efShow('q4'))
 <h5 class="mt-4">6. Highest Qualification</h5>
 
 <div class="row">
@@ -275,6 +338,9 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 </div>
 
+@endif
+
+@if($efShow('q5'))
 <h5 class="mt-4">7. English Language Proficiency</h5>
 
 <div class="row">
@@ -299,6 +365,9 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 </div>
 
+@endif
+
+@if($efShow('q6'))
 <h5 class="mt-4">8. Work Experience</h5>
 
 <div id="work_experience">
@@ -332,6 +401,9 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 </div>
 
+@endif
+
+@if($efShow('q7'))
 <div id="spouse_section" style="display:none">
 
 <h5 class="mt-4" id="spouse_section_title">9. Spouse Personal Details</h5>
@@ -377,6 +449,9 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 </div>
 
+@endif
+
+@if($efShow('q8'))
 <h5 class="mt-4" id="children_section_title">10. How many children you have?</h5>
 
 <select id="children_count" name="children_count" class="form-control form-control-sm d-inline-block w-auto mb-3">
@@ -419,6 +494,9 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 </div>
 
+@endif
+
+@if($efShow('q9'))
 <!-- STUDENT VISA FUNDING -->
 
 <div id="student_funding_section" style="display:none">
@@ -447,28 +525,41 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 </div>
 
-<!-- DATE PLACE SIGN -->
+@endif
+
+@if($efShow('signature_box') || $efShow('q10'))
+<!-- DATE PLACE PRINT NAME -->
 
 <div class="row mt-4">
 
-<div class="col-md-3">
+<div class="col-md-4">
 <label>Date</label>
 <div class="input-group">
 <input type="text" name="form_date" class="form-control datepicker" placeholder="Form Date" value="{{ old('form_date', $enquiry->form_date ?? now()->format('d-m-Y')) }}">
 </div>
 </div>
-<div class="col-md-3">
+<div class="col-md-4">
 <label>Place</label>
 <input type="text" name="place" class="form-control" placeholder="Place" value="{{ old('place', $enquiry->place ?? ($defaultPlace ?? '')) }}">
 </div>
 
-<div class="col-md-3">
+<div class="col-md-4">
 <label>Print Name</label>
 <input type="text" name="print_name" id="print_name" class="form-control" placeholder="Print Name" value="{{ old('print_name', $enquiry->print_name ?? $enquiry->sign_name ?? '') }}">
 </div>
-<div class="col-md-6">
-<label>Signature</label>
 
+</div>
+
+@endif
+
+@if($efShow('signature_box'))
+<!-- SIGNATURE -->
+
+<h5 class="mt-4 fw-bold">Signature</h5>
+
+<div class="row mt-2">
+
+<div class="col-md-6">
 <div style="border:1px solid #ccc;border-radius:6px;padding:10px">
 
 <canvas id="signature-pad" style="width:100%;height:150px;border:1px solid #ddd;"></canvas>
@@ -483,9 +574,11 @@ $homeCountryOptions = $allCountries ?? $countries;
 
 </div>
 
-
 </div>
 
+@endif
+
+@if($efShow('q10'))
 @if(!$isEdit)
 <div class="mt-3">
     <div class="form-check">
@@ -529,6 +622,8 @@ I agree to <a href="/privacy_policy" target="_blank">Privacy Policy</a> &amp; <a
 @endif
 
 </div>
+
+@endif
 
 <button class="btn btn-primary mt-4 w-100">{{ $isEdit ? 'Update Enquiry' : 'Submit Enquiry' }}</button>
 
@@ -592,7 +687,7 @@ document.addEventListener("DOMContentLoaded", function () {
             addressField.value = '';
             addressField.setCustomValidity(addressMessage);
             showAddressAlert();
-            alert(addressMessage);
+            AdwiseriAlert.oops(addressMessage);
             addressField.reportValidity();
             addressField.focus();
             return false;
@@ -651,7 +746,7 @@ function validatePastDate(instance) {
 
         if (selectedDate > today) {
             instance.clear();
-            alert("Future date is not allowed.");
+            AdwiseriAlert.oops('Future dates are not allowed.');
         }
     }
 }
@@ -696,7 +791,7 @@ continue;
 const picker = input._flatpickr || null;
 const parsedDate = picker ? picker.parseDate(input.value, "d-m-Y") : null;
 if (parsedDate && parsedDate > today) {
-alert('Future dates are not allowed. Please select today or an earlier date.');
+AdwiseriAlert.oops('Future dates are not allowed. Please select today or an earlier date.');
 input.focus();
 return false;
 }
@@ -717,15 +812,25 @@ if($(this).val()=='Married'){ $('#spouse_section').show(); }
 else{ $('#spouse_section').hide(); }
 updateSectionNumbers();
 });
-if($('#marital_status').val()=='Married'){ $('#spouse_section').show(); }
+if($('#marital_status').length && $('#marital_status').val()=='Married'){ $('#spouse_section').show(); }
 function updateSectionNumbers(){
+if (!$('#spouse_section_title').length && !$('#children_section_title').length) {
+    return;
+}
 const isMarried = $('#marital_status').val()=='Married';
-$('#spouse_section_title').text('9. Spouse Personal Details');
-$('#children_section_title').text((isMarried ? '10' : '9') + '. How many children you have?');
+if ($('#spouse_section_title').length) {
+    $('#spouse_section_title').text('9. Spouse Personal Details');
+}
+if ($('#children_section_title').length) {
+    $('#children_section_title').text((isMarried ? '10' : '9') + '. How many children you have?');
+}
 }
 updateSectionNumbers();
 
 function renderChildrenRows() {
+if (!$('#children_count').length) {
+    return;
+}
 const count = parseInt($('#children_count').val() || '0', 10);
 const rows = $('#children_rows .child-row');
 rows.each(function(index){
@@ -734,8 +839,10 @@ rows.each(function(index){
 if (count > 0) { $('#children_section').show(); } else { $('#children_section').hide(); }
 }
 
-$('#children_count').change(renderChildrenRows);
-renderChildrenRows();
+if ($('#children_count').length) {
+    $('#children_count').change(renderChildrenRows);
+    renderChildrenRows();
+}
 
 $('#visa_category').change(function(){
 
@@ -747,8 +854,9 @@ $('#student_funding_section').hide();
 }
 
 });
-if($('#visa_category').val()=='Study'){ $('#student_funding_section').show(); }
+if($('#visa_category').length && $('#visa_category').val()=='Study'){ $('#student_funding_section').show(); }
 
+if ($('#print_name').length) {
 let printNameTouched = $('#print_name').val().trim().length > 0;
 $('#print_name').on('input', function(){ printNameTouched = $(this).val().trim().length > 0; });
 if(!$('#print_name').val()){
@@ -759,6 +867,7 @@ $('#full_name').on('input', function(){
         $('#print_name').val($(this).val());
     }
 });
+}
 
 function addRow(container,html){
 const newRow = $(html);

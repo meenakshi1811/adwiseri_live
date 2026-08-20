@@ -12,16 +12,15 @@ use Session;
 use Cookie;
 use Validator;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use DateTime;
 use DateTimeZone;
 use App\Models\ReportSetting;
 
-use App\Mail\Invoicemail;
 use App\Mail\PlanSubscriptionMail;
-use App\Mail\SupportTicketClosureMail;
 use App\Models\User;
 use App\Models\Clients;
 use App\Models\Currency;
@@ -32,6 +31,9 @@ use App\Models\Contactus;
 use App\Models\Membership;
 use App\Models\Features;
 use App\Models\About_Advisori;
+use App\Models\LandingPromoItem;
+use App\Models\LandingPromoSetting;
+use App\Models\HomepageSectionSetting;
 use App\Models\Messages;
 use App\Models\Activities;
 use App\Models\AffiliateCommision;
@@ -47,6 +49,11 @@ use App\Models\Client_discussions;
 use App\Models\Tickets;
 use App\Models\Faq;
 use App\Models\Invoice_settings;
+use App\Services\InvoiceAuditService;
+use App\Services\InvoiceItemService;
+use App\Services\InvoiceMailService;
+use App\Services\InvoiceSnapshotService;
+use App\Services\OfferBenefitService;
 use App\Models\DemoRequests;
 use App\Models\UserRoles;
 use App\Models\Referrals;
@@ -56,13 +63,19 @@ use App\Models\Internal_communications;
 use App\Models\Affiliates;
 use App\Models\Feedbacks;
 use App\Models\PaymentARs;
+use App\Models\EmailSubscriptions;
 use Carbon\CarbonInterface;
 
 use DataTables;
 use App\Services\EmailTemplateService;
+use App\Services\EmailBroadcastService;
+use App\Support\BrandedMail;
+
+use App\Http\Controllers\Concerns\ScopesConsultancyReports;
 
 class AdminController extends Controller
 {
+    use ScopesConsultancyReports;
     private function parseReportDate(?string $value, bool $isEndDate = false): Carbon
     {
         $value = trim((string) $value);
@@ -136,7 +149,7 @@ class AdminController extends Controller
         return $token;
     }
 
-    private function buildAdminApInvoice(User $subscriber, User $company, float $amount, string $detail = 'Subscription Fees'): Internal_Invoices
+    private function createAdminApInvoiceAndPayment(User $subscriber, User $company, float $amount, string $paymentMode, string $detail = 'Subscription Fees'): Internal_Invoices
     {
         $amount = round(max(0, $amount), 2);
 
@@ -152,7 +165,8 @@ class AdminController extends Controller
         $internalInvoice->pincode = $company->pincode;
         $internalInvoice->address = $company->address_line;
         $internalInvoice->logo = $company->organization_logo;
-        $internalInvoice->to_name = $subscriber->name;
+        $internalInvoice->vendor_id = Internal_Invoices::ADWISERI_VENDOR_ID;
+        $internalInvoice->to_name = Internal_Invoices::ADWISERI_VENDOR_NAME;
         $internalInvoice->to_email = $subscriber->email;
         $internalInvoice->to_phone = $subscriber->phone;
         $internalInvoice->to_country = $subscriber->country;
@@ -168,27 +182,13 @@ class AdminController extends Controller
         $internalInvoice->status = 'Paid';
         $internalInvoice->type = 'ap';
         $internalInvoice->due_date = date('Y-m-d');
-        $internalInvoice->created_at = now();
         $internalInvoice->token = $this->generateInternalInvoiceToken();
-
-        return $internalInvoice;
-    }
-
-    private function createAdminApInvoiceAndPayment(User $subscriber, User $company, float $amount, string $paymentMode, string $detail = 'Subscription Fees'): Internal_Invoices
-    {
-        $amount = round(max(0, $amount), 2);
-        $internalInvoice = $this->buildAdminApInvoice($subscriber, $company, $amount, $detail);
-
-        if ($amount <= 0) {
-            return $internalInvoice;
-        }
-
         $internalInvoice->save();
 
         PaymentARs::create([
             'subscriber_id' => $subscriber->id,
             'invoice_no' => $internalInvoice->invoice_no,
-            'service_provider' => $company->organization ?: 'adwiseri.com',
+            'service_provider' => Internal_Invoices::ADWISERI_VENDOR_NAME,
             'service_taken' => $detail,
             'amount' => $amount,
             'paid_amount' => $amount,
@@ -215,15 +215,10 @@ class AdminController extends Controller
             'currency' => 'USD',
             'name' => $subscriber->name,
             'to_email' => $subscriber->email,
-            'to_address' => $subscriber->address_line,
-            'to_city' => $subscriber->city,
-            'to_state' => $subscriber->state,
-            'to_country' => $subscriber->country,
-            'to_pincode' => $subscriber->pincode,
             'company_name' => $company->organization ?: 'adwiseri',
             'from_email' => $company->email,
             'display_from_email' => $company->email,
-            'logo_path' => !empty($company->organization_logo) ? 'web_assets/users/user' . $company->id . '/' . $company->organization_logo : null,
+            'logo_path' => !empty($company->organization_logo) ? 'web_assets/users/logos/' . $company->organization_logo : null,
         ];
     }
 
@@ -234,9 +229,14 @@ class AdminController extends Controller
 
     public function admin_dashboard()
     {
+        $authUser = Auth::user();
+        if ($authUser && (int) ($authUser->is_support ?? 0) === 1) {
+            return redirect()->route(app(\App\Services\RoleModuleAccessService::class)->adminStaffHomeRoute());
+        }
+
         ini_set('max_execution_time', 180); //3 minutes
 
-        $user = Auth::user();
+        $user = $authUser;
         if ($user) {
             $clients = Clients::get();
             $users = User::where('user_type', '=', 'User')->get();
@@ -244,16 +244,21 @@ class AdminController extends Controller
             $price_plans = Membership::get();
             $invoices = Invoices::get();
             $countries = Countries::get();
-            $activities = Activities::orderBy('created_at', 'desc')->limit(15)->get();
+            $activities = Activities::with('user')->orderBy('created_at', 'desc')->limit(15)->get();
             $allactivities = Activities::get();
             $applications = Applications::get();
-            $discussions = Client_discussions::get();
             $tickets = Tickets::get();
             $ticketsStatus = Tickets::get()->groupBy('status')->map(function ($group) {
                 return $group->count();
             });
             // $refferals = Referrals::get();
-            $refferals = Referrals::whereNotIn('type', ['one_off', 'double_term', 'cashback'])->where('type','Referral Commission')->orderBy('created_at', 'desc')->get();
+            $refferals = Referrals::whereNotIn('type', ['one_off', 'double_term', 'cashback'])->where('type','Referral Commission')->with('getRefferedByUser')->orderBy('created_at', 'desc')->get();
+            $referralACount = $refferals->filter(function ($referral) {
+                return optional($referral->getRefferedByUser)->user_type === 'Affiliate';
+            })->count();
+            $referralSCount = $refferals->filter(function ($referral) {
+                return optional($referral->getRefferedByUser)->user_type === 'Subscriber';
+            })->count();
             $messagings = Messages::get();
             $paymentARs =PaymentARs::get();
 
@@ -301,17 +306,6 @@ class AdminController extends Controller
                 }
                 $total_clients[$categ] = $categ_app;
             }
-            $total_applications = array();
-            foreach ($applications as $appl) {
-                $categ = $appl->application_name;
-                $categ_app = 0;
-                foreach ($applications as $app) {
-                    if ($categ == $app->application_name) {
-                        $categ_app += 1;
-                    }
-                }
-                $total_applications[$categ] = $categ_app;
-            }
 
             $grouped_data_payment_mode = $paymentARs->groupBy('payment_mode');
 
@@ -336,17 +330,6 @@ class AdminController extends Controller
                 }
                 $total_tickets[$categ] = $categ_app;
             }
-            $total_discussions = array();
-            foreach ($discussions as $disc) {
-                $categ = $disc->communication_type;
-                $categ_app = 0;
-                foreach ($discussions as $discus) {
-                    if ($categ == $discus->communication_type) {
-                        $categ_app += 1;
-                    }
-                }
-                $total_discussions[$categ] = $categ_app;
-            }
             $total_activities = array();
             foreach ($allactivities as $act) {
                 $categ = $act->activity_name;
@@ -359,7 +342,7 @@ class AdminController extends Controller
                 $total_activities[$categ] = $categ_app;
             }
             $page = "dashboard";
-            return view('admin.dashboard', compact('ticketsStatus', 'messagings', 'refferals', 'user', 'tickets', 'page', 'total_users', 'total_payments', 'total_discussions', 'total_countries', 'total_subscribers', 'clients', 'users', 'subscribers', 'invoices', 'countries', 'activities', 'applications', 'total_clients', 'total_applications', 'total_tickets', 'total_activities'));
+            return view('admin.dashboard', compact('ticketsStatus', 'messagings', 'refferals', 'referralACount', 'referralSCount', 'user', 'tickets', 'page', 'total_users', 'total_payments', 'total_countries', 'total_subscribers', 'clients', 'users', 'subscribers', 'invoices', 'countries', 'activities', 'applications', 'total_clients', 'total_tickets', 'total_activities'));
         } else {
             return redirect()->route('login');
         }
@@ -398,7 +381,7 @@ class AdminController extends Controller
                     $demo->status = "true";
                 }
                 $demo->save();
-                return back()->with('status_updated', 'status is changed');
+                return back()->with('status_updated', 'Status updated successfully.');
             } else {
                 return redirect()->route('login');
             }
@@ -421,7 +404,7 @@ class AdminController extends Controller
             $user->city = $request['city'];
             $user->pincode = $request['pincode'];
             $user->save();
-            return back()->with('success', 'Profile updated');
+            return back()->with('success', 'Profile updated successfully.');
             $activity = new Activities();
             $activity->user_id = $user->id;
             $activity->user_name = $user->name;
@@ -430,7 +413,7 @@ class AdminController extends Controller
             $activity->activity_icon = "user.png";
             $activity->local_time = $request->local_time;
             $activity->save();
-            return back()->with('success', 'Profile Updated Successfully!');
+            return back()->with('success', 'Profile updated successfully.');
         } elseif (isset($request->profile_image)) {
             if ($request->hasFile('profile_img')) {
                 $file = $request->file('profile_img');
@@ -448,7 +431,7 @@ class AdminController extends Controller
             $activity->activity_icon = "user.png";
             $activity->local_time = $request->local_time;
             $activity->save();
-            return back()->with('success', 'Profile Updated Successfully!');
+            return back()->with('success', 'Profile updated successfully.');
         } elseif (isset($request->logo_image)) {
             if ($request->hasFile('organization_logo')) {
                 $file = $request->file('organization_logo');
@@ -466,13 +449,16 @@ class AdminController extends Controller
             $activity->activity_icon = "user.png";
             $activity->local_time = $request->local_time;
             $activity->save();
-            return back()->with('logo_updated', 'Logo Updated Successfully!');
+            return back()->with('logo_updated', 'Logo updated successfully.');
         }
     }
 
     public function subscribers()
     {
         $subscribers = User::where('user_type', '=', 'Subscriber')->orderBy('created_at', 'desc')->get();
+        $subscriberOptions = User::where('user_type', '=', 'Subscriber')->orderBy('name')->get(['id', 'name', 'email']);
+        $subscriberFilterService = app(\App\Services\SubscriberTableFilterService::class);
+        $subscriberFilters = $subscriberFilterService->buildFilterSummary($subscribers);
         $user = Auth::user();
         $page = "subscriber";
         if (request()->ajax()) {
@@ -511,7 +497,71 @@ class AdminController extends Controller
         }
 
 
-        return view('admin.subscribers', compact('subscribers', 'user', 'page'));
+        return view('admin.subscribers', compact('subscribers', 'subscriberOptions', 'subscriberFilters', 'subscriberFilterService', 'user', 'page'));
+    }
+
+    public function email_subscribers()
+    {
+        $emailSubscribers = EmailSubscriptions::query()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
+        $user = Auth::user();
+        $page = 'email_subscribers';
+
+        return view('admin.email_subscribers', compact('emailSubscribers', 'user', 'page'));
+    }
+
+    public function store_email_subscriber(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('admin');
+        }
+
+        $validated = $request->validate([
+            'email' => 'required|email|max:255',
+        ]);
+
+        try {
+            app(\App\Services\EmailSubscriptionService::class)->subscribe($validated['email']);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()
+                ->withInput()
+                ->with('error', 'Could not add email subscriber. ' . $exception->getMessage());
+        }
+
+        return back()->with('subscriber_added', 'Email subscriber added successfully.');
+    }
+
+    public function email_subscription_status($id = null)
+    {
+        if (empty($id)) {
+            return back();
+        }
+
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $subscription = EmailSubscriptions::find($id);
+        if (!$subscription) {
+            return back()->with('error', 'Email subscriber not found.');
+        }
+
+        if ($subscription->isSubscribed()) {
+            $subscription->status = EmailSubscriptions::STATUS_UNSUBSCRIBED;
+            $subscription->unsubscribed_at = Carbon::now();
+        } else {
+            $subscription->status = EmailSubscriptions::STATUS_SUBSCRIBED;
+            $subscription->unsubscribed_at = null;
+        }
+        $subscription->save();
+
+        return back()->with('status_updated', 'Email subscriber status updated successfully.');
     }
 
     public function new_subscriber()
@@ -569,6 +619,10 @@ class AdminController extends Controller
         $validityDuration = $membership ? $membership->validity : null;
         $user = Auth::user();
         if (isset($request->id)) {
+            $this->validate($request, [
+                'name' => 'required|string|min:3|max:100',
+            ]);
+
             $country = Countries::find($request->country);
             $data = User::find($request->id);
             $data->name = $request['name'];
@@ -607,14 +661,14 @@ class AdminController extends Controller
             } catch (\Throwable $e) {
                 \Log::warning('Subscriber update email failed', ['subscriber_id' => $data->id, 'email' => $data->email, 'error' => $e->getMessage()]);
             }
-            return redirect()->route('subscribers')->with('user_updated', "user updated successfully");
+            return redirect()->route('subscribers')->with('user_updated', "User updated successfully.");
         } else {
             $data = new User();
             $this->validate(
                 $request,
                 [
-                    'name' => 'required|string|max:255',
-                    'phone' => 'required|unique:users',
+                    'name' => 'required|string|min:3|max:100',
+                    'phone' => 'required|phone_intl|unique:users',
                     'email' => 'required|string|email|max:255|unique:users',
                     'category' => 'required|string|max:255',
                     'subcategory' => 'required|string|max:255',
@@ -663,11 +717,10 @@ class AdminController extends Controller
             // print_r($requet->$data);
             // die();
             $data->save();
+            app(OfferBenefitService::class)->applyEligibleNewSubscriberOffers($data, $user);
             $company = User::where('user_type', '=', 'admin')->first() ?: $user;
-            // New subscribers start on a free/no-payment registration flow.
-            // Keep the PDF invoice data at 0 and do not persist AP invoice/payment records.
-            $subscriptionAmount = 0.0;
-            $internalInvoice = $this->createAdminApInvoiceAndPayment($data, $company, $subscriptionAmount, "Manual", "Subscription Fees ({$membership->plan_name})");
+            $subscriptionAmount = (float) ($membership->price_per_year ?? 0);
+            $internalInvoice = $this->createAdminApInvoiceAndPayment($data, $company, $subscriptionAmount, "Manual", \App\Services\SubscriptionTermPricing::subscriptionFeeDetail($membership->plan_name, 1));
 
             $role = UserRoles::where('user_id', '=', $data->id)->get();
             if ($role) {
@@ -801,14 +854,22 @@ class AdminController extends Controller
             $activity->activity_detail = "New Subscriber " . $request->name . " added by " . $user->name . " at " . date('d M, Y H:i:s');
             $activity->activity_icon = "user.png";
             $activity->save();
+            app(\App\Services\UserJourneyLogService::class)->logSubscriptionPurchase(
+                $user,
+                'signup',
+                $request['membership'],
+                app(\App\Services\UserJourneyLogService::class)->dosYearsFromValidityDays((int) ($membership->validity ?? 365)),
+                $data->id
+            );
             Mail::to($request['email'])->send(new PlanSubscriptionMail(
                 $request['name'],
                 $request['membership'],
                 $validityDuration,
                 'Your Subscription Plan Has Been  Added!',
-                $this->buildInvoicePdfData($internalInvoice, $data, $company)
+                $this->buildInvoicePdfData($internalInvoice, $data, $company),
+                $internalInvoice->total ?? $internalInvoice->amount ?? null
             ));
-            return redirect()->route('subscribers')->with('user_added', "user added successfully");
+            return redirect()->route('subscribers')->with('user_added', "User added successfully.");
         }
     }
 
@@ -855,7 +916,19 @@ class AdminController extends Controller
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $localtime;
                 $activity->save();
-                return back()->with('status_updated', 'status is changed');
+
+                $journeyCategory = ($subscriber->status === 'true') ? 'status_change' : 'termination';
+                $journeyType = ($subscriber->user_type == "Subscriber") ? 'Subscriber Status Updated' : 'User Status Updated';
+                app(\App\Services\UserJourneyLogService::class)->logSubscriptionEvent(
+                    $user,
+                    $journeyCategory,
+                    $journeyType,
+                    $subscriber->name . ' status changed to ' . ($subscriber->status === 'true' ? 'Active' : 'Inactive') . ' by ' . $user->name,
+                    $subscriber->user_type === 'Subscriber' ? $subscriber->id : (int) $subscriber->added_by,
+                    ['target_user_id' => $subscriber->id, 'status' => $subscriber->status]
+                );
+
+                return back()->with('status_updated', 'Status updated successfully.');
             } else {
                 return redirect()->route('login');
             }
@@ -876,8 +949,8 @@ class AdminController extends Controller
         $startDate = $this->parseReportDate(request()->input('startDate'));
         $endDate = $this->parseReportDate(request()->input('endDate'), true);
         $query = new User ();
-        if(auth()->user()->user_type == 'Subscriber'){
-            $query = $query->where('added_by',auth()->id()); 
+        if ($subscriberId = $this->consultancySubscriberId(auth()->user())) {
+            $query = $query->where('added_by', $subscriberId);
         }
             $siteusers = $query->where('user_type', '=', 'User')
                         ->whereBetween('created_at', [$startDate, $endDate])
@@ -908,7 +981,7 @@ class AdminController extends Controller
             })
             ->editColumn('created_at', function ($row) {
                 // Format the `end_date`
-                return date('d-m-Y', strtotime($row->created_at));
+                return date('d-m-Y H:i:s', strtotime($row->created_at));
             })
 
             ->make(true);
@@ -970,20 +1043,20 @@ class AdminController extends Controller
             $activity->activity_detail = "User " . $request->name . " data updated by " . $user->name . " at " . date('d M, Y H:i:s');
             $activity->activity_icon = "user.png";
             $activity->save();
-            return redirect()->route('manage_users')->with('user_updated', "user updated successfully");
+            return redirect()->route('manage_users')->with('user_updated', "User updated successfully.");
         } else {
             $data = new User();
             $subscriber = User::find($request->subscriber);
             $siteusers = User::where('added_by', '=', $subscriber->id)->get();
-            $membership_plan = Membership::where('plan_name', '=', $subscriber->membership)->first();
-            if (count($siteusers) >= $membership_plan->no_of_users) {
+            $offerBenefitService = app(OfferBenefitService::class);
+            if (!$offerBenefitService->canAddUser($subscriber)) {
                 return back()->with('user_limit', 'Upgrade membership to add more users.');
             }
             $this->validate(
                 $request,
                 [
                     'name' => 'required|string|max:255',
-                    'phone' => 'required|unique:users',
+                    'phone' => 'required|phone_intl|unique:users',
                     'email' => 'required|string|email|max:255|unique:users',
                     'dob' => ['required'],
                     'designation' => 'required|string|max:255',
@@ -1166,7 +1239,7 @@ class AdminController extends Controller
             $activity->activity_detail = "New User " . $request->name . " added by " . $user->name . " at " . date('d M, Y H:i:s');
             $activity->activity_icon = "user.png";
             $activity->save();
-            return redirect()->route('manage_users')->with('user_added', "user added successfully");
+            return redirect()->route('manage_users')->with('user_added', "User added successfully.");
         }
     }
 
@@ -1201,8 +1274,8 @@ class AdminController extends Controller
         $user = auth()->user();
         $query = new Clients();
 
-        if ($user->user_type == 'Subscriber') {
-            $query = $query->where('subscriber_id', $user->id);
+        if ($subscriberId = $this->consultancySubscriberId($user)) {
+            $query = $query->where('subscriber_id', $subscriberId);
         }
 
         $clients = $query->whereBetween('created_at', [$startDate, $endDate])
@@ -1222,7 +1295,7 @@ class AdminController extends Controller
                     return $row->dependants ? $row->dependants()->count() : 0;
                 })
                 ->editColumn('created_at', function ($row) {
-                    return \Carbon\Carbon::parse($row->created_at)->format('d-m-Y');
+                    return \Carbon\Carbon::parse($row->created_at)->format('d-m-Y H:i:s');
                 })
                 ->rawColumns(['name', 'subscriber', 'noa', 'created_at'])
                 ->make(true);
@@ -1289,15 +1362,15 @@ class AdminController extends Controller
         $startDate = $this->parseReportDate(request()->input('startDate'));
         $endDate = $this->parseReportDate(request()->input('endDate'), true);
         $query = new Client_Docs();
-        if(auth()->user()->user_type == 'Subscriber'){
-            $query =  $query->where('user_id',auth()->user()->id);
+        if ($subscriberId = $this->consultancySubscriberId(auth()->user())) {
+            $query = $query->where('user_id', $subscriberId);
         }
         $clientDocs = $query->whereNotNull('application_id')->orderBy('created_at', 'desc')->whereBetween('created_at', [$startDate, $endDate])->get();
         return DataTables::of($clientDocs)
             ->addIndexColumn()
             ->editColumn('created_at', function ($row) {
                 // Format the `created_at` column
-                return \Carbon\Carbon::parse($row->created_at)->format('d-m-Y'); // Example: 18 Dec 2024, 02:15 PM
+                return \Carbon\Carbon::parse($row->created_at)->format('d-m-Y H:i:s'); // Example: 18 Dec 2024, 02:15 PM
             })
             ->editColumn('client_id', function ($row) {
                 // Format the `start_date` for better readability
@@ -1309,10 +1382,12 @@ class AdminController extends Controller
             })
             ->editColumn('doc_file', function ($doc) {
                 if (!empty($doc->doc_file)) {
-                    $filePath = asset('web_assets/users/client' . $doc->client_id . '/docs/' . $doc->doc_file); // Generate URL
-                    return '<a href="' . $filePath . '" download="' . htmlspecialchars($doc->doc_file) . '" class="p-0 m-0" style="text-decoration: none; border: none; background: none;">
+                    $filePath = asset('web_assets/users/client' . $doc->client_id . '/docs/' . $doc->doc_file);
+                    $shortName = htmlspecialchars(\App\Support\DocumentFileName::forTable($doc->doc_file, $doc->doc_name), ENT_QUOTES, 'UTF-8');
+                    $fullName = htmlspecialchars($doc->doc_file, ENT_QUOTES, 'UTF-8');
+                    return '<a href="' . $filePath . '" download="' . $fullName . '" class="p-0 m-0" style="text-decoration: none; border: none; background: none;" title="' . $fullName . '">
                                 <i class="fa-solid fa-download btn p-1 text-primary" style="font-size: 14px;"></i>
-                            </a>' . $doc->doc_file;
+                            </a><span title="' . $fullName . '">' . $shortName . '</span>';
                 }
                 return 'No file available';
             })
@@ -1391,24 +1466,32 @@ class AdminController extends Controller
             $activity->activity_detail = "Client " . $request->name . " data updated by " . $user->name . " at " . date('d M, Y H:i:s');
             $activity->activity_icon = "user.png";
             $activity->save();
-            return redirect()->route('manage_clients')->with('client_updated', "client updated successfully");
+            return redirect()->route('manage_clients')->with('client_updated', "Client updated successfully.");
         } else {
             $data = new Clients();
             $subscriber = User::find($request->subscriber);
+            $offerBenefitService = app(OfferBenefitService::class);
+            $membership_plan = Membership::where('plan_name', '=', $subscriber->membership)->first();
+            if ($membership_plan && strcasecmp((string) $membership_plan->client_limit, 'Unlimited') !== 0) {
+                if (!$offerBenefitService->canAddClient($subscriber)) {
+                    return back()->with('client_limit', 'Upgrade membership to add more clients.');
+                }
+            }
+
             $this->validate(
                 $request,
                 [
-                    'name' => 'required|string|max:255',
-                    'phone' => 'required|unique:users',
-                    'email' => 'required|string|email|max:255|unique:users',
+                    'name' => 'required|string|min:3|max:255',
+                    'phone' => 'required|phone_intl|unique:users',
+                    'email' => 'required|email|max:255|unique:users',
                     'nationality' => 'required',
-                    // 'passport_no' => 'required',
-                    // 'dob' => 'required',
-                    'address' => 'required',
+                    'alternate_no' => 'nullable|phone_intl',
+                    'passport_no' => 'nullable|regex:/^[A-Z0-9]{6,14}$/',
+                    'address' => 'required|string|min:3|max:1000',
                     'country' => 'required|string|max:255',
                     'state' => 'required|string|max:255',
-                    'city' => 'required|string|max:255',
-                    'pincode' => 'required',
+                    'city' => 'required|string|min:3|max:255',
+                    'pincode' => 'required|regex:/^[A-Za-z0-9\s\-]{3,10}$/',
                 ]
             );
             $country = Countries::find($request->country);
@@ -1461,7 +1544,7 @@ class AdminController extends Controller
             // $activity->activity_detail = "New Application of " . $request->job_role . " added by " . $user->name . " at " . date('d M, Y H:i:s');
             // $activity->activity_icon = "user.png";
             // $activity->save();
-            return redirect()->route('manage_clients')->with('client_added', "client added successfully");
+            return redirect()->route('manage_clients')->with('client_added', "Client added successfully.");
         }
     }
 
@@ -1478,8 +1561,8 @@ class AdminController extends Controller
         $endDate = $this->parseReportDate(request()->input('endDate'), true);
         $user = auth()->user();
         $query = new Applications();
-        if($user->user_type == 'Subscriber'){
-             $query = $query->where('subscriber_id',$user->id);
+        if ($subscriberId = $this->consultancySubscriberId($user)) {
+             $query = $query->where('subscriber_id', $subscriberId);
          }
 
         $applications =  $query->select([
@@ -1521,7 +1604,7 @@ class AdminController extends Controller
             })
             ->editColumn('created_at', function ($row) {
                 // Format the `start_date` for better readability
-                return \Carbon\Carbon::parse($row->created_at)->format('d-m-Y'); 
+                return \Carbon\Carbon::parse($row->created_at)->format('d-m-Y H:i:s'); 
             })
 
             ->make(true);
@@ -1539,9 +1622,13 @@ class AdminController extends Controller
     public function application_update($id)
     {
         $application = Applications::find($id);
-        $countries = Countries::get();
         $client = Clients::find($application->client_id);
         $subscriber = User::find($client->subscriber_id);
+        $ccService = app(\App\Services\CountryCategorySettingsService::class);
+        $countries = $ccService->resolveCountriesForDropdown(
+            $subscriber,
+            array_filter([$application->visa_country, optional($application->client)->visa_country])
+        );
         if ($subscriber->category == "Law Firm") {
             $job_roles = Client_jobs::where('category', '=', $subscriber->category)->get();
         } elseif ($subscriber->category == "Travel Agency") {
@@ -1551,16 +1638,23 @@ class AdminController extends Controller
         }
         $user = Auth::user();
         $page = "applications";
-        return view('admin.add_application', compact('application', 'job_roles', 'user', 'page', 'countries'));
+        return view('admin.add_application', compact('application', 'job_roles', 'user', 'page', 'countries', 'subscriber'));
     }
 
     public function register_new_application(Request $request)
     {
-        $request->validate([
+        $ccService = app(\App\Services\CountryCategorySettingsService::class);
+        $request->validate(array_merge([
             'job_status' => 'required|string|max:255',
             'job_open_date' => 'required|date|before_or_equal:today',
-            'job_completion_date' => 'nullable|date|required_if:job_status,Complete|after_or_equal:job_open_date|before_or_equal:today',
-        ], [
+            'job_completion_date' => [
+                'nullable',
+                'date',
+                Rule::requiredIf(fn () => in_array($request->input('job_status'), ['Decision', 'Appeal Decision', 'AR / JR Decision', 'Withdrawn', 'Cancelled'], true)),
+                'after_or_equal:job_open_date',
+                'before_or_equal:today',
+            ],
+        ], $ccService->visaDetailValidationRules($request->input('job_role'))), [
             'job_open_date.before_or_equal' => 'Application Start Date cannot be in the future',
             'job_completion_date.required_if' => 'Application End Date is required',
             'job_completion_date.after_or_equal' => 'Application End Date must be on or after Application Start Date',
@@ -1622,6 +1716,7 @@ class AdminController extends Controller
                 $application->application_status = $request['job_status'];
                 $application->start_date = $normalizeDate($request['job_open_date']);
                 $application->end_date = $normalizeDate($request['job_completion_date']);
+                $ccService->applyVisaDetailFields($application, $request['job_role'], $request->all());
                 $application->save();
                 $activity = new Activities();
                 $activity->subscriber_id = $subscriber->id;
@@ -1631,7 +1726,7 @@ class AdminController extends Controller
                 $activity->activity_detail = "Application of " . $request->job_role . " updated by " . $user->name . " at " . date('d M, Y H:i:s');
                 $activity->activity_icon = "user.png";
                 $activity->save();
-                return redirect()->route('manage_applications')->with('application_updated', "Application Updated successfully");
+                return redirect()->route('manage_applications')->with('application_updated', "Application updated successfully.");
             } else {
                 $client = Clients::find($request->client);
                 if ($client) {
@@ -1654,6 +1749,7 @@ class AdminController extends Controller
                     $application->application_status = $request['job_status'];
                     $application->start_date = $normalizeDate($request['job_open_date']);
                     $application->end_date = $normalizeDate($request['job_completion_date']);
+                    $ccService->applyVisaDetailFields($application, $request['job_role'], $request->all());
                     $application->save();
                     $activity = new Activities();
                     $activity->subscriber_id = $subscriber->id;
@@ -1663,7 +1759,7 @@ class AdminController extends Controller
                     $activity->activity_detail = "New Application of " . $request->job_role . " added by " . $user->name . " at " . date('d M, Y H:i:s');
                     $activity->activity_icon = "user.png";
                     $activity->save();
-                    return redirect()->route('manage_applications')->with('application_added', "Application Added successfully");
+                    return redirect()->route('manage_applications')->with('application_added', "Application added successfully.");
                 } else {
                     return back();
                 }
@@ -1676,9 +1772,66 @@ class AdminController extends Controller
     public function application_view($id)
     {
         $application = Applications::find($id);
+        if (!$application) {
+            return redirect()->route('manage_applications');
+        }
+
+        $documents = Client_Docs::where('application_id', $application->application_id)
+            ->whereNotNull('doc_file')
+            ->where('doc_file', '!=', '')
+            ->orderBy('doc_type')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $ccService = app(\App\Services\CountryCategorySettingsService::class);
+        $documentsByFolder = $ccService->groupDocumentsByFolder($documents);
+        $documentsByType = $documentsByFolder;
+        $documentFolders = $ccService->getDocumentFolders();
+
         $user = Auth::user();
         $page = "applications";
-        return view('admin.application_view', compact('application', 'user', 'page'));
+        $documentListService = app(\App\Services\ApplicationDocumentListService::class);
+        $canGenerateDocumentList = $documentListService->hasConfiguredList($user, $application);
+
+        return view('admin.application_view', compact('application', 'user', 'page', 'documents', 'documentsByType', 'documentsByFolder', 'documentFolders', 'canGenerateDocumentList'));
+    }
+
+    public function generate_application_document_list($id)
+    {
+        $application = Applications::find($id);
+        if (!$application) {
+            return redirect()->route('manage_applications');
+        }
+
+        $user = Auth::user();
+        $documentListService = app(\App\Services\ApplicationDocumentListService::class);
+
+        try {
+            return $documentListService->streamPdf($user, $application);
+        } catch (\RuntimeException $e) {
+            return redirect()
+                ->route('application_view', $application->id)
+                ->with('document_list_error', $e->getMessage());
+        }
+    }
+
+    public function download_application_document_list($id)
+    {
+        $application = Applications::find($id);
+        if (!$application) {
+            return redirect()->route('manage_applications');
+        }
+
+        $user = Auth::user();
+        $documentListService = app(\App\Services\ApplicationDocumentListService::class);
+
+        try {
+            return $documentListService->downloadPdf($user, $application);
+        } catch (\RuntimeException $e) {
+            return redirect()
+                ->route('application_view', $application->id)
+                ->with('document_list_error', $e->getMessage());
+        }
     }
 
     public function documents()
@@ -1714,6 +1867,7 @@ class AdminController extends Controller
     {
         $user = Auth::user();
         if ($user) {
+            $ccService = app(\App\Services\CountryCategorySettingsService::class);
             $document = Client_Docs::find($request->id);
             if ($document) {
                 $client = Clients::find($request->client_id);
@@ -1724,10 +1878,16 @@ class AdminController extends Controller
                 $document->user_id = $subscriber->id;
                 $document->doc_type = $request['doc_type'];
                 $document->doc_name = $request['doc_name'];
+                $docFolders = \App\Support\ApplicationDocumentFolders::resolveForUpload(
+                    $ccService,
+                    $request->doc_folder ?? ($request->doc_folders[0] ?? null),
+                    $request->doc_type
+                );
+                $document->doc_folder = $docFolders[0] ?? 'Other';
+                $document->doc_folders = $docFolders;
                 if ($request->hasFile('doc_file')) {
                     $file = $request->file('doc_file');
-                    $extension = $file->getClientOriginalName();
-                    $filename = time() . $extension;
+                    $filename = \App\Support\DocumentFileName::storageName($request->doc_name, $file->getClientOriginalName());
                     $file->move('web_assets/users/client' . $document->client_id . '/docs/', $filename);
                     $document->doc_file = $filename;
                 }
@@ -1740,7 +1900,10 @@ class AdminController extends Controller
                 $activity->activity_detail = "Document updated by " . $user->name . " at " . date('d M, Y H:i:s');
                 $activity->activity_icon = "user.png";
                 $activity->save();
-                return redirect()->route('documents')->with('document_updated', "Document Updated successfully");
+                if ($request->filled('return_application_id')) {
+                    return redirect()->route('application_view', $request->return_application_id)->with('document_updated', "Document updated successfully.");
+                }
+                return redirect()->route('documents')->with('document_updated', "Document updated successfully.");
             } else {
                 $client = Clients::find($request->client_id);
                 if ($client) {
@@ -1756,10 +1919,16 @@ class AdminController extends Controller
                     $document->user_id = $subscriber->id;
                     $document->doc_name = $request['doc_name'];
                     $document->doc_type = $request['doc_type'];
+                    $docFolders = \App\Support\ApplicationDocumentFolders::resolveForUpload(
+                    $ccService,
+                    $request->doc_folder ?? ($request->doc_folders[0] ?? null),
+                    $request->doc_type
+                );
+                $document->doc_folder = $docFolders[0] ?? 'Other';
+                $document->doc_folders = $docFolders;
                     if ($request->hasFile('doc_file')) {
                         $file = $request->file('doc_file');
-                        $extension = $file->getClientOriginalName();
-                        $filename = time() . $extension;
+                        $filename = \App\Support\DocumentFileName::storageName($request->doc_name, $file->getClientOriginalName());
                         $file->move('web_assets/users/client' . $document->client_id . '/docs/', $filename);
                         $document->doc_file = $filename;
                     }
@@ -1772,7 +1941,10 @@ class AdminController extends Controller
                     $activity->activity_detail = "New Document added by " . $user->name . " at " . date('d M, Y H:i:s');
                     $activity->activity_icon = "user.png";
                     $activity->save();
-                    return redirect()->route('documents')->with('document_added', "Document added successfully");
+                    if ($request->filled('return_application_id')) {
+                        return redirect()->route('application_view', $request->return_application_id)->with('document_added', 'Document added successfully.');
+                    }
+                    return redirect()->route('documents')->with('document_added', 'Document added successfully.');
                 } else {
                     return back();
                 }
@@ -1838,7 +2010,9 @@ class AdminController extends Controller
     
     public function getClientsBySubscriber($id)
     {
-        $clients = Clients::where('subscriber_id', $id)->get();
+        $clients = Clients::where('subscriber_id', $id)
+            ->whereHas('applications')
+            ->get();
         return response()->json($clients);
     }
 
@@ -1863,7 +2037,10 @@ class AdminController extends Controller
         $assignment = Application_assignments::find($id);
         $client = Clients::find($assignment->client_id);
         $applications = Applications::where('client_id', '=', $client->id)->get();
-        $advisors = User::where('id', '=', $client->subscriber_id)->orwhere('added_by', '=', $client->subscriber_id)->get();
+        $advisors = User::where('designation', 'Consultant/Advisor')
+            ->where('added_by', '=', $client->subscriber_id)
+            ->orderBy('name')
+            ->get();
         $user = Auth::user();
         $page = "applications";
         return view('admin.add_assignment', compact('assignment', 'user', 'advisors', 'page', 'client', 'applications'));
@@ -1876,15 +2053,21 @@ class AdminController extends Controller
             $assignment = Application_assignments::find($request->id);
             if ($assignment) {
                 $u = User::find($request->user_id);
-                $assignment->client_id = $request['client_id'];
-                $assignment->application_id = $request['application_id'];
+                if (!$u) {
+                    return redirect()->back()->withInput()->withErrors(['user_id' => 'Please select a valid User/Advisor.']);
+                }
+                // Client & application stay locked; only reassign advisor/counsellor
                 $assignment->user_id = $request['user_id'];
-                $assignment->subscriber_id = $u->added_by;
+                $assignment->subscriber_id = $u->added_by ?: $assignment->subscriber_id;
                 $assignment->user_name = $u->name;
                 $assignment->save();
-                $app = Applications::where('application_id', '=', $request->application_id)->first();
-                $app->assign_to = $u->id;
-                $app->save();
+                $app = Applications::where('application_id', '=', $assignment->application_id)->first();
+                if ($app) {
+                    $app->assign_to = $u->id;
+                    $app->save();
+                }
+                app(\App\Services\OperationalNotificationService::class)
+                    ->notifyApplicationAssigned($u, $app, Clients::find($assignment->client_id));
                 $activity = new Activities();
                 $activity->user_id = $user->id;
                 $activity->user_name = $user->name;
@@ -1892,7 +2075,7 @@ class AdminController extends Controller
                 $activity->activity_detail = "Application Assign updated by " . $user->name . " at " . date('d M, Y H:i:s');
                 $activity->activity_icon = "user.png";
                 $activity->save();
-                return redirect()->route('application_management')->with('assignment_updated', "Assignment Updated successfully");
+                return redirect()->route('application_management')->with('assignment_updated', "Application assignment updated.");
             } else {
                 $client = Clients::find($request->client_id);
                 if ($client) {
@@ -1907,6 +2090,8 @@ class AdminController extends Controller
                     $app = Applications::where('application_id', '=', $request->application_id)->first();
                     $app->assign_to = $u->id;
                     $app->save();
+                    app(\App\Services\OperationalNotificationService::class)
+                        ->notifyApplicationAssigned($u, $app, $client);
                     $activity = new Activities();
                     $activity->client_id = $client->id;
                     $activity->user_id = $user->id;
@@ -1915,7 +2100,7 @@ class AdminController extends Controller
                     $activity->activity_detail = "New Assignment added by " . $user->name . " at " . date('d M, Y H:i:s');
                     $activity->activity_icon = "user.png";
                     $activity->save();
-                    return redirect()->route('application_management')->with('assignment_added', "Assignment added successfully");
+                    return redirect()->route('application_management')->with('assignment_added', "Application assigned successfully.");
                 } else {
                     return back();
                 }
@@ -1984,8 +2169,8 @@ class AdminController extends Controller
         $endDate = $this->parseReportDate(request()->input('endDate'), true);
         $user = auth()->user();
         $query = new PaymentArs ();
-        if($user->user_type == 'Subscriber'){
-            $query  =  $query->where('subscriber_id',$user->id);
+        if ($subscriberId = $this->consultancySubscriberId($user)) {
+            $query  =  $query->where('subscriber_id', $subscriberId);
         }
             
         
@@ -2000,6 +2185,18 @@ class AdminController extends Controller
             ->editColumn('client', function ($row) {
                 // Format the `created_at` column
                 return $row->client ? $row->client->name.'('.$row->client_id.')' : '';
+            })->editColumn('service_provider', function ($row) {
+                if ($row->type !== 'ap' || empty($row->service_provider)) {
+                    return $row->service_provider;
+                }
+
+                $vendorId = Internal_Invoices::resolveVendorIdForPayment(
+                    $row->invoice_no,
+                    $row->subscriber_id,
+                    $row->service_provider
+                );
+
+                return Internal_Invoices::formatVendorDisplay($row->service_provider, $vendorId);
             })->editColumn('amount_to_pay', function ($row) {
                 // Format the `created_at` column
                 return ($row->amount - $row->paid_amount);
@@ -2014,7 +2211,7 @@ class AdminController extends Controller
             })
             ->editColumn('created_at', function ($row) {
                 // Format the `created_at` column
-                return \Carbon\Carbon::parse($row->created_at)->format('d-m-Y'); // Example: 18 Dec 2024, 02:15 PM
+                return \Carbon\Carbon::parse($row->created_at)->format('d-m-Y H:i:s'); // Example: 18 Dec 2024, 02:15 PM
             })
             ->make(true);
     }
@@ -2036,8 +2233,8 @@ class AdminController extends Controller
         $endDate = $this->parseReportDate(request()->input('endDate'), true);
         $user = Auth::user();
         $query = Internal_Invoices::where('type', 'ar');
-        if($user->user_type == 'Subscriber'){
-            $query =  $query->where('subscriber_id',$user->id);
+        if ($subscriberId = $this->consultancySubscriberId($user)) {
+            $query =  $query->where('subscriber_id', $subscriberId);
         }
 
         $invoices = $query->select([
@@ -2068,7 +2265,7 @@ class AdminController extends Controller
                 return date("d-m-Y", strtotime($row->due_date));
             })
             ->editColumn('created_at', function ($row) {
-                return date("d-m-Y", strtotime($row->created_at));
+                return date("d-m-Y H:i:s", strtotime($row->created_at));
             })
             ->addColumn('action', function ($row) {
                 return '<a style="background:none; border:none;" href="' . route('view_invoice', $row->id) . '" class="m-0 p-0"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>';
@@ -2083,13 +2280,15 @@ class AdminController extends Controller
         $endDate = $this->parseReportDate(request()->input('endDate'), true);
         $user = Auth::user();
         $query = Internal_Invoices::where('type', 'ap');
-        if($user->user_type == 'Subscriber'){
-            $query =  $query->where('subscriber_id',$user->id);
+        if ($subscriberId = $this->consultancySubscriberId($user)) {
+            $query =  $query->where('subscriber_id', $subscriberId);
         }
 
         $invoices = $query->select([
             'id',
             'to_name',
+            'vendor_id',
+            'detail',
             'subscriber_id',
             'to_phone',
             'to_email',
@@ -2109,16 +2308,17 @@ class AdminController extends Controller
         return DataTables::of($invoices)
             ->addIndexColumn()
             ->editColumn('to_name', function ($row) {
-                return $row->to_name . '(' . $row->subscriber_id . ')';
+                return $row->apVendorDisplay();
             })
             ->editColumn('due_date', function ($row) {
                 return date("d-m-Y", strtotime($row->due_date));
             })
             ->editColumn('created_at', function ($row) {
-                return date("d-m-Y", strtotime($row->created_at));
+                return date("d-m-Y H:i:s", strtotime($row->created_at));
             })
             ->addColumn('action', function ($row) {
-                return '<a style="background:none; border:none;" href="' . route('view_invoice', $row->id) . '" class="m-0 p-0"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>';
+                return '<a style="background:none; border:none;" href="' . route('invoice_detail', $row->id) . '" class="m-0 p-0"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>'
+                    . ' <a style="background:none; border:none;" href="' . route('admin_edit_invoice', $row->id) . '" class="m-0 p-0" title="Edit Invoice"><i class="fa-solid fa-pen-to-square btn p-1 text-primary" style="font-size:14px;"></i></a>';
             })
             ->rawColumns(['action'])
             ->make(true);
@@ -2130,11 +2330,17 @@ class AdminController extends Controller
         $subscribers = User::where('user_type', '=', 'Subscriber')->get();
         $countries = Countries::get();
         $page = "invoices";
-        return view('admin.add_invoice', compact('subscribers', 'user', 'page', 'countries'));
+        $invSetting = Invoice_settings::forUser((int) $user->id);
+
+        return view('admin.add_invoice', compact('subscribers', 'user', 'page', 'countries') + [
+            'invoiceNote' => trim((string) ($invSetting->invoice_note ?? '')),
+            'isLocked' => false,
+        ]);
     }
 
     public function admin_new_invoice_post(Request $request)
     {
+        $request->validate(app(InvoiceItemService::class)->validationRules());
         function invoice_id()
         {
             $ch = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -2157,7 +2363,7 @@ class AdminController extends Controller
             return $token;
         }
         $user = Auth::user();
-        $inv_setting = Invoice_settings::where('user_id', $user->id)->first();
+        $inv_setting = Invoice_settings::forUser((int) $user->id);
         if ($user) {
             if ($request->subscriber) {
                 $subs = User::find($request->subscriber);
@@ -2182,11 +2388,19 @@ class AdminController extends Controller
                 $invoice->to_city = $subs->city;
                 $invoice->to_pincode = $subs->pincode;
                 $invoice->to_address = $subs->address_line;
-                $invoice->detail = $request['detail'];
-                $invoice->amount = $request['amount'];
-                $discountPercent = max(0, min(100, (float) ($inv_setting->discount ?? 0)));
-                $taxPercent = max(0, min(100, (float) ($inv_setting->tax ?? 0)));
-                $amount = (float) $request['amount'];
+                $itemService = app(InvoiceItemService::class);
+                $items = $itemService->normalizeRequestItems($request);
+                $itemService->assertHasItems($items);
+                $amount = $itemService->sumAmounts($items);
+                $isSubscriptionPackage = Internal_Invoices::itemsLookLikeSubscriptionPackage($items);
+                // Admin Invoice Settings tax/discount are for non-subscription services only.
+                // Yearly plan purchase / upgrade / renewal amounts stay at the packaged price.
+                $discountPercent = $isSubscriptionPackage
+                    ? 0.0
+                    : max(0, min(100, (float) ($inv_setting->discount ?? 0)));
+                $taxPercent = $isSubscriptionPackage
+                    ? 0.0
+                    : max(0, min(100, (float) ($inv_setting->tax ?? 0)));
                 $subtotal = $amount - ($amount * ($discountPercent / 100));
 
                 $invoice->discount = $discountPercent;
@@ -2197,7 +2411,12 @@ class AdminController extends Controller
                     ? \Carbon\Carbon::createFromFormat('d-m-Y', $request['due_date'])->format('Y-m-d')
                     : $request['due_date'];
                 $invoice->token = invoice_token();
+                $subscriberInvSetting = Invoice_settings::forUser((int) $subs->id) ?? $inv_setting;
+                app(InvoiceSnapshotService::class)->applySettingsSnapshot($invoice, $subscriberInvSetting);
+                app(InvoiceAuditService::class)->markCreated($invoice, $user);
+                $itemService->applyAggregatesToInvoice($invoice, $items);
                 $invoice->save();
+                $itemService->syncInvoiceItems($invoice, $items);
                 $activity = new Activities();
                 $activity->subscriber_id = $user->id;
                 $activity->user_id = $user->id;
@@ -2207,43 +2426,21 @@ class AdminController extends Controller
                 $activity->activity_icon = "invoice.jpg";
                 $activity->save();
 
-                $maildata = new \stdClass();
-                $maildata->name = $subs['name'];
-                $maildata->email = $user->email;
-                $maildata->from_email = $user->email;
-                $maildata->to_email = $subs->email;
-                $maildata->company_name = $user->organization ?? $user->name;
-                $maildata->subscriber_name = $user->organization ?? $user->name;
-                $maildata->subscriber_email = $user->email;
-                $maildata->display_from_email = $user->email;
-                $maildata->subscriber_id = $user->id;
-                $maildata->user_id = $user->id;
-                $maildata->logo = $invoice->logo;
-                $maildata->logo_path = 'web_assets/users/user' . $user->id . '/' . $invoice->logo;
-                $maildata->detail = $invoice->detail;
-                $maildata->amount = $invoice->amount;
-                $maildata->discount = $invoice->discount;
-                $maildata->tax = $invoice->tax;
-                $maildata->total = $invoice->total;
-                $maildata->currency = $user->currency ?? 'Rs.';
-                $maildata->status = $invoice->status;
-                $maildata->invoice_no = $invoice->invoice_no;
-                $maildata->invoice_date = $invoice->created_at;
-                $maildata->due_date = $invoice->due_date;
-                $maildata->invoice_id = $invoice->id;
-                $maildata->token = $invoice->token;
-                $maildata->message = "You have new invoice from " . ($user->organization ?? 'Adwiseri') . " for " . ($user->currency ?? 'Rs.') . " " . number_format($invoice->total, 2) . ".";
-                $maildata->from_name = $user->organization ?? $user->name ?? 'Subscriber';
-                $maildata->from_email = $user->email;
-                $maildata->reply_to_email = $user->email;
-                $maildata->reply_to_name = $user->organization ?? $user->name ?? 'Subscriber';
-                Mail::to($subs->email)->send(new Invoicemail($maildata));
-                if (Mail::failures()) {
-                    echo 'Sorry! Please try again latter';
-                } else {
-                    echo 'Success';
+                $mailResult = app(InvoiceMailService::class)->send($invoice, $user);
+                if (!$mailResult['success']) {
+                    Log::warning('Admin invoice email not sent', [
+                        'invoice_id' => $invoice->id,
+                        'invoice_no' => $invoice->invoice_no,
+                        'message' => $mailResult['message'],
+                    ]);
                 }
-                return redirect()->route('manage_invoices')->with('invoice_generated', 'Invoice created Successfully.');
+
+                return redirect()->route('manage_invoices')->with(
+                    $mailResult['success'] ? 'invoice_generated' : 'invoice_email_failed',
+                    $mailResult['success']
+                        ? 'Invoice created and emailed to ' . $mailResult['recipient'] . '.'
+                        : 'Invoice created, but email was not sent: ' . $mailResult['message']
+                );
             }
         } else {
             return redirect()->route('login');
@@ -2257,20 +2454,105 @@ class AdminController extends Controller
             $invoice = Internal_Invoices::find($id);
             $u = User::where('email', '=', $invoice->email)->first();
             if ($u) {
-                $invoiceSetting = Invoice_settings::where('user_id', $u->id)->first();
-                if ($invoiceSetting) {
-                    $invoice->discount = $invoiceSetting->discount;
-                    $invoice->tax = $invoiceSetting->tax;
-                    $invoice->paymenyt_link = $invoiceSetting->payment_link;
-                }
+                $invoiceSetting = Invoice_settings::forUser((int) $u->id);
                 $page = "invoices";
                 return view('admin.invoice_detail', compact('user', 'invoice', 'page', 'u', 'invoiceSetting'));
             } else {
-                return back()->with('nouser', 'invoice user no longer exists');
+                return back()->with('nouser', 'The invoice user no longer exists.');
             }
         } else {
             return back();
         }
+    }
+
+    public function admin_edit_invoice($id)
+    {
+        $user = Auth::user();
+        $invoice = Internal_Invoices::with('items')->findOrFail($id);
+        $subscribers = User::where('user_type', '=', 'Subscriber')->get();
+        $page = 'invoices';
+
+        return view('admin.edit_invoice', compact('subscribers', 'user', 'page', 'invoice') + [
+            'invoiceNote' => trim((string) ($invoice->invoice_note ?? '')),
+            'isLocked' => true,
+        ]);
+    }
+
+    public function admin_update_invoice(Request $request, $id)
+    {
+        $itemService = app(InvoiceItemService::class);
+        $request->validate(array_merge($itemService->validationRules(), [
+            'subscriber' => 'required|exists:users,id',
+            'status' => 'required|in:PartiallyPaid,UnPaid,Paid,Cancelled',
+            'due_date' => 'required',
+            'invoice_note' => 'nullable|string|max:5000',
+        ]));
+
+        $user = Auth::user();
+        $invoice = Internal_Invoices::with('items')->findOrFail($id);
+        $subs = User::findOrFail($request->subscriber);
+        $items = $itemService->normalizeRequestItems($request);
+        $itemService->assertHasItems($items);
+        $amount = $itemService->sumAmounts($items);
+        $isSubscriptionPackage = $invoice->isSubscriptionPackageInvoice()
+            || Internal_Invoices::itemsLookLikeSubscriptionPackage($items);
+        $discountPercent = $isSubscriptionPackage
+            ? 0.0
+            : max(0, min(100, (float) ($invoice->discount ?? 0)));
+        $taxPercent = $isSubscriptionPackage
+            ? 0.0
+            : max(0, min(100, (float) ($invoice->tax ?? 0)));
+        $subtotal = $amount - ($amount * ($discountPercent / 100));
+
+        $invoice->subscriber_id = $subs->id;
+        $invoice->to_name = $subs->name;
+        $invoice->to_email = $subs->email;
+        $invoice->to_phone = $subs->phone;
+        $invoice->to_country = $subs->country;
+        $invoice->to_state = $subs->state;
+        $invoice->to_city = $subs->city;
+        $invoice->to_pincode = $subs->pincode;
+        $invoice->to_address = $subs->address_line;
+        $invoice->discount = $discountPercent;
+        $invoice->tax = $taxPercent;
+        $invoice->total = max(0, $subtotal + ($subtotal * ($taxPercent / 100)));
+        $invoice->status = $request->status;
+        $invoice->due_date = preg_match('/^\d{2}-\d{2}-\d{4}$/', (string) $request['due_date'])
+            ? \Carbon\Carbon::createFromFormat('d-m-Y', $request['due_date'])->format('Y-m-d')
+            : $request['due_date'];
+        $invoice->invoice_note = trim((string) $request->input('invoice_note', ''));
+
+        $auditService = app(InvoiceAuditService::class);
+        $auditService->ensureCreatedAudit($invoice);
+        $auditService->markUpdated($invoice, $user);
+        $itemService->applyAggregatesToInvoice($invoice, $items);
+        $invoice->save();
+        $itemService->syncInvoiceItems($invoice, $items);
+        $auditService->syncLegacyInvoiceIfPaid($invoice, $user);
+        $auditService->logActivity(
+            $user,
+            (int) $subs->id,
+            'Invoice Updated',
+            $user->name . ' updated invoice ' . $invoice->invoice_no . ' at ' . date('d M, Y H:i:s')
+        );
+
+        return redirect()->route('invoice_detail', $invoice->id)->with('invoice_updated', 'Invoice updated successfully.');
+    }
+
+    public function resendInvoiceEmail(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (!$user || strtolower((string) $user->user_type) !== 'admin') {
+            return redirect()->route('admin');
+        }
+
+        $invoice = Internal_Invoices::with('items')->findOrFail($id);
+        $result = app(InvoiceMailService::class)->send($invoice, $user, $request->input('to'));
+
+        return back()->with(
+            $result['success'] ? 'invoice_email_sent' : 'invoice_email_failed',
+            $result['message']
+        );
     }
 
     public function print_invoice_detail($id)
@@ -2279,12 +2561,7 @@ class AdminController extends Controller
         $page = "invoices";
         $invoice = Internal_Invoices::find($id);
         $u = User::where('email', '=', $invoice->email)->first();
-        $invoiceSetting = Invoice_settings::where('user_id', $u->id)->first();
-                if ($invoiceSetting) {
-                    $invoice->discount = $invoiceSetting->discount;
-                    $invoice->tax = $invoiceSetting->tax;
-                    $invoice->paymenyt_link = $invoiceSetting->payment_link;
-                }
+        $invoiceSetting = Invoice_settings::forUser((int) $u->id);
         return view('admin.print_invoice_detail', compact('user', 'page', 'invoice', 'u', 'invoiceSetting'));
     }
 
@@ -2293,7 +2570,8 @@ class AdminController extends Controller
         $user = Auth::user();
         if ($user) {
             $page = "wallet";
-            $referrals = Referrals::orderBy('created_at', 'desc')
+            $referrals = Referrals::walletTableVisible()
+                ->orderBy('created_at', 'desc')
                 ->get();
 
             return view('admin.wallet', compact('user', 'referrals', 'page'));
@@ -2307,10 +2585,14 @@ class AdminController extends Controller
         $endDate = $this->parseReportDate(request()->input('endDate'), true);
         $user = auth()->user();
         $query = new Referrals ();
-        if($user->user_type == 'Subscriber'){
-            $query =  $query->where('userid',$user->id);
+        if ($subscriberId = $this->consultancySubscriberId($user)) {
+            $query =  $query->where('userid', $subscriberId);
         }
-        $referrals = $query->whereBetween('created_at', [$startDate, $endDate])->where('debit_amount', '=', null)->orderBy('created_at', 'desc')->get();
+        $referrals = $query->walletTableVisible()
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->where('debit_amount', '=', null)
+            ->orderBy('created_at', 'desc')
+            ->get();
         return DataTables::of($referrals)
         ->addIndexColumn()
         ->editColumn('walletId', function ($row) {
@@ -2322,10 +2604,6 @@ class AdminController extends Controller
             // } else {
                 return $row->user_name;
             // }
-        })
-        ->addColumn('user_name_full', function ($row) {
-            $subscriberName = $row->user_name ?? '';
-            return $row->userid ? trim($subscriberName . ' (' . $row->userid . ')') : $subscriberName;
         })
 
         ->addColumn('finalamount', function ($row) {
@@ -2351,25 +2629,10 @@ class AdminController extends Controller
             return $result;
         })
          ->addColumn('type', function ($row) {
-            $displayText = '';
-            switch ($row->type) {
-                case 'cashback':
-                    $displayText = 'Cashback Credit';
-                    break;
-                case 'one_off':
-                    $displayText = 'One Time Credit';
-                    break;
-                case 'double_term':
-                    $displayText = 'Double-Term Subscription';
-                    break;
-                default:
-                    $displayText = $row->type;
-            }
-            return $displayText;
-
+            return app(OfferBenefitService::class)->offerTypeLabel((string) $row->type);
         })
         ->editColumn('created_at', function ($row) {
-            return date("d-m-Y", strtotime($row->created_at));
+            return date("d-m-Y H:i:s", strtotime($row->created_at));
         })
         ->make(true);
     }
@@ -2400,21 +2663,22 @@ class AdminController extends Controller
                             ->whereNull('referrals.debit_amount') // Ensure debit_amount is null
                             ->orderBy('referrals.created_at', 'desc') // Order by referral creation date
                             ->select('referrals.*'); // Select all columns from referrals
-        if($user->user_type == 'Subscriber'){
-            $query = $query->where('users.referral_code', $user->referral);// Apply referral code filter for Subscriber
-                       
+        if ($subscriberId = $this->consultancySubscriberId($user)) {
+            $query = $query->where('users.referral_code', auth()->user()->referral);
         }
         $referrals = $query->where('referrals.type', 'Referral Commission') // Apply specific condition for Subscriber
         ->get();
         
         return  DataTables::of($referrals)
-            ->addIndexColumn()
             ->editColumn('referral_by', function ($row) {
                 $user = User::where('referral',$row->referral_code)->first();
                 return $user ? $user->name.'('.$user->id.')' :'';
             })
             ->editColumn('referral_to', function ($row) {
                 return  $row->user ?  $row->user->name.'('.$row->userid.')' :'';
+            })
+            ->addColumn('sub_category', function ($row) {
+                return $row->user ? ($row->user->sub_category ?? '') : '';
             })
             ->editColumn('membership', function ($row) {
                 return  $row->user ?  $row->user->membership  :'';
@@ -2435,7 +2699,7 @@ class AdminController extends Controller
 
 
             ->editColumn('created_at', function ($row) {
-                return date("d-m-Y", strtotime($row->created_at));
+                return date("d-m-Y H:i:s", strtotime($row->created_at));
             })
 
             ->rawColumns(['status', 'action'])
@@ -2517,7 +2781,7 @@ class AdminController extends Controller
 
         if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now")) && $user->user_type != 'admin') {
 
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
         if ($user->user_type == "admin") {
@@ -2604,9 +2868,9 @@ class AdminController extends Controller
         }
         if ($user) {
             if($user->is_support == 1){
-                $tickets =  $query->orderBy('created_at', 'desc')->where('served_by',auth()->id())->get();
+                $tickets =  $query->with(['subscriber', 'user'])->orderBy('created_at', 'desc')->where('served_by',auth()->id())->get();
             }else{
-                $tickets =  $query->orderBy('created_at', 'desc')->get();
+                $tickets =  $query->with(['subscriber', 'user'])->orderBy('created_at', 'desc')->get();
             }
             $supportStaff = User::where('user_type', 'admin')->where('is_support', 1)->get();
             $page = "support";
@@ -2624,19 +2888,28 @@ class AdminController extends Controller
                     ->editColumn('status', function ($row) {
                         $html = "";
                         if ($row->status == 'Open') {
-                            $html .= '<a style="background:green;border-color:green;" href="' . route('update_query_status', $row->id) . '" class="p-0 px-1">Open</a>';
+                            $html .= '<a style="background:green;border-color:green;" href="' . route('update_query_status', $row->id) . '" class="btn btn-sm p-0 px-2 text-white" title="Click to close ticket">Open</a>';
                         } else {
-                            $html .= '<a style="background:red;border-color:red;" href="' . route('update_query_status', $row->id) . '" class="p-0 px-1">Closed</a>';
+                            $html .= '<a style="background:red;border-color:red;" href="' . route('update_query_status', $row->id) . '" class="btn btn-sm p-0 px-2 text-white" title="Click to reopen ticket">Closed</a>';
                         }
                         return $html;
                     })
+                    ->addColumn('assigned_user', function ($row) {
+                        return $row->user ? $row->user->name . '(' . $row->user_id . ')' : '';
+                    })
+                    ->editColumn('ticket_no', function ($row) {
+                        $ticketNo = e($row->ticket_no);
+                        return '<a href="javascript:void(0);" class="text-primary fw-semibold text-decoration-underline" onclick="openTicketActivityLog(' . (int) $row->id . ', ' . json_encode($row->ticket_no) . ');">' . $ticketNo . '</a>';
+                    })
                     ->editColumn('issue', function ($row) {
                         $text = htmlspecialchars($row->issue);
+                        $ticketNo = e($row->ticket_no);
+                        $ticketLink = '<a href="javascript:void(0);" class="text-primary text-decoration-underline" onclick="openTicketActivityLog(' . (int) $row->id . ', ' . json_encode($row->ticket_no) . ');">' . $ticketNo . '</a>';
                         $words = explode(' ', $text);
-                        $truncated = implode(' ', array_slice($words, 0, 25)); // First 25 words
+                        $truncated = implode(' ', array_slice($words, 0, 25));
 
                         return '<div class="message-tooltip" data-full-text="' . htmlspecialchars($text) . '">
-                                    <span class="hover-expand">' . $truncated . '...</span>
+                                    <span class="hover-expand">' . $ticketLink . ' — ' . $truncated . '...</span>
                                 </div>';
                     })
                     ->editColumn('created_at', function ($row) {
@@ -2657,7 +2930,7 @@ class AdminController extends Controller
                     ->addColumn('action', function ($row) {
                         return '<a style="background:none; border:none;" onclick="window.location.href = "' . route('view_query', $row->id) . '"";" class="m-0 p-0"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>';
                     })
-                    ->rawColumns(['status', 'action', 'issue', 'attachment'])
+                    ->rawColumns(['status', 'action', 'issue', 'attachment', 'ticket_no', 'assigned_user'])
                     ->make(true);
             }
             return view('admin.manage_support', compact('user', 'tickets', 'page','supportStaff'));
@@ -2736,7 +3009,7 @@ class AdminController extends Controller
                 $activity->activity_detail = "FAQ updated by " . $user->name . " at " . date('d M, Y H:i:s');
                 $activity->activity_icon = "user.png";
                 $activity->save();
-                return redirect()->route('manage_faq')->with('faq_updated', "FAQ Updated successfully");
+                return redirect()->route('manage_faq')->with('faq_updated', "FAQ updated successfully.");
             } else {
                 $faq = new Faq();
                 $this->validate($request, [
@@ -2753,7 +3026,7 @@ class AdminController extends Controller
                 $activity->activity_detail = "New FAQ added by " . $user->name . " at " . date('d M, Y H:i:s');
                 $activity->activity_icon = "user.png";
                 $activity->save();
-                return redirect()->route('manage_faq')->with('faq_added', "FAQ Added successfully");
+                return redirect()->route('manage_faq')->with('faq_added', "FAQ added successfully.");
             }
         } else {
             return redirect()->route('admin');
@@ -2780,14 +3053,32 @@ class AdminController extends Controller
                 return DataTables::of($activities)
                     ->addIndexColumn()
                     ->editColumn('created_at', function ($row) {
-                        return date("d-m-Y ", strtotime($row->created_at));
+                        return date("d-m-Y H:i:s", strtotime($row->created_at));
                     })
                     ->make(true);
             }
-            return view('admin.activity_log', compact('user', 'activities', 'page', 'users'));
+            $activityUserFilters = \App\Services\TableFilterCountService::countBy(
+                $activities,
+                fn ($activity) => $activity->user_name
+            );
+            return view('admin.activity_log', compact('user', 'activities', 'page', 'users', 'activityUserFilters'));
         } else {
             return back();
         }
+    }
+
+    public function error_log()
+    {
+        $user = Auth::user();
+
+        if (!$user || strtolower((string) $user->user_type) !== 'admin' || (int) ($user->is_support ?? 0) === 1) {
+            return redirect()->route('admin');
+        }
+
+        $page = 'error_log';
+        $errorLogs = \App\Models\ErrorLog::orderByDesc('created_at')->get();
+
+        return view('admin.error_log', compact('user', 'errorLogs', 'page'));
     }
 
     public function view_client($id = null)
@@ -2819,6 +3110,16 @@ class AdminController extends Controller
         if ($user) {
             $contact = Contactus::find($request->id);
             if ($contact) {
+                if (isset($request->contact_details)) {
+                    $request->validate([
+                        'contact_no' => 'required|phone_intl',
+                        'alternate_no' => 'nullable|phone_intl',
+                        'email' => 'required|email|max:255',
+                        'location' => 'required|string|max:500',
+                        'website' => 'nullable|url|max:255',
+                    ]);
+                }
+
                 $contact_us = Contactus::find($request->id);
                 if (isset($request->contact_details)) {
                     $contact_us->contact_no = $request['contact_no'];
@@ -2834,7 +3135,7 @@ class AdminController extends Controller
                     $activity->activity_detail = "Contact Us updated by " . $user->name . " at " . date('d M, Y H:i:s');
                     $activity->activity_icon = "user.png";
                     $activity->save();
-                    return back()->with('success', 'Contact Us Updated Successfully!');
+                    return back()->with('success', 'Contact details updated successfully.');
                 } elseif (isset($request->banner)) {
                     if ($request->hasFile('banner')) {
                         $file = $request->file('banner');
@@ -2851,7 +3152,7 @@ class AdminController extends Controller
                     $activity->activity_detail = "Contact Us Banner updated by " . $user->name . " at " . date('d M, Y H:i:s');
                     $activity->activity_icon = "user.png";
                     $activity->save();
-                    return back()->with('success', 'Banner Updated Successfully!');
+                    return back()->with('success', 'Banner updated successfully.');
                 }
             } else {
                 return back();
@@ -2866,7 +3167,8 @@ class AdminController extends Controller
         $user = Auth::user();
         $page = "membership";
         $memberships = Membership::get();
-        return view('admin.manage_membership', compact('user', 'page', 'memberships'));
+        $subscriberOptions = User::where('user_type', 'Subscriber')->orderBy('name')->get(['id', 'name', 'email']);
+        return view('admin.manage_membership', compact('user', 'page', 'memberships', 'subscriberOptions'));
     }
 
     public function add_membership()
@@ -2907,7 +3209,7 @@ class AdminController extends Controller
             $activity->activity_detail = "Price Plan updated by " . $user->name . " at " . date('d M, Y H:i:s');
             $activity->activity_icon = "user.png";
             $activity->save();
-            return back()->with('success', 'Membership Plan added Successfully');
+            return back()->with('success', 'Membership plan saved successfully.');
         } else {
             $data = new Membership();
             $this->validate(
@@ -2953,7 +3255,7 @@ class AdminController extends Controller
             $activity->activity_detail = "New Price Plan added by " . $user->name . " at " . date('d M, Y H:i:s');
             $activity->activity_icon = "user.png";
             $activity->save();
-            return back()->with('success', 'Membership Plan added Successfully');
+            return back()->with('success', 'Membership plan saved successfully.');
         }
     }
 
@@ -3047,7 +3349,7 @@ class AdminController extends Controller
             $activity->activity_detail = "Features updated by " . $user->name . " at " . date('d M, Y H:i:s');
             $activity->activity_icon = "user.png";
             $activity->save();
-            return back()->with('success', 'Feature Updated Successfully');
+            return back()->with('success', 'Feature updated successfully.');
         } else {
             $data = new Features();
             $this->validate(
@@ -3077,7 +3379,7 @@ class AdminController extends Controller
             $activity->activity_detail = "New Feature added by " . $user->name . " at " . date('d M, Y H:i:s');
             $activity->activity_icon = "user.png";
             $activity->save();
-            return back()->with('success', 'Feature Added Successfully');
+            return back()->with('success', 'Feature added successfully.');
         }
     }
 
@@ -3099,6 +3401,111 @@ class AdminController extends Controller
         $page = "about_adwiseri";
         $about_adwiseri = About_Advisori::first();
         return view('admin.manage_about_advisori', compact('user', 'page', 'about_adwiseri'));
+    }
+
+    public function manage_landing_discounts_offers()
+    {
+        $user = Auth::user();
+        $page = 'landing_discounts_offers';
+        $settings = LandingPromoSetting::current();
+        $discountItems = LandingPromoItem::ofCategory('discount')->orderBy('sort_order')->orderBy('id')->get();
+        $offerItems = LandingPromoItem::ofCategory('offer')->orderBy('sort_order')->orderBy('id')->get();
+
+        return view('admin.manage_landing_discounts_offers', compact(
+            'user',
+            'page',
+            'settings',
+            'discountItems',
+            'offerItems'
+        ));
+    }
+
+    public function update_landing_promo_settings(Request $request)
+    {
+        $this->validate($request, [
+            'heading' => 'required|string|max:120',
+            'discount_note' => 'nullable|string|max:1000',
+            'offer_note' => 'nullable|string|max:1000',
+        ]);
+
+        $settings = LandingPromoSetting::current();
+        $settings->heading = $request->heading;
+        $settings->discount_note = $request->discount_note;
+        $settings->offer_note = $request->offer_note;
+        $settings->save();
+
+        return back()->with('success', 'Discounts & Offers section settings updated.');
+    }
+
+    public function store_landing_promo_item(Request $request)
+    {
+        $this->validate($request, [
+            'category' => 'required|in:discount,offer',
+            'benefit' => 'required|string|max:120',
+            'detail' => 'required|string|max:255',
+            'sort_order' => 'nullable|integer|min:0|max:999',
+        ]);
+
+        LandingPromoItem::create([
+            'category' => $request->category,
+            'benefit' => $request->benefit,
+            'detail' => $request->detail,
+            'sort_order' => (int) ($request->sort_order ?? 0),
+            'is_active' => $request->has('is_active'),
+        ]);
+
+        return back()->with('success', 'Promo row added successfully.');
+    }
+
+    public function update_landing_promo_item(Request $request, $id)
+    {
+        $item = LandingPromoItem::findOrFail($id);
+
+        $this->validate($request, [
+            'benefit' => 'required|string|max:120',
+            'detail' => 'required|string|max:255',
+            'sort_order' => 'nullable|integer|min:0|max:999',
+        ]);
+
+        $item->benefit = $request->benefit;
+        $item->detail = $request->detail;
+        $item->sort_order = (int) ($request->sort_order ?? 0);
+        $item->is_active = $request->has('is_active');
+        $item->save();
+
+        return back()->with('success', 'Promo row updated successfully.');
+    }
+
+    public function delete_landing_promo_item($id)
+    {
+        LandingPromoItem::findOrFail($id)->delete();
+
+        return back()->with('success', 'Promo row deleted successfully.');
+    }
+
+    public function manage_homepage_sections()
+    {
+        $user = Auth::user();
+        $page = 'homepage_sections';
+        $settings = HomepageSectionSetting::current();
+        $sectionDefinitions = HomepageSectionSetting::definitions();
+        $sectionVisibility = $settings->visibilityMap();
+
+        return view('admin.manage_homepage_sections', compact(
+            'user',
+            'page',
+            'settings',
+            'sectionDefinitions',
+            'sectionVisibility'
+        ));
+    }
+
+    public function update_homepage_sections(Request $request)
+    {
+        $settings = HomepageSectionSetting::current();
+        $settings->syncVisibility($request->input('sections', []));
+
+        return back()->with('success', 'Homepage section visibility updated successfully.');
     }
 
     public function update_about_adwiseri(request $request)
@@ -3129,7 +3536,7 @@ class AdminController extends Controller
                     $activity->activity_detail = "About Adwisari updated by " . $user->name . " at " . date('d M, Y H:i:s');
                     $activity->activity_icon = "user.png";
                     $activity->save();
-                    return back()->with('success', 'About Adwisari Updated Successfully!');
+                    return back()->with('success', 'About Advisori updated successfully.');
                 } elseif (isset($request->banner)) {
                     if ($request->hasFile('banner')) {
                         $file = $request->file('banner');
@@ -3146,7 +3553,7 @@ class AdminController extends Controller
                     $activity->activity_detail = "About Adwisari updated by " . $user->name . " at " . date('d M, Y H:i:s');
                     $activity->activity_icon = "user.png";
                     $activity->save();
-                    return back()->with('success', 'Banner Updated Successfully!');
+                    return back()->with('success', 'Banner updated successfully.');
                 }
             } else {
                 return back();
@@ -3170,7 +3577,7 @@ class AdminController extends Controller
                 $activity->activity_detail = "User " . $siteuser->name . " deleted by " . $user->name . " at " . date('d M, Y H:i:s');
                 $activity->activity_icon = "user.png";
                 $activity->save();
-                return back()->with('deleted', 'user deleted successfully');
+                return back()->with('deleted', 'User deleted successfully.');
             } else {
                 return redirect()->route('login');
             }
@@ -3193,7 +3600,7 @@ class AdminController extends Controller
                 $activity->activity_detail = "Client " . $client->name . " deleted by " . $user->name . " at " . date('d M, Y H:i:s');
                 $activity->activity_icon = "user.png";
                 $activity->save();
-                return back()->with('deleted', 'client deleted successfully');
+                return back()->with('deleted', 'Client deleted successfully.');
             } else {
                 return redirect()->route('login');
             }
@@ -3216,7 +3623,7 @@ class AdminController extends Controller
                 $activity->activity_detail = "Application " . $application->application_name . " deleted by " . $user->name . " at " . date('d M, Y H:i:s');
                 $activity->activity_icon = "user.png";
                 $activity->save();
-                return back()->with('deleted', 'Application deleted successfully');
+                return back()->with('deleted', 'Application deleted successfully.');
             } else {
                 return redirect()->route('login');
             }
@@ -3225,21 +3632,25 @@ class AdminController extends Controller
         }
     }
 
-    public function delete_document($id = null)
+    public function delete_document(Request $request, $id = null)
     {
         if (!empty($id)) { //edit the page.
             $user = Auth::user();
             if ($user) {
                 $document = Client_Docs::find($id);
+                $docName = $document->doc_name;
                 $document->delete();
                 $activity = new Activities();
                 $activity->user_id = $user->id;
                 $activity->user_name = $user->name;
                 $activity->activity_name = "Document Deleted";
-                $activity->activity_detail = "Document " . $document->doc_name . " deleted by " . $user->name . " at " . date('d M, Y H:i:s');
+                $activity->activity_detail = "Document " . $docName . " deleted by " . $user->name . " at " . date('d M, Y H:i:s');
                 $activity->activity_icon = "user.png";
                 $activity->save();
-                return back()->with('deleted', 'Document deleted successfully');
+                if ($request->filled('return_application_id')) {
+                    return redirect()->route('application_view', $request->return_application_id)->with('document_deleted', 'Document deleted successfully.');
+                }
+                return back()->with('deleted', 'Document deleted successfully.');
             } else {
                 return redirect()->route('login');
             }
@@ -3266,7 +3677,7 @@ class AdminController extends Controller
                 $activity->activity_detail = "Application Assignment deleted by " . $user->name . " at " . date('d M, Y H:i:s');
                 $activity->activity_icon = "user.png";
                 $activity->save();
-                return back()->with('deleted', 'Assignment deleted successfully');
+                return back()->with('deleted', 'Assignment deleted successfully.');
             } else {
                 return redirect()->route('login');
             }
@@ -3289,7 +3700,7 @@ class AdminController extends Controller
                 $activity->activity_detail = "FAQ " . $faq->question . " deleted by " . $user->name . " at " . date('d M, Y H:i:s');
                 $activity->activity_icon = "user.png";
                 $activity->save();
-                return back()->with('deleted', 'Faq deleted successfully');
+                return back()->with('deleted', 'FAQ deleted successfully.');
             } else {
                 return redirect()->route('login');
             }
@@ -3310,11 +3721,14 @@ class AdminController extends Controller
             }
             $client_ids = array_unique($a);
             $clients = Clients::get();
-            $messages = Internal_communications::orderBy('created_at', 'desc')->get();
+            $notificationService = app(\App\Services\NotificationService::class);
+            $messages = $notificationService->messagesVisibleToUser($user);
             $subscribers = User::where('user_type', '=', 'Subscriber')->get();
             $users = User::where('user_type', '=', 'User')->get();
             $allusers = User::where('user_type', '!=', 'admin')->get();
-            return view("admin.communication", compact('user', 'page', 'client_ids', 'clients', 'subscribers', 'users', 'allusers', 'messages'));
+            $notificationService = app(\App\Services\NotificationService::class);
+            $unreadMessageCount = $notificationService->envelopeCount($user);
+            return view("admin.communication", compact('user', 'page', 'client_ids', 'clients', 'subscribers', 'users', 'allusers', 'messages', 'notificationService', 'unreadMessageCount'));
         } else {
             return redirect()->route('admin');
         }
@@ -3326,8 +3740,8 @@ class AdminController extends Controller
         $endDate = $this->parseReportDate(request()->input('endDate'), true);
         $user = Auth::user();
         $query = new Internal_communications();
-        if($user->user_type == 'Subscriber'){
-            $query = $query->where('subscriber_id',$user->id);
+        if ($subscriberId = $this->consultancySubscriberId($user)) {
+            $query = $query->where('subscriber_id', $subscriberId);
 
         }
         
@@ -3336,7 +3750,7 @@ class AdminController extends Controller
         return DataTables::of($messages)
             ->addIndexColumn()
             ->editColumn('created_at', function ($row) {
-                return Carbon::parse($row->created_at)->format('d-m-Y');
+                return Carbon::parse($row->created_at)->format('d-m-Y H:i:s');
             })
             ->editColumn('sender_name', function ($row) {
                 // Format the `start_date` for better readability
@@ -3373,13 +3787,79 @@ class AdminController extends Controller
         if ($user) {
             $page = "communication";
             $clients = Clients::get();
-            $subscribers = User::where('user_type', '=', 'Subscriber')->get();
-            $users = User::where('user_type', '=', 'User')->get();
+            $subscribers = User::where('user_type', '=', 'Subscriber')->orderBy('name')->get();
+            $users = User::where('user_type', '=', 'User')->orderBy('name')->get();
+            $subscriberLookup = $subscribers->keyBy('id');
             $allusers = User::where('user_type', '!=', 'admin')->get();
-            return view("admin.messaging", compact('user', 'page', 'clients', 'subscribers', 'users', 'allusers'));
+            return view("admin.messaging", compact('user', 'page', 'clients', 'subscribers', 'users', 'allusers', 'subscriberLookup'));
         } else {
             return redirect()->route('admin');
         }
+    }
+
+    public function admin_email_broadcast()
+    {
+        $user = Auth::user();
+        if ($user) {
+            $page = "email_broadcast";
+            $subscribers = User::where('user_type', '=', 'Subscriber')->orderBy('name')->get();
+
+            return view("admin.email_broadcast", compact('user', 'page', 'subscribers'));
+        }
+
+        return redirect()->route('admin');
+    }
+
+    public function admin_send_email_broadcast(Request $request, EmailBroadcastService $emailBroadcastService)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return redirect()->route('admin');
+        }
+
+        $this->validate($request, [
+            'recipients' => 'required|array|min:1',
+            'recipients.*' => 'required|string',
+            'subject' => 'required|string|max:200',
+            'body' => 'required|string|min:3|max:5000',
+        ]);
+
+        $selectedRecipients = array_values(array_unique($request->recipients));
+        $resolvedRecipients = $emailBroadcastService->resolveSubscriberRecipients($selectedRecipients);
+
+        $result = $emailBroadcastService->queueBroadcast(
+            $user,
+            'subscribers',
+            $request->subject,
+            $request->body,
+            $resolvedRecipients,
+            null,
+            $selectedRecipients
+        );
+
+        if (!empty($result['error'])) {
+            return back()->with('broadcast_error', $result['error'])->withInput();
+        }
+
+        if (empty($result['queued'])) {
+            return back()->with('broadcast_error', 'Unable to queue email broadcast. Please try again.')->withInput();
+        }
+
+        $activity = new Activities();
+        $activity->subscriber_id = $user->added_by ? $user->added_by : $user->id;
+        $activity->user_id = $user->id;
+        $activity->user_name = $user->name;
+        $activity->activity_name = "Email Broadcast";
+        $activity->activity_detail = "Email broadcast queued by " . $user->name . " for " . $result['total_recipients'] . " recipient(s) at " . $request->local_time;
+        $activity->activity_icon = "communication.png";
+        $activity->local_time = $request->local_time;
+        $activity->save();
+
+        $message = 'Email broadcast queued successfully for ' . $result['total_recipients'] . ' recipient(s). '
+            . 'Emails will be sent in the background (Ref: ' . $result['broadcast_id'] . ').';
+
+        return back()->with('broadcast_sent', $message);
     }
 
     public function admin_communicate(Request $request)
@@ -3448,21 +3928,21 @@ class AdminController extends Controller
                     $activity->subscriber_id = $user->added_by ?  $user->added_by : $user->id ;
                     $activity->user_id = $user->id;
                     $activity->user_name =  $user->name;
-                    $activity->activity_name = "New Message";
+                    $activity->activity_name = "Message Sent";
                     if (auth()->user()->user_type == "Subscriber") {
-                        $activity->activity_detail = "New  message sent by" .  auth()->user()->name . " at " . $request->local_time;
+                        $activity->activity_detail = "Message sent by " .  auth()->user()->name . " at " . $request->local_time;
                     } else {
-                        $activity->activity_detail = "New  message sent by " .  auth()->user()->name . "(" . auth()->user()->name . ") at " . $request->local_time;
+                        $activity->activity_detail = "Message sent by " .  auth()->user()->name . "(" . auth()->user()->name . ") at " . $request->local_time;
                     }
-                    $activity->activity_icon = "invoice.jpg";
+                    $activity->activity_icon = "mail.png";
                     $activity->local_time = $request->local_time;
                     $activity->save();
-                    return back()->with('sent', 'Message sent successfully!');
+                    return back()->with('sent', 'Message sent successfully.');
                 } else {
-                    return back()->with('noUser', 'No user selected');
+                    return back()->with('noUser', 'No user selected.');
                 }
             } else {
-                return back()->with('noUser', 'No user selected');
+                return back()->with('noUser', 'No user selected.');
             }
 
 
@@ -3478,6 +3958,9 @@ class AdminController extends Controller
         if ($id) {
             $page = "communications";
             $message = Internal_communications::find($id);
+            if ($message && $user) {
+                app(\App\Services\NotificationService::class)->markMessageRead($user, (int) $message->id);
+            }
             return view('admin.view_message', compact('message', 'user', 'page'));
         }
     }
@@ -3504,7 +3987,10 @@ class AdminController extends Controller
             if ($id) {
                 $subscriber = User::find($id);
                 $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
-                $notes = Client_discussions::where('subscriber_id', '=', $subscriber->id)->get();
+                $notes = Client_discussions::with(['user', 'application'])
+                    ->where('subscriber_id', '=', $subscriber->id)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
                 return view("admin.notes", compact('user', 'page', 'subscriber', 'notes', 'clients'));
             } else {
                 return back();
@@ -3551,7 +4037,7 @@ class AdminController extends Controller
         $user = Auth::user();
         if ($user) {
             if ($id) {
-                $query = Tickets::find($id);
+                $query = Tickets::with(['activityLogs'])->find($id);
                 $page = "support";
                 return view('admin.view_query', compact('user', 'page', 'query'));
             }
@@ -3560,35 +4046,55 @@ class AdminController extends Controller
         }
     }
 
+    public function ticketActivityLogData($id)
+    {
+        try {
+            $ticket = Tickets::with('activityLogs')->findOrFail($id);
+
+            $logs = $ticket->activityLogs->map(function ($log) {
+                return [
+                    'datetime' => optional($log->created_at)->format('d-m-Y H:i'),
+                    'action' => ucwords(str_replace('_', ' ', $log->action)),
+                    'worked_by' => $log->actor_name ?: 'System',
+                    'detail' => $log->detail,
+                    'created_at' => optional($log->created_at)->toIso8601String(),
+                ];
+            });
+
+            return response()->json([
+                'draw' => (int) request()->input('draw', 1),
+                'data' => $logs->values(),
+                'total' => $logs->count(),
+                'ticket_no' => $ticket->ticket_no,
+            ]);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'Unable to load ticket activity log.',
+                'data' => [],
+                'total' => 0,
+            ], 500);
+        }
+    }
+
     public function update_query_status($id)
     {
         $user = Auth::user();
         if ($user) {
             if ($id) {
-                $query = Tickets::find($id);
-                $wasOpen = $query->status == "Open";
-                if ($wasOpen) {
+                $query = Tickets::with('user')->find($id);
+                $previousStatus = $query->status;
+                if ($query->status == "Open") {
                     $query->status = "Closed";
                 } else {
                     $query->status = "Open";
                 }
                 $query->save();
 
-                if ($wasOpen) {
-                    $ticketUserEmail = optional($query->user)->email ?? optional($query->subscriber)->email;
-                    if ($ticketUserEmail) {
-                        $maildata = new \stdClass();
-                        $maildata->ticket_id = $query->ticket_no;
-                        $maildata->department = $query->support;
-                        $maildata->issue = $query->issue;
-                        $maildata->response = $query->response;
+                app(\App\Services\TicketActivityService::class)->notifyRaiserOfStatusChange($query, $previousStatus, $user);
 
-                        Mail::to('care@adwiseri.com')
-                            ->bcc($ticketUserEmail)
-                            ->send(new SupportTicketClosureMail($maildata));
-                    }
-                }
-                return back()->with('status_changed', 'query status changed.');
+                return back()->with('status_changed', 'Query status updated successfully.');
             }
         } else {
             return redirect()->route('admin');
@@ -3613,15 +4119,29 @@ class AdminController extends Controller
     {
         $user = Auth::user();
         if ($user) {
-            if ($request) {
-                $query = Tickets::find($request->id);
-                $query->response = $request['response'];
-                $query->save();
-                return redirect()->route('manage_support')->with('response', 'Response Sent Successfully.');
+            $validated = $request->validate([
+                'id' => 'required|exists:tickets,id',
+                'response' => 'required|string|max:5000',
+            ]);
+
+            $query = Tickets::with(['user', 'subscriber'])->findOrFail($validated['id']);
+            $query->response = $validated['response'];
+            if (!$query->served_by) {
+                $query->served_by = $user->id;
             }
-        } else {
-            return redirect()->route('admin');
+            $query->save();
+            $query->refresh();
+
+            app(\App\Services\TicketActivityService::class)->notifyRaiserOfResponse(
+                $query,
+                (string) $validated['response'],
+                $user
+            );
+
+            return redirect()->route('manage_support')->with('response', 'Response sent successfully.');
         }
+
+        return redirect()->route('admin');
     }
 
     public function delete_query($id)
@@ -3630,8 +4150,9 @@ class AdminController extends Controller
         if ($user) {
             if ($id) {
                 $query = Tickets::find($id);
+                app(\App\Services\TicketActivityService::class)->logDeletion($query, $user);
                 $query->delete();
-                return back()->with('query_deleted', 'Query Delete Successfully');
+                return back()->with('query_deleted', 'Query deleted successfully.');
             }
         } else {
             return redirect()->route('admin');
@@ -3640,50 +4161,83 @@ class AdminController extends Controller
 
     public function get_job_role(Request $request)
     {
-        // print_r($request->all());
         $id = $request['id'];
         if (isset($request->name)) {
             $subscriber = User::find($id);
         } else {
             $client = Clients::find($id);
+            if (!$client) {
+                echo '<option value="">Select Application Type</option>';
+                return;
+            }
             $subscriber = User::find($client->subscriber_id);
         }
-        if ($subscriber->category == "Law Firm") {
-            $client_jobs = Client_jobs::where('category', '=', $subscriber->category)->get();
-        } elseif ($subscriber->category == "Travel Agency") {
-            $client_jobs = Client_jobs::where('category', '=', $subscriber->category)->get();
+
+        $selected = trim((string) ($request->selected ?? ''));
+
+        echo app(\App\Services\CountryCategorySettingsService::class)->buildJobRoleOptions($subscriber, $selected !== '' ? $selected : null);
+    }
+
+    public function get_cc_countries(Request $request)
+    {
+        $validated = $request->validate([
+            'client_id' => 'nullable|integer',
+            'subscriber_id' => 'nullable|integer',
+            'selected' => 'nullable|string|max:255',
+        ]);
+
+        $ccService = app(\App\Services\CountryCategorySettingsService::class);
+        $subscriber = null;
+        $extraSelected = array_filter([(string) ($validated['selected'] ?? '')]);
+
+        if (!empty($validated['client_id'])) {
+            $client = Clients::find($validated['client_id']);
+            if ($client) {
+                $subscriber = User::find($client->subscriber_id);
+                if (!empty($client->visa_country)) {
+                    $extraSelected[] = $client->visa_country;
+                }
+            }
+        } elseif (!empty($validated['subscriber_id'])) {
+            $subscriber = User::find($validated['subscriber_id']);
         } else {
-            $client_jobs = Client_jobs::where('category', '=', $subscriber->category)->where('sub_category', '=', $subscriber->sub_category)->get();
-        }
-        if ($subscriber->sub_category == "Other") {
-?>
-            <option value="">Select Application</option>
-            <option value="<?php echo $subscriber->other_subcategory; ?>"><?php echo $subscriber->other_subcategory; ?></option>
-        <?php
-        } else {
-        ?>
-            <option value="">Select Application</option>
-            <?php
-            foreach ($client_jobs as $job) {
-            ?>
-                <option value="<?php echo $job->job; ?>"><?php echo $job->job; ?></option>
-        <?php
+            $user = Auth::user();
+            if ($user) {
+                $subscriber = $ccService->resolveSubscriber($user);
             }
         }
+
+        if (!$subscriber) {
+            return response('<option value="">Select Visa Country</option>', 404);
+        }
+
+        return response($ccService->buildCountryOptionsHtml(
+            $subscriber,
+            $extraSelected,
+            $validated['selected'] ?? null
+        ));
     }
 
     public function fetch_visa_country($id){
-        // dd($id);
-        // $id = $request['id'];
-        // if (isset($request->name)) {
-        //     $subscriber = User::find($id);
-        // } else {
-        //     $client = Clients::find($id);
-        //     $subscriber = User::find($client->subscriber_id);
-        // }
-        $visa_country = Clients::where('id', '=', $id)->first();
-        return $visa_country->visa_country;
+        $client = Clients::where('id', '=', $id)->first();
+        if (!$client) {
+            return '';
+        }
 
+        $subscriber = User::find($client->subscriber_id);
+        if (!$subscriber) {
+            return $client->visa_country ?? '';
+        }
+
+        $ccService = app(\App\Services\CountryCategorySettingsService::class);
+        $visaCountry = trim((string) ($client->visa_country ?? ''));
+        $allowedCountries = $ccService->resolveCountryNames($subscriber, [$visaCountry]);
+
+        if ($visaCountry !== '' && $allowedCountries->contains($visaCountry)) {
+            return $visaCountry;
+        }
+
+        return $allowedCountries->first() ?? '';
     }
 
     public function get_client(Request $request)
@@ -3691,26 +4245,7 @@ class AdminController extends Controller
         // print_r($request->all());
         $id = $request['id'];
         $client = Clients::find($id);
-        $query = Applications::where('client_id', $client->id);
-        $user = Auth::user();
-
-        if ($user && $user->user_type != 'admin' && $user->user_type != 'Subscriber') {
-            $subscriber = User::find($user->added_by);
-            $assignedApplicationIds = Application_assignments::where('subscriber_id', '=', $subscriber ? $subscriber->id : 0)
-                ->where('user_id', '=', $user->id)
-                ->whereNotNull('application_id')
-                ->pluck('application_id')
-                ->toArray();
-            $query->where('subscriber_id', '=', $subscriber ? $subscriber->id : 0)
-                ->where(function ($query) use ($assignedApplicationIds, $user) {
-                    $query->whereIn('application_id', $assignedApplicationIds)
-                        ->orWhere('assign_to', '=', $user->id)
-                        ->orWhereNull('assign_to')
-                        ->orWhere('assign_to', '=', '');
-                });
-        }
-
-        $applications = $query->get();
+        $applications = Applications::where('client_id', $client->id)->get();
         ?>
         <option value="">Select Application</option>
         <?php
@@ -3725,7 +4260,28 @@ class AdminController extends Controller
     {
         // print_r($request->all());
         $id = $request['id'];
-        $applications = Applications::where('client_id', '=', $id)->where('assign_to', '=', null)->get();
+        $query = Applications::where('client_id', '=', $id);
+
+        if ($request->boolean('assigned_only')) {
+            $assignedApplicationIds = Application_assignments::where('client_id', $id)
+                ->whereNotNull('application_id')
+                ->pluck('application_id')
+                ->unique()
+                ->filter()
+                ->values()
+                ->all();
+
+            $query->where(function ($q) use ($assignedApplicationIds) {
+                $q->whereNotNull('assign_to');
+                if (!empty($assignedApplicationIds)) {
+                    $q->orWhereIn('application_id', $assignedApplicationIds);
+                }
+            });
+        } else {
+            $query->where('assign_to', '=', null);
+        }
+
+        $applications = $query->orderBy('application_name')->get();
     ?>
         <option value="">Select Application</option>
         <?php
@@ -3740,7 +4296,14 @@ class AdminController extends Controller
     {
         // print_r($request->all());
         $client = Clients::find($request->id);
-        $users = User::where('added_by', '=', $client->subscriber_id)->orwhere('id', '=', $client->subscriber_id)->get();
+        if (!$client) {
+            echo '<option value="">Select User/Advisor</option>';
+            return;
+        }
+        $users = User::where('designation', 'Consultant/Advisor')
+            ->where('added_by', '=', $client->subscriber_id)
+            ->orderBy('name')
+            ->get();
         ?>
         <option value="">Select User/Advisor</option>
         <?php
@@ -3759,11 +4322,19 @@ class AdminController extends Controller
             $page = "settings";
             $countries = Countries::get();
             $currencies = Currency::orderBy('currency_code')->get();
-            $inv_setting = Invoice_settings::find($user->id);
-            $subscribers = User::where('user_type', 'Subscriber')->where('membership', '!=', 'Free')->where('membership_type', 'Subscription')->orderBy('name')->get();
+            $inv_setting = Invoice_settings::forUser((int) $user->id);
+            $offerBenefitService = app(OfferBenefitService::class);
+            $subscribers = $offerBenefitService->paidSubscribersQuery()->orderBy('name')->get();
             $reportSetting = ReportSetting::where('user_id', $user->id)->first();
             $emailTemplates = app(EmailTemplateService::class)->getTemplatesForSettings($user);
             $emailTemplateAudience = strtolower($user->user_type) === 'admin' ? 'admin' : 'subscriber';
+            $offerApplications = $offerBenefitService->successfulOfferApplications();
+            $subscriberOfferEligibility = $offerBenefitService->subscriberOfferEligibilityMap($subscribers);
+            $notificationService = app(\App\Services\NotificationService::class);
+            $recipientNotificationTypes = \App\Services\NotificationService::adminSendableNotificationTypes();
+            $notificationSubscribers = User::where('user_type', 'Subscriber')->orderBy('name')->get();
+            $staffUsers = User::where('user_type', 'User')->orderBy('name')->get();
+            $subscriberLookup = $notificationSubscribers->keyBy('id');
             $reportModules = [
                 'clients' => 'Clients',
                 'applications' => 'Applications',
@@ -3775,7 +4346,7 @@ class AdminController extends Controller
                 'affiliates' => 'Affiliates',
             ];
 
-            return view('admin.settings', compact('tzlist', 'user', 'page', 'countries', 'currencies', 'inv_setting', 'subscribers', 'reportSetting', 'reportModules', 'emailTemplates', 'emailTemplateAudience'));
+            return view('admin.settings', compact('tzlist', 'user', 'page', 'countries', 'currencies', 'inv_setting', 'subscribers', 'reportSetting', 'reportModules', 'emailTemplates', 'emailTemplateAudience', 'offerApplications', 'offerBenefitService', 'subscriberOfferEligibility', 'recipientNotificationTypes', 'notificationSubscribers', 'staffUsers', 'subscriberLookup'));
         } else {
             return redirect()->route('admin');
         }
@@ -3786,45 +4357,88 @@ class AdminController extends Controller
         $user = Auth::user();
         if ($user) {
             $validated = $request->validate([
+                'recipient_type' => 'nullable|in:clients,associates',
                 'tax' => 'nullable|numeric|min:0|max:100',
+                'tax_label' => 'nullable|in:VAT,Tax,GST',
                 'discount' => 'nullable|numeric|min:0|max:100',
-                'payment_link' => ['nullable','string'],
+                'payment_link' => ['nullable', 'string'],
+                'payment_qr_code' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:2048'],
+                'remove_payment_qr' => ['nullable', 'boolean'],
+                'invoice_note' => ['nullable', 'string', 'max:5000'],
             ]);
 
-            $setting = Invoice_settings::where('user_id',$user->id)->first();
+            $recipientType = Invoice_settings::normalizeRecipientType($validated['recipient_type'] ?? null);
+            // Admin portal only bills subscribers (clients of Adwiseri) — keep on clients.
+            if (strtolower((string) $user->user_type) === 'admin') {
+                $recipientType = Invoice_settings::RECIPIENT_CLIENTS;
+            }
+
+            $setting = Invoice_settings::forUser((int) $user->id, $recipientType);
             if ($setting) {
-                $message = 'Invoice Settings Updated successfully';
-                // $setting->name = $request['name'];
-                // $setting->phone = $request['phone'];
-                // $setting->email = $request['email'];
-                // $setting->country = $request['country'];
-                // $setting->state = $request['state'];
-                // $setting->city = $request['city'];
-                // $setting->pincode = $request['pincode'];
+                $message = 'Invoice settings updated successfully.';
+                $setting->recipient_type = $recipientType;
                 $setting->payment_link = $validated['payment_link'] ?? null;
                 $setting->tax = $validated['tax'] ?? 0;
+                $setting->tax_label = Invoice_settings::resolveTaxLabel($validated['tax_label'] ?? $setting->tax_label);
                 $setting->discount = $validated['discount'] ?? 0;
-                // $setting->description = $request['description'];
+                $setting->invoice_note = $validated['invoice_note'] ?? null;
+                $this->syncInvoicePaymentQrCode($request, $user, $setting);
                 $setting->save();
-                // return redirect()->back()->with('setting_saved', "Invoice Settings Saved");
-
             } else {
                 $data = $validated;
                 $data['user_id'] = $user->id;
+                $data['recipient_type'] = $recipientType;
                 $data['tax'] = $data['tax'] ?? 0;
+                $data['tax_label'] = Invoice_settings::resolveTaxLabel($data['tax_label'] ?? null);
                 $data['discount'] = $data['discount'] ?? 0;
-                Invoice_settings::create($data);
-                $message = 'Invoice Settings Saved successfully';
-
-
+                $data['invoice_note'] = $data['invoice_note'] ?? null;
+                unset($data['payment_qr_code'], $data['remove_payment_qr']);
+                $setting = Invoice_settings::create($data);
+                $this->syncInvoicePaymentQrCode($request, $user, $setting);
+                $setting->save();
+                $message = 'Invoice settings saved successfully.';
             }
-            return response()->json([
-                    'success' => true,
-                    'message' => $message,
 
-                ]);
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'recipient_type' => $recipientType,
+                'settings' => $setting->toSettingsArray(),
+            ]);
         } else {
             return redirect()->route('admin');
+        }
+    }
+
+    private function syncInvoicePaymentQrCode(Request $request, $user, Invoice_settings $setting): void
+    {
+        $uploadDir = public_path('web_assets/users/user' . $user->id);
+
+        if ($request->boolean('remove_payment_qr') && !empty($setting->payment_qr_code)) {
+            $oldPath = $uploadDir . '/' . $setting->payment_qr_code;
+            if (file_exists($oldPath)) {
+                unlink($oldPath);
+            }
+            $setting->payment_qr_code = null;
+        }
+
+        if ($request->hasFile('payment_qr_code')) {
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            if (!empty($setting->payment_qr_code)) {
+                $oldPath = $uploadDir . '/' . $setting->payment_qr_code;
+                if (file_exists($oldPath)) {
+                    unlink($oldPath);
+                }
+            }
+
+            $file = $request->file('payment_qr_code');
+            $audience = Invoice_settings::normalizeRecipientType($setting->recipient_type ?? null);
+            $filename = 'payment_qr_' . $audience . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $file->move($uploadDir, $filename);
+            $setting->payment_qr_code = $filename;
         }
     }
 
@@ -3842,7 +4456,7 @@ class AdminController extends Controller
             $user->save();
             return response()->json([
                 'success' => true,
-                'message' => 'Settings updated successfully',
+                'message' => 'Settings updated successfully.',
                 'currency' => $user->currency,
                 'timezone' => $user->timezone
             ]);
@@ -3888,7 +4502,7 @@ class AdminController extends Controller
     {
         $user = $this->check_login();
         if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
 
         $this->set_timezone();
@@ -3910,7 +4524,15 @@ class AdminController extends Controller
         $page = "analytics";
          $countries = Countries::get();
          $affiliates = User::where('user_type', 'Affiliate')->where('name', '!=', 'ADMIN (adwiseri.com)')->pluck('id', 'name');
-        return view('admin.analytics', compact('page', 'user', 'subscribers','countries','affiliates'));
+        $clientVisaChartFilters = [
+            'by_university' => false,
+            'by_course' => false,
+            'by_intake' => false,
+            'by_employer' => false,
+            'by_job_role' => false,
+        ];
+
+        return view('admin.analytics', compact('page', 'user', 'subscribers', 'countries', 'affiliates', 'clientVisaChartFilters'));
     }
 
 
@@ -3919,7 +4541,7 @@ class AdminController extends Controller
 
         $user = $this->check_login();
         if ($user->user_type != "admin" && $user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $affiliates =  User::where('user_type', 'Affiliate')
         // ->withSum('affiliateTotalCommission as total_commission', 'amount_added')
@@ -4123,7 +4745,7 @@ class AdminController extends Controller
                     return !empty($row->getReferralUser->amount_added) ? $row->getReferralUser->amount_added : '' ;
                 })
                 ->editColumn('created_at', function ($row) {
-                    return $row->getReferralUser->created_at->format('d-m-Y');
+                    return $row->getReferralUser->created_at->format('d-m-Y H:i:s');
                 })
 
 
@@ -4174,7 +4796,7 @@ class AdminController extends Controller
                 ->addColumn('transactionDate', function ($row) {
                     // $transaction = AffiliateCommissionEarnt::where('referral_code', $row->referral)->first();
                     // return !empty($transaction) ? $transaction->last_paid_at : '-';
-                    return $row->created_at->format('d-m-Y');
+                    return $row->created_at->format('d-m-Y H:i:s');
                 })
                 ->make(true);
         }
@@ -4197,7 +4819,7 @@ class AdminController extends Controller
     {
         $user = $this->check_login();
         if ($user->user_type != "admin" && $user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $page = "affiliates";
         return view('admin.affiliates_referrals', compact('page', 'user'));
@@ -4206,7 +4828,7 @@ class AdminController extends Controller
     {
         $user = $this->check_login();
         if ($user->user_type != "admin" && $user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $page = "affiliates";
         return view('admin.affiliates_wallet', compact('user', 'page'));
@@ -4305,195 +4927,387 @@ class AdminController extends Controller
     //         }
     //     });
 
-    //     return back()->with('offer_apply', 'Offer applied successfully!');
+    //     return back()->with('offer_apply', 'Offer applied successfully.');
     // }
 
-    public function applyOffer(Request $request)
+    public function applyOffer(Request $request, OfferBenefitService $offerBenefitService)
     {
+        $allOfferTypes = OfferBenefitService::allOfferTypeKeys();
+        $isAutomated = $request->input('offer_mode') === 'automated';
+        $pendingOfferEmails = [];
+        $appliedCount = 0;
+        $offerType = '';
+        $skippedSubscribers = [];
+        $selectedSubscriberCount = 0;
+
+        if (!$isAutomated) {
+            $rawSubscribers = $request->input('subscribers');
+            if ($rawSubscribers !== null && !is_array($rawSubscribers)) {
+                $request->merge(['subscribers' => array_filter([$rawSubscribers])]);
+            }
+        }
+
+        if ($request->input('discount_value') === '' || $request->input('discount_value') === null) {
+            $request->merge(['discount_value' => null]);
+        }
+
+        try {
         $validated = $request->validate([
-            'subscribers' => [
-                'required',
-                'array',
-                function ($attribute, $value, $fail) {
-                    $selectedSubscribers = collect($value)
-                        ->filter(fn ($subscriberId) => $subscriberId !== null && $subscriberId !== '')
-                        ->values();
-
-                    if (!$selectedSubscribers->contains(fn ($subscriberId) => strtolower((string) $subscriberId) === 'all') && $selectedSubscribers->isEmpty()) {
-                        $fail('Please select at least one subscriber.');
-                    }
-                },
-            ],
+            'offer_mode' => 'required|string|in:manual,automated',
+            'subscribers' => $isAutomated ? 'nullable|array' : 'required|array|min:1',
             'subscribers.*' => [
+                'required',
                 function ($attribute, $value, $fail) {
-                    if (strtolower((string) $value) === 'all') {
-                        return;
-                    }
-
-                    if (!User::where('id', $value)->where('user_type', 'Subscriber')->exists()) {
+                    if (!User::where('id', $value)->exists()) {
                         $fail('Invalid subscriber selected.');
                     }
                 },
             ],
-            'discount_type' => 'required|string|in:cashback,one_off,double_term',
-            'discount_value' => 'nullable|numeric|min:1|required_if:discount_type,cashback,one_off',
-            'subscriber_type' => 'required|string|in:new,existing',
-            'offer_start_date' => 'required_if:subscriber_type,new|nullable|date',
-            'offer_end_date' => 'required_if:subscriber_type,new|nullable|date|after_or_equal:offer_start_date',
+            'discount_type' => ['required', 'string', Rule::in($allOfferTypes)],
+            'discount_value' => [
+                'nullable',
+                'numeric',
+                'min:1',
+                Rule::requiredIf(fn () => OfferBenefitService::requiresDiscountAmount((string) $request->input('discount_type'))),
+            ],
+            'subscriber_type' => 'required|string|in:existing,loyal,new',
+            'applicable_plans' => $isAutomated ? 'required|array|min:1' : 'nullable|array',
+            'applicable_plans.*' => [
+                'required',
+                'string',
+                Rule::in(OfferBenefitService::applicablePlanOptionKeys()),
+            ],
+            'offer_start_date' => $isAutomated
+                ? ['required', 'date_format:d-m-Y']
+                : 'nullable',
+            'offer_end_date' => $isAutomated
+                ? ['required', 'date_format:d-m-Y']
+                : 'nullable',
+        ], [
+            'subscribers.required' => 'Please select at least one subscriber.',
+            'subscribers.min' => 'Please select at least one subscriber.',
+            'discount_type.in' => 'Please select a valid offer type.',
+            'discount_value.required' => 'Please enter a credit amount of at least 1.',
+            'discount_value.min' => 'Credit amount must be at least 1.',
+            'applicable_plans.required' => 'Please select at least one plan under Applicable on (Plan).',
+            'applicable_plans.min' => 'Please select at least one plan under Applicable on (Plan).',
         ]);
 
-        $subscribe = collect($validated['subscribers'])
-            ->filter(fn ($subscriberId) => $subscriberId !== null && $subscriberId !== '')
-            ->values();
+        $offerMode = $validated['offer_mode'];
+        $subscribe = $validated['subscribers'] ?? [];
         $type = $validated['discount_type'];
-        $value = isset($validated['discount_value']) ? (float) $validated['discount_value'] : null;
+        $offerType = $type;
+        $value = $validated['discount_value'] ?? null;
         $subscriberType = $validated['subscriber_type'];
-        $offerStartDate = $validated['offer_start_date'] ?? null;
-        $offerEndDate = $validated['offer_end_date'] ?? null;
-        $subscriberData = [];
-        $skippedSubscribers = [];
+        $applicablePlans = OfferBenefitService::normalizeApplicablePlans($validated['applicable_plans'] ?? null);
+        $offerStartDate = OfferBenefitService::normalizeStorageDate($validated['offer_start_date'] ?? null);
+        $offerEndDate = OfferBenefitService::normalizeStorageDate($validated['offer_end_date'] ?? null);
 
-        $subscriberQuery = User::where('user_type', 'Subscriber');
+        if ($isAutomated) {
+            $startCarbon = Carbon::createFromFormat('d-m-Y', $validated['offer_start_date'])->startOfDay();
+            $endCarbon = Carbon::createFromFormat('d-m-Y', $validated['offer_end_date'])->startOfDay();
+            $today = now()->startOfDay();
 
-        if (!$subscribe->contains(fn ($subscriberId) => strtolower((string) $subscriberId) === 'all')) {
-            $subscriberQuery->whereIn('id', $subscribe->all());
+            if ($startCarbon->lt($today)) {
+                return response()->json(['message' => 'Start date cannot be before today.'], 422);
+            }
+
+            if ($endCarbon->lt($today)) {
+                return response()->json(['message' => 'End date cannot be before today.'], 422);
+            }
+
+            if ($endCarbon->lt($startCarbon)) {
+                return response()->json(['message' => 'End date cannot be earlier than start date.'], 422);
+            }
         }
 
-        if ($subscriberType === 'new') {
-            $subscriberQuery->whereBetween('created_at', [
-                Carbon::parse($offerStartDate)->startOfDay(),
-                Carbon::parse($offerEndDate)->endOfDay(),
+        if ($offerMode === 'manual') {
+            $validityDates = $offerBenefitService->manualOfferValidityDates($type);
+            $offerStartDate = $validityDates['offer_start_date'];
+            $offerEndDate = $validityDates['offer_end_date'];
+        }
+
+        if ($isAutomated) {
+            if (!$offerBenefitService->isAutomatedType($type)) {
+                return response()->json([
+                    'message' => 'Automated offers support automated offer types only.',
+                ], 422);
+            }
+
+            if ($offerBenefitService->hasDuplicateAutomatedCampaign($type, $subscriberType, $offerStartDate, $offerEndDate, $applicablePlans)) {
+                return response()->json([
+                    'message' => 'An automated offer of this type already exists for the selected audience and plan(s) with overlapping dates.',
+                ], 422);
+            }
+
+            if ($subscriberType === 'loyal') {
+                $loyalExists = $offerBenefitService->paidSubscribersQuery()
+                    ->where(function ($query) {
+                        $query->where(function ($inner) {
+                            $inner->whereNotNull('membership_start_date')
+                                ->where('membership_start_date', '<=', now()->subYears(5));
+                        })->orWhere(function ($inner) {
+                            $inner->whereNull('membership_start_date')
+                                ->where('created_at', '<=', now()->subYears(5));
+                        });
+                    })
+                    ->get()
+                    ->contains(fn (User $subscriber) => $offerBenefitService->subscriberMatchesApplicablePlans($subscriber, $applicablePlans));
+
+                if (!$loyalExists) {
+                    return response()->json([
+                        'message' => 'There is no subscriber who meets criteria to be termed as "Loyal Subscriber".',
+                    ], 422);
+                }
+            }
+
+            $adminUser = Auth::user();
+
+            $campaignPayload = [
+                'user_id' => null,
+                'discount_type' => $type,
+                'discount_value' => $value,
+                'subscriber_type' => $subscriberType,
+                'offer_start_date' => $offerStartDate,
+                'offer_end_date' => $offerEndDate,
+            ];
+
+            if (Schema::hasColumn('offers', 'applicable_plans')) {
+                $campaignPayload['applicable_plans'] = $applicablePlans;
+            }
+
+            if (Schema::hasColumn('offers', 'applied_by')) {
+                $campaignPayload['applied_by'] = $adminUser?->id;
+                $campaignPayload['applied_by_name'] = $adminUser?->name;
+            }
+
+            Offers::create($campaignPayload);
+
+            $audienceMessages = [
+                'existing' => 'existing paid subscribers during the offer period',
+                'loyal' => 'loyal subscribers (5+ years) during the offer period',
+                'new' => 'new subscribers who register between '
+                    . Carbon::parse($offerStartDate)->format('d-m-Y') . ' and '
+                    . Carbon::parse($offerEndDate)->format('d-m-Y'),
+            ];
+
+            $planScopeLabel = $offerBenefitService->formatApplicablePlansLabel($applicablePlans);
+
+            return response()->json([
+                'message' => 'Automated offer saved.' . "\n\n" . 'It will apply automatically to '
+                    . ($audienceMessages[$subscriberType] ?? 'the selected audience')
+                    . ' on plan(s): ' . $planScopeLabel . '.',
             ]);
         }
 
-        $subscribers = $subscriberQuery->get();
+        $subscriberQuery = $offerBenefitService->paidSubscribersQuery()
+            ->whereIn('id', $subscribe);
+
+        switch ($subscriberType) {
+            case 'loyal':
+                $subscriberQuery->where(function ($query) {
+                    $query->where(function ($inner) {
+                        $inner->whereNotNull('membership_start_date')
+                            ->where('membership_start_date', '<=', now()->subYears(5));
+                    })->orWhere(function ($inner) {
+                        $inner->whereNull('membership_start_date')
+                            ->where('created_at', '<=', now()->subYears(5));
+                    });
+                });
+                break;
+            case 'new':
+                if ($offerStartDate && $offerEndDate) {
+                    $subscriberQuery->whereBetween('created_at', [
+                        Carbon::parse($offerStartDate)->startOfDay(),
+                        Carbon::parse($offerEndDate)->endOfDay(),
+                    ]);
+                } else {
+                    $subscriberQuery->where('created_at', '>=', now()->subDays(90));
+                }
+                break;
+            case 'existing':
+            default:
+                break;
+        }
+
+        $subscribers = $subscriberQuery->orderBy('name')->get()
+            ->filter(fn (User $subscriber) => $offerBenefitService->isEligibleForOfferBenefits($subscriber));
 
         if ($subscribers->isEmpty()) {
+            $message = $subscriberType === 'loyal'
+                ? 'There is no subscriber who meets criteria to be termed as "Loyal Subscriber".'
+                : 'None of the selected subscribers are eligible for discounts and offers. Free plan subscribers cannot receive D & O.';
+
             return response()->json([
-                'message' => 'No subscribers found for the selected criteria.'
+                'message' => $message,
             ], 422);
         }
 
-        DB::transaction(function () use ($subscribers, $type, $value, $subscriberType, $offerStartDate, $offerEndDate, &$subscriberData, &$skippedSubscribers) {
-            foreach ($subscribers as $subscriber) {
-                $debit = 0;
-                $previousBalance = (float) ($subscriber->wallet ?? 0);
-                $walletBalance = $previousBalance;
+        $skippedSubscribers = $offerBenefitService->findIneligibleSubscribersForAdminOfferPicker($subscribers, $type);
+        $eligibleSubscribers = $subscribers->filter(
+            fn (User $subscriber) => $offerBenefitService->subscriberIsEligibleForAdminOfferPicker($subscriber, $type)
+        )->values();
+        $selectedSubscriberCount = $subscribers->count();
 
-                if ($type === 'cashback') {
-                    $member = Membership::where('plan_name', $subscriber->membership)->first();
+        if ($eligibleSubscribers->isEmpty()) {
+            $message = $offerBenefitService->manualOfferIneligibilityMessage($type, $selectedSubscriberCount);
+            $message .= $offerBenefitService->formatSkippedSubscribersMessage($skippedSubscribers, $selectedSubscriberCount);
 
-                    if (!$member || (float) $member->price_per_year <= 0) {
-                        $skippedSubscribers[] = $subscriber->name ?: $subscriber->email ?: ('Subscriber #' . $subscriber->id);
-                        continue;
-                    }
-
-                    $debit = round((float) $member->price_per_year * ($value / 100), 2);
-                    $subscriber->wallet = $previousBalance + $debit;
-                    $walletBalance = (float) $subscriber->wallet;
-                } elseif ($type === 'one_off') {
-                    $debit = round($value, 2);
-                    $subscriber->wallet = $previousBalance + $debit;
-                    $walletBalance = (float) $subscriber->wallet;
-                } elseif ($type === 'double_term') {
-                    $expiryDate = $subscriber->membership_expiry_date
-                        ? Carbon::parse($subscriber->membership_expiry_date)
-                        : Carbon::now();
-                    $subscriber->membership_expiry_date = $expiryDate->addYear()->toDateString();
-                }
-
-                $subscriber->save();
-
-                $offerAttributes = [
-                    'user_id' => $subscriber->id,
-                    'discount_type' => $type,
-                    'discount_value' => $value,
-                ];
-
-                if (Schema::hasColumn('offers', 'subscriber_type')) {
-                    $offerAttributes['subscriber_type'] = $subscriberType;
-                }
-
-                if (Schema::hasColumn('offers', 'offer_start_date')) {
-                    $offerAttributes['offer_start_date'] = $offerStartDate;
-                }
-
-                if (Schema::hasColumn('offers', 'offer_end_date')) {
-                    $offerAttributes['offer_end_date'] = $offerEndDate;
-                }
-
-                $offer = Offers::create($offerAttributes);
-
-                $saveReferral = new Referrals();
-                $saveReferral->referral_code = $subscriber->referral;
-                $saveReferral->userid = $subscriber->id;
-                $saveReferral->user_name = $subscriber->name;
-                $saveReferral->total_amount = $subscriber->wallet;
-                $saveReferral->type = $type;
-                $saveReferral->amount_added = $debit;
-                $saveReferral->offer_id = $offer->id;
-                $saveReferral->previous_balance = $previousBalance;
-                $saveReferral->wallet_balance = $walletBalance;
-                $saveReferral->save();
-
-                $subscriberData[] = [
-                    'name' => $subscriber->name,
-                    'email' => $subscriber->email,
-                    'type' => $type,
-                    'value' => $value,
-                    'credit_amount' => round($debit, 2),
-                    'description' => $type === 'one_off'
-                        ? 'One-off Credit / Offer / Dispute Resolution'
-                        : ($type === 'cashback' ? 'Discount / Cashback' : 'Double Term'),
-                ];
-            }
-        });
-
-        if (empty($subscriberData)) {
             return response()->json([
-                'message' => 'No discounts or offers were applied. Cashback requires each selected subscriber to have a membership plan with a yearly price.',
+                'message' => $message,
                 'skipped_subscribers' => $skippedSubscribers,
             ], 422);
         }
 
-        $mailFailures = 0;
-        foreach ($subscriberData as $subscriber) {
-            try {
-                Mail::send('web.offer_appliedtemplate', $subscriber, function ($message) use ($subscriber) {
-                    $message->to($subscriber['email'])
-                        ->subject('Wallet Credit / Offer Applied');
-                });
-            } catch (\Throwable $exception) {
-                $mailFailures++;
-                Log::warning('Offer applied but notification email failed.', [
-                    'email' => $subscriber['email'] ?? null,
-                    'error' => $exception->getMessage(),
-                ]);
+        $adminUser = Auth::user();
+
+        foreach ($eligibleSubscribers as $subscriber) {
+            if (!$offerBenefitService->isEligibleForOfferBenefits($subscriber)) {
+                continue;
+            }
+
+            if (!$offerBenefitService->subscriberIsEligibleForAdminOfferPicker($subscriber, $type)) {
+                continue;
+            }
+
+            $debit = 0;
+            $wallet_balance = $subscriber->wallet;
+            $previous_balance = $subscriber->wallet;
+            $upgradeContext = null;
+
+            if ($type === 'free_upgrade') {
+                $upgradeContext = $offerBenefitService->applyFreeUpgrade($subscriber);
+                if (!$upgradeContext) {
+                    continue;
+                }
+            } elseif ($type === 'cashback') {
+                $member = Membership::where('plan_name', $subscriber->membership)->first();
+                if (!$member) {
+                    continue;
+                }
+
+                $debit = $member->price_per_year * ($value / 100);
+                $subscriber->wallet += $debit;
+                $wallet_balance = $subscriber->wallet;
+            } elseif ($offerBenefitService->isOneOffCreditType($type)) {
+                $debit = $value;
+                $subscriber->wallet += $value;
+                $wallet_balance = $subscriber->wallet;
+            } else {
+                $offerBenefitService->applyImmediateEffects($subscriber, $type);
+            }
+
+            $offerPayload = [
+                'user_id' => $subscriber->id,
+                'discount_type' => $type,
+                'discount_value' => $value,
+                'subscriber_type' => $subscriberType,
+                'offer_start_date' => $offerStartDate,
+                'offer_end_date' => $offerEndDate,
+            ];
+
+            if ($upgradeContext) {
+                $offerPayload['upgrade_from_plan'] = $upgradeContext['previous_plan'];
+                $offerPayload['upgrade_to_plan'] = $upgradeContext['new_plan'];
+            }
+
+            if (Schema::hasColumn('offers', 'applied_by')) {
+                $offerPayload['applied_by'] = $adminUser?->id;
+                $offerPayload['applied_by_name'] = $adminUser?->name;
+            }
+
+            $offer = Offers::create($offerPayload);
+
+            $referralPayload = [
+                'referral_code' => $subscriber->referral ?? '',
+                'userid' => $subscriber->id,
+                'user_name' => $subscriber->name,
+                'total_amount' => $subscriber->wallet,
+                'type' => $type,
+                'amount_added' => $debit,
+                'offer_id' => $offer->id,
+                'previous_balance' => $previous_balance,
+                'wallet_balance' => $wallet_balance,
+            ];
+
+            if (Schema::hasColumn('referrals', 'applied_by')) {
+                $referralPayload['applied_by'] = $adminUser?->id;
+                $referralPayload['applied_by_name'] = $adminUser?->name;
+            }
+
+            Referrals::create($referralPayload);
+
+            $subscriber->save();
+            $appliedCount++;
+
+            $email = trim((string) ($subscriber->email ?? ''));
+            if ($offerBenefitService->canSendOfferRewardEmail($subscriber)) {
+                try {
+                    $pendingOfferEmails[] = $offerBenefitService->buildOfferRewardMailPayload($subscriber, $type, [
+                        'discount_value' => $value,
+                        'credit_amount' => round($debit, 2),
+                        'previous_plan' => $upgradeContext['previous_plan'] ?? null,
+                        'new_plan' => $upgradeContext['new_plan'] ?? null,
+                    ]);
+                } catch (\Throwable $emailPrepException) {
+                    Log::warning('Offer reward email payload could not be prepared', [
+                        'subscriber_id' => $subscriber->id,
+                        'email' => $email,
+                        'offer_type' => $type,
+                        'error' => $emailPrepException->getMessage(),
+                    ]);
+                }
             }
         }
 
-        $message = 'Offer applied successfully!';
-        if ($mailFailures > 0) {
-            $message .= ' Some notification emails could not be sent, but the discount/offer was saved.';
+        if ($appliedCount === 0) {
+            return response()->json([
+                'message' => 'None of the selected subscribers are eligible for discounts and offers. Free plan subscribers cannot receive D & O.',
+            ], 422);
         }
-        if (!empty($skippedSubscribers)) {
-            $message .= ' Some subscribers were skipped because their membership plan price is missing.';
+
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            throw $exception;
+        } catch (\Throwable $exception) {
+            Log::error('Apply offer failed', [
+                'offer_mode' => $request->input('offer_mode'),
+                'discount_type' => $request->input('discount_type'),
+                'error' => $exception->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Could not apply offer: ' . $exception->getMessage(),
+            ], 422);
+        }
+
+        $emailFailures = [];
+        if (!empty($pendingOfferEmails)) {
+            $emailFailures = $offerBenefitService->sendOfferRewardConfirmationEmails($pendingOfferEmails, $offerType);
+        }
+
+        $message = 'Offer applied successfully.';
+        if ($appliedCount > 0) {
+            $message .= "\n\nApplied to {$appliedCount} / {$selectedSubscriberCount} subscriber(s).";
+        }
+        if (!empty($skippedSubscribers) && $selectedSubscriberCount > 1) {
+            $message .= "\n\n" . $offerBenefitService->manualOfferSkippedSummaryMessage($type, count($skippedSubscribers));
+            $message .= $offerBenefitService->formatSkippedSubscribersMessage($skippedSubscribers, $selectedSubscriberCount);
         }
 
         return response()->json([
             'message' => $message,
-            'processed_subscribers' => count($subscriberData),
+            'processed_subscribers' => $appliedCount,
+            'selected_subscribers' => $selectedSubscriberCount,
             'skipped_subscribers' => $skippedSubscribers,
-            'email_failures' => $mailFailures,
+            'email_failures' => $emailFailures,
         ]);
     }
-    
 
     public function admin_feedback(){
 
         $user = $this->check_login();
         if ($user->user_type != "admin" && $user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $feedbacks = Feedbacks::orderBy('created_at','desc')->get();
         $page = "feedbacks";

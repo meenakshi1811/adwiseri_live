@@ -12,6 +12,9 @@ date_default_timezone_set("Asia/Kolkata");
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
   <link rel="stylesheet" href="{{ asset('web_assets/css/style.css') }}">
+  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-responsive.css') }}">
+  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-tabs.css') }}">
+  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-alerts.css') }}">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,6 +32,7 @@ date_default_timezone_set("Asia/Kolkata");
   <link rel="stylesheet" href="{{ asset('web_assets/css/owl.carousel.css') }}">
   <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="{{ asset('web_assets/js/adwiseri-alerts.js') }}"></script>
   <script src="https://cdn.anychart.com/releases/8.0.1/js/anychart-core.min.js"></script>
   <script src="https://cdn.anychart.com/releases/8.0.1/js/anychart-pie.min.js"></script>
 
@@ -85,6 +89,8 @@ select.form-control {
 }
 
   </style>
+
+  @include('partials.intl_phone_assets')
 
 </head>
 

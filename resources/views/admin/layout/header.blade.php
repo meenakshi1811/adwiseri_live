@@ -9,6 +9,9 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
   <link rel="stylesheet" href="{{ asset('admin_assets/css/style.css') }}">
+  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-responsive.css') }}">
+  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-tabs.css') }}">
+  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-alerts.css') }}">
   {{-- <link rel="stylesheet" href="{{ asset('admin_assets/css/select2.min.css') }}"> --}}
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,6 +30,8 @@
   <link rel="stylesheet" href="{{ asset('web_assets/css/owl.carousel.css') }}">
   <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+  @include('partials.intl_phone_assets')
 
   <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
@@ -62,13 +67,18 @@
         float: none;
     } */
     .tab-anchor {
-    cursor: pointer; /* Show hand cursor when hovering */
+    cursor: pointer;
 }
 
-/* Optional: change background color or text color on hover */
     .tab-anchor:hover {
-        background-color: #17CFCF; /* Example: Change background color on hover */
-        color: white; /* Change text color if needed */
+        background-color: #564BB0 !important;
+        color: white !important;
+    }
+
+    .tab-anchor.bg-info,
+    .bg-info.text-white {
+        background-color: #695EEE !important;
+        color: #fff !important;
     }
     /* .form-control,
      .form-control:focus,
@@ -97,6 +107,7 @@ select.form-control {
     font-family: 'Lato', sans-serif !important;
 }
   </style>
+  @stack('css')
 
 </head>
 

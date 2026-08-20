@@ -17,7 +17,13 @@ class Client_Docs extends Model
         'voter_card',
         'bank_passbook',
         'electricity_bill',
-        'application_id'
+        'application_id',
+        'doc_folder',
+        'doc_folders',
+    ];
+
+    protected $casts = [
+        'doc_folders' => 'array',
     ];
     public function client(){
         return $this->belongsTo(Clients::class,'client_id');

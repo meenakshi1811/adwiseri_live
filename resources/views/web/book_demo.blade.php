@@ -21,7 +21,7 @@
                         @enderror
                     </div>
                     <div class="col-md-6 mb-4">
-                        <input name="phone" type="text" pattern="\d*" minlength="9" maxlength="12" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone') }}" required placeholder="Phone Number" autocomplete="phone">
+                        <input name="phone" type="tel" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone') }}" required placeholder="Phone Number" autocomplete="phone">
                         @error('phone')
                             <span class="invalid-feedback" role="alert">
                                 <strong>{{ $message }}</strong>
@@ -42,9 +42,10 @@
                     <div class="col-md-6 mb-4">
                         <select name="country" class="form-control form-select @error('country') is-invalid @enderror" required>
                             <option value="">Select Country</option>
-                            @foreach($countries as $country)
-                                <option {{ (old('country') == $country->country_name) ? 'selected' : '' }} value="{{ $country->country_name }}">{{ $country->country_name }}</option>
-                            @endforeach
+                            @include('partials.country_select_options_by_name', [
+                                'countries' => $countries,
+                                'phoneForPrefill' => old('phone'),
+                            ])
                         </select>
                         @error('country')
                             <span class="invalid-feedback" role="alert">
@@ -135,7 +136,7 @@
 @error('g-recaptcha-response')
 <script>
    Swal.fire({
-          icon: 'error',
+          icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
           title: 'Oops!',
           text: 'Please complete the reCAPTCHA to proceed.',
       });
@@ -187,7 +188,7 @@
         }else if (!recaptchaResponse) {
             event.preventDefault(); // Prevent form submission
             Swal.fire({
-                icon: 'error',
+                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
                 title: 'Oops!',
                 text: 'Please complete the reCAPTCHA to proceed.',
             });

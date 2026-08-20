@@ -69,7 +69,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Client Deleted Successfully!'
+        text: 'Chat deleted successfully.'
       })
     </script>
   

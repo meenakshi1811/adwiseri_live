@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use App\Services\ErrorLogService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
@@ -23,7 +24,7 @@ class Handler extends ExceptionHandler
      * @var array<int, class-string<Throwable>>
      */
     protected $dontReport = [
-        //
+        ValidationException::class,
     ];
 
     /**
@@ -45,7 +46,7 @@ class Handler extends ExceptionHandler
     public function register()
     {
         $this->reportable(function (Throwable $e) {
-            //
+            app(ErrorLogService::class)->log($e, request());
         });
     }
 
@@ -58,8 +59,20 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $e)
     {
-        if ($e instanceof TokenMismatchException && !$request->expectsJson()) {
+        $wantsJson = $request->expectsJson() || $request->ajax();
+
+        if ($e instanceof TokenMismatchException) {
             Auth::logout();
+
+            if ($wantsJson) {
+                return response()->json([
+                    'message' => 'Your session has expired. Please refresh the page and try again.',
+                    'error' => [
+                        'code' => SymfonyResponse::HTTP_PAGE_EXPIRED,
+                        'message' => 'Your session has expired. Please refresh the page and try again.',
+                    ],
+                ], SymfonyResponse::HTTP_PAGE_EXPIRED);
+            }
 
             return redirect()
                 ->route('login')
@@ -68,11 +81,26 @@ class Handler extends ExceptionHandler
                 ]);
         }
 
-        $statusCode = $this->resolveStatusCode($e);
-        $message = $this->resolveErrorMessage($e, $statusCode);
+        if ($e instanceof ValidationException && $wantsJson) {
+            $errors = $e->errors();
+            $firstMessage = collect($errors)->flatten()->first();
 
-        if ($request->expectsJson()) {
             return response()->json([
+                'message' => $firstMessage ?: 'The given data was invalid.',
+                'errors' => $errors,
+            ], $e->status);
+        }
+
+        if ($e instanceof ValidationException || $e instanceof AuthenticationException) {
+            return parent::render($request, $e);
+        }
+
+        $statusCode = $this->resolveStatusCode($e);
+        $message = $this->resolveErrorMessage($e, $statusCode, $request);
+
+        if ($wantsJson) {
+            return response()->json([
+                'message' => $message,
                 'error' => [
                     'code' => $statusCode,
                     'message' => $message,
@@ -129,8 +157,12 @@ class Handler extends ExceptionHandler
     /**
      * Resolve a safe, user-facing error message.
      */
-    private function resolveErrorMessage(Throwable $e, int $statusCode): string
+    private function resolveErrorMessage(Throwable $e, int $statusCode, $request): string
     {
+        if ($this->isClientFacingRequest($request)) {
+            return $this->maskedClientMessage($statusCode);
+        }
+
         if ($e instanceof HttpExceptionInterface && !empty($e->getMessage())) {
             return $e->getMessage();
         }
@@ -140,5 +172,39 @@ class Handler extends ExceptionHandler
         }
 
         return SymfonyResponse::$statusTexts[$statusCode] ?? 'An unexpected error occurred.';
+    }
+
+    /**
+     * Mask technical errors on subscriber/client/public screens.
+     */
+    private function isClientFacingRequest($request): bool
+    {
+        $user = $request->user();
+
+        if ($user && strtolower((string) $user->user_type) === 'admin') {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Generic messages shown to non-admin users.
+     */
+    private function maskedClientMessage(int $statusCode): string
+    {
+        $messages = [
+            SymfonyResponse::HTTP_BAD_REQUEST => 'The request could not be processed. Please check your input and try again.',
+            SymfonyResponse::HTTP_UNAUTHORIZED => 'You are not authorized to access this page.',
+            SymfonyResponse::HTTP_FORBIDDEN => 'You do not have permission to perform this action.',
+            SymfonyResponse::HTTP_NOT_FOUND => 'The page you are looking for could not be found.',
+            SymfonyResponse::HTTP_METHOD_NOT_ALLOWED => 'This action is not allowed.',
+            SymfonyResponse::HTTP_PAGE_EXPIRED => 'Your session has expired. Please refresh the page and try again.',
+            SymfonyResponse::HTTP_TOO_MANY_REQUESTS => 'Too many requests. Please wait a moment and try again.',
+            SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR => 'Something went wrong. Please try again later.',
+            SymfonyResponse::HTTP_SERVICE_UNAVAILABLE => 'The service is temporarily unavailable. Please try again later.',
+        ];
+
+        return $messages[$statusCode] ?? 'Something went wrong. Please try again later.';
     }
 }

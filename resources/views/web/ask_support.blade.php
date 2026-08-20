@@ -104,7 +104,7 @@
                             <td class="text-wrap text-center">{{ $tic->issue }}</td>
                             <td class="text-center">{{ $tic->support }}</td>
                             <td class="text-center">{{ $tic->status }}</td>
-                            <td class="text-center">{{ date("d-m-Y", strtotime($tic->created_at)) }}</td>
+                            <td class="text-center">{{ date("d-m-Y H:i:s", strtotime($tic->created_at)) }}</td>
                             <td class="text-center">
                                 <a style="background:none; border:none;" onclick="window.location.href = '{{ route('my_query', $tic->id) }}';" class="m-0 p-0"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>
                             </td>
@@ -132,9 +132,9 @@
         var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.JPG|\.JPEG|\.PNG)$/i;
         if (!allowedExtensions.exec(filepath)) {
             Swal.fire({
-                title: "Oops..",
-                icon: "info",
-                html: "Please select valid file format <br>( jpg, jpeg, png )"
+                title: "Oops!",
+                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                html: "Please select a valid file format.<br>(jpg, jpeg, png)"
             });
             $(this).val("");
             return false;
@@ -142,9 +142,9 @@
         const size = (this.files[0].size / 1024 / 1024).toFixed(2);
         if (size > 4) {
             Swal.fire({
-                title: "Oops..",
-                icon: "info",
-                html: "Please select file upto 4MB"
+                title: "Oops!",
+                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                html: "Please select a file up to 4 MB."
             });
             $(this).val("");
             return false;
@@ -182,8 +182,8 @@
 @if($errors->has('attachment'))
 <script>
     Swal.fire({
-        title: 'Oops..',
-        icon: 'info',
+        title: 'Oops!',
+        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
         html: @json($errors->first('attachment'))
     });
 </script>
@@ -194,7 +194,7 @@
     Swal.fire({
         icon: 'success',
         title: 'Your support request received.',
-        text: 'someone from relevant team will be in touch soon.',
+        text: 'Someone from the relevant team will be in touch soon.',
     })
   </script>
 

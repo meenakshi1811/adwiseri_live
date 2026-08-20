@@ -54,6 +54,32 @@
         text-decoration: none;
         cursor: pointer;
     }
+
+    #myModal {
+        z-index: 1050;
+    }
+
+    #myModal .modal-dialog,
+    #myModal .modal-content,
+    #myModal .modal-body {
+        overflow: visible;
+    }
+
+    #myModal .app-date-field-wrap {
+        position: relative;
+    }
+
+    #myModal .app-date-field-wrap .flatpickr-calendar {
+        position: relative !important;
+        top: 0 !important;
+        left: 0 !important;
+        margin-top: 4px;
+        box-shadow: 0 3px 13px rgba(0, 0, 0, 0.08);
+    }
+
+    .flatpickr-calendar.open {
+        z-index: 10000;
+    }
 </style>
 
 @section('main-section')
@@ -68,7 +94,7 @@
                     {{-- <a href="{{ route('clients_export') }}" class="m-0">Export</a> --}}
                     <a href="{{ route('new_client') }}" class="m-0">Add Client</a>
                     <a href="javascript:void(0)" id="AddApplication" class="btn btn-primary">Add Application</a>
-                    <a href="javascript:void(0)" id="AddDependent" class="m-0">Add Spouse/Dependant</a>
+                    <a href="javascript:void(0)" id="AddDependent" class="m-0">Add Dependent</a>
                 </p>
 
 
@@ -161,17 +187,19 @@
                                         <div class="row">
                                             <div class="col-md-6 mb-3">
                                                 <label for="app_start_date" class="form-label">Application Start Date <span class="text-danger" style="font-size: 18px;">*</span></label>
+                                                <div class="app-date-field-wrap">
                                                     <input name="job_open_date" type="text"
-                                                    class="form-control date @error('job_open_date') is-invalid @enderror"
-                                                    id="job_open_date"
+                                                    class="form-control app-modal-datepicker @error('job_open_date') is-invalid @enderror"
+                                                    id="app_modal_job_open_date"
+                                                    data-calendar-init="1"
                                                     aria-describedby="emailHelp"
-                                                    value="{{ old('payment_date') ? date('Y-m-d', strtotime(old('job_open_date'))) : null }}"
-                                                    placeholder="Application Start Date"
-                                                    autocomplete="job_open_date"
-                                                    {{-- max={{ date('Y-m-d')}} --}}
+                                                    value="{{ old('job_open_date') ? date('d-m-Y', strtotime(old('job_open_date'))) : '' }}"
+                                                    placeholder="DD-MM-YYYY"
+                                                    autocomplete="off"
+                                                    inputmode="numeric"
                                                     required
-                                                    max="{{date('Y-m-d')}}"
                                                     />
+                                                </div>
                                                 @error('job_open_date')
                                                 <span class="invalid-feedback">
                                                     <strong>{{ $message }}</strong>
@@ -180,19 +208,18 @@
                                             </div>
                                             <div class="col-md-6 mb-3">
                                                 <label for="app_end_date" class="form-label">Application End Date </label>
-                                                {{-- <input name="job_completion_date" type="date" id="app_end_date"
-                                                    class="form-control @error('job_completion_date') is-invalid @enderror"> --}}
+                                                <div class="app-date-field-wrap">
                                                     <input name="job_completion_date" type="text"
-                                                    class="form-control date @error('job_completion_date') is-invalid @enderror"
-                                                    id="job_completion_date"
+                                                    class="form-control app-modal-datepicker @error('job_completion_date') is-invalid @enderror"
+                                                    id="app_modal_job_completion_date"
+                                                    data-calendar-init="1"
                                                     aria-describedby="emailHelp"
-                                                    value="{{ old('job_completion_date') ? date('Y-m-d', strtotime(old('job_completion_date'))) : null }}"
-
-                                                    placeholder="Application End Date"
-                                                    autocomplete="job_completion_date"
-                                                     max="{{date('Y-m-d')}}"
-                                                    readonly
+                                                    value="{{ old('job_completion_date') ? date('d-m-Y', strtotime(old('job_completion_date'))) : date('d-m-Y') }}"
+                                                    placeholder="DD-MM-YYYY"
+                                                    autocomplete="off"
+                                                    inputmode="numeric"
                                                     />
+                                                </div>
                                                 @error('job_completion_date')
                                                 <span class="invalid-feedback">
                                                     <strong>{{ $message }}</strong>
@@ -209,9 +236,6 @@
                                                 <option value="">Select Application Status</option>
                                                 <option {{ (old('job_status') == "Registration") ? 'selected':'' }} value="Registration">Registration</option>
                                                 <option {{ (old('job_status') == "Applied") ? 'selected':'' }} value="Applied">Applied</option>
-                                                <option {{ (old('job_status') == "Pending") ? 'selected':'' }} value="Pending">Pending (For submission)</option>
-                                                <option {{ (old('job_status') == "In Process") ? 'selected':'' }} value="In Process">In Process (Waiting for decision)</option>
-                                                <option {{ (old('job_status') == "Complete") ? 'selected':'' }} value="Complete">Completed (Application/Appeal decision received)</option>
                                                 <option {{ (old('job_status') == "Cancelled") ? 'selected':'' }} value="Cancelled">Cancelled (Application/Appeal Cancelled by Consultancy/Authorities)</option>
                                                 <option {{ (old('job_status') == "Withdrawn") ? 'selected' : '' }} value="Withdrawn">Withdrawn (Application/Appeal Withdrawn by Client)</option>
                                             </select>
@@ -251,7 +275,7 @@
                             <div class="modal-content">
                                 <!-- Modal Header -->
                                 <div class="modal-header">
-                                    <h5 class="modal-title text-primary">Add Spouse/Dependant</h5>
+                                    <h5 class="modal-title text-primary">Add Dependant</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
 
@@ -292,7 +316,7 @@
                                         <!-- Application Type -->
                                         <div class="mb-3">
                                             <label for="name" class="form-label">Name <span class="text-danger" style="font-size: 18px;">*</span></label>
-                                            <input name="name" type="text" id="app_end_date" placeholder="Spouse/Dependant Name"
+                                            <input name="name" type="text" id="app_end_date" placeholder="Dependant Name"
                                                     class="form-control @error('name') is-invalid @enderror">
                                             @error('name')
                                             <span class="invalid-feedback">
@@ -385,7 +409,7 @@
 
                                         <!-- Submit Button -->
                                         <div class="d-grid">
-                                            <button type="submit" class="btn btn-success">Add Spouse/Dependant</button>
+                                            <button type="submit" class="btn btn-success">Add Dependant</button>
                                         </div>
                                     </form>
                                 </div>
@@ -437,12 +461,12 @@
                                         {{ $client->email }}
                                     @endif
                                 </td>
-                                <td class="text-center">{{ $client->phone }}</td>
+                                <td class="text-center">@include('partials.phone_display', ['phone' => $client->phone])</td>
                                 <td class="text-center">{{ $client->country }}</td>
                                 {{-- <td>{{ $client->subscriber_id }}</td> --}}
                                 <td class="text-center"> {{ $client->applications ? $client->applications->count() ?? 'No' : 'No User' }}
                                 </td>
-                                <td class="text-center">{{ \Carbon\Carbon::parse($client->created_at)->format('d-m-Y') }}</td>
+                                <td class="text-center">{{ \Carbon\Carbon::parse($client->created_at)->format('d-m-Y H:i:s') }}</td>
                                 <td class="text-center">
                                     <a style="background:transparent;border:none;" class="p-0 m-0 text-dark"
                                         href="{{ route('view_client', $client->id) }}"><i
@@ -477,7 +501,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Client Deleted Successfully!'
+                text: 'Client deleted successfully.'
             })
         </script>
     @endif
@@ -486,7 +510,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'New Client Added Successfully!'
+                text: 'Client added successfully.'
             })
         </script>
     @endif
@@ -495,7 +519,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Client Updated Successfully!'
+                text: 'Client updated successfully.'
             })
         </script>
     @endif
@@ -517,10 +541,10 @@ function validateInput(input) {
         function deleteclient(id) {
             Swal.fire({
                 title: 'Are you sure?',
-                text: "You won't be able to revert this!",
+                text: "This action cannot be undone.",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#3085d6',
+                confirmButtonColor: '#695EEE',
                 cancelButtonColor: '#d33',
                 confirmButtonText: 'Yes, delete it!'
             }).then((result) => {
@@ -528,7 +552,7 @@ function validateInput(input) {
                     window.location.href = "delete_clients/" + id + "";
                 }
             })
-            // var conf = confirm('Delete Client');
+            // var conf = confirm('Are you sure you want to delete this client?');
             // if(conf == true){
             //     window.location.href = "delete_clients/"+id+"";
             // }
@@ -537,12 +561,12 @@ function validateInput(input) {
         function updateclient(id) {
             Swal.fire({
                 title: 'Are you sure?',
-                text: "You want to update record!",
+                text: "Do you want to update this record?",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#3085d6',
+                confirmButtonColor: '#695EEE',
                 cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes'
+                confirmButtonText: 'Yes, continue'
             }).then((result) => {
                 if (result.isConfirmed) {
                     window.location.href = "client_update/" + id + "";
@@ -560,6 +584,9 @@ var closeButtons = document.querySelectorAll(".btn-close, .close");
 // Open modal on button click
 btn.onclick = function () {
     modal.style.display = "block";
+    if (typeof window.initApplicationModalDatePickers === 'function') {
+        window.initApplicationModalDatePickers();
+    }
 };
 
 // (Optional) Open affiliate modal on button click
@@ -617,100 +644,49 @@ window.onclick = function (event) {
 };
 
         $(document).ready(function() {
-            // Get the modal
-            const endDateEditableStatuses = ["Decision", "Complete", "Withdrawn", "Cancelled"];
+            const applicationDatePickers = { start: null, end: null };
 
-            function parseClientDateValue(value) {
-                if (!value) {
-                    return null;
-                }
-
-                var parts;
-
-                if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-                    parts = value.split('-');
-                    return new Date(parts[0], parts[1] - 1, parts[2]);
-                }
-
-                if (/^\d{2}-\d{2}-\d{4}$/.test(value)) {
-                    parts = value.split('-');
-                    return new Date(parts[2], parts[1] - 1, parts[0]);
-                }
-
-                var parsedDate = new Date(value);
-                return isNaN(parsedDate.getTime()) ? null : parsedDate;
+            function getFlatpickrOptions(input, extraOptions) {
+                return Object.assign({
+                    dateFormat: "d-m-Y",
+                    allowInput: true,
+                    clickOpens: true,
+                    disableMobile: true,
+                    maxDate: "today",
+                    static: true,
+                    appendTo: input.parentElement,
+                    defaultDate: input.value || null
+                }, extraOptions || {});
             }
 
-            function isFutureClientDate(value) {
-                var inputDate = parseClientDateValue(value);
+            window.initApplicationModalDatePickers = function() {
+                var startInput = document.getElementById('app_modal_job_open_date');
+                var endInput = document.getElementById('app_modal_job_completion_date');
 
-                if (!inputDate) {
-                    return false;
+                if (!startInput || !endInput || typeof flatpickr === 'undefined') {
+                    return;
                 }
 
-                var today = new Date();
-                today.setHours(0, 0, 0, 0);
-                inputDate.setHours(0, 0, 0, 0);
-
-                return inputDate > today;
-            }
-
-            function toggleApplicationEndDateReadonly() {
-                var currentStatus = $("#job_status").val();
-                var shouldEnableEndDate = endDateEditableStatuses.includes(currentStatus);
-                $("#job_completion_date").prop("readonly", !shouldEnableEndDate);
-            }
-
-            $("#job_open_date").on("change", function () {
-                var startDate = $(this).val(); // Get the selected start date
-                var $endDateInput = $("#job_completion_date");
-
-                // Update the min attribute of the end date
-                $endDateInput.attr("min", startDate);
-                if ($endDateInput[0] && $endDateInput[0]._flatpickr) {
-                    $endDateInput[0]._flatpickr.set('minDate', startDate);
-                }
-
-                // If the current end date is less than the start date, clear it
-                var startDateValue = parseClientDateValue(startDate);
-                var endDateValue = parseClientDateValue($endDateInput.val());
-                if (startDateValue && endDateValue && endDateValue < startDateValue) {
-                    $endDateInput.val("");
-                    if ($endDateInput[0] && $endDateInput[0]._flatpickr) {
-                        $endDateInput[0]._flatpickr.clear();
+                [startInput, endInput].forEach(function(input) {
+                    input.type = 'text';
+                    input.readOnly = false;
+                    if (input._flatpickr) {
+                        input._flatpickr.destroy();
                     }
-                }
-             });
+                });
 
-             $("#job_status").on("change", function () {
-                toggleApplicationEndDateReadonly();
-             });
+                applicationDatePickers.start = flatpickr(startInput, getFlatpickrOptions(startInput, {
+                    onChange: function(selectedDates, dateStr) {
+                        if (applicationDatePickers.end) {
+                            applicationDatePickers.end.set('minDate', dateStr || null);
+                        }
+                    }
+                }));
 
-             toggleApplicationEndDateReadonly();
-             document.getElementById('job_open_date').addEventListener('change', function () {
-        var inputField = this;
-        // Check if the input date is in the future
-        if (isFutureClientDate(inputField.value)) {
-            inputField.value = ""; // Clear the invalid value
-            inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
-            inputField.classList.add('is-invalid'); // Add red border for invalid input
-        } else {
-            inputField.classList.remove('is-invalid'); // Remove error state
-            inputField.placeholder = "Application Start Date"; // Reset placeholder
-        }
-    });
-     document.getElementById('job_completion_date').addEventListener('change', function () {
-        var inputField = this;
-        // Check if the input date is in the future
-        if (isFutureClientDate(inputField.value)) {
-            inputField.value = ""; // Clear the invalid value
-            inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
-            inputField.classList.add('is-invalid'); // Add red border for invalid input
-        } else {
-            inputField.classList.remove('is-invalid'); // Remove error state
-            inputField.placeholder = "Application End Date"; // Reset placeholder
-        }
-    });
+                applicationDatePickers.end = flatpickr(endInput, getFlatpickrOptions(endInput, {
+                    defaultDate: endInput.value || "today"
+                }));
+            };
     document.getElementById('dob').addEventListener('change', function () {
         var inputField = this;
         var inputDate = new Date(inputField.value); // Get the selected date
@@ -719,7 +695,7 @@ window.onclick = function (event) {
         // Check if the input date is in the future
         if (inputDate > today) {
             inputField.value = ""; // Clear the invalid value
-            inputField.placeholder = "Future dates are not allowed!"; // Show error in the placeholder
+            inputField.placeholder = "Future dates are not allowed."; // Show error in the placeholder
             inputField.classList.add('is-invalid'); // Add red border for invalid input
         } else {
             inputField.classList.remove('is-invalid'); // Remove error state
@@ -742,9 +718,9 @@ window.onclick = function (event) {
                         //   console.log(data);
                         if (data.limit == 'full') {
                             Swal.fire({
-                                icon: 'warning',
-                                title: 'Oops..',
-                                text: 'Client limit reached for this Subscriber!'
+                                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                                title: 'Oops!',
+                                text: 'Client limit reached for this subscriber.'
                             });
                             setTimeout(function() {
                                 window.location.reload();
@@ -770,41 +746,49 @@ window.onclick = function (event) {
             });
 
             $("#add-clients-app").change(function() {
-                var selectedOption = $(this).find(":selected"); // Get the selected option
-                var id = selectedOption.data("subscriberid"); //
-                var name = 'subscriber';
-                // console.log(counrty);
+                var clientId = $(this).val();
+                if (!clientId) {
+                    $("#job_role").html('<option value="">Select Application Type</option>');
+                    return;
+                }
+
                 $.ajax({
-                    url: 'get_job_role',
+                    url: "{{ route('get_job_role') }}",
                     method: 'POST',
                     data: {
                         "_token": "{{ csrf_token() }}",
-                        id: id,
-                        name: name,
+                        id: clientId,
                     },
                     cache: false,
                     success: function(data) {
-                        console.log(data);
                         $("#job_role").html(data);
+                    },
+                    error: function() {
+                        $("#job_role").html('<option value="">Select Application Type</option>');
                     }
                 });
             });
             $("#subscriber").change(function() {
                 var id = $(this).val();
-                var name = 'subscriber';
-                // console.log(counrty);
+                if (!id) {
+                    $("#job_role").html('<option value="">Select Application Type</option>');
+                    return;
+                }
+
                 $.ajax({
-                    url: 'get_job_role',
+                    url: "{{ route('get_job_role') }}",
                     method: 'POST',
                     data: {
                         "_token": "{{ csrf_token() }}",
                         id: id,
-                        name: name,
+                        name: 'subscriber',
                     },
                     cache: false,
                     success: function(data) {
-                        console.log(data);
                         $("#job_role").html(data);
+                    },
+                    error: function() {
+                        $("#job_role").html('<option value="">Select Application Type</option>');
                     }
                 });
             });
@@ -832,8 +816,8 @@ window.onclick = function (event) {
                     error: function(xhr) {
                         Swal.fire({
                             icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to add client application !',
+                            title: 'Oops!',
+                            text: 'Failed to save dependant details.',
                         });
                     },
                 });
@@ -861,8 +845,8 @@ window.onclick = function (event) {
                     error: function(xhr) {
                         Swal.fire({
                             icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to add client application !',
+                            title: 'Oops!',
+                            text: 'Failed to save application details.',
                         });
                     },
                 });

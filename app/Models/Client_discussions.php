@@ -4,11 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Concerns\BelongsToCurrentSubscriber;
 
 class Client_discussions extends Model
 {
-    use HasFactory, BelongsToCurrentSubscriber;
+    use HasFactory;
     protected $table = "client_discussions";
     protected $primaryKey = "id";
     protected $fillable = [
@@ -25,5 +24,9 @@ class Client_discussions extends Model
 
     public function user(){
         return $this->belongsTo(User::class,'user_id');
+    }
+
+    public function application(){
+        return $this->belongsTo(Applications::class, 'application_id', 'application_id');
     }
 }

@@ -24,7 +24,7 @@
                             <label>Phone<span class="text-danger" style="font-size: 18px;">*</span></label>
                         </div>
                         <div class="col-md-8 p-1">
-                            <input name="phone" type="text" pattern="\d*" minlength="9" maxlength="12" class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('phone') }}" required placeholder="Phone Number" autocomplete="phone">
+                            <input name="phone" type="tel" class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('phone') }}" required placeholder="Phone Number" autocomplete="phone">
                             @error('phone')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -60,7 +60,10 @@
                             <select name="designation" class="form-control form-select @error('designation') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required autocomplete="designation">
                                 <option value="">Select Designation/Role</option>
                                 <option {{(old('designation') == "Branch Manager") ? 'selected':''}} value="Branch Manager">Branch Manager</option>
+                                <option {{(old('designation') == "Solicitor Partner") ? 'selected':''}} value="Solicitor Partner">Solicitor Partner</option>
+                                <option {{(old('designation') == "Associate Solicitor") ? 'selected':''}} value="Associate Solicitor">Associate Solicitor</option>
                                 <option {{(old('designation') == "Consultant/Advisor") ? 'selected':''}} value="Consultant/Advisor">Consultant/Advisor</option>
+                                <option {{(old('designation') == "Para-legal Team") ? 'selected':''}} value="Para-legal Team">Para-legal Team</option>
                                 <option {{(old('designation') == "Administrator") ? 'selected':''}} value="Administrator">Administrator</option>
                                 <option {{(old('designation') == "HR Executive") ? 'selected':''}} value="HR Executive">HR Executive</option>
                                 <option {{(old('designation') == "Sales Team Member") ? 'selected':''}} value="Sales Team Member">Sales Team Member</option>
@@ -80,9 +83,10 @@
                         <div class="col-md-8 p-1">
                             <select name="country" id="country" class="form-control form-select @error('country') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
                                 <option value="">Select Country</option>
-                                @foreach($countries as $country)
-                                <option {{($country->id == old('country')) ? 'selected':''}} value="{{ $country->id }}">{{ $country->country_name }}</option>
-                                @endforeach
+                                @include('partials.country_select_options', [
+                                    'countries' => $countries,
+                                    'phoneForPrefill' => old('phone'),
+                                ])
                             </select>
                             @error('country')
                                 <span class="invalid-feedback" role="alert">
@@ -210,8 +214,8 @@
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'User Added Successfully.'
+      title: 'Success',
+      text: 'User added successfully.'
     })
   </script>
 

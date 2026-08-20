@@ -1,4 +1,4 @@
-@extends('web.layout.main')
+﻿@extends('web.layout.main')
 
 @section('main-section')
 
@@ -18,31 +18,16 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         <div class="col-lg-10 column-client">
             <div class="client-btn d-flex justify-content-between align-items-center mb-3 ">
                 <h3 class="text-primary text-center flex-grow-1 text-center m-0">Meeting Notes (Clients)</h3>
-
-            {{-- <div class="col mb-3 d-flex justify-content-between">
-                <h3 class="text-primary px-2">Meeting Notes (Clients)</h3> --}}
+                <div class="module-header-actions">
                 @if(count($clients) > 0)
-                <button type="button" @if($communication_roles->write_only == 1 or $communication_roles->read_write_only == 1) id="add_new" @endif class="btn btn-info text-white mb-3">Add New</button>
+                <button type="button" @if($communication_roles->write_only == 1 or $communication_roles->read_write_only == 1) id="add_new" @endif class="btn btn-info text-white">Add New</button>
                 @else
-                <button type="button" @if($communication_roles->write_only == 1 or $communication_roles->read_write_only == 1) id="add_new_zero" @endif class="btn btn-info text-white mb-3">Add New</button>
+                <button type="button" @if($communication_roles->write_only == 1 or $communication_roles->read_write_only == 1) id="add_new_zero" @endif class="btn btn-info text-white">Add New</button>
                 @endif
                 <button type="button" id="back" class="btn btn-info text-white" style="display: none;">Back</button>
-            </div>
-            <div class="row m-0 pb-2">
-
-
-                <div class="col-4 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('messaging') }}';">
-                  Messaging
                 </div>
-
-
-                  <div class="col-4 border p-1 text-center bg-info text-white top_modules">
-                    Meeting Notes (Clients)
-                  </div>
-                  <div class="col-4 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('communications') }}';">
-                    Communication
-                  </div>
-              </div>
+            </div>
+            @include('partials.communication_tabs', ['activeTab' => 'meeting_notes'])
 
             <div style="display: none;" id="new_discussion" class="col">
                 <form id="registration_form" class="register-box login-box" method="POST" action="{{ route('post_client_discussion') }}">
@@ -99,7 +84,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <label>Communication Date<span class="text-danger" style="font-size: 18px;">*</span></label>
                         </div>
                         <div class="col-md-8 p-1">
-                            <input type="datetime-local" id="comm_date" max="{{ now()->format('Y-m-d\TH:i') }}" value="{{ now()->format('Y-m-d\TH:i') }}" onfocus="set_max()" name="communication_date" class="form-control date" autocomplete="off" required />
+                            <input type="datetime-local" id="comm_date" max="{{ now()->format('Y-m-d\TH:i') }}" value="{{ now()->format('Y-m-d\TH:i') }}" onfocus="set_max()" name="communication_date" class="form-control" autocomplete="off" required />
                             @error('communication_date')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -126,34 +111,58 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 </form>
             </div>
             <div id="discussions" class="col">
+                @include('partials.table_filter_toolbar', [
+                    'filterItems' => $meetingModeFilters ?? [],
+                    'tableId' => 'clientTable',
+                    'toolbarTitle' => 'Meeting Notes Mode',
+                    'totalCount' => count($discussions),
+                ])
                 <div class="table-wrapper">
                     <table class="table table-hover table-bordered fl-table" id="clientTable">
                         <thead>
                         <tr>
                             <th class="text-center">Sr. No</th>
-                            <th class="text-center">User Name</th>
+                            <th class="text-center">User</th>
                             <th class="text-center">Client Name</th>
-                            <th class="text-center">Application ID</th>
+                            <th class="text-center">Application (ID)</th>
                             <th class="text-center">Mode</th>
                             <th class="text-center">Date</th>
                             <th class="text-center">Discussion</th>
+                            <th class="text-center">Action</th>
                         </tr>
                         </thead>
                         <tbody>
                         @foreach($discussions as $key => $discus)
-                        <tr>
+                        @php
+                            $userDisplay = ($discus->user && $discus->user->user_type === 'Subscriber') ? 'SUB' : $discus->user_name;
+                            $appName = trim((string) ($discus->application->application_name ?? ''));
+                            $appId = (string) ($discus->application_id ?? '');
+                            $applicationDisplay = $appName !== '' ? $appName . ' (' . $appId . ')' : $appId;
+                            $meetingMode = trim((string) ($discus->communication_type ?? '')) ?: 'Unspecified';
+                            $meetingFilterKey = \App\Services\TableFilterCountService::keyFor($meetingMode);
+                            $meetingNotePayload = [
+                                'user' => $userDisplay,
+                                'client' => $discus->client_name,
+                                'application' => $applicationDisplay,
+                                'mode' => $discus->communication_type,
+                                'date' => date('d-m-Y H:i:s', strtotime($discus->communication_date)),
+                                'discussion' => $discus->discussion,
+                            ];
+                        @endphp
+                        <tr data-filter-value="{{ $meetingFilterKey }}">
                             <td class="text-center">{{ $key+1 }}</td>
-                            <td class="text-center">{{ $discus->user_name }}</td>
+                            <td class="text-center">{{ $userDisplay }}</td>
                             <td class="text-center">{{ $discus->client_name }}</td>
-                            <td class="text-center">{{ $discus->application_id }}</td>
+                            <td class="text-center">{{ $applicationDisplay }}</td>
                             <td class="text-center">{{ $discus->communication_type }}</td>
                             <td class="text-center">{{ date("d-m-Y H:i:s",strtotime($discus->communication_date)) }}</td>
                             <td class="text-center"><div style="max-height: 100px;overflow:auto;">{{ $discus->discussion }}</div></td>
-                            {{-- <td class="text-center">
-                                <a style="background:none; border:none;" onclick="window.location.href = '{{ route('view_query', $discus->id) }}';" class="m-0 p-0"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>
-                                <i class="fa-solid fa-edit btn p-1 text-success" onclick="queryresponse({{ $discus->id }})" style="font-size:14px;"></i>
-                                <i class="fa-solid fa-trash btn p-1 text-danger" onclick="deletequery({{ $discus->id }})" style="font-size:14px;"></i>
-                            </td> --}}
+                            <td class="text-center action-icon">
+                                <button type="button" class="btn p-0 border-0 bg-transparent" title="View"
+                                    onclick="viewMeetingNote(@json($meetingNotePayload))">
+                                    <i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i>
+                                </button>
+                            </td>
                         </tr>
                         @endforeach
 
@@ -172,6 +181,26 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
   </script>
   <script>
+    function viewMeetingNote(note) {
+        const discussion = (note.discussion || '').replace(/\n/g, '<br>');
+        Swal.fire({
+            title: 'Meeting Note Details',
+            html: `
+                <div class="text-start">
+                    <p><strong>User:</strong> ${note.user || ''}</p>
+                    <p><strong>Client:</strong> ${note.client || ''}</p>
+                    <p><strong>Application:</strong> ${note.application || ''}</p>
+                    <p><strong>Mode:</strong> ${note.mode || ''}</p>
+                    <p><strong>Date:</strong> ${note.date || ''}</p>
+                    <p><strong>Discussion:</strong></p>
+                    <div style="max-height:300px;overflow:auto;text-align:left;white-space:normal;">${discussion}</div>
+                </div>
+            `,
+            width: '640px',
+            confirmButtonText: 'Close'
+        });
+    }
+
     function set_max(){
         var d = new Date();
         var y = d.getFullYear();
@@ -219,9 +248,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
         $("#add_new_zero").click(function(){
             Swal.fire({
-            icon: 'info',
-            title: 'Oops...',
-            text: "Either no clients are added yet or you haven't been assigned any application(s)."
+            icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+            title: 'Oops!',
+            text: "No clients have been added yet, or you have not been assigned any applications."
             });
         });
 
@@ -241,19 +270,20 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
           $("#client").change(function(){
             var id = $(this).val();
-            var comm = "communication";
-            // console.log(counrty);
+            $("#application").html('<option value="">Select Application</option>');
+            if (!id) {
+                return;
+            }
             $.ajax({
-                url: 'get_application',
+                url: "{{ route('get_application') }}",
                 method: 'POST',
                 data: {
                     "_token": "{{ csrf_token() }}",
                     id: id,
-                    comm: comm,
+                    comm: "communication",
                 },
                 cache:false,
                 success: function(data){
-                  console.log(data);
                     $("#application").html(data);
                 }
             });
@@ -264,8 +294,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'User Added Successfully.'
+      title: 'Success',
+      text: 'Message sent successfully.'
     })
   </script>
 

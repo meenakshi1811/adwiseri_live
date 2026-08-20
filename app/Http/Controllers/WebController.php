@@ -17,18 +17,24 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use DateTime;
 use DateTimeZone;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 use App\Mail\EmailVerification;
-use App\Mail\Invoicemail;
 use App\Mail\SupportMail;
 use App\Mail\WelcomeMail;
 use App\Mail\SubscriptionMail;
 use App\Mail\PlanSubscriptionMail;
 use App\Mail\AppointmentSchedulerMail;
+use App\Mail\AppointmentResponseMail;
 use App\Mail\ClientCareLetterMail;
+use App\Mail\DocumentListMail;
+use App\Support\BrandedMail;
+use App\Support\PhoneNumber;
+use App\Services\SubscriptionTermPricing;
+use App\Services\TableFilterCountService;
 
 use App\Models\User;
 use App\Models\Clients;
@@ -55,6 +61,11 @@ use App\Models\Tickets;
 use App\Models\MyTimezones;
 use App\Models\Faq;
 use App\Models\Invoice_settings;
+use App\Services\InvoiceAuditService;
+use App\Services\InvoiceItemService;
+use App\Services\InvoiceMailService;
+use App\Services\InvoiceSnapshotService;
+use App\Services\OfferBenefitService;
 use App\Models\Used_referrals;
 use App\Models\AffiliateCommissionEarnt;
 use App\Models\Application_assignments;
@@ -68,6 +79,9 @@ use App\Models\Affiliates;
 use App\Models\Feedbacks;
 use App\Models\PaymentARs;
 use App\Models\Offers;
+use App\Models\LandingPromoItem;
+use App\Models\LandingPromoSetting;
+use App\Models\HomepageSectionSetting;
 use App\Models\Appointment;
 
 use App\Exports\UsersExport;
@@ -85,11 +99,23 @@ use App\Models\EnquiryFundingSource;
 use App\Models\Dependants;
 use App\Models\ReportSetting;
 use App\Models\PaymentReminderSetting;
+use App\Models\ApplicationReminder;
+use App\Models\UserSession;
 use App\Services\EmailTemplateService;
-use App\Services\AdminApPaymentSyncService;
+use App\Services\EmailBroadcastService;
+use App\Services\CountryCategorySettingsService;
+use App\Services\DashboardPreferenceService;
+use App\Services\EnquiryFormSettingsService;
+use App\Services\AppointmentService;
+use App\Services\MySettingsPageService;
+use App\Services\LeadEnquiryService;
+use App\Services\UserAccessRightsService;
+use App\Services\NotificationService;
 class WebController extends Controller
 {
-    private const APPLICATION_STATUS_FLOW = ['Client Registered', 'Client Counselled', 'Preparation', 'Apointment Booked', 'Applied', 'Decision', 'Appeal Lodged', 'Appeal Decision', 'AR / JR Lodged', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
+    private const APPLICATION_STATUS_FLOW = ['Client Registered', 'Client Counselled', 'Preparation', 'Appointment Booked', 'Applied', 'Decision', 'Appeal Lodged', 'Appeal Decision', 'AR / JR Lodged', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
+
+    private const APPLICATION_END_DATE_REQUIRED_STATUSES = ['Decision', 'Appeal Decision', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
 
     private function normalizeDateValue($value): ?string
     {
@@ -130,6 +156,48 @@ class WebController extends Controller
         }
     }
 
+    private function normalizeDateTimeValue($value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = is_string($value) ? trim($value) : $value;
+        if ($value === '') {
+            return null;
+        }
+
+        $value = str_replace('T', ' ', (string) $value);
+        $formats = [
+            'Y-m-d H:i:s',
+            'Y-m-d H:i',
+            'd-m-Y H:i:s',
+            'd-m-Y H:i',
+            'd/m/Y H:i:s',
+            'd/m/Y H:i',
+            'Y-m-d',
+            'd-m-Y',
+            'd/m/Y',
+        ];
+
+        foreach ($formats as $format) {
+            try {
+                $date = Carbon::createFromFormat($format, $value);
+                if ($date && $date->format($format) === $value) {
+                    return $date->format('Y-m-d H:i:s');
+                }
+            } catch (\Exception $exception) {
+                continue;
+            }
+        }
+
+        try {
+            return Carbon::parse($value)->format('Y-m-d H:i:s');
+        } catch (\Exception $exception) {
+            return null;
+        }
+    }
+
     private function normalizeDateArray($dates): array
     {
         if (!is_array($dates)) {
@@ -164,243 +232,8 @@ class WebController extends Controller
 
     private function getSubscriberCountryOptions(int $subscriberId, array $selectedCountries = [])
     {
-        $selectedCountries = collect($selectedCountries)
-            ->map(fn ($country) => trim((string) $country))
-            ->filter()
-            ->values();
-
-        $subscriber = User::find($subscriberId);
-        $subscriberRuleBasedCountries = $this->getRuleBasedSubscriberCountryOptions($subscriber);
-
-        if ($subscriberRuleBasedCountries !== null) {
-            $countryNames = $subscriberRuleBasedCountries
-                ->merge($selectedCountries)
-                ->filter()
-                ->unique()
-                ->values();
-
-            if ($countryNames->isEmpty()) {
-                return Countries::orderBy('country_name', 'asc')->get();
-            }
-
-            return Countries::whereIn('country_name', $countryNames->all())
-                ->get()
-                ->sortBy(function ($country) use ($countryNames) {
-                    $position = $countryNames->search($country->country_name);
-                    return $position === false ? PHP_INT_MAX : $position;
-                })
-                ->values();
-        }
-
-        $profileCountryNames = $this->getProfileMappedDestinationCountries($subscriber);
-
-        if ($profileCountryNames->isNotEmpty()) {
-            $countryNames = $profileCountryNames
-                ->merge($selectedCountries)
-                ->unique()
-                ->sort()
-                ->values();
-
-            return Countries::whereIn('country_name', $countryNames->all())
-                ->orderBy('country_name', 'asc')
-                ->get();
-        }
-
-        $subscriberServiceCountries = Applications::where('subscriber_id', $subscriberId)
-            ->select('visa_country')
-            ->whereNotNull('visa_country')
-            ->where('visa_country', '!=', '')
-            ->distinct()
-            ->pluck('visa_country')
-            ->map(fn ($country) => trim((string) $country))
-            ->filter();
-
-        $countryNames = $subscriberServiceCountries
-            ->merge($selectedCountries)
-            ->unique()
-            ->sort()
-            ->values();
-
-        if ($countryNames->isEmpty()) {
-            return Countries::orderBy('country_name', 'asc')->get();
-        }
-
-        return Countries::whereIn('country_name', $countryNames->all())
-            ->orderBy('country_name', 'asc')
-            ->get();
-    }
-
-    private function getRuleBasedSubscriberCountryOptions(?User $subscriber)
-    {
-        if (!$subscriber) {
-            return null;
-        }
-
-        $normalizedCategory = $this->normalizeLookupText((string) ($subscriber->category ?? ''));
-        $normalizedSubCategory = $this->normalizeLookupText((string) ($subscriber->sub_category ?? ''));
-        $fullCategoryText = trim($normalizedCategory . ' ' . $normalizedSubCategory);
-
-        if (!str_contains($fullCategoryText, 'visa')) {
-            return null;
-        }
-
-        $allCountries = Countries::orderBy('country_name', 'asc')->pluck('country_name')->values();
-
-        $allCountriesWithPriorityPr = $this->prependPriorityCountries($allCountries, [
-            'Canada',
-            'Australia',
-            'New Zealand',
-        ]);
-
-        $subCategoryRules = [
-            // Exact/frequent sub-category labels used in subscriber setup.
-            ['keywords' => ['general all countries'], 'countries' => 'all'],
-            ['keywords' => ['usa visas immigration attorney', 'us immigration attorney'], 'countries' => ['United States']],
-            ['keywords' => ['uk oisc immigration solicitor', 'oisc', 'iaa'], 'countries' => ['United Kingdom']],
-            ['keywords' => ['canada iccrc immigration lawyer', 'iccrc', 'cicc', 'rcic'], 'countries' => ['Canada']],
-            ['keywords' => ['australia mara immigration lawyer', 'mara'], 'countries' => ['Australia']],
-            ['keywords' => ['cbi citizenship by investment consultants', 'cbi', 'citizenship by investment'], 'countries' => [
-                'United States',
-                'Portugal',
-                'Turkey',
-                'Grenada',
-                'Dominica',
-                'United Arab Emirates',
-            ]],
-            ['keywords' => ['abroad education consultants only study visas', 'study abroad consultant'], 'countries' => 'all'],
-            ['keywords' => ['mbbs md dentist medical study visa', 'mbbs'], 'countries' => [
-                'China',
-                'Philippines',
-                'Dominica',
-                'Russia',
-                'Georgia',
-            ]],
-            ['keywords' => ['work visa', 'business visa'], 'countries' => 'all'],
-            ['keywords' => ['immigration law firm'], 'countries' => 'all'],
-            ['keywords' => ['pr', 'settlement visa'], 'countries' => $allCountriesWithPriorityPr->all()],
-            ['keywords' => ['other', 'new', 'non listed'], 'countries' => 'all'],
-        ];
-
-        foreach ($subCategoryRules as $rule) {
-            if (!$this->containsAnyKeyword($normalizedSubCategory, $rule['keywords'])) {
-                continue;
-            }
-
-            if ($rule['countries'] === 'all') {
-                return $allCountries;
-            }
-
-            return $this->resolveCountriesByNames($rule['countries']);
-        }
-
-        return $allCountries;
-    }
-
-    private function normalizeLookupText(string $value): string
-    {
-        $value = strtolower(trim($value));
-        $value = str_replace(['/', '-', '(', ')', '.', ',', ':'], ' ', $value);
-        $value = preg_replace('/\s+/', ' ', $value);
-
-        return trim((string) $value);
-    }
-
-    private function containsAnyKeyword(string $text, array $keywords): bool
-    {
-        foreach ($keywords as $keyword) {
-            if (str_contains($text, $this->normalizeLookupText((string) $keyword))) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function resolveCountriesByNames(array $countryNames)
-    {
-        $synonyms = [
-            'United States' => ['United States', 'United States of America', 'USA', 'US'],
-            'United Kingdom' => ['United Kingdom', 'UK', 'Great Britain', 'Britain'],
-            'United Arab Emirates' => ['United Arab Emirates', 'UAE'],
-            'Philippines' => ['Philippines', 'Phillipines'],
-        ];
-
-        $allCountries = Countries::orderBy('country_name', 'asc')->pluck('country_name')->values();
-        $resolved = collect();
-
-        foreach ($countryNames as $countryName) {
-            $countryName = trim((string) $countryName);
-            if ($countryName === '') {
-                continue;
-            }
-
-            $variants = $synonyms[$countryName] ?? [$countryName];
-            $foundCountry = $allCountries->first(function ($availableCountry) use ($variants) {
-                foreach ($variants as $variant) {
-                    if (strcasecmp($availableCountry, $variant) === 0) {
-                        return true;
-                    }
-                }
-
-                return false;
-            });
-
-            if ($foundCountry) {
-                $resolved->push($foundCountry);
-            }
-        }
-
-        return $resolved->unique()->values();
-    }
-
-    private function prependPriorityCountries($allCountries, array $priorityCountries)
-    {
-        $resolvedPriority = $this->resolveCountriesByNames($priorityCountries);
-
-        return $resolvedPriority
-            ->merge($allCountries->reject(function ($country) use ($resolvedPriority) {
-                return $resolvedPriority->contains($country);
-            }))
-            ->values();
-    }
-
-    private function getProfileMappedDestinationCountries(?User $subscriber)
-    {
-        if (!$subscriber) {
-            return collect();
-        }
-
-        $profileText = collect([
-            $subscriber->category ?? null,
-            $subscriber->sub_category ?? null,
-            $subscriber->organization ?? null,
-            $subscriber->designation ?? null,
-        ])->filter()->implode(' ');
-
-        if (trim($profileText) === '') {
-            return collect();
-        }
-
-        $normalizedProfileText = strtolower($profileText);
-
-        $keywordToCountryMap = [
-            'Australia' => ['mara'],
-            'Canada' => ['iccrc', 'cicc', 'rcic'],
-            'United Kingdom' => ['oisc', 'iaa', 'immigration advice authority'],
-        ];
-
-        return collect($keywordToCountryMap)
-            ->filter(function ($keywords) use ($normalizedProfileText) {
-                foreach ($keywords as $keyword) {
-                    if (str_contains($normalizedProfileText, $keyword)) {
-                        return true;
-                    }
-                }
-
-                return false;
-            })
-            ->keys()
-            ->values();
+        return app(CountryCategorySettingsService::class)
+            ->getSubscriberCountryOptions($subscriberId, $selectedCountries);
     }
 
     private function generateInternalInvoiceId(): string
@@ -473,7 +306,8 @@ class WebController extends Controller
         $internalInvoice->pincode = $company->pincode;
         $internalInvoice->address = $company->address_line;
         $internalInvoice->logo = $company->organization_logo;
-        $internalInvoice->to_name = $subscriber->name;
+        $internalInvoice->vendor_id = Internal_Invoices::ADWISERI_VENDOR_ID;
+        $internalInvoice->to_name = Internal_Invoices::ADWISERI_VENDOR_NAME;
         $internalInvoice->to_email = $subscriber->email;
         $internalInvoice->to_phone = $subscriber->phone;
         $internalInvoice->to_country = $subscriber->country;
@@ -489,13 +323,9 @@ class WebController extends Controller
         $internalInvoice->status = 'Paid';
         $internalInvoice->type = 'ap';
         $internalInvoice->due_date = date('Y-m-d');
-        $internalInvoice->created_at = now();
         $internalInvoice->token = $this->generateInternalInvoiceToken();
-
-        if ($amount <= 0) {
-            return $internalInvoice;
-        }
-
+        $actingUser = Auth::user() ?: $subscriber;
+        app(InvoiceAuditService::class)->markCreated($internalInvoice, $actingUser);
         $internalInvoice->save();
 
         PaymentARs::create([
@@ -505,7 +335,7 @@ class WebController extends Controller
             'service_taken' => $detail,
             'amount' => $amount,
             'paid_amount' => $amount,
-            'payment_mode' => $paymentMode,
+            'payment_mode' => 'Online',
             'payment_date' => now(),
             'type' => 'ap',
         ]);
@@ -513,64 +343,100 @@ class WebController extends Controller
         return $internalInvoice;
     }
 
-
-    private function calculateInclusiveExpiryDate(int $durationYears): Carbon
-    {
-        return Carbon::now()->addYears($durationYears)->subDay();
-    }
-
-    private function calculateInclusiveExpiryDateFromDays(int $durationDays): Carbon
-    {
-        return Carbon::now()->addDays($durationDays)->subDay();
-    }
-
-    private function formatPlanDurationFromDays(int $durationDays): string
-    {
-        if ($durationDays % 365 === 0) {
-            $years = (int) ($durationDays / 365);
-
-            return $years . ' ' . ($years === 1 ? 'Year' : 'Years');
-        }
-
-        return $durationDays . ' ' . ($durationDays === 1 ? 'Day' : 'Days');
-    }
-
     private function buildInvoicePdfData(Internal_Invoices $internalInvoice, User $subscriber, User $company): object
     {
-        return (object) [
-            'invoice_no' => $internalInvoice->invoice_no,
-            'invoice_date' => $internalInvoice->created_at,
-            'due_date' => $internalInvoice->due_date,
-            'status' => $internalInvoice->status,
-            'detail' => $internalInvoice->detail,
-            'amount' => $internalInvoice->amount,
-            'discount' => $internalInvoice->discount,
-            'tax' => $internalInvoice->tax,
-            'total' => $internalInvoice->total,
-            'currency' => 'USD',
-            'name' => $subscriber->name,
-            'to_email' => $subscriber->email,
-            'to_address' => $subscriber->address_line,
-            'to_city' => $subscriber->city,
-            'to_state' => $subscriber->state,
-            'to_country' => $subscriber->country,
-            'to_pincode' => $subscriber->pincode,
-            'company_name' => $company->organization ?: 'adwiseri',
-            'from_email' => $company->email,
-            'display_from_email' => $company->email,
-            'logo_path' => !empty($company->organization_logo) ? 'web_assets/users/user' . $company->id . '/' . $company->organization_logo : null,
-        ];
+        return \App\Services\InternalInvoicePdfDataFactory::make($internalInvoice, $subscriber, $company);
     }
 
-    private function sendPlanUpdateMail(User $subscriber, ?Membership $plan, Internal_Invoices $internalInvoice, User $company): void
-    {
-        Mail::to($subscriber->email)->send(new PlanSubscriptionMail(
-            $subscriber->name,
-            $plan->membership ?? $subscriber->membership,
-            $plan->validity ?? 'N/A',
-            'Your Subscription Plan Has Been Updated',
-            $this->buildInvoicePdfData($internalInvoice, $subscriber, $company)
-        ));
+    private function sendPlanUpdateMail(
+        User $subscriber,
+        ?Membership $plan,
+        Internal_Invoices $internalInvoice,
+        User $company,
+        ?string $previousPlanName = null,
+        ?int $durationYears = null,
+        ?string $purchaseCategory = null
+    ): bool {
+        if (!\App\Support\EmailAddress::isValidRecipient($subscriber->email)) {
+            \Illuminate\Support\Facades\Log::warning('Plan update email skipped: invalid recipient', [
+                'email' => $subscriber->email,
+                'user_id' => $subscriber->id,
+            ]);
+
+            return false;
+        }
+
+        $paidAmount = $internalInvoice->total ?? $internalInvoice->amount ?? null;
+
+        try {
+            Mail::to($subscriber->email)->send(new PlanSubscriptionMail(
+                $subscriber->name,
+                $plan->plan_name ?? $subscriber->membership,
+                $plan->validity ?? 'N/A',
+                'Your Subscription Plan Has Been Updated',
+                $this->buildInvoicePdfData($internalInvoice, $subscriber, $company),
+                $paidAmount,
+                $previousPlanName,
+                $durationYears,
+                $purchaseCategory
+            ));
+
+            return !Mail::failures();
+        } catch (\Throwable $exception) {
+            \Illuminate\Support\Facades\Log::error('Plan update email failed', [
+                'email' => $subscriber->email,
+                'user_id' => $subscriber->id,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    private function recordWalletSubscriptionDebit(
+        User $user,
+        Membership $plan,
+        float $debitAmount,
+        float $previousBalance,
+        ?string $previousPlanName = null
+    ): void {
+        $description = app(\App\Services\WalletLedgerService::class)
+            ->subscriptionDebitDescription($previousPlanName, $plan);
+
+        app(\App\Services\WalletLedgerService::class)->recordSubscriptionDebit(
+            $user,
+            $debitAmount,
+            $previousBalance,
+            (float) $user->wallet,
+            $description
+        );
+    }
+
+    private function processRenewalCommissionIfEligible(
+        User $user,
+        float $paymentAmount,
+        ?\Carbon\Carbon $previousExpiry,
+        ?string $previousPlanName,
+        string $newPlanName
+    ): void {
+        if ($paymentAmount <= 0) {
+            return;
+        }
+
+        $journeyLog = app(\App\Services\UserJourneyLogService::class);
+        $purchaseCategory = $journeyLog->classifySubscriptionPurchase(
+            false,
+            $previousExpiry,
+            $previousPlanName,
+            $newPlanName
+        );
+
+        app(\App\Services\RenewalCommissionService::class)->processRenewalCommission(
+            $user,
+            $paymentAmount,
+            $purchaseCategory,
+            $previousExpiry
+        );
     }
 
     public function add_subscriber_roles()
@@ -750,8 +616,8 @@ class WebController extends Controller
             if ($user->user_type == 'admin') {
                 return redirect()->route('admin_profile');
             }
-            if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-                return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+            if (membership_access_blocked($user)) {
+                return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
             }
             $this->set_timezone();
             $page = "index";
@@ -759,7 +625,7 @@ class WebController extends Controller
             $features = Features::get();
             if ($user->user_type == "Subscriber") {
                 $subscriber = $user;
-                $myplan = Membership::where('plan_name', '=', $subscriber->membership)->first();
+                $myplan = Membership::where('plan_name', '=', $user->membership)->first();
             } else {
                 $sid = $user->added_by;
                 $subscriber = User::find($sid);
@@ -768,7 +634,23 @@ class WebController extends Controller
             $total_users = User::where('added_by', '=', $subscriber->id)->get();
             $total_clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
             $discounts = Offers::get();
-            return view('web.index', compact('user', 'page', 'features', 'price_plans', 'myplan', 'subscriber', 'total_users', 'total_clients', 'discounts'));
+            [$landingPromoSettings, $landingDiscountItems, $landingOfferItems] = $this->landingPromoPayload();
+            $homepageSectionVisibility = HomepageSectionSetting::current()->visibilityMap();
+            return view('web.index', compact(
+                'user',
+                'page',
+                'features',
+                'price_plans',
+                'myplan',
+                'subscriber',
+                'total_users',
+                'total_clients',
+                'discounts',
+                'landingPromoSettings',
+                'landingDiscountItems',
+                'landingOfferItems',
+                'homepageSectionVisibility'
+            ));
         } else {
             $page = "index";
             $price_plans = Membership::orderBy('created_at', 'asc')->get();
@@ -778,8 +660,43 @@ class WebController extends Controller
             $total_users = 0;
             $total_clients = 0;
             $discounts = Offers::get();
-            return view('web.index', compact('page', 'features', 'price_plans', 'myplan', 'subscriber', 'total_users', 'total_clients', 'discounts'));
+            [$landingPromoSettings, $landingDiscountItems, $landingOfferItems] = $this->landingPromoPayload();
+            $homepageSectionVisibility = HomepageSectionSetting::current()->visibilityMap();
+            return view('web.index', compact(
+                'page',
+                'features',
+                'price_plans',
+                'myplan',
+                'subscriber',
+                'total_users',
+                'total_clients',
+                'discounts',
+                'landingPromoSettings',
+                'landingDiscountItems',
+                'landingOfferItems',
+                'homepageSectionVisibility'
+            ));
             // return redirect()->route('login');
+        }
+    }
+
+    /**
+     * Landing-page Discounts & Offers section data (admin-managed).
+     */
+    private function landingPromoPayload(): array
+    {
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('landing_promo_settings')) {
+                return [null, collect(), collect()];
+            }
+
+            $settings = LandingPromoSetting::current();
+            $discountItems = LandingPromoItem::ofCategory('discount')->active()->orderBy('sort_order')->orderBy('id')->get();
+            $offerItems = LandingPromoItem::ofCategory('offer')->active()->orderBy('sort_order')->orderBy('id')->get();
+
+            return [$settings, $discountItems, $offerItems];
+        } catch (\Throwable $e) {
+            return [null, collect(), collect()];
         }
     }
 
@@ -821,12 +738,12 @@ class WebController extends Controller
             $request,
             [
                 'name' => 'required|string|max:255',
-                'phone' => 'required|string|min:9|max:12|unique:demo_requests',
+                'phone' => 'required|phone_intl|unique:demo_requests',
                 'email' => 'required|string|email|max:255|unique:demo_requests',
                 'country' => 'required|string|max:255',
                 'company_name' => 'required|string|max:255',
                 'job_title' => 'required|string|max:255',
-                'how_did_hear' => 'required|in:LinkedIn,Twitter,YouTube,Industry friend,Google', // Validation rule for "how_did_hear"
+                'how_did_hear' => 'required|in:LinkedIn,Twitter,YouTube,Industry friend,Google',
                 'terms' => 'accepted',
                 'g-recaptcha-response' => 'required|captcha'
             ]
@@ -843,13 +760,9 @@ class WebController extends Controller
         $demo->job_title = $request['job_title'];
         $demo->how_did_hear = $request['how_did_hear'];
         $demo->save();
-        Mail::to("seimpex1@gmail.com")->send(new EmailVerification($demo));
-        if (Mail::failures()) {
-            echo 'Sorry! Please try again latter';
-        } else {
-            echo 'Success';
+        foreach (BrandedMail::adminNotificationRecipients() as $recipient) {
+            Mail::to($recipient)->send(new EmailVerification($demo));
         }
-        Mail::to("care@adwiseri.com")->send(new EmailVerification($demo));
         if (Mail::failures()) {
             echo 'Sorry! Please try again latter';
         } else {
@@ -858,21 +771,49 @@ class WebController extends Controller
         }
     }
 
+    public function validatePhone(Request $request)
+    {
+        $request->validate([
+            'phone' => 'required|string|max:25',
+        ]);
+
+        $normalized = PhoneNumber::normalize($request->phone);
+        $valid = PhoneNumber::isValid($normalized);
+
+        return response()->json([
+            'valid' => $valid,
+            'phone' => $valid ? $normalized : null,
+            'message' => $valid ? null : 'Please enter a valid contact number (digits only, up to 10 digits after country code).',
+        ]);
+    }
+
     public function email_subscription(Request $request)
     {
-        $this->validate($request, [
-            'email' => 'required|email|max:255|unique:email_subscriptions',
-        ], [
-            
+        $validated = $this->validate($request, [
+            'email' => 'required|email|max:255',
         ]);
-        $subscription = new EmailSubscriptions();
-        $subscription->email = $request['email'];
-        $subscription->save();
-        Mail::to($request['email'])->send(new SubscriptionMail());
-        if (Mail::failures()) {
-            echo "Mail not Sent";
-        } else {
-            echo "Success";
+
+        $email = strtolower(trim((string) $validated['email']));
+        $existing = EmailSubscriptions::query()
+            ->whereRaw('LOWER(TRIM(email)) = ?', [$email])
+            ->first();
+
+        if ($existing && $existing->isSubscribed()) {
+            return redirect()->route('/')->with('subscribed', 'This email is already subscribed.');
+        }
+
+        try {
+            app(\App\Services\EmailSubscriptionService::class)->subscribe($email);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()->route('/')->with('subscription_error', 'Could not complete subscription. Please try again later.');
+        }
+
+        try {
+            Mail::to($email)->send(new SubscriptionMail($email));
+        } catch (\Throwable $exception) {
+            report($exception);
         }
 
         return redirect()->route('/')->with('subscribed', 'Email subscription submitted successfully.');
@@ -893,17 +834,16 @@ class WebController extends Controller
             if ($user->status != "true") {
                 Auth::logout();
                 Session::flush();
-                return redirect()->route('login')->with('deactivated', "Your account is deactivated.");
+                return redirect()->route('login')->with('deactivated', "Your account has been deactivated.");
             }
             $this->set_timezone();
             if ($user->organization != "") {
-                if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-                    return redirect()->route('userprofile')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+                if (membership_access_blocked($user)) {
+                    return redirect()->route('userprofile')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
                 } else {
                     return redirect()->route('userprofile');
                 }
             } else {
-                $this->set_timezone();
                 $countries = Countries::all();
                 $tzlist = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
                 $states = States::all();
@@ -952,7 +892,7 @@ class WebController extends Controller
             $request,
             [
                 'name' => 'required|string|max:255',
-                'phone' => 'required|string|min:9|max:12|unique:users',
+                'phone' => 'required|phone_intl|unique:users',
                 'email' => 'required|string|email|max:255|unique:users',
                 'category' => 'required|string|max:255',
                 'subcategory' => 'required|string|max:255',
@@ -966,8 +906,12 @@ class WebController extends Controller
             }
         }
         if ($request->membership != "Free") {
+            $request->validate([
+                'duration' => 'nullable|integer|in:' . implode(',', SubscriptionTermPricing::allowedDurations()),
+            ]);
+
             $data = $request->all();
-            $data['duration'] = 1;
+            $data['duration'] = SubscriptionTermPricing::normalizeDuration((int) $request->input('duration', 1));
             Session::put('reg_data', $data);
             return redirect()->route('reg_pay');
         } else {
@@ -977,35 +921,32 @@ class WebController extends Controller
         }
     }
 
-    public function reg_pay()
+    public function reg_pay(Request $request)
     {
         $data = session('reg_data');
-        $user_data = array();
-        foreach ($data as $key => $value) {
-            $user_data[$key] = $value;
+        if (!$data || empty($data['membership']) || ($data['membership'] ?? '') === 'Free') {
+            return redirect()->route('user_register');
         }
+
+        if ($request->filled('duration')) {
+            $data['duration'] = SubscriptionTermPricing::normalizeDuration((int) $request->input('duration'));
+            Session::put('reg_data', $data);
+        }
+
         $plan = $data['membership'];
-        $duration = $data['duration'];
+        $duration = SubscriptionTermPricing::normalizeDuration((int) ($data['duration'] ?? 1));
 
         $membership = Membership::where('plan_name', '=', $plan)->first();
-        // dd($membership);
-        $plan_amt = $membership->price_per_year;
-        if ($duration == 1) {
-            $plan_amount = round(($plan_amt * 1) * 1);
+        if (!$membership) {
+            return redirect()->route('user_register')->withInput()->withError('Selected plan is no longer available.');
         }
-        if ($duration == 2) {
-            $plan_amount = round(($plan_amt * 2) * 0.9);
-        }
-        if ($duration == 3) {
-            $plan_amount = round(($plan_amt * 3) * 0.8);
-        }
-        if ($duration == 5) {
-            $plan_amount = round(($plan_amt * 5) * 0.5);
-        }
-        $amount = $plan_amount;
-        $user_data['amount'] = $amount;
-        Session::put('reg_data', $user_data);
-        return view('web.reg_pay', compact('amount'));
+
+        $amount = SubscriptionTermPricing::calculate((float) $membership->price_per_year, $duration);
+        $data['duration'] = $duration;
+        $data['amount'] = $amount;
+        Session::put('reg_data', $data);
+
+        return view('web.reg_pay', compact('amount', 'membership', 'duration'));
     }
 
 
@@ -1051,7 +992,7 @@ class WebController extends Controller
         //     $data->membership_type = "Trial";
         //     $data->membership_expiry_date = (new DateTime("now"))->modify("+30 days");
         // }
-        $enddate = $this->calculateInclusiveExpiryDateFromDays((int) $plan->validity);
+        $enddate = (new DateTime("now"))->modify("+" . $plan->validity . " Days");
         $data->membership_start_date = new DateTime("now");
         $data->membership_expiry_date = $enddate;
         $data->wallet = 0;
@@ -1063,10 +1004,13 @@ class WebController extends Controller
         $data->password = Hash::make($request['password']);
         $data->save();
 
+        app(OfferBenefitService::class)->applyEligibleNewSubscriberOffers($data);
+
         $company = User::where('user_type', '=', 'admin')->first();
-        // This no-payment registration path should only send the invoice PDF.
-        // Do not create AP invoice/payment records from the plan's configured price.
-        $signupInvoiceAmount = 0.0;
+        $signupInvoiceAmount = strtolower((string) $plan->plan_name) === 'free'
+            ? 0.0
+            : (float) ($request['amount'] ?? $plan->price_per_year ?? 0);
+        $signupDuration = SubscriptionTermPricing::normalizeDuration((int) ($request['duration'] ?? 1));
         $internalInvoice = null;
         if ($company) {
             $internalInvoice = $this->createAdminApInvoiceAndPayment(
@@ -1074,7 +1018,7 @@ class WebController extends Controller
                 $company,
                 $signupInvoiceAmount,
                 "Manual",
-                "Subscription Fees ({$plan->plan_name})"
+                SubscriptionTermPricing::subscriptionFeeDetail($plan->plan_name, $signupDuration)
             );
         }
 
@@ -1251,10 +1195,8 @@ class WebController extends Controller
         $welcomedata->name = $data['name'];
         $welcomedata->email = $email;
         $welcomedata->plan_name = $plan->plan_name;
-        $welcomedata->duration = $this->formatPlanDurationFromDays((int) $plan->validity);
+        $welcomedata->duration = $plan->validity . " Days";
         $welcomedata->amount = number_format((float) $signupInvoiceAmount, 2);
-        $welcomedata->paid_amount = number_format((float) $signupInvoiceAmount, 2);
-        $welcomedata->subscription = $signupInvoiceAmount > 0 ? 'Paid' : 'Free';
         $welcomedata->subscription_type = $plan->plan_name;
         $welcomedata->start_date = !empty($data->membership_start_date)
             ? (($data->membership_start_date instanceof \DateTimeInterface)
@@ -1266,6 +1208,7 @@ class WebController extends Controller
                 ? $data->membership_expiry_date->format('d-m-Y')
                 : date("d-m-Y", strtotime((string) $data->membership_expiry_date)))
             : '-';
+        $welcomedata->paid_amount = number_format((float) $signupInvoiceAmount, 2);
 
         if ($company) {
             $welcomedata->from_email = $company->email;
@@ -1277,14 +1220,14 @@ class WebController extends Controller
             $welcomedata->invoice_pdf_data = $this->buildInvoicePdfData($internalInvoice, $data, $company);
         }
         try {
-            Mail::to('care@adwiseri.com')->bcc($email)->send(new WelcomeMail($welcomedata));
+            Mail::to($email)->send(new WelcomeMail($welcomedata));
         } catch (\Exception $e) {
             \Log::error('Welcome mail failed: ' . $e->getMessage());
         }
         if (Mail::failures()) {
             echo 'Sorry! Please try again latter';
         } else {
-            echo 'Great! Successfully send in your mail';
+            echo 'Your email was sent successfully.';
         }
 
         $email = $request['email'];
@@ -1301,7 +1244,7 @@ class WebController extends Controller
         if (Mail::failures()) {
             echo 'Sorry! Please try again latter';
         } else {
-            echo 'Great! Successfully send in your mail';
+            echo 'Your email was sent successfully.';
         }
         // $phone_otp = $request->phone_otp;
         // $email_otp = $request->email_otp;
@@ -1350,8 +1293,11 @@ class WebController extends Controller
 
     public function get_timezone(Request $request)
     {
-        // print_r($request->all());
         $country = Countries::find($request['country']);
+        if (!$country) {
+            return;
+        }
+
         $code = $country->country_code;
         $zones = MyTimezones::where('CountryCode', '=', $code)->get();
         ?>
@@ -1368,6 +1314,58 @@ class WebController extends Controller
         // print_r($request->all());
        
         $id = $request['id'];
+        $client = Clients::find($id);
+
+        if (!$client) {
+            return '<option value="">Select Application/Service Type</option>';
+        }
+
+        $subscriber = User::find($client->subscriber_id);
+        $ccService = app(CountryCategorySettingsService::class);
+        $comm = strtolower(trim((string) ($request->comm ?? '')));
+
+        // Meeting notes / communications — simple application list
+        if ($comm === 'communication') {
+            $applications = Applications::where('client_id', $id)
+                ->orderBy('application_name')
+                ->get();
+
+            $html = '<option value="">Select Application</option>';
+            foreach ($applications as $app) {
+                $typeName = trim((string) ($app->application_name ?? ''));
+                $country = trim((string) ($app->visa_country ?? ''));
+                $name = $ccService->formatApplicationServiceName($country, $typeName);
+                $appId = (string) ($app->application_id ?? '');
+                $value = $appId !== '' ? $appId : $name;
+                if ($value === '') {
+                    continue;
+                }
+
+                $label = $name !== '' ? $name . ' (' . $appId . ')' : $appId;
+                $html .= '<option value="' . e($value) . '">' . e($label) . '</option>';
+            }
+
+            return $html;
+        }
+
+        // Invoice form — applications as "Country - Type" + standalone services, with fees
+        if ($comm === 'invoice' && $subscriber) {
+            $applications = Applications::where('client_id', $id)
+                ->orderBy('visa_country')
+                ->orderBy('application_name')
+                ->get();
+
+            $ignoreInvoiceId = (int) $request->input('ignore_invoice_id', 0);
+            $excludeApplicationIds = $ignoreInvoiceId > 0
+                ? app(InvoiceItemService::class)->invoicedApplicationRecordIdsForClient(
+                    (int) $subscriber->id,
+                    (int) $id,
+                    $ignoreInvoiceId
+                )
+                : [];
+
+            return $ccService->buildInvoiceServiceTypeOptions($subscriber, $applications, $excludeApplicationIds);
+        }
 
         // Get distinct application IDs that already exist in PaymentARs for this client
         $existingIds = PaymentARs::where('client_id', $id)
@@ -1375,36 +1373,29 @@ class WebController extends Controller
             ->pluck('application_id')
             ->toArray();
 
-        // Debug check (optional)
-        // dd($existingIds);
-        $applications = '';
-        $query = Applications::where('client_id', $id);
-        $user = Auth::user();
-
-        if ($user && $user->user_type != 'admin' && $user->user_type != 'Subscriber') {
-            $subscriber = User::find($user->added_by);
-            $assignedApplicationIds = $this->assignedApplicationIdsFor($user, $subscriber);
-            $query->where('subscriber_id', '=', $subscriber ? $subscriber->id : 0)
-                ->whereIn('application_id', $assignedApplicationIds);
-        } elseif (!$request->comm) {
-            $query->whereNull('assign_to');
-        }
-
-        $applications = $query->get();
+        $applications = Applications::where('client_id', $id)
+            ->whereNull('assign_to')
+            ->orderBy('visa_country')
+            ->orderBy('application_name')
+            ->get();
 
         $html = '<option value="">Select Application</option>';
 
         foreach ($applications as $app) {
-            // 🧠 Skip if this application already exists in PaymentARs
+            // Skip if this application already exists in PaymentARs
             if (!in_array($app->id, $existingIds)) {
-                $html .= '<option value="' . $app->application_id . '" data-name="' . $app->application_name . '">';
-                $html .= $app->application_name . ' (' . $app->application_id . ')';
+                $typeName = trim((string) ($app->application_name ?? ''));
+                $country = trim((string) ($app->visa_country ?? ''));
+                $name = $ccService->formatApplicationServiceName($country, $typeName);
+                $fee = $subscriber ? $ccService->resolveServiceFee($subscriber, $typeName, $country) : null;
+                $html .= '<option value="' . e($app->application_id) . '" data-name="' . e($name) . '" data-country="' . e($country) . '" data-type="' . e($typeName) . '" data-fee="' . e($fee ?? '') . '">';
+                $html .= e($name) . ' (' . e($app->application_id) . ')';
                 $html .= '</option>';
             }
         }
 
         // Add the "Other" option at the bottom
-        $html .= '<option value="Other">Other</option>';
+        $html .= '<option value="Other" data-name="" data-fee="">Other</option>';
 
         return $html;
     }
@@ -1428,221 +1419,159 @@ class WebController extends Controller
 
     public function check_user_limit(Request $request)
     {
-        // print_r($request->all());
         $subs = $request['subscriber'];
-        // echo $country;
-        // echo gettype($request['country']);
         $subscriber = User::find($subs);
         $siteusers = User::where('added_by', '=', $subscriber->id)->get();
-        $membership_plan = Membership::where('plan_name', '=', $subscriber->membership)->first();
-        if (count($siteusers) < $membership_plan->no_of_users) {
+        $offerBenefitService = app(OfferBenefitService::class);
+        if ($offerBenefitService->canAddUser($subscriber)) {
             return response()->json(['limit' => 'not full']);
-        } else {
-            return response()->json(['limit' => 'full']);
         }
+
+        return response()->json(['limit' => 'full']);
     }
 
     public function check_client_limit(Request $request)
     {
-        // print_r($request->all());
         $subs = $request['subscriber'];
-        // echo $country;
-        // echo gettype($request['country']);
         $subscriber = User::find($subs);
-        $clients =  $subscriber ? Clients::whereNotNull('subscriber_id')->where('subscriber_id', '=', $subscriber->id)->with('subscriber')->get() :null;
-        $membership_plan = Membership::where('plan_name', '=', $subscriber->membership)->first();
-        if ($membership_plan->client_limit != "Unlimited") {
-            if (count($clients) < $membership_plan->client_limit) {
-                return response()->json(['limit' => 'not full','clients'=>$clients]);
-            } else {
-                return response()->json(['limit' => 'full']);
-            }
-        } else {
-            return response()->json(['limit' => 'not full','clients'=>$clients]);
+        if (!$subscriber) {
+            return response()->json(['limit' => 'full', 'clients' => []]);
         }
+
+        $offerBenefitService = app(OfferBenefitService::class);
+        $clientLimit = $offerBenefitService->effectiveClientLimit($subscriber);
+        $clientCount = $offerBenefitService->currentClientCount($subscriber);
+        $clients = Clients::whereNotNull('subscriber_id')
+            ->where('subscriber_id', '=', $subscriber->id)
+            ->with('subscriber')
+            ->get();
+
+        if ($clientLimit !== 'Unlimited' && $clientCount >= (int) $clientLimit) {
+            return response()->json(['limit' => 'full', 'clients' => $clients]);
+        }
+
+        return response()->json(['limit' => 'not full', 'clients' => $clients]);
     }
 
     public function dashboard()
     {
         $user = $this->check_login();
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        $accessRightsService = app(UserAccessRightsService::class);
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
+
         if ($user->user_type == "Subscriber") {
             $subscriber = $user;
-            app(AdminApPaymentSyncService::class)->syncPaidInvoicesForSubscriber($subscriber->id);
-            $clients = Clients::where('subscriber_id', '=', $user->id)->get();
-            $assignments = Application_assignments::where('subscriber_id', '=', $subscriber->id)->get();
-            $users = User::where('added_by', '=', $user->id)->get();
-            $totalPayments = PaymentARs::whereRaw('LOWER(type) = ?', ['ap'])->where('subscriber_id', '=', $user->id)->sum('paid_amount');
-            $totalPaymentsAR = PaymentARs::whereRaw('LOWER(type) = ?', ['ar'])->where('subscriber_id', '=', $user->id)->sum(DB::raw('amount - paid_amount'));
-            $meetings = Client_discussions::where('subscriber_id', $user->id)->get();
-            $paymentARs =PaymentARs::where('subscriber_id', '=', $user->id)->get();
+        } elseif ($accessRightsService->userHasDashboardAccess($user)) {
+            $subscriber = User::find($user->added_by);
+            if (!$subscriber) {
+                return redirect()->route('userprofile');
+            }
         } else {
             return redirect()->route('userprofile');
-            $subscriber = User::find($user->added_by);
-            app(AdminApPaymentSyncService::class)->syncPaidInvoicesForSubscriber($subscriber->id);
-            $clients = Clients::where('subscriber_id', '=', $user->added_by)->get();
-            $assignments = Application_assignments::where('subscriber_id', '=', $subscriber->id)->get();
-            $users = User::where('added_by', '=', $user->added_by)->get();
-            $totalPayments = PaymentARs::whereRaw('LOWER(type) = ?', ['ap'])->where('subscriber_id', '=', $subscriber->id)->sum('paid_amount');
-            $totalPaymentsAR = PaymentARs::whereRaw('LOWER(type) = ?', ['ar'])->where('subscriber_id', '=', $subscriber->id)->sum(DB::raw('amount - paid_amount'));
-            $meetings = Client_discussions::where('subscriber_id', $subscriber->added_by)->get();
-            $paymentARs =PaymentARs::where('subscriber_id', $subscriber->added_by)->get();
-        }
-        $invoices = Invoices::get();
-        $countries = Countries::all();
-        $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();
-        $payments = Invoices::where('user_id', '=', $subscriber->id)->get();
-        $total_countries = array();
-        foreach ($applications as $apps) {
-            $categ = $apps->application_name;
-            $categ_app = 0;
-            foreach ($applications as $app) {
-                if ($categ == $app->application_name) {
-                    $categ_app += 1;
-                }
-            }
-            $total_countries[$categ] = $categ_app;
-        }
-        $total_assignments = array();
-        foreach ($assignments as $assign) {
-            $categ = $assign->user_id;
-            $categ_app = 0;
-            foreach ($assignments as $assig) {
-                if ($categ == $assig->user_id) {
-                    $categ_app += 1;
-                }
-            }
-            $total_assignments[$assign->user_name . '(' . $categ . ')'] = $categ_app;
-        }
-        $total_clients = array();
-        foreach ($countries as $contry) {
-            $categ = $contry->country_name;
-            $categ_app = 0;
-            foreach ($clients as $clint) {
-                if ($categ == $clint->country) {
-                    $categ_app += 1;
-                }
-            }
-            $total_clients[$categ] = $categ_app;
         }
 
-        $grouped_data_payment_mode = $paymentARs->groupBy('payment_mode');
+        // Headers and charts are whatever the subscriber configured under Settings -> Dashboard.
+        $dashboardService = app(DashboardPreferenceService::class);
+        $headerCards = $dashboardService->buildHeaderCards($subscriber, $user);
+        $charts = $dashboardService->buildCharts($subscriber);
+        $dashboardChartCount = $dashboardService->resolveChartCount($subscriber);
 
-            // Initialize the final result array
-            $total_payments = [];
-
-            foreach ($grouped_data_payment_mode as $payment_mode => $payments) {
-                // Store the total count for each payment mode
-                $total_payments[$payment_mode] = [
-                    'total_transactions' => $payments->count(),
-                    'total_amount' => $payments->sum('amount'), // Assuming `amount` is a column in the `PaymentARs` model
-                ];
-            }
-        $states = States::all();
         $page = "dashboard";
-        $activities = Activities::where('subscriber_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->limit(15)->get();
-        $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();
-        $invoices = Internal_Invoices::where('subscriber_id', '=', $subscriber->id)->get();
-        $invoiceARCount = $invoices->filter(function ($invoice) {
-            return strtolower((string) $invoice->type) === 'ar';
-        })->count();
-        $invoiceAPCount = $invoices->filter(function ($invoice) {
-            return strtolower((string) $invoice->type) === 'ap';
-        })->count();
-        // $referrals = Referrals::where('referral_code', '=', $subscriber->referral)->get();
-        // $startDate = Carbon::createFromFormat('d-m-Y', request()->input('startDate'))->startOfDay();
-        // $endDate = Carbon::createFromFormat('d-m-Y', request()->input('endDate'))->endOfDay();
-        //  $referrals = Referrals::where('debit_amount', '=', null)->whereBetween('created_at', [$startDate, $endDate])->whereNotIn('type', ['one_off', 'double_term', 'cashback'])->orderBy('created_at', 'desc')->get();
-        $user = auth()->user();
-        $query = Referrals::join('users', 'referrals.userid', '=', 'users.id')
-                            // ->whereBetween('users.created_at', [$startDate, $endDate]) // Filter by user creation date
-                            ->where('users.user_type', 'Subscriber') // Ensure user_type is 'Subscriber'
-                            ->whereNotNull('users.referral_code') // Ensure referral_code exists
-                            ->whereNull('referrals.debit_amount') // Ensure debit_amount is null
-                            ->orderBy('referrals.created_at', 'desc') // Order by referral creation date
-                            ->select('referrals.*'); // Select all columns from referrals
-        if($user->user_type == 'Subscriber'){
-            $query = $query->where('users.referral_code', $user->referral);// Apply referral code filter for Subscriber
-                       
-        }
-        $referrals = $query->where('referrals.type', 'Referral Commission') // Apply specific condition for Subscriber
-        ->get();
+        $activities = Activities::with('user')
+            ->where('subscriber_id', '=', $subscriber->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(15)
+            ->get();
 
-        return view('web.dashboard', compact('meetings', 'totalPayments','totalPaymentsAR', 'invoiceARCount', 'invoiceAPCount', 'user', 'countries', 'total_countries', 'total_clients', 'total_payments', 'states', 'page', 'clients', 'users', 'activities', 'applications', 'invoices', 'referrals', 'total_assignments'));
+        return view('web.dashboard', compact('user', 'page', 'activities', 'headerCards', 'charts', 'dashboardChartCount'));
     }
 
     public function analytics()
     {
         $user = auth()->user();
-        // if ( (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-        //     return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
-        // }
 
+        // Sidebar already controls Analytics visibility for the signed-in subscriber.
         $this->set_timezone();
 
-        $activity = new Activities();
-        $activity->user_id = $user->id;
-        $activity->user_name = $user->name;
-        $activity->activity_name = "Performed Analytics";
-        $activity->activity_detail = "Analytics Performed by " . $user->name . " at " . date('d M, Y H:i:s');
-        $activity->activity_icon = "user.png";
-        $activity->save();
-
+        try {
+            $activity = new Activities();
+            $activity->user_id = $user->id;
+            $activity->user_name = $user->name;
+            $activity->activity_name = "Performed Analytics";
+            $activity->activity_detail = "Analytics Performed by " . $user->name . " at " . date('d M, Y H:i:s');
+            $activity->activity_icon = "user.png";
+            $activity->save();
+        } catch (\Throwable $e) {
+            Log::warning('Analytics activity log failed: ' . $e->getMessage());
+        }
 
         $subscribers = User::where('added_by', auth()->user()->id)->where('user_type', 'User')->where('name', '!=', 'ADMIN (adwiseri.com)')->pluck('id', 'name');
         $page = "analytics";
         $countries = Countries::get();
-        return view('web.analytics', compact('page', 'user', 'subscribers','countries'));
+        $subscriber = app(CountryCategorySettingsService::class)->resolveSubscriber($user);
+        $clientVisaChartFilters = app(\App\Services\AnalyticsClientChartService::class)
+            ->visaDetailFilterAvailability((int) $subscriber->id);
+
+        return view('web.analytics', compact('page', 'user', 'subscribers', 'countries', 'clientVisaChartFilters'));
     }
     public function client()
     {
         $user = $this->check_login();
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
         if ($user->user_type == "Subscriber") {
             $roles = UserRoles::where('user_id', '=', $user->id)->first();
-            if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
+            if (membership_access_blocked($user)) {
                 return redirect()->route('membership')->with('membership_expiry', 'Membership has expired.');
             }
-            $clients = Clients::withCount('dependants')->where('subscriber_id', '=', $user->id)->orderBy('created_at', 'desc')->get();
+            $clients = Clients::withCount('dependants')->with(['applications:id,client_id,visa_country'])->where('subscriber_id', '=', $user->id)->orderBy('created_at', 'desc')->get();
         } else {
             $subscriber = User::find($user->added_by);
             $roles = UserRoles::where('user_id', '=', $user->id)->first();
-            if ((new DateTime($subscriber->membership_expiry_date)) < (new DateTime("now"))) {
+            if (membership_access_blocked_for_subscriber($subscriber)) {
                 return redirect()->route('membership')->with('membership_expiry', 'Membership has expired.');
             }
-            $clients = Clients::withCount('dependants')->where('subscriber_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->get();
+            $clients = Clients::withCount('dependants')->with(['applications:id,client_id,visa_country'])->where('user_id', '=', $user->id)->orderBy('created_at', 'desc')->get();
         }
-        $countries = Countries::get();
+        $ccService = app(CountryCategorySettingsService::class);
+        $subscriber = $ccService->resolveSubscriber($user);
+        $countries = $ccService->resolveCountriesForDropdown($subscriber);
         $page = "clients";
-        return view('web.client', compact('user', 'clients', 'page', 'roles','countries'));
+        $clientVisaCountryFilters = TableFilterCountService::countBy(
+            $clients,
+            fn ($client) => TableFilterCountService::clientVisaCountry($client)
+        );
+        return view('web.client', compact('user', 'clients', 'page', 'roles','countries', 'subscriber', 'clientVisaCountryFilters'));
     }
 
     public function users()
     {
         $user = $this->check_login();
         // echo'<pre>';print_r($user);echo'</pre>';exit();
-        if ($user->user_type != 'admin' && $user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
 
         if ($user->user_type == 'admin') {
 
-            $siteusers = User::orderBy('created_at', 'desc')->get();
+            $siteusers = User::where('user_type', 'User')->orderBy('created_at', 'desc')->get();
         } else {
-
-            $siteusers = User::where('added_by', '=', $user->id)->orderBy('created_at', 'desc')->get();
+            $subscriberId = $user->user_type === 'Subscriber' ? (int) $user->id : (int) $user->added_by;
+            $siteusers = User::where('added_by', '=', $subscriberId)
+                ->where('user_type', 'User')
+                ->orderBy('created_at', 'desc')
+                ->get();
         }
 
         $page = "users";
 
-        if ($user->user_type != 'admin' && $user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
+        if (membership_access_blocked($user)) {
             return redirect()->route('membership')->with('membership_expiry', 'Membership has expired.');
         } else {
             if (request()->ajax()) {
@@ -1692,21 +1621,21 @@ class WebController extends Controller
     public function add_user()
     {
         $user = $this->check_login();
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
         $tzlist = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
         $siteusers = User::where('added_by', '=', $user->id)->get();
         $job_roles = Job_roles::where('user_id', '=', $user->id)->get();
-        $membership_plan = Membership::where('plan_name', '=', $user->membership)->first();
-        if (count($siteusers) < $membership_plan->no_of_users) {
+        $offerBenefitService = app(OfferBenefitService::class);
+        if ($offerBenefitService->canAddUser($user)) {
             $countries = Countries::get();
             $page = "users";
             return view('web.add_user', compact('user', 'countries', 'page', 'job_roles', 'tzlist'));
-        } else {
-            return back()->with('user_limit', 'Upgrade membership to add more users.');
         }
+
+        return back()->with('user_limit', 'Upgrade membership to add more users.');
     }
 
     public function add_client()
@@ -1714,8 +1643,8 @@ class WebController extends Controller
         // $user = $this->check_login();
         $user = auth()->user();
         // Check if the user's membership has expired
-        // if($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))){
-        //     return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        // if(membership_access_blocked($user)){
+        //     return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         // }
 
         // Set the timezone
@@ -1732,18 +1661,11 @@ class WebController extends Controller
         $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
 
         // Fetch the user's membership plan details
-        $membership_plan = Membership::where('plan_name', '=', $user->membership)->first();
+        $membership_plan = Membership::where('plan_name', '=', $subscriber->membership)->first();
+        $offerBenefitService = app(OfferBenefitService::class);
 
-        // Check if the membership plan has a defined client limit
-        if ($membership_plan->client_limit != "Unlimited") {
-
-            // Calculate the client limit based on the subscription duration
-            $subscription_duration_years = $this->calculate_subscription_duration($user); // In years
-            $client_limit_per_year = $membership_plan->client_limit; // Get the yearly client limit from the plan
-            $total_client_limit =  ($subscription_duration_years) ? $client_limit_per_year * $subscription_duration_years :  $client_limit_per_year; // Total limit over the subscription period
-
-            // Check if the current number of clients exceeds the available client limit
-            if (count($clients) >= $total_client_limit) {
+        if ($membership_plan && strcasecmp((string) $membership_plan->client_limit, 'Unlimited') !== 0) {
+            if (!$offerBenefitService->canAddClient($subscriber)) {
                 return back()->with('client_limit', 'Upgrade membership to add more clients.');
             }
         }
@@ -1758,15 +1680,8 @@ class WebController extends Controller
         $page = "clients";
 
         // Fetch client jobs based on subscriber's category and sub-category
-        if ($subscriber->category == "Law Firm") {
-            $client_jobs = Client_jobs::where('category', '=', $subscriber->category)->get();
-        } elseif ($subscriber->category == "Travel Agency") {
-            $client_jobs = Client_jobs::where('category', '=', $subscriber->category)->get();
-        } else {
-            $client_jobs = Client_jobs::where('category', '=', $subscriber->category)
-                ->where('sub_category', '=', $subscriber->sub_category)
-                ->get();
-        }
+        $ccService = app(CountryCategorySettingsService::class);
+        $client_jobs = $ccService->getClientJobsForSubscriber($subscriber);
 
         // Return the view to add a client
         return view('web.add_client', compact('user', 'countries', 'page', 'job_roles', 'client_jobs'));
@@ -1789,15 +1704,15 @@ class WebController extends Controller
         $this->validate(
             $request,
             [
-                'name' => 'required|string|max:255',
-                'phone' => 'required|unique:users',
-                'email' => 'required|string|email|max:255|unique:users',
-                'dob' => 'required',
+                'name' => 'required|string|min:3|max:255',
+                'phone' => 'required|phone_intl|unique:users',
+                'email' => 'required|email|max:255|unique:users',
+                'dob' => 'required|date',
                 'designation' => 'required|string|max:255',
                 'country' => 'required',
                 'state' => 'required',
-                'city' => 'required|string|max:255',
-                'pincode' => 'required',
+                'city' => 'required|string|min:3|max:255',
+                'pincode' => 'required|regex:/^[A-Za-z0-9\s\-]{3,10}$/',
                 'password' => 'required|string|min:8',
             ]
         );
@@ -1838,129 +1753,7 @@ class WebController extends Controller
         // die();
         $data->save();
 
-        $role = UserRoles::where('user_id', '=', $data->id)->get();
-        if ($role) {
-            foreach ($role as $r) {
-                $r->delete();
-            }
-        }
-        $clients = new UserRoles();
-        $clients->user_id = $data->id;
-        $clients->subscriber_id = $data->added_by;
-        $clients->name = $data->name;
-        $clients->email = $data->email;
-        $clients->module = "Clients";
-        $clients->read_only = 1;
-        $clients->write_only = 1;
-        $clients->update_only = 1;
-        $clients->delete_only = 1;
-        $clients->read_write_only = 1;
-        $clients->save();
-
-        $applications = new UserRoles();
-        $applications->user_id = $data->id;
-        $applications->subscriber_id = $data->added_by;
-        $applications->name = $data->name;
-        $applications->email = $data->email;
-        $applications->module = "Applications";
-        $applications->read_only = 1;
-        $applications->write_only = 1;
-        $applications->update_only = 1;
-        $applications->delete_only = 1;
-        $applications->read_write_only = 1;
-        $applications->save();
-
-        $communication = new UserRoles();
-        $communication->user_id = $data->id;
-        $communication->subscriber_id = $data->added_by;
-        $communication->name = $data->name;
-        $communication->email = $data->email;
-        $communication->module = "Communication";
-        $communication->read_only = 1;
-        $communication->write_only = 1;
-        $communication->update_only = 1;
-        $communication->delete_only = 1;
-        $communication->read_write_only = 1;
-        $communication->save();
-
-        $invoices = new UserRoles();
-        $invoices->user_id = $data->id;
-        $invoices->subscriber_id = $data->added_by;
-        $invoices->name = $data->name;
-        $invoices->email = $data->email;
-        $invoices->module = "Invoices";
-        $invoices->read_only = 1;
-        $invoices->write_only = 1;
-        $invoices->update_only = 1;
-        $invoices->delete_only = 1;
-        $invoices->read_write_only = 1;
-        $invoices->save();
-
-        $payments = new UserRoles();
-        $payments->user_id = $data->id;
-        $payments->subscriber_id = $data->added_by;
-        $payments->name = $data->name;
-        $payments->email = $data->email;
-        $payments->module = "Payments";
-        $payments->read_only = 1;
-        $payments->write_only = 1;
-        $payments->update_only = 1;
-        $payments->delete_only = 1;
-        $payments->read_write_only = 1;
-        $payments->save();
-
-        $reports = new UserRoles();
-        $reports->user_id = $data->id;
-        $reports->subscriber_id = $data->added_by;
-        $reports->name = $data->name;
-        $reports->email = $data->email;
-        $reports->module = "Reports";
-        $reports->read_only = 0;
-        $reports->write_only = 0;
-        $reports->update_only = 0;
-        $reports->delete_only = 0;
-        $reports->read_write_only = 0;
-        $reports->save();
-
-        $subscription = new UserRoles();
-        $subscription->user_id = $data->id;
-        $subscription->subscriber_id = $data->added_by;
-        $subscription->name = $data->name;
-        $subscription->email = $data->email;
-        $subscription->module = "Subscription";
-        $subscription->read_only = 0;
-        $subscription->write_only = 0;
-        $subscription->update_only = 0;
-        $subscription->delete_only = 0;
-        $subscription->read_write_only = 0;
-        $subscription->save();
-
-        $settings = new UserRoles();
-        $settings->user_id = $data->id;
-        $settings->subscriber_id = $data->added_by;
-        $settings->name = $data->name;
-        $settings->email = $data->email;
-        $settings->module = "Settings";
-        $settings->read_only = 0;
-        $settings->write_only = 0;
-        $settings->update_only = 0;
-        $settings->delete_only = 0;
-        $settings->read_write_only = 0;
-        $settings->save();
-
-        $support = new UserRoles();
-        $support->user_id = $data->id;
-        $support->subscriber_id = $data->added_by;
-        $support->name = $data->name;
-        $support->email = $data->email;
-        $support->module = "Support";
-        $support->read_only = 1;
-        $support->write_only = 1;
-        $support->update_only = 1;
-        $support->delete_only = 1;
-        $support->read_write_only = 1;
-        $support->save();
-
+        app(UserAccessRightsService::class)->applyDefaultAccessRights($data, (int) $data->added_by);
 
         $activity = new Activities();
         $activity->subscriber_id = $user->id;
@@ -1993,20 +1786,17 @@ class WebController extends Controller
         $this->validate(
             $request,
             [
-                'name' => 'required|string|max:255',
-                'phone' => 'required|string|min:9|max:12|unique:clients',
-                'email' => 'required|string|email|max:255|unique:clients',
-                'nationality' => 'required|string',
-                // 'passport_no' => 'required|string',
-                // 'dob' => 'required',
+                'name' => 'required|string|min:3|max:255',
+                'phone' => 'required|phone_intl|unique:clients',
+                'email' => 'required|email|max:255|unique:clients',
+                'nationality' => 'required',
+                'alternate_no' => 'nullable|phone_intl',
+                'passport_no' => 'nullable|regex:/^[A-Z0-9]{6,14}$/',
                 'country' => 'required',
-                'address' => 'required',
+                'address' => 'required|string|min:3|max:1000',
                 'state' => 'required',
-                'city' => 'required|string|max:255',
-                'pincode' => 'required',
-                // 'job_role' => 'required|string|max:255',
-                // 'job_open_date' => 'required',
-                // 'job_status' => 'required|string|max:255',
+                'city' => 'required|string|min:3|max:255',
+                'pincode' => 'required|regex:/^[A-Za-z0-9\s\-]{3,10}$/',
             ]
         );
         if ($user->user_type == "Subscriber") {
@@ -2016,6 +1806,15 @@ class WebController extends Controller
             $subscriber = User::find($user->added_by);
             $data->subscriber_id = $subscriber->id;
         }
+
+        $offerBenefitService = app(OfferBenefitService::class);
+        $membership_plan = Membership::where('plan_name', '=', $subscriber->membership)->first();
+        if ($membership_plan && strcasecmp((string) $membership_plan->client_limit, 'Unlimited') !== 0) {
+            if (!$offerBenefitService->canAddClient($subscriber)) {
+                return back()->with('client_limit', 'Upgrade membership to add more clients.');
+            }
+        }
+
         $country = Countries::find($request->country);
         $nationality = Countries::find($request->nationality);
         $data->user_id = $user->id;
@@ -2080,6 +1879,10 @@ class WebController extends Controller
         $user = Auth::user();
         $this->set_timezone();
         if ($user) {
+            if ($request->filled('id') && (int) $request->id !== (int) $user->id) {
+                return $this->update_siteuser($request);
+            }
+
             if ($user->user_type == "Subscriber") {
                 $subscriber = $user;
             } else {
@@ -2105,6 +1908,7 @@ class WebController extends Controller
                 $user_update->designation = $request['designation'];
                 $user_update->employee_strength = $request['employee_strength'];
                 $user_update->address_line = $request['address_line'];
+                $user_update->website = trim((string) ($request['website'] ?? ''));
                 $user_update->country = $country->country_name;
                 $user_update->state = $request['state'];
                 $user_update->city = $request['city'];
@@ -2140,6 +1944,7 @@ class WebController extends Controller
                 $user_update->designation = $request['designation'];
                 $user_update->employee_strength = $request['employee_strength'];
                 $user_update->address_line = $request['address_line'];
+                $user_update->website = trim((string) ($request['website'] ?? ''));
                 $user_update->country = $country->country_name;
                 $user_update->state = $request['state'];
                 $user_update->city = $request['city'];
@@ -2159,7 +1964,7 @@ class WebController extends Controller
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
                 $activity->save();
-                return back()->with('success', 'Profile Updated Successfully!');
+                return back()->with('success', 'Profile updated successfully.');
             } elseif (isset($request->profile_image)) {
                 if ($request->hasFile('profile_img')) {
                     $file = $request->file('profile_img');
@@ -2182,7 +1987,7 @@ class WebController extends Controller
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
                 $activity->save();
-                return back()->with('success', 'Profile Updated Successfully!');
+                return back()->with('success', 'Profile updated successfully.');
             } elseif (isset($request->logo_image)) {
                 if ($request->hasFile('organization_logo')) {
                     $file = $request->file('organization_logo');
@@ -2205,7 +2010,7 @@ class WebController extends Controller
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
                 $activity->save();
-                return back()->with('logo_updated', 'Logo Updated Successfully!');
+                return back()->with('logo_updated', 'Logo updated successfully.');
             }
         } else {
             return redirect()->route('login');
@@ -2244,6 +2049,7 @@ class WebController extends Controller
                 $user_update->designation = $request['designation'];
                 $user_update->employee_strength = $request['employee_strength'];
                 $user_update->address_line = $request['address_line'];
+                $user_update->website = trim((string) ($request['website'] ?? ''));
                 $user_update->country = $country->country_name;
                 $user_update->state = $request['state'];
                 $user_update->city = $request['city'];
@@ -2292,7 +2098,7 @@ class WebController extends Controller
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
                 $activity->save();
-                return back()->with('success', 'Profile Updated Successfully!');
+                return back()->with('success', 'Profile updated successfully.');
             } elseif (isset($request->profile_image)) {
                 if ($request->hasFile('profile_img')) {
                     $file = $request->file('profile_img');
@@ -2315,7 +2121,7 @@ class WebController extends Controller
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
                 $activity->save();
-                return back()->with('success', 'Profile Updated Successfully!');
+                return back()->with('success', 'Profile updated successfully.');
             } elseif (isset($request->logo_image)) {
                 if ($request->hasFile('organization_logo')) {
                     $file = $request->file('organization_logo');
@@ -2333,7 +2139,7 @@ class WebController extends Controller
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
                 $activity->save();
-                return back()->with('logo_updated', 'Logo Updated Successfully!');
+                return back()->with('logo_updated', 'Logo updated successfully.');
             }
         } else {
             return redirect()->route('login');
@@ -2344,67 +2150,108 @@ class WebController extends Controller
     {
         $user = Auth::user();
         $this->set_timezone();
-        if ($user) {
-            $this->set_timezone();
-            if ($user->user_type == "Subscriber") {
-                $subscriber = $user;
-            } else {
-                $subscriber = User::find($user->added_by);
-            }
-            $siteuser = User::find($request->id);
-            if ($siteuser) {
-                $siteuser_update = User::find($request->id);
-                if (isset($request->profile)) {
-                    $country = Countries::find($request->country);
-                    $siteuser_update->name = $request['name'];
-                    $siteuser_update->phone = $request['phone'];
-                    $siteuser_update->dob = $request['dob'];
-                    $siteuser_update->organization = $request['organization'];
-                    $siteuser_update->designation = $request['designation'];
-                    $siteuser_update->employee_strength = $request['employee_strength'];
-                    $siteuser_update->address_line = $request['address_line'];
-                    $siteuser_update->country = $country->country_name;
-                    $siteuser_update->state = $request['state'];
-                    $siteuser_update->city = $request['city'];
-                    $siteuser_update->pincode = $request['pincode'];
-                    $siteuser_update->timezone = $request['timezone'];
-                    $siteuser_update->save();
-                    $activity = new Activities();
-                    $activity->subscriber_id = $subscriber->id;
-                    $activity->user_id = $user->id;
-                    $activity->user_name = $user->name;
-                    $activity->activity_name = "User Profile Updated";
-                    $activity->activity_detail = "" . $user->name . " Updated profile of his staff " . $siteuser_update->name . " at " . $request->local_time;
-                    $activity->activity_icon = "user.png";
-                    $activity->local_time = $request->local_time;
-                    $activity->save();
-                    return back()->with('success', 'Profile Updated Successfully!');
-                } elseif (isset($request->profile_image)) {
-                    if ($request->hasFile('profile_img')) {
-                        $file = $request->file('profile_img');
-                        $extension = $file->getClientOriginalName();
-                        $filename = time() . $extension;
-                        $file->move('web_assets/users/user' . $siteuser_update->id . '/', $filename);
-                        $siteuser_update->profile_img = $filename;
-                    }
-                    $siteuser_update->save();
-                    $activity = new Activities();
-                    $activity->subscriber_id = $subscriber->id;
-                    $activity->user_id = $user->id;
-                    $activity->user_name = $user->name;
-                    $activity->activity_name = "User Profile Updated";
-                    $activity->activity_detail = "" . $user->name . " Updated profile of his staff " . $siteuser_update->name . " at " . $request->local_time;
-                    $activity->activity_icon = "user.png";
-                    $activity->local_time = $request->local_time;
-                    $activity->save();
-                    return back()->with('success', 'Profile Updated Successfully!');
-                }
-            } else {
-                return back();
-            }
-        } else {
+        if (!$user) {
             return redirect()->route('login');
         }
+
+        if ($user->user_type == "Subscriber") {
+            $subscriber = $user;
+        } else {
+            $subscriber = User::find($user->added_by);
+        }
+
+        $siteuser_update = User::find($request->id);
+        if (!$siteuser_update || $siteuser_update->user_type !== 'User') {
+            return redirect()->route('users')->with('error', 'Staff user not found.');
+        }
+
+        if ($user->user_type !== 'admin' && (!$subscriber || (int) $siteuser_update->added_by !== (int) $subscriber->id)) {
+            abort(403);
+        }
+
+        $activitySubscriberId = $user->user_type === 'admin'
+            ? (int) $siteuser_update->added_by
+            : (int) $subscriber->id;
+
+        $staffProfileRedirect = route('siteuser_profile', ['id' => $siteuser_update->id, 'edit' => 1]);
+
+        $isStaffProfileUpdate = $request->has('staff_profile') || $request->has('profile');
+        $isStaffImageUpdate = $request->has('staff_profile_image') || $request->has('profile_image');
+
+        if ($isStaffProfileUpdate) {
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|min:3|max:255',
+                'phone' => 'required|phone_intl',
+                'dob' => 'required|date',
+                'designation' => 'required|string|max:255',
+                'country' => 'required',
+                'state' => 'required',
+                'city' => 'required|string|min:3|max:255',
+                'pincode' => 'required|regex:/^[A-Za-z0-9\s\-]{3,10}$/',
+                'timezone' => 'required|string|max:255',
+            ]);
+
+            if ($validator->fails()) {
+                return redirect()->to($staffProfileRedirect)
+                    ->withErrors($validator)
+                    ->withInput();
+            }
+
+            $country = Countries::find($request->country);
+            if (!$country) {
+                return redirect()->to($staffProfileRedirect)
+                    ->withErrors(['country' => 'Please select a valid country.'])
+                    ->withInput();
+            }
+
+            $siteuser_update->name = $request['name'];
+            $siteuser_update->phone = $request['phone'];
+            $siteuser_update->dob = $request['dob'];
+            $siteuser_update->designation = $request['designation'];
+            $siteuser_update->country = $country->country_name;
+            $siteuser_update->state = $request['state'];
+            $siteuser_update->city = $request['city'];
+            $siteuser_update->pincode = $request['pincode'];
+            $siteuser_update->timezone = $request['timezone'];
+            $siteuser_update->save();
+
+            $activity = new Activities();
+            $activity->subscriber_id = $activitySubscriberId;
+            $activity->user_id = $user->id;
+            $activity->user_name = $user->name;
+            $activity->activity_name = "User Profile Updated";
+            $activity->activity_detail = "" . $user->name . " Updated profile of his staff " . $siteuser_update->name . " at " . $request->local_time;
+            $activity->activity_icon = "user.png";
+            $activity->local_time = $request->local_time;
+            $activity->save();
+
+            return redirect()->route('siteuser_profile', $siteuser_update->id)->with('success', 'Staff profile updated successfully.');
+        }
+
+        if ($isStaffImageUpdate) {
+            if ($request->hasFile('profile_img')) {
+                $file = $request->file('profile_img');
+                $extension = $file->getClientOriginalName();
+                $filename = time() . $extension;
+                $file->move('web_assets/users/user' . $siteuser_update->id . '/', $filename);
+                $siteuser_update->profile_img = $filename;
+            }
+            $siteuser_update->save();
+
+            $activity = new Activities();
+            $activity->subscriber_id = $activitySubscriberId;
+            $activity->user_id = $user->id;
+            $activity->user_name = $user->name;
+            $activity->activity_name = "User Profile Updated";
+            $activity->activity_detail = "" . $user->name . " Updated profile of his staff " . $siteuser_update->name . " at " . $request->local_time;
+            $activity->activity_icon = "user.png";
+            $activity->local_time = $request->local_time;
+            $activity->save();
+
+            return redirect()->route('siteuser_profile', $siteuser_update->id)->with('success', 'Staff profile image updated successfully.');
+        }
+
+        return redirect()->route('siteuser_profile', $siteuser_update->id);
     }
 
     public function change_password(Request $request)
@@ -2484,6 +2331,20 @@ class WebController extends Controller
             if ($client) {
                 $client_update = Clients::find($request->id);
                 if (isset($request->profile)) {
+                    $request->validate([
+                        'name' => 'required|string|min:3|max:255',
+                        'phone' => 'required|phone_intl',
+                        'email' => 'required|email|max:255',
+                        'alternate_no' => 'nullable|phone_intl',
+                        'passport_no' => 'nullable|regex:/^[A-Z0-9]{6,14}$/',
+                        'country' => 'required',
+                        'nationality' => 'required',
+                        'address' => 'required|string|min:3|max:1000',
+                        'state' => 'required',
+                        'city' => 'required|string|min:3|max:255',
+                        'pincode' => 'required|regex:/^[A-Za-z0-9\s\-]{3,10}$/',
+                    ]);
+
                     $country = Countries::find($request->country);
                     $nationality = Countries::find($request->nationality);
                     $client_update->name = $request['name'];
@@ -2513,7 +2374,7 @@ class WebController extends Controller
                     $activity->activity_icon = "user.png";
                     $activity->local_time = $request->local_time;
                     $activity->save();
-                    return back()->with('success', 'Profile Updated Successfully!');
+                    return back()->with('success', 'Profile updated successfully.');
                 } elseif (isset($request->profile_image)) {
                     if ($request->hasFile('profile_img')) {
                         $file = $request->file('profile_img');
@@ -2537,7 +2398,7 @@ class WebController extends Controller
                     $activity->activity_icon = "user.png";
                     $activity->local_time = $request->local_time;
                     $activity->save();
-                    return back()->with('success', 'Profile Updated Successfully!');
+                    return back()->with('success', 'Profile updated successfully.');
                 } elseif (isset($request->job)) {
                     $client_update->job_id = $request['job_id'];
                     $client_update->job_detail = $request['job_detail'];
@@ -2559,7 +2420,7 @@ class WebController extends Controller
                     $activity->activity_icon = "job_icon.png";
                     $activity->local_time = $request->local_time;
                     $activity->save();
-                    return back()->with('success', 'Profile Updated Successfully!');
+                    return back()->with('success', 'Profile updated successfully.');
                 }
             } else {
                 return back();
@@ -2573,8 +2434,8 @@ class WebController extends Controller
     {
         // echo'<pre>';print_r(auth()->user());echo'</pre>';exit();
         $user = $this->check_login();
-        if ($user->type_user != "affiliate" && $user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if ($user->type_user != "affiliate" && membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
         $tzlist = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
@@ -2598,7 +2459,7 @@ class WebController extends Controller
 
         $affiliateUser = auth()->guard('affiliates')->user();
         if (!isset($affiliateUser)) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
         $tzlist = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
@@ -2612,17 +2473,30 @@ class WebController extends Controller
     public function siteuser_profile($id = null)
     {
         $user = $this->check_login();
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         if (!empty($id)) {
-            $siteuser  = User::find($id);
+            $siteuser = User::find($id);
+            if (!$siteuser || $siteuser->user_type !== 'User') {
+                return redirect()->route('users')->with('error', 'Staff user not found.');
+            }
+
+            if ($user->user_type !== 'admin') {
+                $subscriberId = $user->user_type === 'Subscriber' ? $user->id : (int) $user->added_by;
+                if ((int) $siteuser->added_by !== $subscriberId) {
+                    abort(403);
+                }
+            }
+
             $this->set_timezone();
             $tzlist = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
             $countries = Countries::get();
+            $states = collect();
             foreach ($countries as $country) {
                 if ($country->country_name == $siteuser->country) {
                     $states = States::where('country_id', '=', $country->id)->get();
+                    break;
                 }
             }
             $page = "users";
@@ -2635,22 +2509,16 @@ class WebController extends Controller
     public function client_profile($id = null)
     {
         $user = $this->check_login();
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         if (!empty($id)) { //edit the page.
             $client  = Clients::find($id);
-            if (!$client) {
-                return back()->with('error', 'Client not found.');
-            }
-
             $this->set_timezone();
             $countries = Countries::get();
-            $states = collect();
             foreach ($countries as $country) {
                 if ($country->country_name == $client->country) {
                     $states = States::where('country_id', '=', $country->id)->get();
-                    break;
                 }
             }
             // $states = States::get();
@@ -2693,7 +2561,7 @@ class WebController extends Controller
             'merits_of_case' => 'required|integer|min:0|max:100',
             'case_notes' => 'nullable|string|max:1500',
             'line_manager_name' => 'nullable|string|max:150',
-            'line_manager_phone' => 'nullable|string|max:50',
+            'line_manager_phone' => 'nullable|phone_intl',
             'line_manager_email' => 'nullable|email|max:150',
             'office_hours' => 'nullable|string|max:150',
             'complaint_handling_details' => 'nullable|string|max:1500',
@@ -2833,8 +2701,7 @@ class WebController extends Controller
             $document->doc_name = $request['doc_name'];
             if ($request->hasFile('doc_file')) {
                 $file = $request->file('doc_file');
-                $extension = $file->getClientOriginalName();
-                $filename = time() . $extension;
+                $filename = \App\Support\DocumentFileName::storageName($request->doc_name, $file->getClientOriginalName());
                 $file->move('web_assets/users/client' . $document->client_id . '/docs/', $filename);
                 $document->doc_file = $filename;
                 $document->save();
@@ -2852,7 +2719,7 @@ class WebController extends Controller
                 $activity->activity_icon = "doc.png";
                 $activity->local_time = $request->local_time;
                 $activity->save();
-                return back()->with('updated', 'updated successfully');
+                return back()->with('updated', 'Updated successfully.');
             }
         } else {
             $doc = new Client_Docs();
@@ -2862,8 +2729,7 @@ class WebController extends Controller
             $doc->doc_name = $request['doc_name'];
             if ($request->hasFile('doc_file')) {
                 $file = $request->file('doc_file');
-                $extension = $file->getClientOriginalName();
-                $filename = time() . $extension;
+                $filename = \App\Support\DocumentFileName::storageName($request->doc_name, $file->getClientOriginalName());
                 $file->move('web_assets/users/client' . $doc->client_id . '/docs/', $filename);
                 $doc->doc_file = $filename;
             }
@@ -2883,7 +2749,7 @@ class WebController extends Controller
             $activity->activity_icon = "doc.png";
             $activity->local_time = $request->local_time;
             $activity->save();
-            return back()->with('uploaded', 'uploaded successfully');
+            return back()->with('uploaded', 'Uploaded successfully.');
         }
     }
 
@@ -2899,14 +2765,14 @@ class WebController extends Controller
                 $siteuser->delete();
                 $activity = new Activities();
                 $activity->subscriber_id = $subscriber->id;
-                $activity->user_id = $id;
-                $activity->user_name = $name;
+                $activity->user_id = $user->id;
+                $activity->user_name = $user->name;
                 $activity->activity_name = "User Deleted";
                 $activity->activity_detail = $user->name . " deleted staff user" . $username . " account at " . $localtime;
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $localtime;
                 $activity->save();
-                return back()->with('deleted', 'user deleted successfully');
+                return back()->with('deleted', 'User deleted successfully.');
             } else {
                 return redirect()->route('login');
             }
@@ -2942,7 +2808,7 @@ class WebController extends Controller
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $localtime;
                 $activity->save();
-                return back()->with('deleted', 'client deleted successfully');
+                return back()->with('deleted', 'Client deleted successfully.');
             } else {
                 return redirect()->route('login');
             }
@@ -2951,63 +2817,11 @@ class WebController extends Controller
         }
     }
 
-
-    protected function assignedApplicationIdsFor(User $user, ?User $subscriber)
-    {
-        if (!$subscriber) {
-            return [];
-        }
-
-        $assignedApplicationIds = Application_assignments::where('subscriber_id', '=', $subscriber->id)
-            ->where('user_id', '=', $user->id)
-            ->whereNotNull('application_id')
-            ->pluck('application_id')
-            ->toArray();
-
-        $directApplicationIds = Applications::where('subscriber_id', '=', $subscriber->id)
-            ->where(function ($query) use ($user) {
-                $query->where('assign_to', '=', $user->id)
-                    ->orWhereNull('assign_to')
-                    ->orWhere('assign_to', '=', '');
-            })
-            ->pluck('application_id')
-            ->toArray();
-
-        return collect($assignedApplicationIds)
-            ->merge($directApplicationIds)
-            ->filter()
-            ->unique()
-            ->values()
-            ->toArray();
-    }
-
-    protected function userCanAccessApplication(?User $user, ?Applications $application)
-    {
-        if (!$user || !$application) {
-            return false;
-        }
-
-        if ($user->user_type == 'admin') {
-            return true;
-        }
-
-        if ($user->user_type == 'Subscriber') {
-            return $application->subscriber_id == $user->id;
-        }
-
-        $subscriber = User::find($user->added_by);
-        if (!$subscriber || $application->subscriber_id != $subscriber->id) {
-            return false;
-        }
-
-        return in_array($application->application_id, $this->assignedApplicationIdsFor($user, $subscriber));
-    }
-
     public function applications()
     {
         $user = $this->check_login();
-        if ($user->user_type != 'admin' && $user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
 
         $this->set_timezone();
@@ -3021,19 +2835,9 @@ class WebController extends Controller
                 $applications = Applications::orderBy('created_at', 'desc')->get();
             } else {
                 $subscriber = User::find($user->added_by);
-                $assignedApplicationIds = $this->assignedApplicationIdsFor($user, $subscriber);
-                $applications = Applications::where('subscriber_id', '=', $subscriber->id)
-                    ->whereIn('application_id', $assignedApplicationIds)
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+                $applications = Applications::where('assign_to', '=', $user->id)->orwhere('assign_to', '=', null)->where('subscriber_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->get();
             }
-            if ($user->user_type == "Subscriber" || $user->user_type == "admin") {
-                $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
-            } else {
-                $clients = Clients::where('subscriber_id', '=', $subscriber->id)
-                    ->whereIn('id', $applications->pluck('client_id')->unique()->toArray())
-                    ->get();
-            }
+            $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
             $page = "applications";
 
 
@@ -3068,7 +2872,7 @@ class WebController extends Controller
                     ->addColumn('action', function ($row) use ($application_roles, $user) {
                         $html = '';
                         $html .= '<a style="background:transparent;border:none;" class="p-0 m-0 text-dark" ';
-                        if ($user->user_type == 'admin' || $user->user_type == 'Subscriber' || ($application_roles && ($application_roles->read_only == 1 || $application_roles->read_write_only == 1))) {
+                        if ($user->user_type == 'admin' || $application_roles->read_only == 1 || $application_roles->read_write_only == 1) {
                             $html .= 'href="' . route('view_application', $row->id) . '">';
                         } else {
                             $html .= 'href="#">';
@@ -3095,7 +2899,11 @@ class WebController extends Controller
                     ->make(true);
             }
 
-            return view('web.applications', compact('applications', 'clients', 'user', 'page', 'roles'));
+            $applicationTypeFilters = TableFilterCountService::countBy(
+                $applications,
+                fn ($application) => $application->application_name
+            );
+            return view('web.applications', compact('applications', 'clients', 'user', 'page', 'roles', 'applicationTypeFilters'));
         } else {
             return redirect()->route('login');
         }
@@ -3104,82 +2912,51 @@ class WebController extends Controller
     public function user_application_tracking(){
 
         $user = Auth::user();
-        $subscriber = $user->user_type == "Subscriber" ? $user : User::find($user->added_by);
-        $clients = collect();
+        $clients = Clients::where('subscriber_id', '=', $user->id)->get();
         // $subscribers = User::where('user_type', '=', 'Subscriber')->get();
         if ($user) {
-            if ($user->user_type == "Subscriber") {
-                $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
+            if ($user->user_type == "Subscriber" || $user->user_type == "admin") {
+                $subscriber = $user;
             } else {
-                $assignedApplicationIds = $this->assignedApplicationIdsFor($user, $subscriber);
-                $clientIds = Applications::where('subscriber_id', '=', $subscriber ? $subscriber->id : 0)
-                    ->whereIn('application_id', $assignedApplicationIds)
-                    ->pluck('client_id')
-                    ->unique()
-                    ->toArray();
-                $clients = Clients::where('subscriber_id', '=', $subscriber ? $subscriber->id : 0)
-                    ->whereIn('id', $clientIds)
-                    ->get();
+                $subscriber = User::find($user->added_by);
             }
+            $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
+            $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();
+        } else {
+            $applications = collect();
         }
         $countries = Countries::get();
         $page = "applications";
-        $applications = Applications::orderBy('created_at', 'desc')->where('id', 0)->get();
         return view('web.application_tracking', compact('clients','applications', 'user', 'page', 'countries'));
         
     }
 
     public function getClientsBySubscriber()
-    {
+    {   
         $user = Auth::user();
-
-        if ($user->user_type == 'admin') {
-            $clients = Clients::get();
-        } elseif ($user->user_type == 'Subscriber') {
-            $clients = Clients::where('subscriber_id', $user->id)->get();
+        if ($user->user_type == "Subscriber" || $user->user_type == "admin") {
+            $subscriberId = $user->id;
         } else {
-            $subscriber = User::find($user->added_by);
-            $assignedApplicationIds = $this->assignedApplicationIdsFor($user, $subscriber);
-            $clientIds = Applications::where('subscriber_id', '=', $subscriber ? $subscriber->id : 0)
-                ->whereIn('application_id', $assignedApplicationIds)
-                ->pluck('client_id')
-                ->unique()
-                ->toArray();
-            $clients = Clients::where('subscriber_id', $subscriber ? $subscriber->id : 0)
-                ->whereIn('id', $clientIds)
-                ->get();
+            $subscriberId = User::find($user->added_by)->id;
         }
-
+        $clients = Clients::where('subscriber_id', $subscriberId)
+            ->whereHas('applications')
+            ->get();
         return response()->json($clients);
     }
 
     public function getApplicationsByClient($clientId)
     {
-        $user = Auth::user();
-        $query = Applications::where('client_id', $clientId);
-
-        if ($user && $user->user_type != 'admin' && $user->user_type != 'Subscriber') {
-            $subscriber = User::find($user->added_by);
-            $assignedApplicationIds = $this->assignedApplicationIdsFor($user, $subscriber);
-            $query->where('subscriber_id', '=', $subscriber ? $subscriber->id : 0)
-                ->whereIn('application_id', $assignedApplicationIds);
-        }
-
-        $applications = $query->get(['id', 'application_name']);
+        $applications = Applications::where('client_id', $clientId)->get(['id', 'application_name']);
         return response()->json($applications);
     }
 
     public function getApplicationData($id)
     {
-        $application = Applications::find($id);
+        $application = Applications::with('client.user')->find($id);
 
         if (!$application) {
             return response()->json([]);
-        }
-
-        $user = Auth::user();
-        if (!$this->userCanAccessApplication($user, $application)) {
-            abort(403);
         }
 
         $timeline = ApplicationStatusTrack::where('application_id', $application->id)
@@ -3198,7 +2975,42 @@ class WebController extends Controller
             })
             ->values();
 
+        if ($timeline->isEmpty()) {
+            $clientUser = $application->client && $application->client->user
+                ? $application->client->user->name . ' (' . $application->client->user->id . ')'
+                : '--';
+
+            $timeline = collect([[
+                'index' => 1,
+                'status' => $application->application_status ?: 'Client Registered',
+                'start_date' => $this->formatApplicationTrackingDate($application->start_date),
+                'end_date' => $this->formatApplicationTrackingDate($application->end_date),
+                'user' => $clientUser,
+            ]]);
+        }
+
         return response()->json($timeline);
+    }
+
+    private function formatApplicationTrackingDate($value): string
+    {
+        if (!$value || trim((string) $value) === '') {
+            return '--';
+        }
+
+        $value = trim((string) $value);
+        foreach (['Y-m-d', 'd-m-Y', 'm-d-Y', 'd/m/Y'] as $format) {
+            try {
+                return Carbon::createFromFormat($format, $value)->format('d/m/Y');
+            } catch (\Exception $e) {
+            }
+        }
+
+        try {
+            return Carbon::parse($value)->format('d/m/Y');
+        } catch (\Exception $e) {
+            return '--';
+        }
     }
 
     public function updateApplicationStatus(Request $request)
@@ -3209,12 +3021,14 @@ class WebController extends Controller
         ]);
 
         $application = Applications::findOrFail($request->application_id);
-        $user = Auth::user();
-        if (!$this->userCanAccessApplication($user, $application)) {
-            abort(403);
-        }
         $currentStatus = $application->application_status ?: 'Client Registered';
+        if ($currentStatus === 'Apointment Booked') {
+            $currentStatus = 'Appointment Booked';
+        }
         $newStatus = $request->status;
+        if ($newStatus === 'Apointment Booked') {
+            $newStatus = 'Appointment Booked';
+        }
 
         $statusFlow = self::APPLICATION_STATUS_FLOW;
         $currentIndex = array_search($currentStatus, $statusFlow, true);
@@ -3239,6 +3053,7 @@ class WebController extends Controller
         $application->application_status = $newStatus;
         $application->save();
 
+        $user = Auth::user();
         ApplicationStatusTrack::create([
             'application_id' => $application->id,
             'status' => $newStatus,
@@ -3247,14 +3062,17 @@ class WebController extends Controller
             'changed_at' => now(),
         ]);
 
+        app(\App\Services\OperationalNotificationService::class)
+            ->notifyApplicationClosure($application, $newStatus);
+
         return response()->json(['message' => 'Application status updated successfully.']);
     }
 
     public function add_application()
     {
         $user = $this->check_login();
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
         if ($user->user_type == "Subscriber") {
@@ -3262,51 +3080,53 @@ class WebController extends Controller
         } else {
             $subscriber = User::find($user->added_by);
         }
-        if ($subscriber->category == "Law Firm") {
-            $client_jobs = Client_jobs::where('category', '=', $subscriber->category)->get();
-        } elseif ($subscriber->category == "Travel Agency") {
-            $client_jobs = Client_jobs::where('category', '=', $subscriber->category)->get();
-        } else {
-            $client_jobs = Client_jobs::where('category', '=', $subscriber->category)->where('sub_category', '=', $subscriber->sub_category)->get();
-        }
+        $ccService = app(CountryCategorySettingsService::class);
+        $client_jobs = $ccService->getClientJobsForSubscriber($subscriber);
         $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
-        $countries = Countries::get();
+        $countries = $ccService->resolveCountriesForDropdown($subscriber);
+        $visaCategories = $ccService->resolveVisaCategoryNames($subscriber);
         $page = "applications";
-        return view('web.add_application', compact('clients', 'user', 'page', 'countries', 'client_jobs'));
+        return view('web.add_application', compact('clients', 'user', 'page', 'countries', 'client_jobs', 'subscriber', 'visaCategories'));
     }
 
     public function update_application($id)
     {
         $user = Auth::user();
         $this->set_timezone();
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $application = Applications::find($id);
-        if (!$this->userCanAccessApplication($user, $application)) {
-            abort(403);
-        }
-        $countries = Countries::get();
         $client = Clients::find($application->client_id);
         $subscriber = User::find($client->subscriber_id);
-        if ($subscriber->category == "Law Firm") {
-            $job_roles = Client_jobs::where('category', '=', $subscriber->category)->get();
-        } elseif ($subscriber->category == "Travel Agency") {
-            $job_roles = Client_jobs::where('category', '=', $subscriber->category)->get();
-        } else {
-            $job_roles = Client_jobs::where('category', '=', $subscriber->category)->where('sub_category', '=', $subscriber->sub_category)->get();
-        }
+        $ccService = app(CountryCategorySettingsService::class);
+        $countries = $ccService->resolveCountriesForDropdown(
+            $subscriber,
+            array_filter([
+                $application->visa_country,
+                optional($application->client)->visa_country,
+            ])
+        );
+        $visaCategories = $ccService->resolveVisaCategoryNames($subscriber);
+        $job_roles = $ccService->getClientJobsForSubscriber($subscriber);
         $page = "applications";
-        return view('web.add_application', compact('application', 'job_roles', 'user', 'page', 'countries'));
+        return view('web.add_application', compact('application', 'job_roles', 'user', 'page', 'countries', 'subscriber', 'visaCategories'));
     }
 
     public function add_new_application(Request $request)
     {
-        $request->validate([
+        $ccService = app(CountryCategorySettingsService::class);
+        $request->validate(array_merge([
             'job_status' => 'required|string|max:255',
             'job_open_date' => 'required|date|before_or_equal:today',
-            'job_completion_date' => 'nullable|date|required_if:job_status,Complete|after_or_equal:job_open_date|before_or_equal:today',
-        ], [
+            'job_completion_date' => [
+                'nullable',
+                'date',
+                Rule::requiredIf(fn () => in_array($request->input('job_status'), self::APPLICATION_END_DATE_REQUIRED_STATUSES, true)),
+                'after_or_equal:job_open_date',
+                'before_or_equal:today',
+            ],
+        ], $ccService->visaDetailValidationRules($request->input('job_role'))), [
             'job_open_date.before_or_equal' => 'Application Start Date cannot be in the future',
             'job_completion_date.required_if' => 'Application End Date is required',
             'job_completion_date.after_or_equal' => 'Application End Date must be on or after Application Start Date',
@@ -3327,7 +3147,7 @@ class WebController extends Controller
                 }
             }
         };
-        $endDateEditableStatuses = ['Decision', 'Appeal Decision', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
+        $endDateEditableStatuses = self::APPLICATION_END_DATE_REQUIRED_STATUSES;
         $resolveApplicationEndDate = function ($status, $endDate) use ($endDateEditableStatuses, $normalizeDate) {
             if (!in_array($status, $endDateEditableStatuses, true)) {
                 return null;
@@ -3362,6 +3182,14 @@ class WebController extends Controller
                 $oldStatus = $application->application_status ?: 'Client Registered';
                 $client = Clients::find($request->client_id);
                 $subscriber = User::find($client->subscriber_id);
+                $ccErrors = $ccService->validateEntrySelection(
+                    $subscriber,
+                    $resolveVisaCountry($request['visa_country']),
+                    $request['job_role']
+                );
+                if (!empty($ccErrors)) {
+                    return back()->withInput()->withErrors($ccErrors);
+                }
                 $application->application_name = $request['job_role'];
                 $application->application_country =  $client->country;
                 $application->visa_country =  $resolveVisaCountry($request['visa_country']);
@@ -3370,6 +3198,7 @@ class WebController extends Controller
                 $application->application_status = $request['job_status'];
                 $application->start_date = $normalizeDate($request['job_open_date']);
                 $application->end_date = $resolveApplicationEndDate($request['job_status'], $request['job_completion_date']);
+                $ccService->applyVisaDetailFields($application, $request['job_role'], $request->all());
                 $application->save();
                 if ($oldStatus !== $request['job_status']) {
                     ApplicationStatusTrack::create([
@@ -3379,6 +3208,8 @@ class WebController extends Controller
                         'updated_by_name' => $user->name . ' (' . $user->id . ')',
                         'changed_at' => now(),
                     ]);
+                    app(\App\Services\OperationalNotificationService::class)
+                        ->notifyApplicationClosure($application, $request['job_status'], $client);
                 }
                 $activity = new Activities();
                 $activity->subscriber_id = $subscriber->id;
@@ -3393,11 +3224,19 @@ class WebController extends Controller
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
                 $activity->save();
-                return redirect()->route('applications')->with('application_updated', "Application Updated successfully");
+                return redirect()->route('applications')->with('application_updated', "Application updated successfully.");
             } else {
                 $client = Clients::find($request->client);
                 if ($client) {
                     $subscriber = User::find($client->subscriber_id);
+                    $ccErrors = $ccService->validateEntrySelection(
+                        $subscriber,
+                        $resolveVisaCountry($request['visa_country']),
+                        $request['job_role']
+                    );
+                    if (!empty($ccErrors)) {
+                        return back()->withInput()->withErrors($ccErrors);
+                    }
                     $application = new Applications();
                     $application->client_id = $client->id;
                     $application->subscriber_id = $subscriber->id;
@@ -3412,6 +3251,7 @@ class WebController extends Controller
                     $application->application_status = $request['job_status'];
                     $application->start_date = $normalizeDate($request['job_open_date']);
                     $application->end_date = $resolveApplicationEndDate($request['job_status'], $request['job_completion_date']);
+                    $ccService->applyVisaDetailFields($application, $request['job_role'], $request->all());
                     $application->save();
                     ApplicationStatusTrack::create([
                         'application_id' => $application->id,
@@ -3420,6 +3260,8 @@ class WebController extends Controller
                         'updated_by_name' => $user->name . ' (' . $user->id . ')',
                         'changed_at' => now(),
                     ]);
+                    app(\App\Services\OperationalNotificationService::class)
+                        ->notifyApplicationClosure($application, $request['job_status'], $client);
                     $activity = new Activities();
                     $activity->subscriber_id = $subscriber->id;
                     $activity->user_id = $user->id;
@@ -3433,7 +3275,7 @@ class WebController extends Controller
                     $activity->activity_icon = "user.png";
                     $activity->local_time = $request->local_time;
                     $activity->save();
-                    return redirect()->route('applications')->with('application_added', "Application Added successfully");
+                    return redirect()->route('applications')->with('application_added', "Application added successfully.");
                 } else {
                     return back();
                 }
@@ -3445,17 +3287,175 @@ class WebController extends Controller
 
     public function view_application($id)
     {
+        $user = Auth::user();
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
+        }
+
         $application = Applications::find($id);
-        $user = Auth::user();
-        if (!$this->userCanAccessApplication($user, $application)) {
-            abort(403);
+        if (!$application) {
+            return redirect()->route('applications');
         }
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+
+        if ($user->user_type !== 'admin') {
+            $subscriberId = $user->user_type === 'Subscriber' ? $user->id : $user->added_by;
+            if ((int) $application->subscriber_id !== (int) $subscriberId) {
+                return redirect()->route('applications');
+            }
         }
-        $user = Auth::user();
+
+        $documentsQuery = Client_Docs::where('application_id', $application->application_id)
+            ->whereNotNull('doc_file')
+            ->where('doc_file', '!=', '');
+
+        if ($user->user_type !== 'admin') {
+            $subscriberId = $user->user_type === 'Subscriber' ? $user->id : $user->added_by;
+            $documentsQuery->where('user_id', $subscriberId);
+        }
+
+        $documents = $documentsQuery->orderBy('doc_type')->orderByDesc('created_at')->get();
+        $ccService = app(\App\Services\CountryCategorySettingsService::class);
+        $documentsByFolder = $ccService->groupDocumentsByFolder($documents);
+        $documentsByType = $documentsByFolder;
+        $documentFolders = $ccService->getDocumentFolders();
+
         $page = "applications";
-        return view('web.view_application', compact('application', 'user', 'page'));
+        $documentListService = app(\App\Services\ApplicationDocumentListService::class);
+        $documentReminderService = app(\App\Services\DocumentReminderService::class);
+        $canGenerateDocumentList = $documentListService->hasConfiguredList($user, $application);
+        $documentChecklistItems = $documentReminderService->buildDocumentChecklistItems($user, $application);
+
+        return view('web.view_application', compact('application', 'user', 'page', 'documents', 'documentsByType', 'documentsByFolder', 'documentFolders', 'canGenerateDocumentList', 'documentChecklistItems'));
+    }
+
+    public function generate_application_document_list($id)
+    {
+        $user = Auth::user();
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
+        }
+
+        $application = Applications::find($id);
+        if (!$application) {
+            return redirect()->route('applications');
+        }
+
+        if ($user->user_type !== 'admin') {
+            $subscriberId = $user->user_type === 'Subscriber' ? $user->id : $user->added_by;
+            if ((int) $application->subscriber_id !== (int) $subscriberId) {
+                return redirect()->route('applications');
+            }
+        }
+
+        $documentListService = app(\App\Services\ApplicationDocumentListService::class);
+
+        try {
+            return $documentListService->streamPdf($user, $application);
+        } catch (\RuntimeException $e) {
+            return redirect()
+                ->route('view_application', $application->id)
+                ->with('document_list_error', $e->getMessage());
+        }
+    }
+
+    public function download_application_document_list($id)
+    {
+        $user = Auth::user();
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
+        }
+
+        $application = Applications::find($id);
+        if (!$application) {
+            return redirect()->route('applications');
+        }
+
+        if ($user->user_type !== 'admin') {
+            $subscriberId = $user->user_type === 'Subscriber' ? $user->id : $user->added_by;
+            if ((int) $application->subscriber_id !== (int) $subscriberId) {
+                return redirect()->route('applications');
+            }
+        }
+
+        $documentListService = app(\App\Services\ApplicationDocumentListService::class);
+
+        try {
+            return $documentListService->downloadPdf($user, $application);
+        } catch (\RuntimeException $e) {
+            return redirect()
+                ->route('view_application', $application->id)
+                ->with('document_list_error', $e->getMessage());
+        }
+    }
+
+    public function send_application_document_list(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
+        }
+
+        $request->validate([
+            'recipient_email' => 'nullable|email|max:255',
+            'custom_message' => 'nullable|string|max:2000',
+        ]);
+
+        $application = Applications::find($id);
+        if (!$application) {
+            return redirect()->route('applications');
+        }
+
+        if ($user->user_type !== 'admin') {
+            $subscriberId = $user->user_type === 'Subscriber' ? $user->id : $user->added_by;
+            if ((int) $application->subscriber_id !== (int) $subscriberId) {
+                return redirect()->route('applications');
+            }
+        }
+
+        $documentListService = app(\App\Services\ApplicationDocumentListService::class);
+        $client = Clients::find($application->client_id);
+        $recipient = trim((string) ($request->input('recipient_email') ?: ($client->email ?? '')));
+
+        if ($recipient === '') {
+            return back()->with('document_list_error', 'This client has no email address on record. Add one to the client profile, or enter an address to send to.');
+        }
+
+        try {
+            $payload = $documentListService->buildPdfPayload($user, $application);
+        } catch (\RuntimeException $e) {
+            return back()->with('document_list_error', $e->getMessage());
+        }
+
+        $subscriber = $documentListService->resolveSubscriberForApplication($user, $application);
+        $payload['application_id'] = $application->application_id;
+        $payload['subscriber_name'] = $subscriber->name ?? '';
+        $payload['subscriber_email'] = $subscriber->email ?? '';
+        $payload['custom_message'] = trim((string) $request->input('custom_message'));
+
+        $fileName = $documentListService->buildPdfFileName($payload['country'], $payload['category']);
+
+        try {
+            $pdfContents = $documentListService->renderPdfOutput($payload);
+            Mail::to($recipient)->send(new DocumentListMail($payload, $pdfContents, $fileName));
+        } catch (\Exception $exception) {
+            Log::error('Document list email sending failed.', [
+                'application_id' => $application->id,
+                'recipient' => $recipient,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return back()->with('document_list_error', 'The documents list could not be emailed right now. Please try again, or download the PDF and send it manually.');
+        }
+
+        $activity = new Activities();
+        $activity->subscriber_id = $application->subscriber_id;
+        $activity->user_id = $user->id;
+        $activity->client_id = $application->client_id;
+        $activity->activity_name = "Sent Documents List";
+        $activity->activity_detail = "Emailed the " . $payload['country'] . " / " . $payload['category'] . " documents list to " . $recipient . ".";
+        $activity->save();
+
+        return back()->with('document_list_sent', 'Documents list emailed to ' . $recipient . '.');
     }
 
     public function send_message(Request $request)
@@ -3483,6 +3483,14 @@ class WebController extends Controller
     public function moredetails()
     {
         $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        if ($user->organization != "") {
+            return redirect()->route('userprofile');
+        }
+
         $this->set_timezone();
         $tzlist = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
         $countries = Countries::all();
@@ -3506,10 +3514,24 @@ class WebController extends Controller
                 $user->email_otp = null;
                 $user->phone_otp = null;
                 $user->save();
-                return redirect()->route('thanks');
+
+                Auth::login($user);
+
+                $deviceId = md5($request->ip() . $request->userAgent());
+                UserSession::where('user_id', $user->id)
+                    ->where('device_id', $deviceId)
+                    ->delete();
+                UserSession::create([
+                    'user_id' => $user->id,
+                    'device_id' => $deviceId,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+
+                return redirect()->route('moredetails');
             }
         } else {
-            return back()->with('nouser', 'no user found');
+            return back()->with('nouser', 'No user found.');
         }
     }
 
@@ -3541,11 +3563,35 @@ class WebController extends Controller
 
             try {
                 Mail::to($user->email)->send(new EmailVerification($maildata));
+
+                if (Mail::failures()) {
+                    Log::error('Forgot password OTP email failed: mail transport rejected recipient', [
+                        'email' => $user->email,
+                        'user_id' => $user->id,
+                        'failures' => Mail::failures(),
+                    ]);
+
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Failed to send OTP. Please try again.',
+                    ]);
+                }
+
                 return response()->json([
                     'status' => 'success',
                     'message' => 'OTP sent successfully to your email.',
                 ]);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
+                Log::error('Forgot password OTP email failed', [
+                    'email' => $user->email,
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Failed to send OTP. Please try again.',
@@ -3595,7 +3641,7 @@ class WebController extends Controller
                 return redirect()->route('new_password_affiliate', $email);
             }
         } else {
-            return back()->with('nouser', 'no user found');
+            return back()->with('nouser', 'No user found.');
         }
     }
 
@@ -3642,9 +3688,9 @@ class WebController extends Controller
             $activity->activity_icon = "user.png";
             $activity->local_time = $request->local_time;
             $activity->save();
-            return redirect()->route('login')->with('password_changed', 'password changed successfully');
+            return redirect()->route('login')->with('password_changed', 'Password changed successfully.');
         } else {
-            return back()->with('nouser', 'no user found');
+            return back()->with('nouser', 'No user found.');
         }
     }
     public function save_password_affiliate(Request $request)
@@ -3669,9 +3715,9 @@ class WebController extends Controller
             $activity->activity_icon = "user.png";
             $activity->local_time = $request->local_time;
             $activity->save();
-            return redirect()->route('login')->with('password_changed', 'password changed successfully');
+            return redirect()->route('login')->with('password_changed', 'Password changed successfully.');
         } else {
-            return back()->with('nouser', 'no user found');
+            return back()->with('nouser', 'No user found.');
         }
     }
 
@@ -3712,7 +3758,7 @@ class WebController extends Controller
         if ($user) {
             if ($user->user_type == "Subscriber") {
                 $subscriber = $user;
-                $myplan = Membership::where('plan_name', '=', $subscriber->membership)->first();
+                $myplan = Membership::where('plan_name', '=', $user->membership)->first();
             } else {
                 $sid = $user->added_by;
                 $subscriber = User::find($sid);
@@ -3738,7 +3784,7 @@ class WebController extends Controller
         if ($user) {
             if ($user->user_type == "Subscriber") {
                 $subscriber = $user;
-                $myplan = Membership::where('plan_name', '=', $subscriber->membership)->first();
+                $myplan = Membership::where('plan_name', '=', $user->membership)->first();
             } else {
                 $sid = $user->added_by;
                 $subscriber = User::find($sid);
@@ -3771,10 +3817,12 @@ class WebController extends Controller
                 $subscriber = User::find($sid);
             }
             $myplan = Membership::where('plan_name', '=', $subscriber->membership)->first();
+            $effectiveLimits = app(OfferBenefitService::class)->effectiveLimitsForDisplay($subscriber);
+            $subscriptionTerm = app(OfferBenefitService::class)->subscriptionTermForDisplay($subscriber, $myplan);
 
             $membership = Membership::get();
             $page = "user_membership";
-            return view('web.user_membership', compact('user', 'membership', 'page', 'myplan', 'subscriber'));
+            return view('web.user_membership', compact('user', 'membership', 'page', 'myplan', 'subscriber', 'effectiveLimits', 'subscriptionTerm'));
         } else {
             return back();
         }
@@ -3892,8 +3940,8 @@ class WebController extends Controller
     public function wallet()
     {
         $user = $this->check_login();
-        if ($user->type_user != "affiliate" && $user->user_type != "admin" && $user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if ($user->type_user != "affiliate" && $user->user_type != "admin" && membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
         if ($user) {
@@ -3910,15 +3958,19 @@ class WebController extends Controller
 
 
             if ($user->user_type == "admin") {
-                $referrals = Referrals::orderBy('created_at', 'desc')->get();
+                $referrals = Referrals::walletTableVisible()->orderBy('created_at', 'desc')->get();
                 $transactions = Referrals::where('type', '=', 'Wallet Transaction')->orderBy('created_at', 'desc')->get();
             } elseif($user->user_type == 'Affiliate'){
                 $referrals = Referrals::whereHas('user')
                 ->whereHas('getRefferedByUser')
-                ->with(['user'])->where('referral_code', '=', $subscriber->referral)->orderBy('created_at', 'desc')->get();
+                ->with(['user'])
+                ->where('referral_code', '=', $subscriber->referral)
+                ->walletTableVisible()
+                ->orderBy('created_at', 'desc')->get();
                 $transactions = Referrals::where('userid', '=', $subscriber->id)->where('type', '=', 'Wallet Transaction')->orderBy('created_at', 'desc')->get();
             }else {
-                $referrals = Referrals::where('referral_code', '=', $subscriber->referral)->orderBy('created_at', 'desc')->get();
+                $walletLedger = app(\App\Services\WalletLedgerService::class);
+                $referrals = $walletLedger->subscriberWalletEntriesQuery((int) $subscriber->id, $subscriber->referral)->get();
                 $transactions = Referrals::where('userid', '=', $subscriber->id)->where('type', '=', 'Wallet Transaction')->orderBy('created_at', 'desc')->get();
             }
 
@@ -3952,10 +4004,6 @@ class WebController extends Controller
                                 return $row->user_name;
                             }
                         })
-                        ->addColumn('user_name_full', function ($row) {
-                            $subscriberName = $row->user_name ?? '';
-                            return $row->userid ? trim($subscriberName . ' (' . $row->userid . ')') : $subscriberName;
-                        })
 
                         ->addColumn('finalamount', function ($row) {
 
@@ -3980,24 +4028,10 @@ class WebController extends Controller
                             return $result;
                         })
                          ->addColumn('type', function ($row) {
-                            $displayText = '';
-                            switch ($row->type) {
-                                case 'cashback':
-                                    $displayText = 'Cashback';
-                                    break;
-                                case 'one_off':
-                                    $displayText = 'One-off credit';
-                                    break;
-                                case 'double_term':
-                                    $displayText = 'Double-Term Subscription';
-                                    break;
-                                default:
-                                    $displayText = $row->type;
-                            }
-                            return $displayText;
+                            return app(\App\Services\WalletLedgerService::class)->walletReferralDescription($row);
                         })
                         ->editColumn('created_at', function ($row) {
-                            return date("d-m-Y", strtotime($row->created_at));
+                            return date("d-m-Y H:i:s", strtotime($row->created_at));
                         })
                         ->make(true);
 
@@ -4064,7 +4098,7 @@ class WebController extends Controller
                 $activity->activity_icon = "invoice.jpg";
                 $activity->local_time = $request->local_time;
                 $activity->save();
-                return back()->with('amount_added', 'amount added successfully');
+                return back()->with('amount_added', 'Amount added successfully.');
             } else {
                 return back();
             }
@@ -4076,9 +4110,9 @@ class WebController extends Controller
     public function referrals()
     {
         $user = $this->check_login();
-        if ($user->type_user != "affiliate" && $user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
+        if ($user->type_user != "affiliate" && membership_access_blocked($user)) {
 
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
         if ($user) {
@@ -4123,12 +4157,26 @@ class WebController extends Controller
     {
         $user = Auth::user();
         $this->set_timezone();
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
+        if (membership_access_blocked($user)) {
             $expired = "expired";
         } else {
             $expired = "";
         }
         $membership = Membership::where('plan_name', '=', $plan)->first();
+        if (!$membership) {
+            return redirect()->route('membership')->with('membership_expiry', 'Selected plan was not found.');
+        }
+
+        $currentPlan = Membership::where('plan_name', '=', $user->membership)->first();
+        if ($currentPlan
+            && SubscriptionTermPricing::isDowngradePlan($currentPlan, $membership)
+            && !SubscriptionTermPricing::isRenewalWindowOpen($user, $currentPlan)) {
+            return redirect()->route('membership')->with(
+                'membership_expiry',
+                'Plan downgrades are only available at renewal, at the end of your subscription term.'
+            );
+        }
+
         $page = "membership";
         return view('web.upgrade_membership', compact('user', 'membership', 'page', 'expired'));
         // $user = Auth::user();
@@ -4165,37 +4213,46 @@ class WebController extends Controller
             if (isset($request->wallet_pay)) {
                 if ($request->id == $user->id) {
                     $plan = $request->plan_name;
+                    $membership = Membership::where('plan_name', '=', $plan)->first();
+                    $currentPlan = Membership::where('plan_name', '=', $user->membership)->first();
+                    if ($membership && $currentPlan
+                        && SubscriptionTermPricing::isDowngradePlan($currentPlan, $membership)
+                        && !SubscriptionTermPricing::isRenewalWindowOpen($user, $currentPlan)) {
+                        return redirect()->route('membership')->with(
+                            'membership_expiry',
+                            'Plan downgrades are only available at renewal, at the end of your subscription term.'
+                        );
+                    }
+
                     $duration = $request->plan_duration;
                     $amount = $request->plan_amount;
-                    if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-                        $expired = "expired";
-                        $wallet_amount = 0;
-                        $discount = 0;
-                    } else {
-                        $wallet_amount = $user->wallet;
-                    }
                     $membership = Membership::where('plan_name', '=', $plan)->first();
-                    $plan_amt = $membership->price_per_year;
-                    if ($duration == 1) {
-                        $plan_amount = round(($plan_amt * 1) * 1);
-                    }
-                    if ($duration == 2) {
-                        $plan_amount = round(($plan_amt * 2) * 0.9);
-                    }
-                    if ($duration == 3) {
-                        $plan_amount = round(($plan_amt * 3) * 0.8);
-                    }
-                    if ($duration == 5) {
-                        $plan_amount = round(($plan_amt * 5) * 0.5);
-                    }
-                    if ($wallet_amount > $plan_amount) {
-                        $discount = $plan_amount;
-                    }
-                    $new_wallet = $user->wallet - $plan_amount;
+                    $duration = SubscriptionTermPricing::normalizeDuration((int) $duration);
+                    $plan_amount = SubscriptionTermPricing::calculate((float) $membership->price_per_year, $duration);
+                    $previousPlanName = $user->membership;
+                    $previousExpiry = !empty($user->membership_expiry_date)
+                        ? \Carbon\Carbon::parse($user->membership_expiry_date)
+                        : null;
+                    $journeyLog = app(\App\Services\UserJourneyLogService::class);
+                    $purchaseCategory = $journeyLog->classifySubscriptionPurchase(
+                        false,
+                        $previousExpiry,
+                        $previousPlanName,
+                        $membership->plan_name
+                    );
+                    $wallet_amount = SubscriptionTermPricing::walletCreditForSubscriptionPayment($user, $purchaseCategory);
+                    $discount = min((float) $wallet_amount, (float) $plan_amount);
+                    $previousWalletBalance = (float) $user->wallet;
+                    $walletDebitAmount = (float) $plan_amount;
+                    $new_wallet = max(0, (float) $user->wallet - $plan_amount);
                     $user->membership = $membership->plan_name;
                     $user->membership_type = "Subscription";
-                    $user->membership_start_date = new DateTime("now");
-                    $user->membership_expiry_date = $this->calculateInclusiveExpiryDate((int) $duration);
+                    SubscriptionTermPricing::applyMembershipDates(
+                        $user,
+                        (int) $duration,
+                        $purchaseCategory,
+                        $previousExpiry
+                    );
                     $user->wallet = $new_wallet;
                     $user->save();
                     $my_users = User::where('added_by', '=', $user->id)->get();
@@ -4216,6 +4273,14 @@ class WebController extends Controller
                     $activity->activity_icon = "mmbrcp.png";
                     $activity->local_time = $request['local_time'];
                     $activity->save();
+                    $journeyLog->logSubscriptionPurchase(
+                        $user,
+                        $purchaseCategory,
+                        $membership->plan_name,
+                        $duration,
+                        $user->id,
+                        ['previous_plan' => $previousPlanName]
+                    );
                     $service_fee = $plan_amount;
                     // $discount = 0;
                     // $tax = ($service_fee + $discount) * (18/100);
@@ -4246,53 +4311,65 @@ class WebController extends Controller
                     $invoice->total = $service_fee - $discount + $tax;
                     $invoice->payment_mode = "Wallet";
                     $invoice->save();
-                    $internalInvoice = $this->createAdminApInvoiceAndPayment($user, $company, (float) $invoice->total, "Wallet", "Subscription Fees");
-                    $this->sendPlanUpdateMail($user, $membership, $internalInvoice, $company);
-                    $save_referral = new Referrals();
-                    $save_referral->userid = $user->id;
-                    $save_referral->user_name = $user->name;
-                    $save_referral->type = "Wallet Transaction";
-                    $save_referral->total_amount = $service_fee;
-                    $save_referral->debit_amount = $discount;
-                    $save_referral->previous_balance = $wallet_amount;
-                    $save_referral->wallet_balance = $user->wallet;
-                    $save_referral->save();
-                    return redirect()->route('user_membership')->with('payment_success', 'Payment Done Successfully.');
+                    $internalInvoice = $this->createAdminApInvoiceAndPayment($user, $company, (float) $invoice->total, "Wallet", SubscriptionTermPricing::subscriptionFeeDetail($membership->plan_name, (int) $duration));
+                    $emailSent = $this->sendPlanUpdateMail($user, $membership, $internalInvoice, $company, $previousPlanName, (int) $duration, $purchaseCategory);
+                    $this->recordWalletSubscriptionDebit(
+                        $user,
+                        $membership,
+                        $walletDebitAmount,
+                        $previousWalletBalance,
+                        $previousPlanName
+                    );
+                    $this->processRenewalCommissionIfEligible(
+                        $user,
+                        (float) $plan_amount,
+                        $previousExpiry,
+                        $previousPlanName,
+                        $membership->plan_name
+                    );
+                    $redirect = redirect()->route('user_membership')->with('payment_success', 'Payment completed successfully.');
+                    if (!$emailSent) {
+                        $redirect->with('email_warning', 'Your payment was successful, but the confirmation email with invoice could not be sent. Please contact support if you need a copy.');
+                    }
+
+                    return $redirect;
                 } else {
                     return back();
                 }
             } else {
                 if ($request->id == $user->id) {
-                    $data = array();
                     $plan = $request->plan_name;
+                    $membership = Membership::where('plan_name', '=', $plan)->first();
+                    $currentPlan = Membership::where('plan_name', '=', $user->membership)->first();
+                    if ($membership && $currentPlan
+                        && SubscriptionTermPricing::isDowngradePlan($currentPlan, $membership)
+                        && !SubscriptionTermPricing::isRenewalWindowOpen($user, $currentPlan)) {
+                        return redirect()->route('membership')->with(
+                            'membership_expiry',
+                            'Plan downgrades are only available at renewal, at the end of your subscription term.'
+                        );
+                    }
+
+                    $data = array();
                     $duration = $request->plan_duration;
                     $data['id'] = $request->id;
                     $data['plan_name'] = $plan;
                     $data['plan_duration'] = $duration;
-                    if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-                        $expired = "expired";
-                        $wallet_amount = 0;
-                    } else {
-                        $wallet_amount = $user->wallet;
-                    }
                     $membership = Membership::where('plan_name', '=', $plan)->first();
-                    $plan_amt = $membership->price_per_year;
-                    if ($duration == 1) {
-                        $plan_amount = round(($plan_amt * 1) * 1);
-                        $plan_price = $plan_amount - $wallet_amount;
-                    }
-                    if ($duration == 2) {
-                        $plan_amount = round(($plan_amt * 2) * 0.9);
-                        $plan_price = $plan_amount - $wallet_amount;
-                    }
-                    if ($duration == 3) {
-                        $plan_amount = round(($plan_amt * 3) * 0.8);
-                        $plan_price = $plan_amount - $wallet_amount;
-                    }
-                    if ($duration == 5) {
-                        $plan_amount = round(($plan_amt * 5) * 0.5);
-                        $plan_price = $plan_amount - $wallet_amount;
-                    }
+                    $duration = SubscriptionTermPricing::normalizeDuration((int) $duration);
+                    $plan_amount = SubscriptionTermPricing::calculate((float) $membership->price_per_year, $duration);
+                    $previousPlanName = $user->membership;
+                    $previousExpiry = !empty($user->membership_expiry_date)
+                        ? \Carbon\Carbon::parse($user->membership_expiry_date)
+                        : null;
+                    $purchaseCategory = app(\App\Services\UserJourneyLogService::class)->classifySubscriptionPurchase(
+                        false,
+                        $previousExpiry,
+                        $previousPlanName,
+                        $membership->plan_name
+                    );
+                    $wallet_amount = SubscriptionTermPricing::walletCreditForSubscriptionPayment($user, $purchaseCategory);
+                    $plan_price = $plan_amount - $wallet_amount;
                     $data['wallet_amount'] = $wallet_amount;
                     $data['plan_amount'] = $plan_amount;
                     $data['plan_price'] = $plan_price;
@@ -4306,12 +4383,12 @@ class WebController extends Controller
                     // if(isset($request->referral_code)){
                     //     $referral = User::where('id','!=',$user->id)->where('referral','=',$request->referral_code)->first();
                     //     if($referral == null){
-                    //         return back()->with('error','invalid referral code');
+                    //         return back()->with('error','Invalid referral code.');
                     //     }
                     //     else{
                     //         $use_referral = Used_referrals::where('subscriber_id','=',$user->id)->where('referral_code','=',$request->referral_code)->first();
                     //         if($use_referral != null){
-                    //             return back()->with('used','referral is already used');
+                    //             return back()->with('used','This referral code has already been used.');
                     //         }
                     //     }
                     // }
@@ -4324,35 +4401,32 @@ class WebController extends Controller
                 $plan = $request->plan_name;
                 $duration = $request->plan_duration;
                 $amount = $request->plan_amount;
-                if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-                    $expired = "expired";
-                    $wallet_amount = 0;
-                    $discount = 0;
-                } else {
-                    $wallet_amount = $user->wallet;
-                }
                 $membership = Membership::where('plan_name', '=', $plan)->first();
-                $plan_amt = $membership->price_per_year;
-                if ($duration == 1) {
-                    $plan_amount = 0;
-                }
-                if ($duration == 2) {
-                    $plan_amount = 0;
-                }
-                if ($duration == 3) {
-                    $plan_amount = 0;
-                }
-                if ($duration == 5) {
-                    $plan_amount = 0;
-                }
-                if ($wallet_amount > $plan_amount) {
-                    $discount = $plan_amount;
-                }
-                $new_wallet = $user->wallet - $plan_amount;
+                $duration = SubscriptionTermPricing::normalizeDuration((int) $duration);
+                $plan_amount = 0;
+                $previousPlanName = $user->membership;
+                $previousExpiry = !empty($user->membership_expiry_date)
+                    ? \Carbon\Carbon::parse($user->membership_expiry_date)
+                    : null;
+                $journeyLog = app(\App\Services\UserJourneyLogService::class);
+                $purchaseCategory = $journeyLog->classifySubscriptionPurchase(
+                    false,
+                    $previousExpiry,
+                    $previousPlanName,
+                    $membership->plan_name
+                );
+                $wallet_amount = SubscriptionTermPricing::walletCreditForSubscriptionPayment($user, $purchaseCategory);
+                $discount = min((float) $wallet_amount, (float) $plan_amount);
+                $previousWalletBalance = (float) $user->wallet;
+                $new_wallet = max(0, (float) $user->wallet - $plan_amount);
                 $user->membership = $membership->plan_name;
                 $user->membership_type = "Subscription";
-                $user->membership_start_date = new DateTime("now");
-                $user->membership_expiry_date = $this->calculateInclusiveExpiryDate((int) $duration);
+                SubscriptionTermPricing::applyMembershipDates(
+                    $user,
+                    (int) $duration,
+                    $purchaseCategory,
+                    $previousExpiry
+                );
                 $user->wallet = $new_wallet;
                 $user->save();
                 $my_users = User::where('added_by', '=', $user->id)->get();
@@ -4373,6 +4447,14 @@ class WebController extends Controller
                 $activity->activity_icon = "mmbrcp.png";
                 $activity->local_time = $request['local_time'];
                 $activity->save();
+                $journeyLog->logSubscriptionPurchase(
+                    $user,
+                    $purchaseCategory,
+                    $membership->plan_name,
+                    $duration,
+                    $user->id,
+                    ['previous_plan' => $previousPlanName]
+                );
                 $service_fee = $plan_amount;
                 // $discount = 0;
                 // $tax = ($service_fee + $discount) * (18/100);
@@ -4403,18 +4485,23 @@ class WebController extends Controller
                 $invoice->total = $service_fee - 0 + $tax;
                 $invoice->payment_mode = "Wallet";
                 $invoice->save();
-                $internalInvoice = $this->createAdminApInvoiceAndPayment($user, $company, (float) $invoice->total, "Wallet", "Subscription Fees");
-                $this->sendPlanUpdateMail($user, $membership, $internalInvoice, $company);
-                $save_referral = new Referrals();
-                $save_referral->userid = $user->id;
-                $save_referral->user_name = $user->name;
-                $save_referral->type = "Wallet Transaction";
-                $save_referral->total_amount = $service_fee;
-                $save_referral->debit_amount = 0;
-                $save_referral->previous_balance = $wallet_amount;
-                $save_referral->wallet_balance = $user->wallet;
-                $save_referral->save();
-                return redirect()->route('user_membership')->with('payment_success', 'Payment Done Successfully.');
+                $internalInvoice = $this->createAdminApInvoiceAndPayment($user, $company, (float) $invoice->total, "Wallet", SubscriptionTermPricing::subscriptionFeeDetail($membership->plan_name, (int) $duration));
+                $emailSent = $this->sendPlanUpdateMail($user, $membership, $internalInvoice, $company, $previousPlanName, (int) $duration, $purchaseCategory);
+                if ($plan_amount > 0) {
+                    $this->recordWalletSubscriptionDebit(
+                        $user,
+                        $membership,
+                        (float) $plan_amount,
+                        $previousWalletBalance,
+                        $previousPlanName
+                    );
+                }
+                $redirect = redirect()->route('user_membership')->with('payment_success', 'Payment completed successfully.');
+                if (!$emailSent) {
+                    $redirect->with('email_warning', 'Your payment was successful, but the confirmation email with invoice could not be sent. Please contact support if you need a copy.');
+                }
+
+                return $redirect;
             } else {
                 return back();
             }
@@ -4451,26 +4538,55 @@ class WebController extends Controller
         $user = Auth::user();
         $paymentMode = isset($request->wallet_pay) ? 'Wallet' : 'Card';
         if ($request->id == $user->id) {
+            $targetPlan = Membership::where('plan_name', '=', $request['plan_name'])->first();
+            $currentPlan = Membership::where('plan_name', '=', $user->membership)->first();
+            if ($targetPlan && $currentPlan
+                && SubscriptionTermPricing::isDowngradePlan($currentPlan, $targetPlan)
+                && !SubscriptionTermPricing::isRenewalWindowOpen($user, $currentPlan)) {
+                return redirect()->route('membership')->with(
+                    'membership_expiry',
+                    'Plan downgrades are only available at renewal, at the end of your subscription term.'
+                );
+            }
+
+            $previousWalletBalance = (float) $user->wallet;
+            $walletDebitAmount = 0.0;
             if (isset($request->wallet_pay)) {
-                $amt = $user->wallet;
-                $user->wallet = $amt - $request->plan_price;
+                $walletDebitAmount = (float) $request->plan_price;
+                $user->wallet = $previousWalletBalance - $walletDebitAmount;
             }
             if (isset($request->referral_code)) {
                 $referral = User::where('id', '!=', $user->id)->where('referral', '=', $request->referral_code)->first();
                 if ($referral == null) {
-                    return back()->with('error', 'invalid referral code');
+                    return back()->with('error', 'Invalid referral code.');
                 } else {
                     $use_referral = Used_referrals::where('subscriber_id', '=', $user->id)->where('referral_code', '=', $request->referral_code)->first();
                     if ($use_referral != null) {
-                        return back()->with('used', 'referral is already used');
+                        return back()->with('used', 'This referral code has already been used.');
                     }
                 }
             }
             $duration = $request['plan_duration'];
+            $previousPlanName = $user->membership;
+            $previousExpiry = !empty($user->membership_expiry_date)
+                ? \Carbon\Carbon::parse($user->membership_expiry_date)
+                : null;
+            $durationYears = SubscriptionTermPricing::normalizeDuration((int) $duration);
+            $journeyLog = app(\App\Services\UserJourneyLogService::class);
+            $purchaseCategory = $journeyLog->classifySubscriptionPurchase(
+                false,
+                $previousExpiry,
+                $previousPlanName,
+                $request['plan_name']
+            );
             $user->membership = $request['plan_name'];
             $user->membership_type = "Subscription";
-            $user->membership_start_date = new DateTime("now");
-            $user->membership_expiry_date = $this->calculateInclusiveExpiryDate((int) $duration);
+            SubscriptionTermPricing::applyMembershipDates(
+                $user,
+                $durationYears,
+                $purchaseCategory,
+                $previousExpiry
+            );
             $user->save();
             $my_users = User::where('added_by', '=', $user->id)->get();
             foreach ($my_users as $myuser) {
@@ -4503,10 +4619,19 @@ class WebController extends Controller
             $activity->activity_icon = "mmbrcp.png";
             $activity->local_time = $request->local_time;
             $activity->save();
+            $journeyLog->logSubscriptionPurchase(
+                $user,
+                $purchaseCategory,
+                $request['plan_name'],
+                $durationYears,
+                $user->id,
+                ['previous_plan' => $previousPlanName]
+            );
             $plan = Membership::where('plan_name', '=', $request->plan_name)->first();
             $service_fee = $request->plan_price;
             $discount = 0;
-            $tax = ($service_fee + $discount) * (18 / 100);
+            // Packaged subscription prices are fixed — never apply Invoice Settings or GST markup.
+            $tax = 0;
             $company = User::where('user_type', '=', 'admin')->first();
             $invoice = new Invoices();
             $invoice->user_id = $user->id;
@@ -4533,8 +4658,24 @@ class WebController extends Controller
             $invoice->tax = $tax;
             $invoice->total = $service_fee - $discount + $tax;
             $invoice->save();
-            $internalInvoice = $this->createAdminApInvoiceAndPayment($user, $company, (float) $invoice->total, $paymentMode, "Subscription Fees");
-            $this->sendPlanUpdateMail($user, $plan, $internalInvoice, $company);
+            $internalInvoice = $this->createAdminApInvoiceAndPayment($user, $company, (float) $invoice->total, $paymentMode, SubscriptionTermPricing::subscriptionFeeDetail($plan->plan_name, $durationYears));
+            $emailSent = $this->sendPlanUpdateMail($user, $plan, $internalInvoice, $company, $previousPlanName, $durationYears, $purchaseCategory);
+            if ($walletDebitAmount > 0) {
+                $this->recordWalletSubscriptionDebit(
+                    $user,
+                    $plan,
+                    $walletDebitAmount,
+                    $previousWalletBalance,
+                    $previousPlanName
+                );
+            }
+            $this->processRenewalCommissionIfEligible(
+                $user,
+                (float) $request->plan_price,
+                $previousExpiry,
+                $previousPlanName,
+                $request['plan_name']
+            );
             $activity = new Activities();
             $activity->subscriber_id = $user->id;
             $activity->user_id = $user->id;
@@ -4544,7 +4685,12 @@ class WebController extends Controller
             $activity->activity_icon = "invoice.jpg";
             $activity->local_time = $request->local_time;
             $activity->save();
-            return redirect()->route('user_membership');
+            $redirect = redirect()->route('user_membership');
+            if (!$emailSent) {
+                $redirect->with('email_warning', 'Your subscription was updated, but the confirmation email with invoice could not be sent. Please contact support if you need a copy.');
+            }
+
+            return $redirect;
         }
     }
 
@@ -4552,6 +4698,21 @@ class WebController extends Controller
     {
         $user = Auth::user();
         $this->set_timezone();
+        if ($request->id != $user->id) {
+            return response('forbidden', 403);
+        }
+
+        $currentPlan = Membership::where('plan_name', '=', $user->membership)->first();
+        $targetPlan = Membership::where('plan_name', '=', $request->plan_name)->first();
+
+        if (!$currentPlan || !$targetPlan || !SubscriptionTermPricing::isDowngradePlan($currentPlan, $targetPlan)) {
+            return response('invalid_plan', 422);
+        }
+
+        if (!SubscriptionTermPricing::isRenewalWindowOpen($user, $currentPlan)) {
+            return response('downgrade_not_allowed', 403);
+        }
+
         if ($request->id == $user->id) {
             $user->membership = $request['plan_name'];
             $user->save();
@@ -4573,8 +4734,8 @@ class WebController extends Controller
     public function view_payment($id)
     {
         $user = $this->check_login();
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
         $roles = UserRoles::where('user_id', '=', $user->id)->first();
@@ -4587,8 +4748,8 @@ class WebController extends Controller
     {
         $user = $this->check_login();
         if ($user->user_type != "admin") {
-            if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-                return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+            if (membership_access_blocked($user)) {
+                return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
             }
         }
         $page = "payments";
@@ -4613,7 +4774,7 @@ class WebController extends Controller
                 $activity->activity_icon = "invoice.jpg";
                 $activity->local_time = $localtime;
                 $activity->save();
-                return back()->with('deleted', 'Job deleted successfully');
+                return back()->with('deleted', 'Job deleted successfully.');
             } else {
                 return redirect()->route('login');
             }
@@ -4625,8 +4786,8 @@ class WebController extends Controller
     public function invoices()
     {
         $user = $this->check_login();
-        if ($user->user_type != "admin" && $user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if ($user->user_type != "admin" && membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
         if ($user->user_type == "Subscriber") {
@@ -4634,7 +4795,7 @@ class WebController extends Controller
             $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
         } else {
             $subscriber = User::find($user->added_by);
-            $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
+            $clients = Clients::where('user_id', '=', $user->id)->get();
         }
         if ($user->user_type == "admin") {
 
@@ -4689,17 +4850,25 @@ class WebController extends Controller
 
                     $html .= ' class="m-0 p-0"><i class="fa-solid fa-eye p-1 text-info" style="font-size:14px;"></i></a>';
 
+                    if ($user->user_type == "admin" || $invoice_roles->write_only == 1 || $invoice_roles->read_write_only == 1) {
+                        $html .= ' <a style="background:none; border:none;" href="' . route('edit_invoice', $row->id) . '" class="m-0 p-0" title="Edit Invoice"><i class="fa-solid fa-pen-to-square p-1 text-primary" style="font-size:14px;"></i></a>';
+                    }
+
                     return $html;
                 })
                 ->make(true);
         }
-        return view('web.invoices', compact('user', 'page', 'invoices', 'roles', 'clients'));
+        $invoiceStatusFilters = TableFilterCountService::countBy(
+            $invoices,
+            fn ($invoice) => TableFilterCountService::invoiceStatusLabel($invoice->status)
+        );
+        return view('web.invoices', compact('user', 'page', 'invoices', 'roles', 'clients', 'invoiceStatusFilters'));
     }
 
     public function invoice_payment_made(){
         $user = $this->check_login();
-        if ($user->user_type != "admin" && $user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if ($user->user_type != "admin" && membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
         if ($user->user_type == "Subscriber") {
@@ -4707,7 +4876,7 @@ class WebController extends Controller
             $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
         } else {
             $subscriber = User::find($user->added_by);
-            $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
+            $clients = Clients::where('user_id', '=', $user->id)->get();
         }
         if ($user->user_type == "admin") {
 
@@ -4732,7 +4901,7 @@ class WebController extends Controller
             return DataTables::of($invoices)
                 ->addIndexColumn()
                 ->editColumn('to_name', function ($row) {
-                    return trim($row->to_name . (!empty($row->vendor_id) ? ' (' . $row->vendor_id . ')' : ''));
+                    return $row->apVendorDisplay();
                 })
                 ->editColumn('to_email', function ($row) {
 
@@ -4762,55 +4931,67 @@ class WebController extends Controller
 
                     $html .= ' class="m-0 p-0"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>';
 
+                    if ($user->user_type == "admin" || $invoice_roles->write_only == 1 || $invoice_roles->read_write_only == 1) {
+                        $html .= ' <a style="background:none; border:none;" href="' . route('edit_invoice_ap', $row->id) . '" class="m-0 p-0" title="Edit Invoice"><i class="fa-solid fa-pen-to-square p-1 text-primary" style="font-size:14px;"></i></a>';
+                    }
+
                     return $html;
                 })
                 ->make(true);
         }
-        return view('web.invoice_payment_made', compact('user', 'page', 'invoices', 'roles', 'clients'));
+        $invoiceStatusFilters = TableFilterCountService::countBy(
+            $invoices,
+            fn ($invoice) => TableFilterCountService::invoiceStatusLabel($invoice->status)
+        );
+        return view('web.invoice_payment_made', compact('user', 'page', 'invoices', 'roles', 'clients', 'invoiceStatusFilters'));
     }
 
     public function new_invoice()
     {
         $user = $this->check_login();
         $this->set_timezone();
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         if ($user->user_type == "Subscriber") {
             $subscriber = $user;
-            $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
         } else {
             $subscriber = User::find($user->added_by);
-            $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
         }
+        $clients = Clients::where('subscriber_id', '=', $subscriber->id)->orderBy('name')->get();
         if (count($clients) < 1) {
-            return back()->with('noclient', 'no client exists');
+            return back()->with('noclient', 'No client found.');
         }
-        $countries = Countries::get();
+        $ccService = app(CountryCategorySettingsService::class);
+        $countries = $ccService->resolveCountriesForDropdown($subscriber);
+        $visaCategories = $ccService->resolveVisaCategoryNames($subscriber);
         $page = "invoices";
-        return view('web.add_invoice', compact('clients', 'user', 'page', 'countries'));
+        $invSetting = Invoice_settings::forUser((int) $subscriber->id);
+        $taxMeta = $this->invoiceSettingsTaxMeta($invSetting);
+
+        return view('web.add_invoice', array_merge(compact('clients', 'user', 'page', 'countries', 'visaCategories'), $taxMeta));
     }
 
     public function new_invoice_ap()
     {
         $user = $this->check_login();
         $this->set_timezone();
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         if ($user->user_type == "Subscriber") {
             $subscriber = $user;
-            $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
         } else {
             $subscriber = User::find($user->added_by);
-            $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
         }
-        if (count($clients) < 1) {
-            return back()->with('noclient', 'no client exists');
-        }
-        $countries = Countries::get();
+        $ccService = app(CountryCategorySettingsService::class);
+        $countries = $ccService->resolveCountriesForDropdown($subscriber);
+        $visaCategories = $ccService->resolveVisaCategoryNames($subscriber);
         $page = "invoices";
-        return view('web.add_invoice_ap', compact('clients', 'user', 'page', 'countries'));
+        $invSetting = Invoice_settings::forUser((int) $subscriber->id);
+        $taxMeta = $this->invoiceSettingsTaxMeta($invSetting);
+
+        return view('web.add_invoice_ap', array_merge(compact('user', 'page', 'countries', 'visaCategories'), $taxMeta));
     }
 
     private function normalizeInvoiceDueDate($input): ?string
@@ -4834,6 +5015,33 @@ class WebController extends Controller
         return $value;
     }
 
+    private function isExportServiceTaxExemptRequest(Request $request): bool
+    {
+        return (int) $request->input('export_service_tax_exempt', 0) === 1;
+    }
+
+    private function resolveArInvoiceTaxPercent(Request $request, ?Invoice_settings $invSetting, bool $exportExempt): float
+    {
+        if ($exportExempt) {
+            return 0.0;
+        }
+
+        if ($request->filled('tax')) {
+            return max(0, min(100, (float) $request->tax));
+        }
+
+        return max(0, min(100, (float) ($invSetting->tax ?? 0)));
+    }
+
+    private function invoiceSettingsTaxMeta(?Invoice_settings $invSetting): array
+    {
+        return [
+            'defaultTaxPercent' => max(0, min(100, (float) ($invSetting->tax ?? 0))),
+            'taxLabel' => Invoice_settings::resolveTaxLabel($invSetting->tax_label ?? null),
+            'invoiceNote' => trim((string) ($invSetting->invoice_note ?? '')),
+        ];
+    }
+
     private function generateApVendorId(int $subscriberId): string
     {
         do {
@@ -4844,15 +5052,117 @@ class WebController extends Controller
         return $candidate;
     }
 
-    public function create_new_invoice(Request $request)
+    private function invoiceItemService(): InvoiceItemService
+    {
+        return app(InvoiceItemService::class);
+    }
+
+    private function persistInvoiceItems(
+        Internal_Invoices $invoice,
+        Request $request,
+        ?int $clientId = null,
+        ?int $ignoreInvoiceId = null,
+        bool $allowDuplicate = false
+    ): array {
+        $itemService = $this->invoiceItemService();
+        $items = $itemService->normalizeRequestItems($request);
+        $itemService->assertHasItems($items);
+
+        if ($clientId && $invoice->type === 'ar' && !$allowDuplicate) {
+            $itemService->assertClientApplicationsAvailable(
+                (int) $invoice->subscriber_id,
+                $clientId,
+                $items,
+                $ignoreInvoiceId ?? (int) $invoice->id
+            );
+        }
+
+        $itemService->applyAggregatesToInvoice($invoice, $items);
+        $invoice->save();
+        $itemService->syncInvoiceItems($invoice, $items);
+
+        return $items;
+    }
+
+    private function appendInvoiceItemsToMailData(\stdClass $maildata, Internal_Invoices $invoice): void
+    {
+        $maildata->items = $this->invoiceItemService()->itemsForMail($invoice);
+    }
+
+    private function appendInvoiceBillToMailData(\stdClass $maildata, Internal_Invoices $invoice): void
+    {
+        $maildata->to_address = $invoice->to_address;
+        $maildata->to_city = $invoice->to_city;
+        $maildata->to_state = $invoice->to_state;
+        $maildata->to_country = $invoice->to_country;
+        $maildata->to_pincode = $invoice->to_pincode;
+    }
+
+    private function appendInvoicePaymentMailData(\stdClass $maildata, Internal_Invoices $invoice, int $subscriberId): void
+    {
+        $maildata->payment_link = $invoice->payment_link;
+        $maildata->payment_qr_url = $this->invoicePaymentQrUrl($subscriberId, $invoice->payment_qr_code);
+        $maildata->payment_qr_path = null;
+
+        if (!empty($invoice->payment_qr_code)) {
+            $qrPath = public_path('web_assets/users/user' . $subscriberId . '/' . $invoice->payment_qr_code);
+            if (file_exists($qrPath)) {
+                $maildata->payment_qr_path = $qrPath;
+            }
+        }
+    }
+
+    public function check_duplicate_invoice(Request $request)
     {
         $request->validate([
-            'amount' => 'required|numeric|min:0',
+            'type' => 'required|in:client,associate',
+            'client_id' => 'required|integer|exists:clients,id',
+            'application_id' => 'required|string|max:100',
         ]);
+
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['duplicate' => false], 401);
+        }
+
+        $subscriber = $user->user_type === 'Subscriber'
+            ? $user
+            : User::find($user->added_by);
+
+        if (!$subscriber) {
+            return response()->json(['duplicate' => false], 403);
+        }
+
+        $itemService = $this->invoiceItemService();
+        $duplicate = false;
+
+        if ($request->type === 'associate') {
+            $duplicate = $itemService->hasActiveAssociateClientApplicationInvoice(
+                (int) $subscriber->id,
+                (int) $request->client_id,
+                (int) $request->application_id
+            );
+        } else {
+            $duplicate = $itemService->hasActiveClientApplicationInvoice(
+                (int) $subscriber->id,
+                (int) $request->client_id,
+                (string) $request->application_id
+            );
+        }
+
+        return response()->json(['duplicate' => $duplicate]);
+    }
+
+    public function create_new_invoice(Request $request)
+    {
+        $request->validate(array_merge(
+            $this->invoiceItemService()->singleItemValidationRules(),
+            ['client' => 'required|exists:clients,id']
+        ));
         $user = Auth::user();
         $this->set_timezone();
         $subId =  (Auth::user()->user_type == 'Subscriber') ? $user->id :$user->added_by;
-        $inv_setting = Invoice_settings::where('user_id', $subId)->first();
+        $inv_setting = Invoice_settings::forUser((int) $subId);
         if ($user) {
             if ($user->user_type == "Subscriber") {
                 $subscriber = $user;
@@ -4882,54 +5192,34 @@ class WebController extends Controller
                 $invoice->to_city = $client->city;
                 $invoice->to_pincode = $client->pincode;
                 $invoice->to_address = $client->address;
-                $invoice->detail = $request['detail'];
-                $invoiceAmount = (float) $request['amount'];
+                $invoiceAmount = $this->invoiceItemService()->sumAmounts(
+                    $this->invoiceItemService()->normalizeRequestItems($request)
+                );
                 $discountPercent = max(0, min(100, (float) ($inv_setting->discount ?? 0)));
                 $taxPercent = max(0, min(100, (float) ($inv_setting->tax ?? 0)));
                 $discountRate = $discountPercent / 100;
                 $taxRate = $taxPercent / 100;
 
-                $invoice->amount = $invoiceAmount;
                 $invoice->type = 'ar';
                 $invoice->discount = $discountPercent;
+                $invoice->export_service_tax_exempt = $taxPercent == 0.0;
                 $invoice->tax = $taxPercent;
                 $subtotal = $invoiceAmount - ($invoiceAmount * $discountRate);
                 $invoice->total = max(0, $subtotal + ($subtotal * $taxRate));
                 $invoice->status = $request['status'];
                 $invoice->due_date = $this->normalizeInvoiceDueDate($request['due_date']);
                 $invoice->token = $this->generateInternalInvoiceToken();
-                $invoice->save();
+                app(InvoiceSnapshotService::class)->applySettingsSnapshot($invoice, $inv_setting);
+                app(InvoiceAuditService::class)->markCreated($invoice, $user);
+                $this->persistInvoiceItems(
+                    $invoice,
+                    $request,
+                    (int) $request->client,
+                    null,
+                    $request->boolean('confirm_duplicate')
+                );
 
-                if ($invoice->status == "Paid") {
-                    $new_invoice = Invoices::where('invoice', '=', $invoice->invoice_no)->first();
-                    if ($new_invoice == null) {
-                        $new_invoice = new Invoices();
-                    }
-                    $new_invoice->user_id = $invoice->subscriber_id;
-                    $new_invoice->invoice = $invoice->invoice_no;
-                    $new_invoice->company_name = $invoice->name;
-                    $new_invoice->city = $invoice->city;
-                    $new_invoice->state = $invoice->state;
-                    $new_invoice->country = $invoice->country;
-                    $new_invoice->pincode = $invoice->pincode;
-                    $new_invoice->phone = $invoice->phone;
-                    $new_invoice->address = $invoice->address;
-                    $new_invoice->logo = $invoice->logo;
-                    $new_invoice->to_name = $invoice->to_name;
-                    $new_invoice->to_company = $user->to_email;
-                    $new_invoice->to_city = $invoice->to_city;
-                    $new_invoice->to_state = $invoice->to_state;
-                    $new_invoice->to_country = $invoice->to_country;
-                    $new_invoice->to_pincode = $invoice->to_pincode;
-                    $new_invoice->to_phone = $invoice->to_phone;
-                    $new_invoice->to_email = $invoice->to_email;
-                    $new_invoice->service_fee = $invoice->amount;
-                    $new_invoice->discount = ($invoice->amount * ($invoice->discount / 100));
-                    $new_invoice->tax = (($invoice->amount - ($invoice->amount * $invoice->discount / 100)) * ($invoice->tax / 100));
-                    $new_invoice->total = $invoice->total;
-                    $new_invoice->payment_mode = "Cash";
-                    $new_invoice->save();
-                }
+                app(InvoiceAuditService::class)->syncLegacyInvoiceIfPaid($invoice, $user);
                 $activity = new Activities();
                 $activity->subscriber_id = $user->id;
                 $activity->user_id = $user->id;
@@ -4944,49 +5234,21 @@ class WebController extends Controller
                 $activity->local_time = $request->local_time;
                 $activity->save();
 
-                $maildata = new \stdClass();
-                $maildata->name = $client['name'];
-                $maildata->email = $subscriber->email;
-                $maildata->from_email = $subscriber->email;
-                $maildata->to_email = $client->email;
-                $maildata->company_name = $subscriber->organization ?? $subscriber->name;
-                $maildata->subscriber_name = $subscriber->organization ?? $subscriber->name;
-                $maildata->subscriber_email = $subscriber->email;
-                $maildata->display_from_email = $subscriber->email;
-                $maildata->subscriber_id = $subscriber->id;
-                $maildata->user_id = $user->id;
-                $maildata->logo = $invoice->logo;
-                $maildata->logo_path = 'web_assets/users/user' . $subscriber->id . '/' . $invoice->logo;
-                $maildata->detail = $invoice->detail;
-                $maildata->amount = $invoice->amount;
-                $maildata->discount = $invoice->discount;
-                $maildata->tax = $invoice->tax;
-                $maildata->total = $invoice->total;
-                $maildata->currency = $subscriber->currency ?? 'Rs.';
-                $maildata->status = $invoice->status;
-                $maildata->invoice_no = $invoice->invoice_no;
-                $maildata->invoice_date = $invoice->created_at;
-                $maildata->due_date = $invoice->due_date;
-                $maildata->invoice_id = $invoice->id;
-                $maildata->token = $invoice->token;
-                $maildata->payment_link = $inv_setting->payment_link ?? null;
-                $maildata->message = "You have new invoice from " . ($subscriber->organization ?? 'Adwiseri') . " for " . ($subscriber->currency ?? 'Rs.') . " " . number_format($invoice->total, 2) . ".";
-                $maildata->from_name = "Sent on behalf of " . ($subscriber->organization ?? $subscriber->name ?? 'Subscriber');
-                $maildata->from_email = "alerts@adwiseri.com";
-                $maildata->reply_to_email = $subscriber->email;
-                $maildata->reply_to_name = $subscriber->name ?? 'Subscriber';
-                try {
-                    Mail::to($client->email)->send(new Invoicemail($maildata));
-                } catch (\Exception $e) {
-                    // skip the error (optional log)
-                    \Log::warning('Invoice email not sent to: '.$client->email);
+                $mailResult = app(InvoiceMailService::class)->send($invoice, $subscriber);
+                if (!$mailResult['success']) {
+                    \Log::warning('Subscriber invoice email not sent', [
+                        'invoice_id' => $invoice->id,
+                        'invoice_no' => $invoice->invoice_no,
+                        'message' => $mailResult['message'],
+                    ]);
                 }
-                if (Mail::failures()) {
-                    echo 'Sorry! Please try again latter';
-                } else {
-                    echo 'Success';
-                }
-                return redirect()->route('invoices')->with('invoice_generated', 'Invoice created Successfully.');
+
+                return redirect()->route('invoices')->with(
+                    $mailResult['success'] ? 'invoice_generated' : 'invoice_email_failed',
+                    $mailResult['success']
+                        ? 'Invoice created and emailed to ' . $mailResult['recipient'] . '.'
+                        : 'Invoice created, but email was not sent: ' . $mailResult['message']
+                );
             }
         } else {
             return redirect()->route('login');
@@ -4995,20 +5257,22 @@ class WebController extends Controller
 
     public function create_new_invoice_ap(Request $request)
     {
-        $request->validate([
+        $request->validate(array_merge(
+            $this->invoiceItemService()->validationRules(),
+            [
             'invoice_vendor_id' => 'required|string|min:2|max:100',
             'vendor_name' => 'required|string|min:2|max:150',
-            'service_taken' => 'required|string|min:2|max:200',
             'amount' => 'required|numeric|min:0',
             'discount' => 'required|numeric|min:0|max:100',
             'tax' => 'required|numeric|min:0|max:100',
             'total_to_pay' => 'required|numeric|min:0',
             'upload_invoice' => 'required|file|mimes:pdf|max:10240',
-        ]);
+            ]
+        ));
         $user = Auth::user();
         $this->set_timezone();
         $subId =  (Auth::user()->user_type == 'Subscriber') ? $user->id :$user->added_by;
-        $inv_setting = Invoice_settings::where('user_id', $subId)->first();
+        $inv_setting = Invoice_settings::forUser((int) $subId);
         
         if ($user) {
             if ($user->user_type == "Subscriber") {
@@ -5019,7 +5283,8 @@ class WebController extends Controller
             $client = $request->client ? Clients::find($request->client) : null;
             $vendorName = trim((string) $request->vendor_name);
             $vendorInvoiceId = trim((string) $request->invoice_vendor_id);
-            $serviceTaken = trim((string) $request->service_taken);
+            $items = $this->invoiceItemService()->normalizeRequestItems($request);
+            $this->invoiceItemService()->assertHasItems($items);
             $vendorId = $this->generateApVendorId((int) $subscriber->id);
             $invoice = new Internal_Invoices();
                 $invoice->invoice_no = $vendorInvoiceId;
@@ -5043,14 +5308,12 @@ class WebController extends Controller
                 $invoice->to_city = optional($client)->city;
                 $invoice->to_pincode = optional($client)->pincode;
                 $invoice->to_address = optional($client)->address;
-                $invoice->detail = $serviceTaken;
-                $invoiceAmount = (float) $request['amount'];
+                $invoiceAmount = $this->invoiceItemService()->sumAmounts($items);
                 $discountPercent = max(0, min(100, (float) $request->discount));
                 $taxPercent = max(0, min(100, (float) $request->tax));
                 $discountRate = $discountPercent / 100;
                 $taxRate = $taxPercent / 100;
 
-                $invoice->amount = $invoiceAmount;
                 $invoice->type = 'ap';
                 $invoice->discount = $discountPercent;
                 $invoice->tax = $taxPercent;
@@ -5067,38 +5330,11 @@ class WebController extends Controller
                     $pdfFile->move($destinationPath, $fileName);
                     $invoice->uploaded_invoice = 'user' . $subscriber->id . '/invoice_uploads/' . $fileName;
                 }
-                $invoice->save();
+                app(InvoiceSnapshotService::class)->applySettingsSnapshot($invoice, $inv_setting);
+                app(InvoiceAuditService::class)->markCreated($invoice, $user);
+                $this->persistInvoiceItems($invoice, $request);
 
-                if ($invoice->status == "Paid") {
-                    $new_invoice = Invoices::where('invoice', '=', $invoice->invoice_no)->first();
-                    if ($new_invoice == null) {
-                        $new_invoice = new Invoices();
-                    }
-                    $new_invoice->user_id = $invoice->subscriber_id;
-                    $new_invoice->invoice = $invoice->invoice_no;
-                    $new_invoice->company_name = $invoice->name;
-                    $new_invoice->city = $invoice->city;
-                    $new_invoice->state = $invoice->state;
-                    $new_invoice->country = $invoice->country;
-                    $new_invoice->pincode = $invoice->pincode;
-                    $new_invoice->phone = $invoice->phone;
-                    $new_invoice->address = $invoice->address;
-                    $new_invoice->logo = $invoice->logo;
-                    $new_invoice->to_name = $invoice->to_name;
-                    $new_invoice->to_company = $user->to_email;
-                    $new_invoice->to_city = $invoice->to_city;
-                    $new_invoice->to_state = $invoice->to_state;
-                    $new_invoice->to_country = $invoice->to_country;
-                    $new_invoice->to_pincode = $invoice->to_pincode;
-                    $new_invoice->to_phone = $invoice->to_phone;
-                    $new_invoice->to_email = $invoice->to_email;
-                    $new_invoice->service_fee = $invoice->amount;
-                    $new_invoice->discount = ($invoice->amount * ($invoice->discount / 100));
-                    $new_invoice->tax = (($invoice->amount - ($invoice->amount * $invoice->discount / 100)) * ($invoice->tax / 100));
-                    $new_invoice->total = $invoice->total;
-                    $new_invoice->payment_mode = "Cash";
-                    $new_invoice->save();
-                }
+                app(InvoiceAuditService::class)->syncLegacyInvoiceIfPaid($invoice, $user);
                 $activity = new Activities();
                 $activity->subscriber_id = $user->id;
                 $activity->user_id = $user->id;
@@ -5113,52 +5349,21 @@ class WebController extends Controller
                 $activity->local_time = $request->local_time;
                 $activity->save();
 
-                $maildata = new \stdClass();
-                $maildata->name = $vendorName;
-                $maildata->email = $subscriber->email;
-                $maildata->from_email = $subscriber->email;
-                $maildata->to_email = optional($client)->email ?? $subscriber->email;
-                $maildata->company_name = $subscriber->organization ?? $subscriber->name;
-                $maildata->subscriber_name = $subscriber->organization ?? $subscriber->name;
-                $maildata->subscriber_email = $subscriber->email;
-                $maildata->display_from_email = $subscriber->email;
-                $maildata->subscriber_id = $subscriber->id;
-                $maildata->user_id = $user->id;
-                $maildata->logo = $invoice->logo;
-                $maildata->logo_path = 'web_assets/users/user' . $subscriber->id . '/' . $invoice->logo;
-                $maildata->detail = $invoice->detail;
-                $maildata->amount = $invoice->amount;
-                $maildata->discount = $invoice->discount;
-                $maildata->tax = $invoice->tax;
-                $maildata->total = $invoice->total;
-                $maildata->currency = $subscriber->currency ?? 'Rs.';
-                $maildata->status = $invoice->status;
-                $maildata->invoice_no = $invoice->invoice_no;
-                $maildata->invoice_date = $invoice->created_at;
-                $maildata->due_date = $invoice->due_date;
-                $maildata->invoice_id = $invoice->id;
-                $maildata->token = $invoice->token;
-                $maildata->payment_link = $inv_setting->payment_link ?? null;
-                $maildata->message = "You have new invoice from " . ($subscriber->organization ?? 'Adwiseri') . " for " . ($subscriber->currency ?? 'Rs.') . " " . number_format($invoice->total, 2) . ".";
-                $maildata->from_name = "Sent on behalf of " . ($subscriber->organization ?? $subscriber->name ?? 'Subscriber');
-                $maildata->from_email = "alerts@adwiseri.com";
-                $maildata->reply_to_email = $subscriber->email;
-                $maildata->reply_to_name = $subscriber->name ?? 'Subscriber';
-                // Mail::to($client->email)->send(new Invoicemail($maildata));
-                try {
-                    if (!empty(optional($client)->email)) {
-                        Mail::to($client->email)->send(new Invoicemail($maildata));
-                    }
-                } catch (\Exception $e) {
-                    // skip the error (optional log)
-                    \Log::warning('Invoice email not sent for AP invoice_no: '.$invoice->invoice_no);
+                $mailResult = app(InvoiceMailService::class)->send($invoice, $subscriber);
+                if (!$mailResult['success']) {
+                    \Log::warning('AP invoice email not sent', [
+                        'invoice_id' => $invoice->id,
+                        'invoice_no' => $invoice->invoice_no,
+                        'message' => $mailResult['message'],
+                    ]);
                 }
-                 if (Mail::failures()) {
-                    echo 'Sorry! Please try again latter';
-                } else {
-                    echo 'Success';
-                }
-            return redirect()->route('invoice_payment_made')->with('invoice_generated', 'Invoice created Successfully.');
+
+            return redirect()->route('invoice_payment_made')->with(
+                $mailResult['success'] ? 'invoice_generated' : 'invoice_email_failed',
+                $mailResult['success']
+                    ? 'Invoice created and emailed to ' . $mailResult['recipient'] . '.'
+                    : 'Invoice created, but email was not sent: ' . $mailResult['message']
+            );
         } else {
             return redirect()->route('login');
         }
@@ -5167,21 +5372,33 @@ class WebController extends Controller
     public function view_invoice($id)
     {
         $user = $this->check_login();
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
         $roles = UserRoles::where('user_id', '=', $user->id)->first();
         $page = "invoices";
         $invoice = Internal_Invoices::find($id);
         $u = User::where('email', '=', $invoice->email)->first();
-        $invoiceSetting = Invoice_settings::where('user_id', $u->id)->first();
-        if ($invoiceSetting) {
-            $invoice->discount = $invoiceSetting->discount;
-            $invoice->tax = $invoiceSetting->tax;
-            $invoice->paymenyt_link = $invoiceSetting->payment_link;
-        }
+        $invoiceSetting = Invoice_settings::forUser((int) $u->id);
         return view('web.view_invoice', compact('user', 'u', 'page', 'invoice', 'roles', 'invoiceSetting'));
+    }
+
+    public function resendInvoiceEmail(Request $request, $id)
+    {
+        $user = $this->check_login();
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
+        }
+
+        $invoice = Internal_Invoices::with('items')->findOrFail($id);
+        $subscriber = User::find($invoice->subscriber_id ?: $invoice->user_id);
+        $result = app(InvoiceMailService::class)->send($invoice, $subscriber, $request->input('to'));
+
+        return back()->with(
+            $result['success'] ? 'invoice_email_sent' : 'invoice_email_failed',
+            $result['message']
+        );
     }
 
     public function invoice_preview($id, $token)
@@ -5190,12 +5407,7 @@ class WebController extends Controller
         $invoice = Internal_Invoices::where('id', '=', $id)->where('token', '=', $token)->first();
         if ($invoice) {
             $u = User::where('email', '=', $invoice->email)->first();
-            $invoiceSetting = Invoice_settings::where('user_id', $u->id)->first();
-            if ($invoiceSetting) {
-                $invoice->discount = $invoiceSetting->discount;
-                $invoice->tax = $invoiceSetting->tax;
-                $invoice->paymenyt_link = $invoiceSetting->payment_link;
-            }
+            $invoiceSetting = Invoice_settings::forUser((int) $u->id);
             return view('web.invoice_preview', compact('u', 'invoice', 'invoiceSetting'));
         } else {
             echo "NO INVOICE FOUND.";
@@ -5206,20 +5418,29 @@ class WebController extends Controller
     public function print_invoice($id)
     {
         $user = $this->check_login();
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
         $page = "invoices";
         $invoice = Internal_Invoices::find($id);
         $u = User::where('email', '=', $invoice->email)->first();
-        $invoiceSetting = Invoice_settings::where('user_id', $u->id)->first();
-        if ($invoiceSetting) {
-            $invoice->discount = $invoiceSetting->discount;
-            $invoice->tax = $invoiceSetting->tax;
-            $invoice->paymenyt_link = $invoiceSetting->payment_link;
-        }
+        $invoiceSetting = Invoice_settings::forUser((int) $u->id);
         return view('web.print_invoice', compact('user', 'u', 'page', 'invoice', 'invoiceSetting'));
+    }
+
+    private function invoicePaymentQrUrl(int $userId, ?string $filename): ?string
+    {
+        if (empty($filename)) {
+            return null;
+        }
+
+        $path = public_path('web_assets/users/user' . $userId . '/' . $filename);
+        if (!file_exists($path)) {
+            return null;
+        }
+
+        return asset('web_assets/users/user' . $userId . '/' . $filename);
     }
 
     public function delete_invoice($id = null, $localtime = null)
@@ -5239,7 +5460,7 @@ class WebController extends Controller
                 $activity->activity_icon = "invoice.jpg";
                 $activity->local_time = $localtime;
                 $activity->save();
-                return back()->with('deleted', 'Job deleted successfully');
+                return back()->with('deleted', 'Job deleted successfully.');
             } else {
                 return redirect()->route('login');
             }
@@ -5255,46 +5476,19 @@ class WebController extends Controller
             if ($user) {
                 $invoice = Internal_Invoices::find($request->id);
                 $invoice->status = $request->status;
+                $auditService = app(InvoiceAuditService::class);
+                $auditService->ensureCreatedAudit($invoice);
+                $auditService->markUpdated($invoice, $user);
                 $invoice->save();
-                if ($request->status == "Paid") {
-                    $new_invoice = Invoices::where('invoice', '=', $invoice->invoice_no)->first();
-                    if ($new_invoice == null) {
-                        $new_invoice = new Invoices();
-                    }
-                    $new_invoice->user_id = $invoice->subscriber_id;
-                    $new_invoice->invoice = $invoice->invoice_no;
-                    $new_invoice->company_name = $invoice->name;
-                    $new_invoice->city = $invoice->city;
-                    $new_invoice->state = $invoice->state;
-                    $new_invoice->country = $invoice->country;
-                    $new_invoice->pincode = $invoice->pincode;
-                    $new_invoice->phone = $invoice->phone;
-                    $new_invoice->address = $invoice->address;
-                    $new_invoice->logo = $invoice->logo;
-                    $new_invoice->to_name = $invoice->to_name;
-                    $new_invoice->to_company = $user->to_email;
-                    $new_invoice->to_city = $invoice->to_city;
-                    $new_invoice->to_state = $invoice->to_state;
-                    $new_invoice->to_country = $invoice->to_country;
-                    $new_invoice->to_pincode = $invoice->to_pincode;
-                    $new_invoice->to_phone = $invoice->to_phone;
-                    $new_invoice->to_email = $invoice->to_email;
-                    $new_invoice->service_fee = $invoice->amount;
-                    $new_invoice->discount = ($invoice->amount * ($invoice->discount / 100));
-                    $new_invoice->tax = (($invoice->amount - ($invoice->amount * $invoice->discount / 100)) * ($invoice->tax / 100));
-                    $new_invoice->total = $invoice->total;
-                    $new_invoice->payment_mode = "Cash";
-                    $new_invoice->save();
-                }
-                $activity = new Activities();
-                $activity->subscriber_id = $user->id;
-                $activity->user_id = $user->id;
-                $activity->user_name = $user->name;
-                $activity->activity_name = "Invoice Updated";
-                $activity->activity_detail = $user->name . " Update an Invoice status at " . $request->localtime;
-                $activity->activity_icon = "invoice.jpg";
-                $activity->local_time = $request->localtime;
-                $activity->save();
+                $auditService->syncLegacyInvoiceIfPaid($invoice, $user);
+                $subscriberId = $user->user_type === 'Subscriber' ? $user->id : (int) $user->added_by;
+                $auditService->logActivity(
+                    $user,
+                    $subscriberId,
+                    'Invoice Updated',
+                    $user->name . ' updated invoice status to ' . $request->status . ' at ' . $request->localtime,
+                    $request->localtime
+                );
                 return response()->json(['status' => 'success']);
             } else {
                 return response()->json(['status' => 'no user']);
@@ -5302,6 +5496,265 @@ class WebController extends Controller
         } else { //view the page.
             return response()->json(['status' => 'no invoice']);
         }
+    }
+
+    private function getInvoiceSubscriber(User $user): User
+    {
+        return $user->user_type === 'Subscriber' ? $user : User::find($user->added_by);
+    }
+
+    private function userCanEditInvoices(User $user): bool
+    {
+        if ($user->user_type === 'Subscriber') {
+            return true;
+        }
+
+        $roles = UserRoles::where('user_id', $user->id)->where('module', 'Invoices')->first();
+
+        return $roles && ($roles->write_only == 1 || $roles->read_write_only == 1);
+    }
+
+    private function authorizeInvoiceForUser(User $user, Internal_Invoices $invoice): void
+    {
+        $subscriber = $this->getInvoiceSubscriber($user);
+        if ((int) $invoice->subscriber_id !== (int) $subscriber->id) {
+            abort(403, 'Unauthorized invoice access.');
+        }
+    }
+
+    private function resolveInvoiceClientId(Internal_Invoices $invoice, User $subscriber): ?int
+    {
+        $clientQuery = Clients::where('subscriber_id', $subscriber->id);
+
+        if (!empty($invoice->to_email)) {
+            $client = (clone $clientQuery)->where('email', $invoice->to_email)->first();
+            if ($client) {
+                return $client->id;
+            }
+        }
+
+        if (!empty($invoice->to_name)) {
+            $client = (clone $clientQuery)->where('name', $invoice->to_name)->first();
+            if ($client) {
+                return $client->id;
+            }
+        }
+
+        return null;
+    }
+
+    private function populateInvoiceFromClient(Internal_Invoices $invoice, Clients $client): void
+    {
+        $invoice->to_name = $client->name;
+        $invoice->to_email = $client->email;
+        $invoice->to_phone = $client->phone;
+        $invoice->to_country = $client->country;
+        $invoice->to_state = $client->state;
+        $invoice->to_city = $client->city;
+        $invoice->to_pincode = $client->pincode;
+        $invoice->to_address = $client->address;
+    }
+
+    public function edit_invoice($id)
+    {
+        $user = $this->check_login();
+        $this->set_timezone();
+        if (!$this->userCanEditInvoices($user)) {
+            return back()->with('error', 'You do not have permission to edit invoices.');
+        }
+        if ($user->user_type != 'admin' && membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with('price_plan_expiry', 'Please renew or upgrade your subscription plan.');
+        }
+
+        $invoice = Internal_Invoices::with('items')->findOrFail($id);
+        if ($invoice->type !== 'ar') {
+            return redirect()->route('edit_invoice_ap', $invoice->id);
+        }
+
+        $this->authorizeInvoiceForUser($user, $invoice);
+        $subscriber = $this->getInvoiceSubscriber($user);
+        $clients = Clients::where('subscriber_id', $subscriber->id)->orderBy('name')->get();
+
+        if (count($clients) < 1) {
+            return back()->with('noclient', 'No client found.');
+        }
+
+        $selectedClientId = $this->resolveInvoiceClientId($invoice, $subscriber);
+        if ($selectedClientId === null && !empty($invoice->to_name)) {
+            $selectedClientId = $clients->first(function ($client) use ($invoice) {
+                return strcasecmp(trim($client->name), trim((string) $invoice->to_name)) === 0;
+            })?->id;
+        }
+        $page = 'invoices';
+        $invSetting = Invoice_settings::forUser((int) $subscriber->id);
+        $taxMeta = $this->invoiceSettingsTaxMeta($invSetting);
+
+        return view('web.edit_invoice', array_merge(compact('clients', 'user', 'page', 'invoice', 'selectedClientId'), $taxMeta, [
+            'invoiceNote' => trim((string) ($invoice->invoice_note ?? '')),
+            'isLocked' => true,
+        ]));
+    }
+
+    public function update_invoice(Request $request, $id)
+    {
+        $request->validate(array_merge(
+            $this->invoiceItemService()->singleItemValidationRules(),
+            [
+            'client' => 'required|exists:clients,id',
+            'tax' => 'required|numeric|min:0|max:100',
+            'status' => 'required|in:PartiallyPaid,UnPaid,Paid,Cancelled',
+            'due_date' => 'required',
+            'invoice_note' => 'nullable|string|max:5000',
+            ]
+        ));
+
+        $user = Auth::user();
+        $this->set_timezone();
+        if (!$this->userCanEditInvoices($user)) {
+            return back()->with('error', 'You do not have permission to edit invoices.');
+        }
+
+        $invoice = Internal_Invoices::with('items')->findOrFail($id);
+        if ($invoice->type !== 'ar') {
+            abort(404);
+        }
+
+        $this->authorizeInvoiceForUser($user, $invoice);
+        $subscriber = $this->getInvoiceSubscriber($user);
+        $client = Clients::findOrFail($request->client);
+        if ((int) $client->subscriber_id !== (int) $subscriber->id) {
+            return back()->withInput()->withErrors(['client' => 'Please select a valid client for this account.']);
+        }
+
+        $discountPercent = max(0, min(100, (float) ($invoice->discount ?? 0)));
+        $taxPercent = max(0, min(100, (float) $request->input('tax')));
+        $invoiceAmount = $this->invoiceItemService()->sumAmounts(
+            $this->invoiceItemService()->normalizeRequestItems($request)
+        );
+        $subtotal = $invoiceAmount - ($invoiceAmount * ($discountPercent / 100));
+
+        $this->populateInvoiceFromClient($invoice, $client);
+        $invoice->user_id = $user->id;
+        $invoice->discount = $discountPercent;
+        $invoice->export_service_tax_exempt = $taxPercent == 0.0;
+        $invoice->tax = $taxPercent;
+        $invoice->total = max(0, round($subtotal + ($subtotal * ($taxPercent / 100)), 2));
+        $invoice->status = $request->status;
+        $invoice->due_date = $this->normalizeInvoiceDueDate($request->due_date);
+        $invoice->invoice_note = trim((string) $request->input('invoice_note', ''));
+
+        $auditService = app(InvoiceAuditService::class);
+        $auditService->ensureCreatedAudit($invoice);
+        $auditService->markUpdated($invoice, $user);
+        $this->persistInvoiceItems($invoice, $request, (int) $request->client, (int) $invoice->id);
+        $auditService->syncLegacyInvoiceIfPaid($invoice, $user);
+        $auditService->logActivity(
+            $user,
+            $subscriber->id,
+            'Invoice Updated',
+            $user->name . ' updated invoice ' . $invoice->invoice_no . ' at ' . $request->local_time,
+            $request->local_time
+        );
+
+        return redirect()->route('invoices')->with('invoice_updated', 'Invoice Updated Successfully !');
+    }
+
+    public function edit_invoice_ap($id)
+    {
+        $user = $this->check_login();
+        $this->set_timezone();
+        if (!$this->userCanEditInvoices($user)) {
+            return back()->with('error', 'You do not have permission to edit invoices.');
+        }
+        if ($user->user_type != 'admin' && membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with('price_plan_expiry', 'Please renew or upgrade your subscription plan.');
+        }
+
+        $invoice = Internal_Invoices::with('items')->findOrFail($id);
+        if ($invoice->type !== 'ap') {
+            return redirect()->route('edit_invoice', $invoice->id);
+        }
+
+        $this->authorizeInvoiceForUser($user, $invoice);
+        $page = 'invoices';
+
+        return view('web.edit_invoice_ap', compact('user', 'page', 'invoice') + [
+            'invoiceNote' => trim((string) ($invoice->invoice_note ?? '')),
+            'isLocked' => true,
+        ]);
+    }
+
+    public function update_invoice_ap(Request $request, $id)
+    {
+        $request->validate(array_merge(
+            $this->invoiceItemService()->validationRules(),
+            [
+            'invoice_vendor_id' => 'required|string|min:2|max:100',
+            'vendor_name' => 'required|string|min:2|max:150',
+            'amount' => 'required|numeric|min:0',
+            'discount' => 'required|numeric|min:0|max:100',
+            'tax' => 'required|numeric|min:0|max:100',
+            'total_to_pay' => 'required|numeric|min:0',
+            'status' => 'required|in:PartiallyPaid,UnPaid,Paid,Cancelled',
+            'due_date' => 'required',
+            'upload_invoice' => 'nullable|file|mimes:pdf|max:10240',
+            'invoice_note' => 'nullable|string|max:5000',
+            ]
+        ));
+
+        $user = Auth::user();
+        $this->set_timezone();
+        if (!$this->userCanEditInvoices($user)) {
+            return back()->with('error', 'You do not have permission to edit invoices.');
+        }
+
+        $invoice = Internal_Invoices::with('items')->findOrFail($id);
+        if ($invoice->type !== 'ap') {
+            abort(404);
+        }
+
+        $this->authorizeInvoiceForUser($user, $invoice);
+        $subscriber = $this->getInvoiceSubscriber($user);
+
+        $invoiceAmount = $this->invoiceItemService()->sumAmounts(
+            $this->invoiceItemService()->normalizeRequestItems($request)
+        );
+        $discountPercent = max(0, min(100, (float) $request->discount));
+        $taxPercent = max(0, min(100, (float) $request->tax));
+        $subtotal = $invoiceAmount - ($invoiceAmount * ($discountPercent / 100));
+        $calculatedTotal = max(0, $subtotal + ($subtotal * ($taxPercent / 100)));
+
+        $invoice->invoice_no = trim((string) $request->invoice_vendor_id);
+        $invoice->to_name = trim((string) $request->vendor_name);
+        $invoice->discount = $discountPercent;
+        $invoice->tax = $taxPercent;
+        $invoice->total = (float) $request->total_to_pay > 0 ? (float) $request->total_to_pay : $calculatedTotal;
+        $invoice->status = $request->status;
+        $invoice->due_date = $this->normalizeInvoiceDueDate($request->due_date);
+        $invoice->invoice_note = trim((string) $request->input('invoice_note', ''));
+
+        if ($request->hasFile('upload_invoice')) {
+            $pdfFile = $request->file('upload_invoice');
+            $fileName = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $pdfFile->getClientOriginalName());
+            $destinationPath = 'web_assets/users/user' . $subscriber->id . '/invoice_uploads';
+            $pdfFile->move($destinationPath, $fileName);
+            $invoice->uploaded_invoice = 'user' . $subscriber->id . '/invoice_uploads/' . $fileName;
+        }
+
+        $auditService = app(InvoiceAuditService::class);
+        $auditService->ensureCreatedAudit($invoice);
+        $auditService->markUpdated($invoice, $user);
+        $this->persistInvoiceItems($invoice, $request);
+        $auditService->syncLegacyInvoiceIfPaid($invoice, $user);
+        $auditService->logActivity(
+            $user,
+            $subscriber->id,
+            'Invoice Updated',
+            $user->name . ' updated AP invoice ' . $invoice->invoice_no . ' at ' . $request->local_time,
+            $request->local_time
+        );
+
+        return redirect()->route('invoice_payment_made')->with('invoice_updated', 'Invoice Updated Successfully !');
     }
 
     public function job_role($id = "")
@@ -5348,7 +5801,7 @@ class WebController extends Controller
             $activity->activity_icon = "job_icon.png";
             $activity->local_time = $request->local_time;
             $activity->save();
-            return back()->with("job_updated", "Job Updated Successfully");
+            return back()->with("job_updated", "Job updated successfully.");
         }
         $data = new Job_roles();
         $this->validate(
@@ -5368,7 +5821,7 @@ class WebController extends Controller
         $activity->activity_icon = "job_icon.png";
         $activity->local_time = $request->local_time;
         $activity->save();
-        return redirect()->route('job_role')->with('job_added', "Job Role Added Successfully");
+        return redirect()->route('job_role')->with('job_added', "Job role added successfully.");
     }
 
     public function delete_job_role($id = null, $localtime = null)
@@ -5388,7 +5841,7 @@ class WebController extends Controller
                 $activity->activity_icon = "job_icon.png";
                 $activity->local_time = $localtime;
                 $activity->save();
-                return back()->with('deleted', 'Job deleted successfully');
+                return back()->with('deleted', 'Job deleted successfully.');
             } else {
                 return redirect()->route('login');
             }
@@ -5418,6 +5871,15 @@ class WebController extends Controller
 
     public function post_contact(Request $request)
     {
+        $request->validate([
+            'name' => 'required|string|min:3|max:100',
+            'phone' => 'required|phone_intl',
+            'email' => 'required|email|max:255',
+            'country' => 'required|string|max:255',
+            'city' => 'nullable|string|max:255',
+            'message' => 'required|string|min:10|max:2000',
+        ]);
+
         $maildata = new \stdClass();
         $maildata->name = $request['name'];
         $maildata->email = $request['email'];
@@ -5426,18 +5888,14 @@ class WebController extends Controller
         $maildata->city = $request['city'];
         $maildata->message = $request['message'];
         $maildata->contact = "True";
-        Mail::to("seimpex1@gmail.com")->send(new EmailVerification($maildata));
-        if (Mail::failures()) {
-            echo 'Sorry! Please try again latter';
-        } else {
-            echo 'Success';
+        foreach (BrandedMail::adminNotificationRecipients() as $recipient) {
+            Mail::to($recipient)->send(new EmailVerification($maildata));
         }
-        Mail::to("care@adwiseri.com")->send(new EmailVerification($maildata));
         if (Mail::failures()) {
             echo 'Sorry! Please try again latter';
         } else {
             echo 'Success';
-            return redirect()->route('contactus')->with('message_sent', 'message send success');
+            return redirect()->route('contactus')->with('message_sent', 'Your message was sent successfully.');
         }
     }
 
@@ -5473,8 +5931,8 @@ class WebController extends Controller
     public function support()
     {
         $user = $this->check_login();
-        if ($user->type_user != "affiliate" && $user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if ($user->type_user != "affiliate" && membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
         if ($user) {
@@ -5497,8 +5955,8 @@ class WebController extends Controller
     {
         $user = $this->check_login();
         $this->set_timezone();
-        if ($user->type_user != "affiliate" && $user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if ($user->type_user != "affiliate" && membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         if ($user) {
             if ($user->user_type == "Subscriber" || $user->user_type == "Affiliate") {
@@ -5571,6 +6029,17 @@ class WebController extends Controller
                 $data->attachment = $filename;
             }
             $data->save();
+
+            app(\App\Services\TicketActivityService::class)->logCreation($data, $user);
+
+            app(\App\Services\NotificationService::class)->notifyAudience(
+                'admin',
+                'support_tickets',
+                'New support ticket #' . $data->ticket_no,
+                'A new support ticket has been raised: ' . \Illuminate\Support\Str::limit($data->issue, 120),
+                route('manage_support')
+            );
+
             $activity = new Activities();
             $activity->subscriber_id = $subscriber->id;
             $activity->user_id = $user->id;
@@ -5590,36 +6059,24 @@ class WebController extends Controller
             $maildata->subscriber_id = $data['subscriber_id'];
             $maildata->support = $data['support'];
             $maildata->department = $data['support'];
-            if ($subscriber->id == $user->id) {
-                $maildata->ticket_raiser = $subscriber->name . ' (' . $subscriber->id . ')';
-            } else {
-                $maildata->ticket_raiser = $subscriber->name . ' (' . $subscriber->id . ') - ' . $user->name . ' (' . $user->id . ')';
-            }
+            $maildata->ticket_raiser = $subscriber->name . ' (' . $subscriber->id . ') - ' . $user->name . ' (' . $user->id . ')';
             $maildata->date = $data['created_at'];
             $maildata->issue = $data['issue'];
             $maildata->attachment = $data['attachment'];
             $maildata->attachment_label = $data['attachment'] ? ('Attached (' . $data['attachment'] . ')') : 'No attachment';
             $maildata->contact = "True";
-            $ticketNotification = Mail::to("seimpex1@gmail.com");
-            if (!empty($user->email)) {
-                $ticketNotification->bcc($user->email);
+            foreach (BrandedMail::adminNotificationRecipients() as $recipient) {
+                Mail::to($recipient)->send(new SupportMail($maildata));
             }
-            $ticketNotification->send(new SupportMail($maildata));
-            if (Mail::failures()) {
-                echo 'Sorry! Please try again latter';
-            } else {
-                echo 'Success';
-            }
-            Mail::to("care@adwiseri.com")->send(new SupportMail($maildata));
             if (Mail::failures()) {
                 echo 'Sorry! Please try again latter';
             } else {
                 echo 'Success';
             }
             if ($user->type_user == 'Affiliate') {
-                return redirect()->route('ask_support')->with('success', 'data sent to support');
+                return redirect()->route('ask_support')->with('success', 'Your support request was sent successfully.');
             } else {
-                return redirect()->route('ask_support_affiliate')->with('success', 'data sent to support');
+                return redirect()->route('ask_support_affiliate')->with('success', 'Your support request was sent successfully.');
             }
         } else {
             return redirect()->route('login');
@@ -5646,22 +6103,26 @@ class WebController extends Controller
     public function sub_reports()
     {
         $user = $this->check_login();
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now")) && $user->user_type != 'admin') {
+        $ccService = app(CountryCategorySettingsService::class);
+        $subscriber = $ccService->resolveSubscriber($user);
 
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if ($user->user_type != "admin" && membership_access_blocked_for_subscriber($subscriber)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
+
+        if ($user->user_type != 'admin') {
+            $reportRoles = UserRoles::where('user_id', $user->id)->where('module', 'Reports')->first();
+            if (!$reportRoles || ($reportRoles->read_only != 1 && $reportRoles->read_write_only != 1)) {
+                return redirect()->route('client')->with('access_denied', 'You do not have access to Reports.');
+            }
+        }
+
         $this->set_timezone();
-        if ($user->user_type == "Subscriber" || $user->user_type == "admin") {
-            $subscriber = $user;
-        } else {
-            $subscriber = User::find($user->added_by);
-        }
-
 
         if ($subscriber->category == "Law Firm") {
             $client_jobs = Client_jobs::where('category', '=', $subscriber->category)->get();
-        } elseif ($subscriber->category == "Travel Agency") {
-            $client_jobs = Client_jobs::where('category', '=', $subscriber->category)->get();
+        } elseif ($ccService->isTravelAgentSubscriber($subscriber)) {
+            $client_jobs = $ccService->getClientJobsForSubscriber($subscriber);
         } else {
             $client_jobs = Client_jobs::where('category', '=', $subscriber->category)->where('sub_category', '=', $subscriber->sub_category)->get();
         }
@@ -5713,7 +6174,7 @@ class WebController extends Controller
     {
         $user = $this->check_login();
         if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
+            return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
         $this->set_timezone();
@@ -5766,7 +6227,7 @@ class WebController extends Controller
     {
         $user = $this->check_login();
         if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
+            return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
         $this->set_timezone();
@@ -5796,7 +6257,7 @@ class WebController extends Controller
                 return $row->user ? $row->user->name : '';
             })
             ->editColumn('created_at', function ($row) {
-                return date("d-m-Y", strtotime($row->created_at));
+                return date("d-m-Y H:i:s", strtotime($row->created_at));
             })
             ->make(true);
     }
@@ -5804,8 +6265,8 @@ class WebController extends Controller
     public function communications()
     {
         $user = $this->check_login();
-        if ($user->user_type != "admin" && $user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if ($user->user_type != "admin" && membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         if ($user) {
             if ($user->user_type == "Subscriber") {
@@ -5817,14 +6278,11 @@ class WebController extends Controller
             }
 
 
-            if ($user->user_type == "admin") {
-
-                $messages = Internal_communications::orderBy('created_at', 'desc')->get();
-            } else {
-                $messages = Internal_communications::where('user_id', '=', $user->id)->orwhere('send_to', 'like', '%' . $user->id . '%')->orderBy('created_at', 'desc')->get();
-            }
+            $notificationService = app(\App\Services\NotificationService::class);
+            $messages = $notificationService->messagesVisibleToUser($user);
             $page = "communications";
             $roles = UserRoles::where('user_id', '=', $user->id)->first();
+            $unreadMessageCount = $notificationService->envelopeCount($user);
             if (request()->ajax()) {
                 $startDate = Carbon::parse($this->normalizeDateValue(request()->startdate) ?? request()->startdate)->startOfDay();
                 $endDate = Carbon::parse($this->normalizeDateValue(request()->enddate) ?? request()->enddate)->endOfDay();
@@ -5837,6 +6295,9 @@ class WebController extends Controller
 
                 return DataTables::of($messages)
                     ->addIndexColumn()
+                    ->addColumn('status', function ($row) use ($user, $notificationService) {
+                        return $notificationService->messageStatusBadgeHtml($user, $row);
+                    })
                     ->addColumn('recevier_name', function ($row) use ($user) {
                         if ($row->send_by == 1) {
                             $receiver = $user->name;
@@ -5867,20 +6328,38 @@ class WebController extends Controller
                             return $row->message;
                         }
                     })
-                    ->addColumn('action', function ($row) use ($communication_roles, $user) {
-                        $html = "<a ";
-                        if ($user->user_type == "admin" || $communication_roles->read_only == 1 || $communication_roles->read_write_only == 1) {
-                            $html .= 'href = ' . route('view_message', $row->id) . ' ';
+                    ->addColumn('action', function ($row) use ($communication_roles, $user, $notificationService) {
+                        $canView = $user->user_type == "admin" || ($communication_roles && ($communication_roles->read_only == 1 || $communication_roles->read_write_only == 1));
+                        $canDelete = $user->user_type == "admin"
+                            || ($communication_roles && ($communication_roles->write_only == 1 || $communication_roles->read_write_only == 1))
+                            || ((int) $row->send_by === (int) $user->id);
+                        $status = $notificationService->messageStatusForUser($user, $row);
+                        $viewHref = $canView ? route('view_message', $row->id) : '#';
+
+                        $html = '<div class="comm-action-btns">';
+                        $html .= $canView
+                            ? '<a href="' . $viewHref . '" class="comm-action-btn comm-view-btn" title="View"><i class="fa-solid fa-eye"></i></a>'
+                            : '<span class="comm-action-btn comm-action-btn--disabled" title="View not allowed"><i class="fa-solid fa-eye"></i></span>';
+
+                        if ($status === 'unread') {
+                            $html .= '<button type="button" class="comm-action-btn comm-mark-read-btn js-mark-message-read" title="Mark as read" data-id="' . $row->id . '"><i class="fa-solid fa-envelope-open-text"></i></button>';
                         } else {
-                            $html .= 'href = "#"';
+                            $html .= '<span class="comm-action-btn comm-action-btn--muted" title="Already read / sent"><i class="fa-solid fa-envelope-open-text"></i></span>';
                         }
-                        $html .= ' style="text-decoration:none;background:none;border:none"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i>';
+
+                        if ($canDelete) {
+                            $html .= '<button type="button" class="comm-action-btn comm-delete-btn js-delete-message" title="Delete" data-id="' . $row->id . '"><i class="fa-solid fa-trash"></i></button>';
+                        }
+                        $html .= '</div>';
                         return $html;
                     })
-                    ->rawColumns(['action'])
+                    ->setRowClass(function ($row) use ($user, $notificationService) {
+                        return $notificationService->messageStatusForUser($user, $row) === 'unread' ? 'comm-row-unread' : '';
+                    })
+                    ->rawColumns(['action', 'status'])
                     ->make(true);
             }
-            return view('web.communications', compact('user', 'page', 'messages', 'siteusers', 'roles'));
+            return view('web.communications', compact('user', 'page', 'messages', 'siteusers', 'roles', 'notificationService', 'unreadMessageCount'));
         } else {
             return redirect()->route('login');
         }
@@ -5889,8 +6368,8 @@ class WebController extends Controller
     public function messaging()
     {
         $user = $this->check_login();
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         if ($user) {
             if ($user->user_type == "Subscriber") {
@@ -5905,6 +6384,167 @@ class WebController extends Controller
         } else {
             return redirect()->route('login');
         }
+    }
+
+    public function email_broadcast()
+    {
+        $user = $this->check_login();
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
+        }
+
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        if ($user->user_type == "Subscriber") {
+            $subscriber = $user;
+            $staffMembers = User::where('added_by', $subscriber->id)->where('user_type', 'User')->orderBy('name')->get();
+            $clients = Clients::where('subscriber_id', $subscriber->id)->orderBy('name')->get();
+        } else {
+            $subscriber = User::find($user->added_by);
+            $staffMembers = User::where('added_by', $subscriber->id)->where('user_type', 'User')->orderBy('name')->get();
+            $clients = Clients::where('user_id', $user->id)->orderBy('name')->get();
+        }
+
+        $page = "email_broadcast";
+        $subscriberFooter = \App\Support\BrandedMail::subscriberFooterContext($subscriber);
+        $broadcastLimits = [
+            'chunk_size' => (int) config('mail.broadcast_chunk_size', 25),
+            'chunk_delay_seconds' => (int) config('mail.broadcast_chunk_delay_seconds', 2),
+            'subject_max' => 200,
+            'body_max' => 50000,
+        ];
+
+        return view('web.email_broadcast', compact('user', 'page', 'staffMembers', 'clients', 'subscriber', 'subscriberFooter', 'broadcastLimits'));
+    }
+
+    public function send_email_broadcast(Request $request, EmailBroadcastService $emailBroadcastService)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $communicationRoles = UserRoles::where('user_id', $user->id)->where('module', 'Communication')->first();
+        $canSend = $user->user_type === 'Subscriber'
+            || ($communicationRoles && ($communicationRoles->write_only == 1 || $communicationRoles->read_write_only == 1));
+
+        if (!$canSend) {
+            return back()->with('broadcast_error', 'You do not have permission to send email broadcasts.');
+        }
+
+        $this->validate($request, [
+            'communicate_type' => 'required|in:internal,external',
+            'recipients' => 'required|array|min:1',
+            'recipients.*' => 'required|string',
+            'subject' => 'required|string|max:200',
+            'body' => 'required|string|min:3|max:50000',
+        ]);
+
+        if ($user->user_type == "Subscriber") {
+            $subscriber = $user;
+            $staffUserId = null;
+        } else {
+            $subscriber = User::find($user->added_by);
+            $staffUserId = $user->id;
+        }
+
+        $selectedRecipients = array_values(array_unique($request->recipients));
+        $communicateType = $request->communicate_type;
+
+        if ($communicateType === 'internal') {
+            $hasStaff = User::where('added_by', $subscriber->id)->where('user_type', 'User')->exists();
+            if (!$hasStaff) {
+                return back()->with('no_broadcast_recipients', 'No clients found in the system')->withInput();
+            }
+            $resolvedRecipients = $emailBroadcastService->resolveStaffRecipients($subscriber->id, $selectedRecipients);
+        } else {
+            $clientQuery = Clients::where('subscriber_id', $subscriber->id);
+            if ($staffUserId) {
+                $clientQuery->where('user_id', $staffUserId);
+            }
+            if (!$clientQuery->exists()) {
+                return back()->with('no_broadcast_recipients', 'No clients found in the system')->withInput();
+            }
+            $resolvedRecipients = $emailBroadcastService->resolveClientRecipients($subscriber->id, $staffUserId, $selectedRecipients);
+        }
+
+        $result = $emailBroadcastService->queueBroadcast(
+            $user,
+            $communicateType,
+            $request->subject,
+            $request->body,
+            $resolvedRecipients,
+            $subscriber->id,
+            $selectedRecipients
+        );
+
+        if (!empty($result['error'])) {
+            return back()->with('broadcast_error', $result['error'])->withInput();
+        }
+
+        if (empty($result['queued'])) {
+            return back()->with('broadcast_error', 'Unable to queue email broadcast. Please try again.')->withInput();
+        }
+
+        $activity = new Activities();
+        $activity->subscriber_id = $subscriber->id;
+        $activity->user_id = $user->id;
+        $activity->user_name = $user->name;
+        $activity->activity_name = "Email Broadcast";
+        $activity->activity_detail = "Email broadcast queued by " . $user->name . " for " . $result['total_recipients'] . " recipient(s) at " . $request->local_time;
+        $activity->activity_icon = "communication.png";
+        $activity->local_time = $request->local_time;
+        $activity->save();
+
+        $message = 'Email broadcast queued successfully for ' . $result['total_recipients'] . ' recipient(s). '
+            . 'Emails will be sent in the background (Ref: ' . $result['broadcast_id'] . ').';
+
+        return back()->with('broadcast_sent', $message);
+    }
+
+    public function upload_email_broadcast_image(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized.'], 401);
+        }
+
+        $communicationRoles = UserRoles::where('user_id', $user->id)->where('module', 'Communication')->first();
+        $canSend = $user->user_type === 'Subscriber'
+            || ($communicationRoles && ($communicationRoles->write_only == 1 || $communicationRoles->read_write_only == 1));
+
+        if (!$canSend) {
+            return response()->json(['message' => 'You do not have permission to upload broadcast images.'], 403);
+        }
+
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,jpg,png,gif,webp|max:4096',
+        ]);
+
+        if ($user->user_type === 'Subscriber') {
+            $subscriberId = $user->id;
+        } else {
+            $subscriberId = (int) $user->added_by;
+        }
+
+        $directory = public_path('web_assets/users/user' . $subscriberId . '/broadcast');
+        if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+            return response()->json(['message' => 'Unable to prepare image storage.'], 500);
+        }
+
+        $file = $request->file('image');
+        $filename = 'broadcast_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $file->getClientOriginalExtension();
+        $file->move($directory, $filename);
+
+        $relativePath = 'web_assets/users/user' . $subscriberId . '/broadcast/' . $filename;
+
+        return response()->json([
+            'url' => url($relativePath),
+        ]);
     }
 
     public function communicate(Request $request)
@@ -5933,24 +6573,15 @@ class WebController extends Controller
 
             $communication_id = communication_id();
             $subscriber = $user->user_type == "Subscriber" ? $user : User::find($user->added_by);
+            $offerBenefitService = app(OfferBenefitService::class);
+            $membership_plan = Membership::where('plan_name', '=', $subscriber->membership)->first();
 
-            // Fetch the membership plan for the user
-            $membership_plan = Membership::where('plan_name', '=', $user->membership)->first();
             if (!$membership_plan) {
                 return back()->with('error', 'Invalid membership plan.');
             }
 
-            // Get the messaging limit from the membership plan
-            $messageLimitPerYear = $membership_plan->messaging; // Assuming message_limit exists in Membership table
-
-            // Count the messages sent by the user in the current year
-            $currentYear = now()->year;
-            $messagesSentThisYear = Internal_communications::where('send_by', $user->id)
-                ->whereYear('created_at', $currentYear) // Filter messages by the current year
-                ->count();
-            // If the user has exceeded the limit for this year, show an error
-            if ($messagesSentThisYear >= $messageLimitPerYear) {
-                return back()->with('error', 'You have exceeded your message limit for this year.');
+            if (!$offerBenefitService->canSendMessage($subscriber)) {
+                return back()->with('error', 'You have exceeded your subscription message limit.');
             }
 
             // Proceed to send the message
@@ -5996,24 +6627,24 @@ class WebController extends Controller
                     $message->save();
                     $activity = new Activities();
                     $activity->subscriber_id = $subscriber->id ;
-                    $activity->user_id = $subscriber->id;
-                    $activity->user_name =  $subscriber->name;
-                    $activity->activity_name = "New Message";
-                    if (auth()->user()->user_type == "Subscriber") {
-                        $activity->activity_detail = "New  message sent by" .  auth()->user()->name . " at " . $request->local_time;
+                    $activity->user_id = $user->id;
+                    $activity->user_name =  $user->name;
+                    $activity->activity_name = "Message Sent";
+                    if ($user->user_type == "Subscriber") {
+                        $activity->activity_detail = "Message sent by " .  $user->name . " at " . $request->local_time;
                     } else {
-                        $activity->activity_detail = "New  message sent by " .  auth()->user()->name . "(" . auth()->user()->name . ") at " . $request->local_time;
+                        $activity->activity_detail = "Message sent by " .  $user->name . "(" . $subscriber->name . ") at " . $request->local_time;
                     }
-                    $activity->activity_icon = "invoice.jpg";
+                    $activity->activity_icon = "mail.png";
                     $activity->local_time = $request->local_time;
                     $activity->save();
 
-                    return back()->with('sent', 'Message sent successfully!');
+                    return back()->with('sent', 'Message sent successfully.');
                 } else {
-                    return back()->with('noUser', 'No user selected');
+                    return back()->with('noUser', 'No user selected.');
                 }
             } else {
-                return back()->with('noUser', 'No user selected');
+                return back()->with('noUser', 'No user selected.');
             }
         } else {
             return redirect()->route('login');
@@ -6027,6 +6658,9 @@ class WebController extends Controller
         if ($id) {
             $page = "communications";
             $message = Internal_communications::find($id);
+            if ($message && $user) {
+                app(\App\Services\NotificationService::class)->markMessageRead($user, (int) $message->id);
+            }
             return view('web.view_message', compact('message', 'user', 'page'));
         }
     }
@@ -6034,23 +6668,37 @@ class WebController extends Controller
     public function client_discussion()
     {
         $user = $this->check_login();
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         if ($user) {
             if ($user->user_type == "Subscriber") {
                 $subscriber = $user;
-                $discussions = Client_discussions::where('subscriber_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->get();
-                $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
+                $discussions = Client_discussions::with(['user', 'application'])
+                    ->where('subscriber_id', '=', $subscriber->id)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+                $clients = Clients::where('subscriber_id', '=', $subscriber->id)
+                    ->whereHas('applications')
+                    ->get();
             } else {
                 $subscriber = User::find($user->added_by);
-                $discussions = Client_discussions::where('subscriber_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->get();
-                $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
+                $discussions = Client_discussions::with(['user', 'application'])
+                    ->where('user_id', '=', $user->id)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+                $clients = Clients::where('user_id', '=', $user->id)
+                    ->whereHas('applications')
+                    ->get();
             }
             $roles = UserRoles::where('user_id', '=', $user->id)->first();
             $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();
             $page = "communications";
-            return view('web.client_discussion', compact('user', 'roles', 'page', 'discussions', 'subscriber', 'clients', 'applications'));
+            $meetingModeFilters = TableFilterCountService::countBy(
+                $discussions,
+                fn ($discussion) => $discussion->communication_type
+            );
+            return view('web.client_discussion', compact('user', 'roles', 'page', 'discussions', 'subscriber', 'clients', 'applications', 'meetingModeFilters'));
         } else {
             return redirect()->route('login');
         }
@@ -6068,6 +6716,13 @@ class WebController extends Controller
             }
             if ($request) {
                 $client = Clients::find($request->client);
+                $communicationDate = $this->normalizeDateTimeValue($request->input('communication_date'));
+                if (!$communicationDate) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->withErrors(['communication_date' => 'Please provide a valid communication date.']);
+                }
+
                 $discussion = new Client_discussions();
                 $discussion->subscriber_id = $subscriber->id;
                 $discussion->user_id = $user->id;
@@ -6076,10 +6731,10 @@ class WebController extends Controller
                 $discussion->client_name = $client->name;
                 $discussion->application_id = $request['application'];
                 $discussion->communication_type = $request['communication_type'];
-                $discussion->communication_date = $request['communication_date'];
+                $discussion->communication_date = $communicationDate;
                 $discussion->discussion = $request['discussion'];
                 $discussion->save();
-                return redirect()->back()->with('disucssion_saved', 'Discussion Saved Successfully');
+                return redirect()->back()->with('disucssion_saved', 'Discussion saved successfully.');
             }
         } else {
             return redirect()->route('login');
@@ -6089,27 +6744,56 @@ class WebController extends Controller
     public function user_applications()
     {
         $user = $this->check_login();
-        if ($user->user_type != "Subscriber") {
-            abort(403);
-        }
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
         if ($user) {
             $roles = UserRoles::where('user_id', '=', $user->id)->first();
             if ($user->user_type == "Subscriber") {
                 $subscriber = $user;
-                $assignments = Application_assignments::whereNotNull('application_id')->whereHas('application')->where('subscriber_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->get();
+                $assignments = Application_assignments::whereNotNull('application_id')
+                    ->whereHas('application')
+                    ->where('subscriber_id', '=', $subscriber->id)
+                    ->with(['client', 'application', 'user'])
+                    ->orderBy('created_at', 'desc')
+                    ->get();
             } else {
                 $subscriber = User::find($user->added_by);
-                $assignments = Application_assignments::whereNotNull('application_id')->whereHas('application')->where('subscriber_id', '=', $subscriber->id)->where('user_id', '=', $user->id)->orderBy('created_at', 'desc')->get();
+                $assignments = Application_assignments::whereNotNull('application_id')
+                    ->whereHas('application')
+                    ->where('subscriber_id', '=', $subscriber->id)
+                    ->where('user_id', '=', $user->id)
+                    ->with(['client', 'application', 'user'])
+                    ->orderBy('created_at', 'desc')
+                    ->get();
             }
-            $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
-            $siteusers = User::where('designation', 'Consultant/Advisor')->where('added_by', '=', $subscriber->id)->get();
+            $userApplicationFilters = TableFilterCountService::countBy(
+                $assignments,
+                function ($assignment) {
+                    $assignedUser = $assignment->user;
+
+                    return $assignedUser
+                        ? $assignedUser->name
+                        : trim((string) ($assignment->user_name ?: ('User #' . $assignment->user_id)));
+                }
+            );
+            $clients = Clients::where('subscriber_id', '=', $subscriber->id)
+                ->whereHas('applications', function ($query) {
+                    $query->whereNull('assign_to');
+                })
+                ->orderBy('name')
+                ->get();
+            $siteusers = User::where('designation', 'Consultant/Advisor')
+                ->where('added_by', '=', $subscriber->id)
+                ->orderBy('name')
+                ->get();
             $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();
+            $unassignedApplicationsCount = Applications::where('subscriber_id', '=', $subscriber->id)
+                ->whereNull('assign_to')
+                ->count();
             $page = "applications";
-            return view('web.user_applications', compact('roles', 'assignments', 'user', 'page', 'clients', 'siteusers', 'applications'));
+            return view('web.user_applications', compact('roles', 'assignments', 'user', 'page', 'clients', 'siteusers', 'applications', 'unassignedApplicationsCount', 'userApplicationFilters'));
         } else {
             return redirect()->route('login');
         }
@@ -6118,43 +6802,100 @@ class WebController extends Controller
     public function update_application_assignment($id)
     {
         $user = Auth::user();
-        if ($user->user_type != "Subscriber") {
-            abort(403);
-        }
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $assignment = Application_assignments::find($id);
+        if (!$assignment) {
+            return redirect()->route('user_applications');
+        }
+
         $client = Clients::find($assignment->client_id);
-        $applications = Applications::where('client_id', '=', $client->id)->get();
-        $advisors = User::where('id', '=', $client->subscriber_id)->orwhere('added_by', '=', $client->subscriber_id)->get();
+        if (!$client) {
+            return redirect()->route('user_applications');
+        }
+
+        $subscriberId = $assignment->subscriber_id ?: ($client->subscriber_id ?? null);
+
+        // Only clients that already have an assignment to an advisor/counsellor
+        $assignedClientIds = Application_assignments::when($subscriberId, function ($query) use ($subscriberId) {
+                return $query->where('subscriber_id', $subscriberId);
+            })
+            ->whereNotNull('user_id')
+            ->whereNotNull('client_id')
+            ->pluck('client_id')
+            ->unique()
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($client && !in_array($client->id, $assignedClientIds, true)) {
+            $assignedClientIds[] = $client->id;
+        }
+
+        $clients = Clients::whereIn('id', $assignedClientIds)->orderBy('name')->get();
+
+        // Only applications already assigned to an advisor/counsellor for the selected client
+        $assignedApplicationIds = Application_assignments::where('client_id', $assignment->client_id)
+            ->whereNotNull('application_id')
+            ->pluck('application_id')
+            ->unique()
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($assignment->application_id && !in_array($assignment->application_id, $assignedApplicationIds, false)) {
+            $assignedApplicationIds[] = $assignment->application_id;
+        }
+
+        $applications = Applications::where('client_id', $assignment->client_id)
+            ->where(function ($query) use ($assignedApplicationIds) {
+                $query->whereNotNull('assign_to');
+                if (!empty($assignedApplicationIds)) {
+                    $query->orWhereIn('application_id', $assignedApplicationIds);
+                }
+            })
+            ->orderBy('application_name')
+            ->get();
+
+        $advisors = User::where('designation', 'Consultant/Advisor')
+            ->where('added_by', '=', $client->subscriber_id)
+            ->orderBy('name')
+            ->get();
         $page = "applications";
-        return view('web.update_application_assignment', compact('assignment', 'user', 'advisors', 'page', 'client', 'applications'));
+        return view('web.update_application_assignment', compact('assignment', 'user', 'advisors', 'page', 'client', 'clients', 'applications'));
     }
 
     public function user_app_assignment(Request $request)
     {
         $user = Auth::user();
         if ($user) {
-            if ($user->user_type != "Subscriber") {
-                abort(403);
+            if ($user->user_type == "Subscriber") {
+                $subscriber = $user;
+            } else {
+                $subscriber = User::find($user->added_by);
             }
-            $subscriber = $user;
-            if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-                return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+            if (membership_access_blocked($user)) {
+                return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
             }
             $assignment = Application_assignments::find($request->id);
             if ($assignment) {
                 $u = User::find($request->user_id);
-                $assignment->client_id = $request['client_id'];
-                $assignment->application_id = $request['application_id'];
-                $assignment->subscriber_id = $u->user_type == "Subscriber" ? $u->id : $u->added_by;
+                if (!$u) {
+                    return redirect()->back()->withInput()->withErrors(['user_id' => 'Please select a valid User/Advisor.']);
+                }
+                // Client & application stay locked; only reassign advisor/counsellor
+                $assignment->subscriber_id = $u->added_by ?: $assignment->subscriber_id;
                 $assignment->user_id = $request['user_id'];
                 $assignment->user_name = $u->name;
                 $assignment->save();
-                $app = Applications::where('application_id', '=', $request['application_id'])->first();
-                $app->assign_to = $u->id;
-                $app->save();
+                $app = Applications::where('application_id', '=', $assignment->application_id)->first();
+                if ($app) {
+                    $app->assign_to = $u->id;
+                    $app->save();
+                }
+                app(\App\Services\OperationalNotificationService::class)
+                    ->notifyApplicationAssigned($u, $app, Clients::find($assignment->client_id));
                 $activity = new Activities();
                 $activity->user_id = $user->id;
                 $activity->user_name = $user->name;
@@ -6167,7 +6908,7 @@ class WebController extends Controller
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
                 $activity->save();
-                return redirect()->route('user_applications')->with('assignment_updated', "Assignment Updated successfully");
+                return redirect()->route('user_applications')->with('assignment_updated', "Application assignment updated.");
             } else {
                 $client = Clients::find($request->client_id);
                 if ($client) {
@@ -6176,12 +6917,14 @@ class WebController extends Controller
                     $assignment->client_id = $request['client_id'];
                     $assignment->application_id = $request['application_id'];
                     $assignment->user_id = $request['user_id'];
-                    $assignment->subscriber_id = $u->user_type == "Subscriber" ? $u->id : $u->added_by;
+                    $assignment->subscriber_id = $u->added_by;
                     $assignment->user_name = $u->name;
                     $assignment->save();
                     $app = Applications::where('application_id', '=', $request['application_id'])->first();
                     $app->assign_to = $u->id;
                     $app->save();
+                    app(\App\Services\OperationalNotificationService::class)
+                        ->notifyApplicationAssigned($u, $app, $client);
                     $activity = new Activities();
                     $activity->client_id = $client->id;
                     $activity->user_id = $user->id;
@@ -6195,7 +6938,7 @@ class WebController extends Controller
                     $activity->activity_icon = "user.png";
                     $activity->local_time = $request->local_time;
                     $activity->save();
-                    return redirect()->route('user_applications')->with('assignment_added', "Assignment added successfully");
+                    return redirect()->route('user_applications')->with('assignment_added', "Application assigned successfully.");
                 } else {
                     return back();
                 }
@@ -6209,13 +6952,13 @@ class WebController extends Controller
     {
         $user = Auth::user();
         $this->set_timezone();
-        if ($user->user_type != "admin" && $user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if ($user->user_type != "admin" && membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         if ($user) {
             $roles = UserRoles::where('user_id', '=', $user->id)->first();
-            if ($user->user_type != "admin" && $user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-                return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+            if ($user->user_type != "admin" && membership_access_blocked($user)) {
+                return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
             }
             if ($user->user_type == "Subscriber" || $user->user_type == "admin") {
                 $subscriber = $user;
@@ -6226,31 +6969,16 @@ class WebController extends Controller
 
                 $applications = Applications::get();
                 $clients = Clients::get();
-            } elseif ($user->user_type == "Subscriber") {
+            } else {
                 $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();
                 $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
-            } else {
-                $assignedApplicationIds = $this->assignedApplicationIdsFor($user, $subscriber);
-                $applications = Applications::where('subscriber_id', '=', $subscriber->id)
-                    ->whereIn('application_id', $assignedApplicationIds)
-                    ->get();
-                $clients = Clients::where('subscriber_id', '=', $subscriber->id)
-                    ->whereIn('id', $applications->pluck('client_id')->unique()->toArray())
-                    ->get();
             }
             $page = "applications";
             if ($user->user_type == "admin") {
                 $client_docs = Client_Docs::whereNotNull('application_id')->orderBy('created_at', 'desc')->get();
-            } elseif ($user->user_type == "Subscriber") {
+            } else {
 
                 $client_docs = Client_Docs::whereNotNull('application_id')->whereHas('application')->where('user_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->get();
-            } else {
-                $assignedApplicationIds = $this->assignedApplicationIdsFor($user, $subscriber);
-                $client_docs = Client_Docs::whereNotNull('application_id')
-                    ->whereHas('application')
-                    ->whereIn('application_id', $assignedApplicationIds)
-                    ->orderBy('created_at', 'desc')
-                    ->get();
             }
 
             if (request()->ajax()) {
@@ -6266,7 +6994,7 @@ class WebController extends Controller
                 $client_docs = $client_docs->whereBetween('created_at', [$startDate, $endDate]);
                 return DataTables::of($client_docs)
                     ->editColumn('created_at', function ($row) {
-                        return date("d-m-Y", strtotime($row->created_at));
+                        return date("d-m-Y H:i:s", strtotime($row->created_at));
                     })
                     ->addColumn('action', function ($row) {
                         $html = '<a style="background:transparent;border:none;" class="p-0 m-0 text-dark" href=' . route('application_view', $row->id) . '><i class="fa-solid fa-eye btn text-info p-1 m-0"></i></a>';
@@ -6284,8 +7012,8 @@ class WebController extends Controller
     public function client_document_update($id)
     {
         $user = $this->check_login();
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
         if ($user) {
@@ -6295,11 +7023,8 @@ class WebController extends Controller
                 $subscriber = User::find($user->added_by);
             }
             $document = Client_docs::find($id);
-            $application  = Applications::where('application_id', $document->application_id)->first();
-            if (!$this->userCanAccessApplication($user, $application)) {
-                abort(403);
-            }
             $clients = Clients::get();
+            $application  = Applications::where('application_id', $document->application_id)->first();
             $page = "applications";
             return view('web.client_document_update', compact('document', 'user', 'page', 'clients', 'application'));
         } else {
@@ -6317,33 +7042,41 @@ class WebController extends Controller
             } else {
                 $subscriber = User::find($user->added_by);
             }
-            if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-                return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
+            if (membership_access_blocked($user)) {
+                return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
             }
             $document = Client_Docs::find($request->id);
             $docFileRule = $document ? 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096' : 'required|file|mimes:jpg,jpeg,png,pdf|max:4096';
+            $ccService = app(\App\Services\CountryCategorySettingsService::class);
             $this->validate($request, [
                 'doc_file' => $docFileRule,
+                'doc_type' => 'required|string|max:100',
+                'doc_name' => 'required|string|min:3|max:100',
+                'doc_folder' => 'required|string|max:120',
             ], [
                 'doc_file.mimes' => 'Please select a valid file format (jpg, jpeg, png, pdf).',
                 'doc_file.max' => 'Please select file up to 4MB.',
             ]);
+            $docFolders = \App\Support\ApplicationDocumentFolders::resolveForUpload(
+                $ccService,
+                $request->doc_folder,
+                $request->doc_type
+            );
+            $docFolder = $docFolders[0] ?? 'Other';
             if ($document) {
                 $client = Clients::find($request->client_id);
                 $application = Applications::find($request->application_id);
-                if (!$this->userCanAccessApplication($user, $application)) {
-                    abort(403);
-                }
                 $subscriber = User::find($client->subscriber_id);
                 $document->client_id = $request['client_id'];
                 $document->application_id = $application->application_id;
                 $document->user_id = $subscriber->id;
                 $document->doc_type = $request['doc_type'];
                 $document->doc_name = $request['doc_name'];
+                $document->doc_folder = $docFolder;
+                $document->doc_folders = $docFolders;
                 if ($request->hasFile('doc_file')) {
                     $file = $request->file('doc_file');
-                    $extension = $file->getClientOriginalName();
-                    $filename = time() . $extension;
+                    $filename = \App\Support\DocumentFileName::storageName($request->doc_name, $file->getClientOriginalName());
                     $file->move('web_assets/users/client' . $document->client_id . '/docs/', $filename);
                     $document->doc_file = $filename;
                 }
@@ -6361,26 +7094,27 @@ class WebController extends Controller
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
                 $activity->save();
-                return redirect()->route('client_documents')->with('document_updated', "Document Updated successfully");
+                if ($request->filled('return_application_id')) {
+                    return redirect()->route('view_application', $request->return_application_id)->with('document_updated', "Document updated successfully.");
+                }
+                return redirect()->route('client_documents')->with('document_updated', "Document updated successfully.");
             } else {
                 $client = Clients::find($request->client_id);
                 if ($client) {
                     $document = new Client_Docs();
                     $client = Clients::find($request->client_id);
                     $application = Applications::find($request->application_id);
-                    if (!$this->userCanAccessApplication($user, $application)) {
-                        abort(403);
-                    }
                     $subscriber = User::find($client->subscriber_id);
                     $document->client_id = $request['client_id'];
                     $document->application_id = $application->application_id;
                     $document->user_id = $subscriber->id;
                     $document->doc_name = $request['doc_name'];
                     $document->doc_type = $request['doc_type'];
+                    $document->doc_folder = $docFolder;
+                    $document->doc_folders = $docFolders;
                     if ($request->hasFile('doc_file')) {
                         $file = $request->file('doc_file');
-                        $extension = $file->getClientOriginalName();
-                        $filename = time() . $extension;
+                        $filename = \App\Support\DocumentFileName::storageName($request->doc_name, $file->getClientOriginalName());
                         $file->move('web_assets/users/client' . $document->client_id . '/docs/', $filename);
                         $document->doc_file = $filename;
                     }
@@ -6398,7 +7132,10 @@ class WebController extends Controller
                     $activity->activity_icon = "user.png";
                     $activity->local_time = $request->local_time;
                     $activity->save();
-                    return redirect()->route('client_documents')->with('document_added', "Document added successfully");
+                    if ($request->filled('return_application_id')) {
+                        return redirect()->route('view_application', $request->return_application_id)->with('document_added', 'Document added successfully.');
+                    }
+                    return redirect()->route('client_documents')->with('document_added', 'Document added successfully.');
                 } else {
                     return back();
                 }
@@ -6408,41 +7145,87 @@ class WebController extends Controller
         }
     }
 
+    public function delete_client_document(Request $request, $id = null)
+    {
+        if (empty($id)) {
+            return back();
+        }
+
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $this->set_timezone();
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
+        }
+
+        $document = Client_Docs::find($id);
+        if (!$document) {
+            return back();
+        }
+
+        if ($user->user_type !== 'admin') {
+            $application_roles = UserRoles::where('user_id', '=', $user->id)->where('module', '=', 'Applications')->first();
+            if (!$application_roles || $application_roles->delete_only != 1) {
+                return back();
+            }
+            $subscriberId = $user->user_type === 'Subscriber' ? $user->id : $user->added_by;
+            if ((int) $document->user_id !== (int) $subscriberId) {
+                return back();
+            }
+        }
+
+        if ($user->user_type == "Subscriber") {
+            $subscriber = $user;
+        } else {
+            $subscriber = User::find($user->added_by);
+        }
+
+        $docName = $document->doc_name;
+        $document->delete();
+
+        $activity = new Activities();
+        $activity->subscriber_id = $subscriber->id;
+        $activity->user_id = $user->id;
+        $activity->user_name = $user->name;
+        $activity->activity_name = "Document Deleted";
+        if ($user->user_type == "Subscriber") {
+            $activity->activity_detail = "Document " . $docName . " deleted by " . $user->name . " at " . $request->query('local_time', date('d M, Y H:i:s'));
+        } else {
+            $activity->activity_detail = "Document " . $docName . " deleted by " . $user->name . "(" . $subscriber->name . ") at " . $request->query('local_time', date('d M, Y H:i:s'));
+        }
+        $activity->activity_icon = "user.png";
+        $activity->save();
+
+        if ($request->filled('return_application_id')) {
+            return redirect()->route('view_application', $request->return_application_id)->with('document_deleted', 'Document deleted successfully.');
+        }
+
+        return redirect()->route('client_documents')->with('document_deleted', 'Document deleted successfully.');
+    }
+
     public function my_settings()
     {
         $user = Auth::user();
-        if ($user) {
-            if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
-                return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade price plan.");
-            }
-            $roles = UserRoles::where('user_id', '=', $user->id)->first();
-            $tzlist = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
-            $page = "settings";
-            $currencies = Currency::orderBy('currency_code')->get();
-            $inv_setting = Invoice_settings::where('user_id',$user->id)->first();
-            $clients = Clients::where('subscriber_id', '=', $user->id)->orderBy('created_at', 'desc')->get();
-            $reportSetting = ReportSetting::where('user_id', $user->id)->first();
-            $paymentReminderSetting = PaymentReminderSetting::where('user_id', $user->id)->first();
-            $emailTemplates = app(EmailTemplateService::class)->getTemplatesForSettings($user);
-            $emailTemplateAudience = strtolower($user->user_type) === 'admin' ? 'admin' : 'subscriber';
-
-            $reportModules = [
-                'clients' => 'Clients',
-                'applications' => 'Applications',
-                'invoices' => 'Invoices',
-                'payments' => 'Payments',
-                'referrals' => 'Referrals',
-                'wallets' => 'Wallets',
-            ];
-
-            if (strtolower($user->user_type) === 'admin') {
-                $reportModules['subscribers'] = 'Subscribers';
-                $reportModules['affiliates'] = 'Affiliates';
-            }
-
-            return view('web.my_settings', compact('tzlist', 'roles', 'user', 'page', 'currencies', 'inv_setting', 'clients', 'reportSetting', 'paymentReminderSetting', 'reportModules', 'emailTemplates', 'emailTemplateAudience'));
-        } else {
+        if (!$user) {
             return redirect()->route('login');
+        }
+
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
+        }
+
+        try {
+            return view('web.my_settings', app(MySettingsPageService::class)->buildViewData($user));
+        } catch (\Throwable $e) {
+            Log::error('my_settings failed: ' . $e->getMessage(), ['exception' => $e]);
+
+            return response()->view('errors.generic', [
+                'statusCode' => 500,
+                'message' => 'Something went wrong while loading Settings. Please try again later.',
+            ], 500);
         }
     }
 
@@ -6470,7 +7253,7 @@ class WebController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Update Successfully',
+                'message' => 'Updated successfully.',
                 'currency' => $user->currency,
                 'timezone' => $user->timezone
             ]);
@@ -6483,8 +7266,22 @@ class WebController extends Controller
     {
         $user = Auth::user();
         if ($user->user_type == "Subscriber") {
-            $allroles = UserRoles::where('subscriber_id', '=', $user->id)->get();
-            $roles = $allroles->unique('user_id');
+            $accessRightsService = app(UserAccessRightsService::class);
+            $siteUsers = User::where('added_by', '=', $user->id)->orderBy('name')->get();
+            $roles = $siteUsers->map(function ($staff) use ($accessRightsService) {
+                $userRoles = UserRoles::where('user_id', '=', $staff->id)->get();
+                $accessType = $accessRightsService->resolveAccessTypeForUser($staff, $userRoles);
+                $updatedAt = $userRoles->max('updated_at');
+
+                return [
+                    'user_id' => $staff->id,
+                    'name' => $staff->name,
+                    'email' => $staff->email,
+                    'designation' => $staff->designation,
+                    'access_right' => $accessRightsService->labelForAccessType($accessType),
+                    'updated_at' => $updatedAt,
+                ];
+            });
             $page = "user_role";
             return view('web.user_role', compact('user', 'page', 'roles'));
         } else {
@@ -6496,29 +7293,43 @@ class WebController extends Controller
     {
         $user = Auth::user();
         if ($user->user_type == "Subscriber") {
-            if ($id != null) {
-                $roles = UserRoles::where('user_id', '=', $id)->get();
-                $staff = User::find($id);
-                $page = "user_role";
-                $update = "update";
-                return view('web.add_user_role', compact('user', 'page', 'roles', 'update', 'staff'));
-            } else {
-                $page = "user_role";
-                $siteusers = User::where('added_by', '=', $user->id)->get();
-                if (count($siteusers) < 1) {
-                    return back()->with('no_user', 'no user found.');
-                }
-                $roles = UserRoles::where('subscriber_id', '=', $user->id)->get();
-                $roles = $roles->unique('user_id');
-                $existing = array();
-                foreach ($roles as $rol) {
-                    array_push($existing, $rol->user_id);
-                }
-                if (count($siteusers) == count($existing)) {
-                    return back()->with('all_access', 'all users have access.');
-                }
-                return view('web.add_user_role', compact('user', 'page', 'siteusers', 'existing'));
+            $accessRightsService = app(UserAccessRightsService::class);
+            $accessPresets = $accessRightsService->presetOptions();
+            $page = "user_role";
+            $siteusers = User::where('added_by', '=', $user->id)->orderBy('name')->get();
+
+            if ($siteusers->isEmpty()) {
+                return back()->with('no_user', 'No user found..');
             }
+
+            $staff = null;
+            $roles = collect();
+
+            if ($id != null) {
+                $staff = User::find($id);
+                if (!$staff || (int) $staff->added_by !== (int) $user->id) {
+                    return redirect()->route('add_user_role')->withErrors(['user_id' => 'User not found or not assigned to your account.']);
+                }
+                $roles = UserRoles::where('user_id', '=', $id)->get();
+            }
+
+            $detectedAccessType = $staff
+                ? $accessRightsService->resolveAccessTypeForUser($staff, $roles)
+                : 'full_access';
+            $matrixRoles = $accessRightsService->buildMatrixFromAccessType($detectedAccessType, $roles);
+            $presetPermissionsForJs = $accessRightsService->presetPermissionsForJs();
+
+            return view('web.add_user_role', compact(
+                'user',
+                'page',
+                'roles',
+                'staff',
+                'siteusers',
+                'accessPresets',
+                'detectedAccessType',
+                'matrixRoles',
+                'presetPermissionsForJs'
+            ));
         } else {
             return back();
         }
@@ -6527,254 +7338,29 @@ class WebController extends Controller
     public function user_role_post(Request $request)
     {
         $user = Auth::user();
-        if ($user) {
-            $role = UserRoles::where('user_id', '=', $request->user_id)->get();
-            $staff = User::find($request->user_id);
-            if ($role) {
-                foreach ($role as $r) {
-                    $r->delete();
-                }
-            }
-            if ($request->access_type == 'full_access') {
-                $clients = new UserRoles();
-                $clients->user_id = $request['user_id'];
-                $clients->subscriber_id = $user->id;
-                $clients->name = $staff->name;
-                $clients->email = $staff->email;
-                $clients->module = "Clients";
-                $clients->read_only = 1;
-                $clients->write_only = 1;
-                $clients->update_only = 1;
-                $clients->delete_only = 1;
-                $clients->read_write_only = 1;
-                $clients->save();
-
-                $applications = new UserRoles();
-                $applications->user_id = $request['user_id'];
-                $applications->subscriber_id = $user->id;
-                $applications->name = $staff->name;
-                $applications->email = $staff->email;
-                $applications->module = "Applications";
-                $applications->read_only = 1;
-                $applications->write_only = 1;
-                $applications->update_only = 1;
-                $applications->delete_only = 1;
-                $applications->read_write_only = 1;
-                $applications->save();
-
-                $communication = new UserRoles();
-                $communication->user_id = $request['user_id'];
-                $communication->subscriber_id = $user->id;
-                $communication->name = $staff->name;
-                $communication->email = $staff->email;
-                $communication->module = "Communication";
-                $communication->read_only = 1;
-                $communication->write_only = 1;
-                $communication->update_only = 1;
-                $communication->delete_only = 1;
-                $communication->read_write_only = 1;
-                $communication->save();
-
-                $invoices = new UserRoles();
-                $invoices->user_id = $request['user_id'];
-                $invoices->subscriber_id = $user->id;
-                $invoices->name = $staff->name;
-                $invoices->email = $staff->email;
-                $invoices->module = "Invoices";
-                $invoices->read_only = 1;
-                $invoices->write_only = 1;
-                $invoices->update_only = 1;
-                $invoices->delete_only = 1;
-                $invoices->read_write_only = 1;
-                $invoices->save();
-
-                $payments = new UserRoles();
-                $payments->user_id = $request['user_id'];
-                $payments->subscriber_id = $user->id;
-                $payments->name = $staff->name;
-                $payments->email = $staff->email;
-                $payments->module = "Payments";
-                $payments->read_only = 1;
-                $payments->write_only = 1;
-                $payments->update_only = 1;
-                $payments->delete_only = 1;
-                $payments->read_write_only = 1;
-                $payments->save();
-
-                $reports = new UserRoles();
-                $reports->user_id = $request['user_id'];
-                $reports->subscriber_id = $user->id;
-                $reports->name = $staff->name;
-                $reports->email = $staff->email;
-                $reports->module = "Reports";
-                $reports->read_only = 1;
-                $reports->write_only = 1;
-                $reports->update_only = 1;
-                $reports->delete_only = 1;
-                $reports->read_write_only = 1;
-                $reports->save();
-
-                $subscription = new UserRoles();
-                $subscription->user_id = $request['user_id'];
-                $subscription->subscriber_id = $user->id;
-                $subscription->name = $staff->name;
-                $subscription->email = $staff->email;
-                $subscription->module = "Subscription";
-                $subscription->read_only = 1;
-                $subscription->write_only = 1;
-                $subscription->update_only = 1;
-                $subscription->delete_only = 1;
-                $subscription->read_write_only = 1;
-                $subscription->save();
-
-                $settings = new UserRoles();
-                $settings->user_id = $request['user_id'];
-                $settings->subscriber_id = $user->id;
-                $settings->name = $staff->name;
-                $settings->email = $staff->email;
-                $settings->module = "Settings";
-                $settings->read_only = 1;
-                $settings->write_only = 1;
-                $settings->update_only = 1;
-                $settings->delete_only = 1;
-                $settings->read_write_only = 1;
-                $settings->save();
-
-                $support = new UserRoles();
-                $support->user_id = $request['user_id'];
-                $support->subscriber_id = $user->id;
-                $support->name = $staff->name;
-                $support->email = $staff->email;
-                $support->module = "Support";
-                $support->read_only = 1;
-                $support->write_only = 1;
-                $support->update_only = 1;
-                $support->delete_only = 1;
-                $support->read_write_only = 1;
-                $support->save();
-            }
-            if ($request->access_type == 'limited_access') {
-                $clients = new UserRoles();
-                $clients->user_id = $request['user_id'];
-                $clients->subscriber_id = $user->id;
-                $clients->name = $staff->name;
-                $clients->email = $staff->email;
-                $clients->module = "Clients";
-                $clients->read_only = ($request->clients_read_only == 1) ? 1 : 0;
-                $clients->write_only = ($request->clients_write_only == 1) ? 1 : 0;
-                $clients->update_only = ($request->clients_update_only == 1) ? 1 : 0;
-                $clients->delete_only = ($request->clients_delete_only == 1) ? 1 : 0;
-                $clients->read_write_only = ($request->clients_read_write_only == 1) ? 1 : 0;
-                $clients->save();
-
-                $applications = new UserRoles();
-                $applications->user_id = $request['user_id'];
-                $applications->subscriber_id = $user->id;
-                $applications->name = $staff->name;
-                $applications->email = $staff->email;
-                $applications->module = "Applications";
-                $applications->read_only = ($request->applications_read_only == 1) ? 1 : 0;
-                $applications->write_only = ($request->applications_write_only == 1) ? 1 : 0;
-                $applications->update_only = ($request->applications_update_only == 1) ? 1 : 0;
-                $applications->delete_only = ($request->applications_delete_only == 1) ? 1 : 0;
-                $applications->read_write_only = ($request->applications_read_write_only == 1) ? 1 : 0;
-                $applications->save();
-
-                $communication = new UserRoles();
-                $communication->user_id = $request['user_id'];
-                $communication->subscriber_id = $user->id;
-                $communication->name = $staff->name;
-                $communication->email = $staff->email;
-                $communication->module = "Communication";
-                $communication->read_only = ($request->communication_read_only == 1) ? 1 : 0;
-                $communication->write_only = ($request->communication_write_only == 1) ? 1 : 0;
-                $communication->update_only = ($request->communication_update_only == 1) ? 1 : 0;
-                $communication->delete_only = ($request->communication_delete_only == 1) ? 1 : 0;
-                $communication->read_write_only = ($request->communication_read_write_only == 1) ? 1 : 0;
-                $communication->save();
-
-                $invoices = new UserRoles();
-                $invoices->user_id = $request['user_id'];
-                $invoices->subscriber_id = $user->id;
-                $invoices->name = $staff->name;
-                $invoices->email = $staff->email;
-                $invoices->module = "Invoices";
-                $invoices->read_only = ($request->invoices_read_only) ? 1 : 0;
-                $invoices->write_only = ($request->invoices_write_only) ? 1 : 0;
-                $invoices->update_only = ($request->invoices_update_only) ? 1 : 0;
-                $invoices->delete_only = ($request->invoices_delete_only) ? 1 : 0;
-                $invoices->read_write_only = ($request->invoices_read_write_only) ? 1 : 0;
-                $invoices->save();
-
-                $payments = new UserRoles();
-                $payments->user_id = $request['user_id'];
-                $payments->subscriber_id = $user->id;
-                $payments->name = $staff->name;
-                $payments->email = $staff->email;
-                $payments->module = "Payments";
-                $payments->read_only = ($request->payments_read_only) ? 1 : 0;
-                $payments->write_only = ($request->payments_write_only) ? 1 : 0;
-                $payments->update_only = ($request->payments_update_only) ? 1 : 0;
-                $payments->delete_only = ($request->payments_delete_only) ? 1 : 0;
-                $payments->read_write_only = ($request->payments_read_write_only) ? 1 : 0;
-                $payments->save();
-
-                $reports = new UserRoles();
-                $reports->user_id = $request['user_id'];
-                $reports->subscriber_id = $user->id;
-                $reports->name = $staff->name;
-                $reports->email = $staff->email;
-                $reports->module = "Reports";
-                $reports->read_only = ($request->reports_read_only) ? 1 : 0;
-                $reports->write_only = ($request->reports_write_only) ? 1 : 0;
-                $reports->update_only = ($request->reports_update_only) ? 1 : 0;
-                $reports->delete_only = ($request->reports_delete_only) ? 1 : 0;
-                $reports->read_write_only = ($request->reports_read_write_only) ? 1 : 0;
-                $reports->save();
-
-                $subscription = new UserRoles();
-                $subscription->user_id = $request['user_id'];
-                $subscription->subscriber_id = $user->id;
-                $subscription->name = $staff->name;
-                $subscription->email = $staff->email;
-                $subscription->module = "Subscription";
-                $subscription->read_only = ($request->subscription_read_only) ? 1 : 0;
-                $subscription->write_only = ($request->subscription_write_only) ? 1 : 0;
-                $subscription->update_only = ($request->subscription_update_only) ? 1 : 0;
-                $subscription->delete_only = ($request->subscription_delete_only) ? 1 : 0;
-                $subscription->read_write_only = ($request->subscription_read_write_only) ? 1 : 0;
-                $subscription->save();
-
-                $settings = new UserRoles();
-                $settings->user_id = $request['user_id'];
-                $settings->subscriber_id = $user->id;
-                $settings->name = $staff->name;
-                $settings->email = $staff->email;
-                $settings->module = "Settings";
-                $settings->read_only = ($request->settings_read_only) ? 1 : 0;
-                $settings->write_only = ($request->settings_write_only) ? 1 : 0;
-                $settings->update_only = ($request->settings_update_only) ? 1 : 0;
-                $settings->delete_only = ($request->settings_delete_only) ? 1 : 0;
-                $settings->read_write_only = ($request->settings_read_write_only) ? 1 : 0;
-                $settings->save();
-
-                $support = new UserRoles();
-                $support->user_id = $request['user_id'];
-                $support->subscriber_id = $user->id;
-                $support->name = $staff->name;
-                $support->email = $staff->email;
-                $support->module = "Support";
-                $support->read_only = ($request->support_read_only) ? 1 : 0;
-                $support->write_only = ($request->support_write_only) ? 1 : 0;
-                $support->update_only = ($request->support_update_only) ? 1 : 0;
-                $support->delete_only = ($request->support_delete_only) ? 1 : 0;
-                $support->read_write_only = ($request->support_read_write_only) ? 1 : 0;
-                $support->save();
-            }
-            return redirect()->route('user_role')->with('role_added', 'user role added');
-        } else {
+        if (!$user || $user->user_type !== 'Subscriber') {
             return redirect()->route('login');
         }
+
+        $request->validate([
+            'user_id' => 'required|integer',
+            'access_type' => 'required|string|in:full_access,director_manager,counsellor_advisor,sales_support,accountant,limited_access',
+        ]);
+
+        $staff = User::find($request->user_id);
+        if (!$staff || (int) $staff->added_by !== (int) $user->id) {
+            return redirect()->route('add_user_role')
+                ->withErrors(['user_id' => 'Please select a valid user/advisor.'])
+                ->withInput();
+        }
+
+        UserRoles::where('user_id', '=', $request->user_id)->delete();
+
+        $accessRightsService = app(UserAccessRightsService::class);
+        $accessRightsService->saveAccessRights($staff, $user->id, $request->access_type, $request);
+
+        return redirect()->route('add_user_role', $request->user_id)
+            ->with('role_added', 'Access rights updated successfully.');
     }
 
     public function delete_user_role($id = null)
@@ -6821,7 +7407,7 @@ class WebController extends Controller
                  return 1 + (int) ($row->dependants_count ?? 0);
               })
               ->editColumn('created_at', function ($row) {
-                return date("d-m-Y", strtotime($row->created_at));
+                return date("d-m-Y H:i:s", strtotime($row->created_at));
             })
                 ->addColumn('action', function ($row) use ($client_roles, $user) {
 
@@ -6888,7 +7474,7 @@ class WebController extends Controller
         if($req->has('terms') && $req->terms == 'admin'){
             $validated = $req->validate([
                 'name' => 'required',
-                'phone' => 'required|unique:affiliates',
+                'phone' => 'required|phone_intl|unique:affiliates',
                 'email' => 'required|email|unique:affiliates,email',
                 'type' => 'required',
                 'country' => 'required',
@@ -6898,7 +7484,7 @@ class WebController extends Controller
         }else{
             $validated = $req->validate([
                 'name' => 'required',
-                'phone' => 'required|unique:affiliates',
+                'phone' => 'required|phone_intl|unique:affiliates',
                 'email' => 'required|email|unique:affiliates,email',
                 'type' => 'required',
                 'country' => 'required',
@@ -6906,6 +7492,7 @@ class WebController extends Controller
                 'password' => 'required',
                 'terms' => 'required|accepted',
                 'g-recaptcha-response' => 'required|captcha'
+                
             ]);
         }
 
@@ -6982,9 +7569,9 @@ class WebController extends Controller
 
             DB::commit();
             if ($req->has('url_model')) {
-                return redirect()->route('affiliates')->with('msg', 'Affiliate Added Successfuly');
+                return redirect()->route('affiliates')->with('msg', 'Affiliate Added Successfully');
             }
-            return redirect()->route('/')->with('success', 'Submitted Successfuly');
+            return redirect()->route('/')->with('success', 'Submitted Successfully');
         } catch (\Exception $th) {
             DB::rollBack();
             return redirect()->route('/')->with('msg', $th->getMessage());
@@ -7008,7 +7595,7 @@ class WebController extends Controller
             if ($affiliates->status == 1) {
                 if (Auth::guard('affiliates')->attempt($loginDetails)) {
                     $request->session()->regenerate();
-                    return redirect()->route('affiliate.dashboard_affiliate');
+                    return redirect()->route(app(\App\Services\RoleModuleAccessService::class)->affiliateHomeRoute());
                 }
             } else {
                 return back()->withErrors([
@@ -7026,163 +7613,74 @@ class WebController extends Controller
         ]);
     }
 
-    public function dashboard_affiliate()
+    public function subscribers_affiliate()
     {
         $affiliateUser = Auth::guard('affiliates')->user();
-
-        // $report_roles['read_only'] = 1;
-        // $report_roles['read_write_only'] = 1;
-        $page = "dashboard";
+        if (!$affiliateUser) {
+            return redirect()->route('affiliate.createLogin');
+        }
 
         $user = User::where('email', $affiliateUser->email)->first();
-
-        if ($user->referral) {
-            $referrals = Referrals::where('referral_code', '=', $user->referral);
-            $comission_earned = $referrals->sum('amount_added');
-            $total_referrals = $referrals->count();
-        } else {
-
-            $comission_earned = 0;
-            $total_referrals = 0;
-            $total_referrals  = 0;
-        }
-        $users  =  User::where('user_type', '=', 'Subscriber')->where('referral_code', $user->referral);
-        $subscribers =  $users->get();
-        $price_plans = Membership::get();
-        $total_subscribers = array();
-        $grouped_data = [];
-        foreach ($price_plans as $plan) {
-            $categ = $plan->plan_name;
-            $categ_app = 0;
-            foreach ($subscribers as $subs) {
-                if ($categ == $subs->membership) {
-                    $categ_app += 1;
-
-                }
-
-
-
-            }
-            $total_subscribers[$categ] = $categ_app;
-        }
-        foreach ($subscribers as $subs) {
-            // Parse the membership start and end dates
-            $start_date = \Carbon\Carbon::parse($subs->membership_start_date);
-            $end_date = \Carbon\Carbon::parse($subs->membership_expiry_date);
-
-            // Calculate the membership duration in years based on start and end dates
-            $membership_duration = $start_date->diffInYears($end_date); // Difference in years between start and end date
-
-            // Initialize the grouped data for the duration if not set
-            if (!isset($grouped_data[$membership_duration])) {
-                $grouped_data[$membership_duration] = [];
-            }
-
-            // Initialize the membership category within the duration if not set
-            if (!isset($grouped_data[$membership_duration][$subs->membership])) {
-                $grouped_data[$membership_duration][$subs->membership] = [
-                    'total_users' => 0,
-                ];
-            }
-
-            // Increment the total users for this membership and duration
-            $grouped_data[$membership_duration][$subs->membership]['total_users']++;
+        if (!$user) {
+            return redirect()->route('affiliate.createLogin');
         }
 
-        // Debugging output to check the structure of the grouped data
+        $user['type_user'] = 'affiliate';
+        $page = 'subscribers';
+        $subscribers = User::where('user_type', 'Subscriber')
+            ->where('referral_code', $user->referral)
+            ->orderByDesc('created_at')
+            ->get();
 
-        $grouped_data_country = $users->whereNotNull('country')->get()->groupBy('country');
-        // Initialize the final result array
-        $final_grouped_data = [];
-
-        foreach ($grouped_data_country as $country => $country_subscribers) {
-            // Group the subscribers by membership type within each country
-            $grouped_by_membership = $country_subscribers->groupBy('membership');
-
-            foreach ($grouped_by_membership as $membership => $membership_subscribers) {
-                // Store the total user count for each membership type within the country
-                $final_grouped_data[$country][$membership] = [
-                    'total_users' => $membership_subscribers->count(),
-                ];
-            }
-        }
-        $grouped_data_subcategory = $users->whereNotNull('sub_category')->get()->groupBy('sub_category');
-
-        // Initialize the final result array
-        $final_grouped_data_subcategory = [];
-
-        foreach ($grouped_data_subcategory as $sub_category => $subcategory_users) {
-            // Store the total user count for each subcategory
-            $final_grouped_data_subcategory[$sub_category] = [
-                'total_users' => $subcategory_users->count(),
-            ];
-        }
-
-
-        if (request()->ajax()) {
-            $user = User::where('user_type', '=', 'Subscriber')->where('referral_code', $user->referral);
-
-
-            $subscribers_byPlan = $user->clone()->select('membership', DB::raw('count(id) as total'))
-                ->groupBy('membership')
-                ->get();
-            $subscribers_byPlan_labels = $subscribers_byPlan->pluck('membership')->toArray(); // Membership types
-            $subscribers_byPlan_data = $subscribers_byPlan->pluck('total')->toArray();
-
-
-            $subscriberPlanDuration = $user->clone()->select(
-                DB::raw('TIMESTAMPDIFF(YEAR, membership_start_date, membership_expiry_date) AS duration'),
-                DB::raw('COUNT(*) AS total_subscribers')
-            )->groupBy('duration')->get();
-            $subscriberPlanDuration_labels = $subscriberPlanDuration->pluck('duration')->toArray(); // Membership types
-            $subscriberPlanDuration_data = $subscriberPlanDuration->pluck('total_subscribers')->toArray();
-
-
-
-            $subscriberCountry = $user->clone()->whereNotNull('country')->select('country', DB::raw('COUNT(users.id) as No_of_Subscribers'))
-                ->groupBy('country')->get();
-
-            $subscriberCountry_labels = $subscriberCountry->pluck('country')->toArray(); // Membership types
-            $subscriberCountry_data = $subscriberCountry->pluck('No_of_Subscribers')->toArray();
-
-
-
-            // $subscriberAgeGroup = $user->clone()->select(
-            //     DB::raw("
-            //         CASE
-            //             WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) < 18 THEN 'Under 18'
-            //             WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 18 AND 25 THEN '18-25'
-            //             WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 26 AND 35 THEN '25-35'
-            //             WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 36 AND 45 THEN '35-45'
-            //             WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 46 AND 55 THEN '45-55'
-            //             ELSE 'Over 55'
-            //         END AS age_group"),
-            //     DB::raw('COUNT(*) AS count')
-            // )->groupBy('age_group')->get();
-            // $subscriberAgeGroup_labels = $subscriberAgeGroup->pluck('age_group')->toArray(); // Membership types
-            // $subscriberAgeGroup_data = $subscriberAgeGroup->pluck('count')->toArray();
-
-
-            $subscriberAgeGroup_bySubcategory= $user->clone()->select('sub_category', DB::raw('count(id) as total'))
-            ->groupBy('sub_category')->get(); // Membership types
-            $subscriberAgeGroup_labels = $subscriberAgeGroup_bySubcategory->pluck('total')->toArray();
-            // Membership types
-            $subscriberAgeGroup_data= $subscriberAgeGroup_bySubcategory->pluck('sub_category')->toArray();
-
-
-            return response()->json(['subscribers_byPlan_result' => array($subscribers_byPlan_labels, $subscribers_byPlan_data, $subscriberPlanDuration_labels, $subscriberPlanDuration_data, $subscriberCountry_labels, $subscriberCountry_data, $subscriberAgeGroup_labels, $subscriberAgeGroup_data)]);
-        }
-
-
-        $wallet = ($user->referral) ?  Referrals::where('referral_code', $user->referral)->latest()->first() : '';
-        if (!$wallet) {
-            $wallet = 0;
-        } else {
-            $wallet = $user->wallet;
-        }
-
-        return view('affiliate.dashboard_affiliate', compact('final_grouped_data_subcategory','final_grouped_data','grouped_data','total_subscribers','total_referrals', 'comission_earned', 'affiliateUser', 'user', 'page', 'wallet'));
+        return view('affiliate.subscribers', compact('user', 'page', 'subscribers', 'affiliateUser'));
     }
+
+    public function commissions_affiliate()
+    {
+        $affiliateUser = Auth::guard('affiliates')->user();
+        if (!$affiliateUser) {
+            return redirect()->route('affiliate.createLogin');
+        }
+
+        $user = User::where('email', $affiliateUser->email)->first();
+        if (!$user) {
+            return redirect()->route('affiliate.createLogin');
+        }
+
+        $user['type_user'] = 'affiliate';
+        $page = 'commissions';
+
+        $commissions = Referrals::with('user')
+            ->where('referral_code', $user->referral)
+            ->whereIn('type', ['Referral Commission', \App\Services\RenewalCommissionService::TYPE])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $commissionSummary = AffiliateCommissionEarnt::where('referral_code', $user->referral)->first();
+        $totalEarned = $commissionSummary
+            ? (float) $commissionSummary->total_earned
+            : (float) $commissions->sum('amount_added');
+        $paidAmount = $commissionSummary ? (float) $commissionSummary->paid_amount : 0;
+        $pendingAmount = $commissionSummary
+            ? (float) $commissionSummary->pending_amount
+            : max($totalEarned - $paidAmount, 0);
+
+        return view('affiliate.commissions', compact(
+            'user',
+            'page',
+            'commissions',
+            'affiliateUser',
+            'totalEarned',
+            'paidAmount',
+            'pendingAmount'
+        ));
+    }
+
+    public function dashboard_affiliate()
+    {
+        return redirect()->route(app(\App\Services\RoleModuleAccessService::class)->affiliateHomeRoute());
+    }
+
     public function Affiliates_forget_create()
     {
         return view('web.affiliate_forget');
@@ -7201,48 +7699,580 @@ class WebController extends Controller
             return $ref;
         }
     }
-    public function add_service(Request $request){
-        // Validate the incoming request
-        $validated = $request->validate([
-            'service_name' => 'required|string|max:255',
-            'fees' => 'required|numeric|min:0',
-        ]);
-        if(!empty($request->input('id'))){
-            $service = Services::find($request->input('id'));
-
-            // Check if the service exists
-            if (!$service) {
-                return response()->json(['error' => 'Service not found'], 404);
-            }
-            if($request->has('service_name') &&  $request->has('fees') ){
-                $service->service_name = $request->input('service_name');
-                $service->fees = $request->input('fees');
-            }
-             if($request->has('status')){
-                $service->status = ($service->status == true) ? false:true; // Update the status field
-             }
-
-            $service->save(); // Save the changes
-            $message ='Service update successfully.';
-        }else{
-            $user = auth()->user();
-            // If validation passes, store the service
-            $service = new Services();
-            $service->service_name = $request->input('service_name');
-            $service->fees = $request->input('fees');
-            $service->subscriber_id = empty($user->added_by) ? $user->id : $user->added_by;
-            $service->user_id = $user->id;
-            $service->status = true; // Default status is true if not provided
-            $service->save();
-            $message ='Service created successfully.';
+    public function save_dashboard_settings(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
         }
+
+        $validated = $request->validate([
+            'headers' => 'nullable|array',
+            'headers.*' => 'nullable|string|max:50',
+            'charts' => 'nullable|array',
+            'charts.*.module' => 'nullable|string|max:50',
+            'charts.*.filter' => 'nullable|string|max:50',
+            'charts.*.duration' => 'nullable|string|max:50',
+            'charts.*.chart_type' => 'nullable|string|max:20',
+            'chart_count' => 'nullable|integer|in:4',
+            'reset_defaults' => 'nullable|boolean',
+            'reset_headers' => 'nullable|boolean',
+            'reset_charts' => 'nullable|boolean',
+        ]);
+
+        $ccService = app(CountryCategorySettingsService::class);
+        $subscriber = $ccService->resolveSubscriber($user);
+        $dashboardService = app(DashboardPreferenceService::class);
+
+        if (!empty($validated['reset_headers'])) {
+            $dashboardService->saveSettings(
+                $subscriber,
+                $dashboardService->defaultHeaders(),
+                $dashboardService->resolveCharts($subscriber),
+                $dashboardService->resolveChartCount($subscriber)
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Header preferences reset to defaults.',
+                'headers' => $dashboardService->resolveHeaders($subscriber),
+                'charts' => $dashboardService->resolveCharts($subscriber),
+                'chart_count' => $dashboardService->resolveChartCount($subscriber),
+            ]);
+        }
+
+        if (!empty($validated['reset_charts'])) {
+            $chartCount = DashboardPreferenceService::DEFAULT_CHART_COUNT;
+            $dashboardService->saveSettings(
+                $subscriber,
+                $dashboardService->resolveHeaders($subscriber),
+                $dashboardService->defaultCharts($chartCount),
+                $chartCount
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Chart preferences reset to defaults.',
+                'headers' => $dashboardService->resolveHeaders($subscriber),
+                'charts' => $dashboardService->resolveCharts($subscriber),
+                'chart_count' => $dashboardService->resolveChartCount($subscriber),
+            ]);
+        }
+
+        if (!empty($validated['reset_defaults'])) {
+            $chartCount = DashboardPreferenceService::DEFAULT_CHART_COUNT;
+            $dashboardService->saveSettings(
+                $subscriber,
+                $dashboardService->defaultHeaders(),
+                $dashboardService->defaultCharts($chartCount),
+                $chartCount
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Dashboard preferences reset to defaults.',
+                'headers' => $dashboardService->resolveHeaders($subscriber),
+                'charts' => $dashboardService->resolveCharts($subscriber),
+                'chart_count' => $dashboardService->resolveChartCount($subscriber),
+            ]);
+        }
+
+        $dashboardService->saveSettings(
+            $subscriber,
+            $validated['headers'] ?? [],
+            $validated['charts'] ?? [],
+            $validated['chart_count'] ?? null
+        );
 
         return response()->json([
             'success' => true,
-            'message' => $message,
-
+            'message' => 'Dashboard preferences saved.',
+            'headers' => $dashboardService->resolveHeaders($subscriber),
+            'charts' => $dashboardService->resolveCharts($subscriber),
+            'chart_count' => $dashboardService->resolveChartCount($subscriber),
         ]);
-        // return redirect()->route('my_settings')->with('success_services',$message );
+    }
+
+    public function save_enquiry_form_settings(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        try {
+            $validated = $request->validate([
+                'sections' => 'nullable|array',
+                'sections.*' => 'nullable|in:0,1,true,false,on,off,yes,no',
+                'reset_defaults' => 'nullable|in:0,1,true,false,on,off,yes,no',
+            ]);
+
+            $ccService = app(CountryCategorySettingsService::class);
+            $subscriber = $ccService->resolveSubscriber($user);
+            $enquiryFormService = app(EnquiryFormSettingsService::class);
+
+            if (!empty($validated['reset_defaults']) && filter_var($validated['reset_defaults'], FILTER_VALIDATE_BOOLEAN)) {
+                $enquiryFormService->resetToDefaults($subscriber);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Enquiry form settings reset to defaults.',
+                    'sections' => $enquiryFormService->resolveSections($subscriber),
+                ]);
+            }
+
+            $enquiryFormService->saveSettings($subscriber, $validated['sections'] ?? []);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Enquiry form settings saved.',
+                'sections' => $enquiryFormService->resolveSections($subscriber),
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $validationException) {
+            throw $validationException;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage() ?: 'Failed to save enquiry form settings.',
+            ], 500);
+        }
+    }
+
+    public function save_cc_settings(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        try {
+            $validated = $request->validate([
+                'countries' => 'nullable|array',
+                'countries.*' => 'string|max:255',
+                'visa_categories' => 'nullable|array',
+                'visa_categories.*' => 'string|max:255',
+                'document_lists' => 'nullable|array',
+                'document_lists.*.country' => 'required_with:document_lists|string|max:255',
+                'document_lists.*.visa_category' => 'required_with:document_lists|string|max:255',
+                'document_lists.*.documents' => 'nullable|array',
+                'document_lists.*.documents.*' => 'string|max:255',
+                'document_lists.*.sections' => 'nullable|array',
+                'document_lists.*.sections.*.title' => 'nullable|string|max:255',
+                'document_lists.*.sections.*.documents' => 'nullable|array',
+                'document_lists.*.sections.*.documents.*' => 'string|max:255',
+                'reset_defaults' => 'nullable|boolean',
+            ]);
+
+            $ccService = app(CountryCategorySettingsService::class);
+            $subscriber = $ccService->resolveSubscriber($user);
+            $previousCountries = $ccService->resolveCountryNames($subscriber)->values()->all();
+            $previousCategories = $ccService->resolveVisaCategoryNames($subscriber)->values()->all();
+
+            if (!empty($validated['reset_defaults'])) {
+                $ccService->resetToDefaults($subscriber);
+
+                try {
+                    app(\App\Services\NotificationService::class)->notifyConsultancyUsers(
+                        $subscriber,
+                        'new_countries',
+                        'Countries & categories reset to defaults',
+                        'Your consultancy country and visa category settings were reset to system defaults.',
+                        route('my_settings') . '#cc-settings'
+                    );
+                } catch (\Throwable $notificationError) {
+                    report($notificationError);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Countries & Categories reset to sub-category defaults.',
+                    'countries' => $ccService->getDefaultCountryNames($subscriber)->values(),
+                    'visa_categories' => $ccService->getDefaultVisaCategoryNames($subscriber)->values(),
+                    'document_lists' => [],
+                    'service_countries' => $ccService->resolveServiceCountryOptions($subscriber)->values(),
+                    'service_names' => $ccService->resolveServiceNameOptions($subscriber)->values(),
+                    'service_cc_preferences' => $ccService->resolveSavedServicePreferences($subscriber),
+                ]);
+            }
+
+            $countries = $validated['countries'] ?? [];
+            $visaCategories = $validated['visa_categories'] ?? [];
+            $documentLists = array_key_exists('document_lists', $validated) ? ($validated['document_lists'] ?? []) : null;
+
+            if (count($countries) === 0 || count($visaCategories) === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please select at least one country and one visa category.',
+                ], 422);
+            }
+
+            $ccService->saveSettings($subscriber, $countries, $visaCategories, $documentLists);
+
+            try {
+                $notificationService = app(\App\Services\NotificationService::class);
+                $addedCountries = array_values(array_diff($countries, $previousCountries));
+                $addedCategories = array_values(array_diff($visaCategories, $previousCategories));
+                $removedCountries = array_values(array_diff($previousCountries, $countries));
+                $removedCategories = array_values(array_diff($previousCategories, $visaCategories));
+
+                if (!empty($addedCountries)) {
+                    $notificationService->notifyConsultancyUsers(
+                        $subscriber,
+                        'new_countries',
+                        'New countries added',
+                        'Countries added: ' . implode(', ', $addedCountries),
+                        route('my_settings') . '#cc-settings'
+                    );
+                }
+
+                if (!empty($addedCategories)) {
+                    $notificationService->notifyConsultancyUsers(
+                        $subscriber,
+                        'new_categories',
+                        'New visa categories added',
+                        'Categories added: ' . implode(', ', $addedCategories),
+                        route('my_settings') . '#cc-settings'
+                    );
+                }
+
+                if (!empty($removedCountries) || !empty($removedCategories)) {
+                    $notificationService->notifyConsultancyUsers(
+                        $subscriber,
+                        'visa_rules',
+                        'Country or category settings updated',
+                        'Your consultancy country/category configuration has been updated.',
+                        route('my_settings') . '#cc-settings'
+                    );
+                }
+            } catch (\Throwable $notificationError) {
+                report($notificationError);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Countries & Categories saved successfully.',
+                'countries' => collect($countries)->values(),
+                'visa_categories' => collect($visaCategories)->values(),
+                'document_lists' => $ccService->getDocumentLists($subscriber),
+                'service_countries' => $ccService->resolveServiceCountryOptions($subscriber)->values(),
+                'service_names' => $ccService->resolveServiceNameOptions($subscriber)->values(),
+                'service_cc_preferences' => $ccService->resolveSavedServicePreferences($subscriber),
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $validationException) {
+            throw $validationException;
+        } catch (\InvalidArgumentException $argumentException) {
+            return response()->json([
+                'success' => false,
+                'message' => $argumentException->getMessage(),
+            ], 422);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage() ?: 'Failed to save Countries & Categories settings.',
+            ], 500);
+        }
+    }
+
+    public function save_cc_document_lists(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        try {
+            $validated = $request->validate([
+                'document_lists' => 'present|array',
+                'document_lists.*.country' => 'required|string|max:255',
+                'document_lists.*.visa_category' => 'required|string|max:255',
+                'document_lists.*.documents' => 'nullable|array',
+                'document_lists.*.documents.*' => 'string|max:255',
+                'document_lists.*.sections' => 'nullable|array',
+                'document_lists.*.sections.*.title' => 'nullable|string|max:255',
+                'document_lists.*.sections.*.documents' => 'nullable|array',
+                'document_lists.*.sections.*.documents.*' => 'string|max:255',
+            ]);
+
+            $ccService = app(CountryCategorySettingsService::class);
+            $subscriber = $ccService->resolveSubscriber($user);
+            $ccService->saveDocumentLists($subscriber, $validated['document_lists']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Document lists saved successfully.',
+                'document_lists' => $ccService->getDocumentLists($subscriber),
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $validationException) {
+            throw $validationException;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage() ?: 'Failed to save document lists.',
+            ], 500);
+        }
+    }
+
+    public function get_service_fee(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['fee' => null], 401);
+        }
+
+        $applicationType = trim((string) $request->input('application_type', ''));
+        $visaCountry = trim((string) $request->input('visa_country', $request->input('country', '')));
+        $ccService = app(CountryCategorySettingsService::class);
+
+        $subscriberId = (int) $request->input('subscriber_id', 0);
+        if ($subscriberId > 0 && strtolower((string) $user->user_type) === 'admin') {
+            $subscriber = User::where('id', $subscriberId)->where('user_type', 'Subscriber')->first();
+            if (!$subscriber) {
+                return response()->json(['fee' => null, 'message' => 'Subscriber not found.'], 404);
+            }
+        } else {
+            $subscriber = $ccService->resolveSubscriber($user);
+        }
+
+        $serviceName = $ccService->formatApplicationServiceName($visaCountry, $applicationType);
+        $fee = $ccService->resolveServiceFee($subscriber, $applicationType, $visaCountry);
+
+        return response()->json([
+            'fee' => $fee,
+            'service_name' => $serviceName !== '' ? $serviceName : null,
+        ]);
+    }
+
+    public function add_service(Request $request){
+        try {
+            // Status-only update from Services data-table
+            if (!empty($request->input('id')) && $request->has('status') && !$request->filled('service_name')) {
+                $service = Services::find($request->input('id'));
+                if (!$service) {
+                    return response()->json(['message' => 'Service not found.'], 404);
+                }
+
+                $wasActive = (bool) $service->status;
+                $newStatus = filter_var($request->input('status'), FILTER_VALIDATE_BOOLEAN);
+                $service->status = $newStatus;
+                $service->save();
+
+                if ($wasActive && !$newStatus) {
+                    $subscriber = User::find($service->subscriber_id);
+                    if ($subscriber) {
+                        try {
+                            app(\App\Services\OperationalNotificationService::class)->notifyServiceDeactivated(
+                                $subscriber,
+                                $service->service_name ?: 'Service'
+                            );
+                        } catch (\Throwable $notificationError) {
+                            report($notificationError);
+                        }
+                    }
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Service status updated successfully.',
+                ]);
+            }
+
+            $validated = $request->validate([
+                'country' => 'required|string|max:100',
+                'service_name' => 'required|string|max:255',
+                'fees' => 'required|numeric|min:0|max:9999999999.99',
+            ], [
+                'country.required' => 'Country is required.',
+                'service_name.required' => 'Service name is required.',
+                'fees.required' => 'Fees are required.',
+                'fees.numeric' => 'Fees must be a valid number.',
+                'fees.min' => 'Fees must be 0 or greater.',
+                'fees.max' => 'Fees cannot exceed 9,999,999,999.99.',
+            ]);
+
+            $this->ensureServicesCountryColumn();
+
+            $country = Services::normalizeCountry($validated['country']);
+            $serviceName = Services::normalizeName($validated['service_name']);
+
+            $user = auth()->user();
+            if (!$user) {
+                return response()->json(['message' => 'Unauthorized.'], 401);
+            }
+
+            $ccService = app(CountryCategorySettingsService::class);
+            $existingService = null;
+            if (!empty($request->input('id'))) {
+                $existingService = Services::find($request->input('id'));
+                if (!$existingService) {
+                    return response()->json(['message' => 'Service not found.'], 404);
+                }
+                $subscriber = User::find($existingService->subscriber_id);
+            } else {
+                $subscriber = $ccService->resolveSubscriber($user);
+            }
+
+            if (!$subscriber) {
+                return response()->json(['message' => 'Subscriber not found.'], 404);
+            }
+
+            $allowedCountries = collect([Services::COUNTRY_NA])
+                ->merge($ccService->resolveServiceCountryOptions($subscriber, [$country]));
+            $allowedServiceNames = $ccService->resolveServiceNameOptions($subscriber, [$serviceName]);
+
+            if (!$allowedCountries->contains(fn ($value) => strcasecmp((string) $value, $country) === 0)) {
+                return response()->json([
+                    'message' => 'Please select a country from your C & C settings list.',
+                ], 422);
+            }
+
+            if (!$allowedServiceNames->contains(fn ($value) => strcasecmp((string) $value, $serviceName) === 0)) {
+                return response()->json([
+                    'message' => 'Please select a service name from the available list.',
+                ], 422);
+            }
+
+            if (!empty($request->input('id'))) {
+                $service = $existingService;
+                $subscriberId = (int) $service->subscriber_id;
+                if (Services::duplicateExists($subscriberId, $country, $serviceName, (int) $service->id)) {
+                    return response()->json([
+                        'message' => 'A service with this country and service name already exists.',
+                    ], 422);
+                }
+
+                $oldFees = $service->fees;
+                $oldName = $service->service_name;
+                $service->country = $country;
+                $service->service_name = $serviceName;
+                $service->fees = $validated['fees'];
+                $this->persistServiceRecord($service);
+                $message = 'Service updated successfully.';
+
+                $subscriber = User::find($service->subscriber_id);
+                if ($subscriber && (float) $oldFees !== (float) $service->fees) {
+                    try {
+                        app(\App\Services\OperationalNotificationService::class)->notifyServiceFeeUpdated(
+                            $subscriber,
+                            $service->service_name ?: $oldName,
+                            $service->fees
+                        );
+                    } catch (\Throwable $notificationError) {
+                        report($notificationError);
+                    }
+                }
+            } else {
+                $subscriberId = empty($user->added_by) ? (int) $user->id : (int) $user->added_by;
+                if (Services::duplicateExists($subscriberId, $country, $serviceName)) {
+                    return response()->json([
+                        'message' => 'A service with this country and service name already exists.',
+                    ], 422);
+                }
+
+                $service = new Services();
+                $service->country = $country;
+                $service->service_name = $serviceName;
+                $service->fees = $validated['fees'];
+                $service->subscriber_id = empty($user->added_by) ? $user->id : $user->added_by;
+                $service->user_id = $user->id;
+                $service->status = true;
+                $this->persistServiceRecord($service);
+                $message = 'Service created successfully.';
+
+                $subscriber = User::find($service->subscriber_id);
+                if ($subscriber) {
+                    try {
+                        app(\App\Services\NotificationService::class)->notifyConsultancyUsers(
+                            $subscriber,
+                            'new_products',
+                            'New service added: ' . $service->service_name,
+                            'A new product/service "' . $service->service_name . '" has been added to your consultancy.',
+                            route('my_settings') . '#service'
+                        );
+                    } catch (\Throwable $notificationError) {
+                        report($notificationError);
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            report($e);
+
+            $message = 'Unable to save service. Please try again.';
+            if ($e instanceof \Illuminate\Database\QueryException) {
+                $sqlMessage = strtolower($e->getMessage());
+                if (str_contains($sqlMessage, 'fees') || str_contains($sqlMessage, '1264') || str_contains($sqlMessage, 'truncated')) {
+                    $message = 'Unable to save service. The fee amount may be too large for the current database column — run the latest migrations.';
+                } elseif (str_contains($sqlMessage, 'country') || str_contains($sqlMessage, 'unknown column')) {
+                    $message = 'Unable to save service. Database schema is outdated — run the latest migrations.';
+                } else {
+                    $message = 'Unable to save service due to a database error. Please try again.';
+                }
+            }
+
+            return response()->json(['message' => $message], 500);
+        }
+    }
+
+    /**
+     * Ensure services.country exists for older databases that predate the country column.
+     */
+    private function ensureServicesCountryColumn(): void
+    {
+        if (!Schema::hasTable('services') || Schema::hasColumn('services', 'country')) {
+            return;
+        }
+
+        Schema::table('services', function ($table) {
+            $table->string('country', 100)->default('NA')->after('subscriber_id');
+        });
+    }
+
+    /**
+     * Widen services.fees when legacy DECIMAL(8,2) rejects large amounts.
+     */
+    private function ensureServicesFeesColumnWidth(): void
+    {
+        if (!Schema::hasTable('services') || !Schema::hasColumn('services', 'fees')) {
+            return;
+        }
+
+        try {
+            DB::statement('ALTER TABLE `services` MODIFY `fees` DECIMAL(12, 2) NOT NULL DEFAULT 0');
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    private function persistServiceRecord(Services $service): void
+    {
+        try {
+            $service->save();
+        } catch (\Illuminate\Database\QueryException $e) {
+            $sqlMessage = strtolower($e->getMessage());
+            $looksLikeFeesOverflow = str_contains($sqlMessage, 'fees')
+                || str_contains($sqlMessage, '1264')
+                || str_contains($sqlMessage, 'out of range')
+                || str_contains($sqlMessage, 'truncated');
+
+            if (!$looksLikeFeesOverflow) {
+                throw $e;
+            }
+
+            $this->ensureServicesFeesColumnWidth();
+            $service->save();
+        }
     }
 
 
@@ -7251,12 +8281,15 @@ class WebController extends Controller
 
            $user = auth()->user();
         if ($user->user_type == "Subscriber") {
-            $services = Services::where('subscriber_id',$user->id)->orderBy('created_at','desc')->get();
+            $services = Services::where('subscriber_id',$user->id)->orderBy('id','desc')->get();
         } else {
-            $services = Services::where('user_id',$user->id)->orderBy('created_at','desc')->get();
+            $services = Services::where('user_id',$user->id)->orderBy('id','desc')->get();
         }
         return DataTables::of($services)
         ->addIndexColumn()
+        ->editColumn('country', function ($row) {
+            return e($row->displayCountry());
+        })
         ->editColumn('subscriber', function ($row) {
             return $row->subscriber ? $row->subscriber->name . '(' . $row->subscriber_id . ')' : 'N/A';
         })
@@ -7264,9 +8297,18 @@ class WebController extends Controller
             return $row->user ? $row->user->name . '(' . $row->user_id . ')' : 'N/A';
         })
         ->editColumn('status', function ($row) {
-            return $row->status
-                ? '<a style="background:green;border-color:green;" href="#" onclick="userstatus(' . $row->id . ')" class="p-0 px-1">Active</a>'
-                : '<a style="background:red;border-color:red;" href="#" onclick="userstatus(' . $row->id . ')" class="p-0 px-1">Inactive</a>';
+            $isActive = (bool) $row->status;
+            $nextStatus = $isActive ? 0 : 1;
+            $label = $isActive ? 'Active' : 'Deactivated';
+            $stateClass = $isActive ? 'is-active' : 'is-deactivated';
+            $title = $isActive ? 'Active — click to deactivate' : 'Deactivated — click to activate';
+
+            return '<button type="button" class="service-status-switch ' . $stateClass . '" '
+                . 'data-id="' . $row->id . '" data-status="' . $nextStatus . '" title="' . e($title) . '" '
+                . 'aria-label="' . e($title) . '" aria-pressed="' . ($isActive ? 'true' : 'false') . '">'
+                . '<span class="service-status-track" aria-hidden="true"><span class="service-status-thumb"></span></span>'
+                . '<span class="visually-hidden">' . e($label) . '</span>'
+                . '</button>';
         })
         ->addColumn('action', function ($row) {
             // $deleteUrl = route('services_delete', $row->id); // Define delete route
@@ -7275,7 +8317,8 @@ class WebController extends Controller
                 <a href="javascript:void(0)"
                    class="editService"
                    data-id="' . $row->id . '"
-                   data-name="' . $row->service_name . '"
+                   data-country="' . e($row->displayCountry()) . '"
+                   data-name="' . e($row->service_name) . '"
                    data-fee="' . $row->fees . '"
                    style="text-decoration:none; background:none; border:none">
                     <i class="fa-solid fa-edit btn p-1 text-primary" style="font-size:14px;"></i>
@@ -7292,8 +8335,16 @@ class WebController extends Controller
     }
     public function services_delete($id){
         $service = Services::findOrFail($id);
-       $service->delete();
-     return response()->json(['message' => 'Service deleted successfully!']);
+        $subscriber = User::find($service->subscriber_id);
+        $serviceName = $service->service_name;
+        $service->delete();
+
+        if ($subscriber) {
+            app(\App\Services\OperationalNotificationService::class)
+                ->notifyServiceDiscontinued($subscriber, $serviceName);
+        }
+
+     return response()->json(['message' => 'Service deleted successfully.']);
 
     }
     public function storeFeedback(Request $request)
@@ -7311,44 +8362,22 @@ class WebController extends Controller
         ]);
 
 
-        return response()->json(['message' => 'Your feedback received successfully.']);
+        return response()->json(['message' => 'Thank you! Your feedback was received.']);
     }
 
-public function showFeedbackPopup()
-{
-     // Get the current date and subtract 3 months
-     $threeMonthsAgo = Carbon::now()->subMonths(3);
+    public function showFeedbackPopup()
+    {
+        $user = auth()->user();
+        $feedbackPopupService = app(\App\Services\FeedbackPopupService::class);
 
-     // Get the most recent feedback submitted by the user
-     $feedback = Feedbacks::where('user_id', auth()->id())
-                     ->latest() // To get the most recent feedback
-                     ->first();
-         if (empty($feedback)) {
-            return response()->json(['show_popup' => true]);
-         }
-     // If the user hasn't submitted feedback in the last 3 months
+        if (!$user || !$feedbackPopupService->shouldShowPopup($user)) {
+            return response()->json(['show_popup' => false]);
+        }
 
-     if ($feedback || Carbon::parse($feedback->created_at)->lte($threeMonthsAgo)) {
-         // Check if the user is due for a reminder (based on last reminder date or never reminded)
-         $user = auth()->user();
-         $lastReminder =   $feedback->created_at; // Assuming this column exists
-
-         // If last reminder is older than 3 months or never reminded
-         $threeMonthsAgoReminder = Carbon::now()->subMonths(3);
-
-         if (!$lastReminder || Carbon::parse($lastReminder)->lte($threeMonthsAgoReminder)) {
-             // You can now show the popup
-             return response()->json(['show_popup' => true]);
-         }
-     }
-
-     // If feedback was added today or within the last 3 months, don't send a reminder
-     if ($feedback && Carbon::parse($feedback->created_at)->gt(Carbon::now()->subMonths(3))) {
-         return response()->json(['show_popup' => false]);
-     }
-
-     // If no feedback needed and no reminders required, return false (no popup)
-     return response()->json(['show_popup' => false]);
+        return response()->json([
+            'show_popup' => true,
+            'id' => $user->id,
+        ]);
     }
 
     /*Newly added code by Meenakshi Nanta*/
@@ -7356,40 +8385,131 @@ public function showFeedbackPopup()
     {
         $user = $this->check_login();
 
-        if ($user->user_type != "admin" && (new DateTime($user->membership_expiry_date)) < (new DateTime("now"))) {
+        if (membership_access_blocked($user)) {
             return redirect()->route('membership')->with('membership_expiry', 'Membership has expired.');
         }
 
         $this->set_timezone();
 
-        if ($user->user_type == "Subscriber") {
+        $subscriber = $user->user_type == "Subscriber" ? $user : User::find($user->added_by);
 
-            $enquiries = VisaEnquiry::withCount(['children as children_applying_count' => function ($query) {
-                            $query->where('apply_together', 1);
-                        }])
-                        ->where('subscriber_id',$user->id)
-                        ->orderBy('created_at','desc')
-                        ->get();
-
-        } else {
-
-            $subscriber = User::find($user->added_by);
-
-            if ((new DateTime($subscriber->membership_expiry_date)) < (new DateTime("now"))) {
+        if ($user->user_type != "admin" && $user->user_type != "Subscriber") {
+            if (!$subscriber || membership_access_blocked_for_subscriber($subscriber)) {
                 return redirect()->route('membership')->with('membership_expiry', 'Membership has expired.');
             }
-
-            $enquiries = VisaEnquiry::withCount(['children as children_applying_count' => function ($query) {
-                            $query->where('apply_together', 1);
-                        }])
-                        ->where('subscriber_id',$subscriber->id)
-                        ->orderBy('created_at','desc')
-                        ->get();
+        } elseif ($user->user_type == "Subscriber" && membership_access_blocked($user)) {
+            return redirect()->route('membership')->with('membership_expiry', 'Membership has expired.');
         }
+
+        $leadService = app(LeadEnquiryService::class);
+
+        $enquiries = VisaEnquiry::with(['workedByUser'])
+                        ->withCount(['children as children_applying_count' => function ($query) {
+                            $query->where('apply_together', 1);
+                        }, 'followUpLogs as follow_up_logs_count'])
+                        ->where('subscriber_id', $subscriber->id)
+                        ->orderBy('created_at', 'desc')
+                        ->get();
+
+        $staffMembers = User::where('added_by', $subscriber->id)
+            ->where('user_type', 'User')
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         $page = "enquiries";
 
-        return view('web.enquiries',compact('user','enquiries','page'));
+        return view('web.enquiries', compact(
+            'user',
+            'enquiries',
+            'page',
+            'subscriber',
+            'staffMembers',
+            'leadService'
+        ));
+    }
+
+    public function updateLeadFollowUp(Request $request, $id)
+    {
+        $user = $this->check_login();
+        $this->set_timezone();
+
+        $request->validate([
+            'lead_source' => 'nullable|string|max:50',
+            'lead_status' => 'nullable|string|max:50',
+            'lead_worked_by_user_id' => 'nullable|integer|exists:users,id',
+            'follow_up_remarks' => 'nullable|string|max:1000',
+        ]);
+
+        $enquiry = VisaEnquiry::find($id);
+
+        if (!$enquiry) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Enquiry not found.',
+            ], 404);
+        }
+
+        $subscriber = $user->user_type == "Subscriber" ? $user : User::find($user->added_by);
+
+        if ((int) $enquiry->subscriber_id !== (int) $subscriber->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not allowed to update this enquiry.',
+            ], 403);
+        }
+
+        $leadService = app(LeadEnquiryService::class);
+        $enquiry = $leadService->applyLeadFollowUpUpdate($enquiry, $request->only([
+            'lead_source',
+            'lead_status',
+            'lead_worked_by_user_id',
+            'follow_up_remarks',
+        ]), $user);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lead follow-up updated successfully.',
+            'data' => [
+                'lead_source' => $enquiry->lead_source,
+                'lead_status' => $enquiry->lead_status,
+                'lead_worked_by_user_id' => $enquiry->lead_worked_by_user_id,
+                'lead_worked_by_name' => optional($enquiry->workedByUser)->name,
+                'lead_worked_at' => optional($enquiry->lead_worked_at)->format('d-m-Y H:i:s'),
+                'follow_up_logs_count' => $enquiry->followUpLogs()->count(),
+            ],
+        ]);
+    }
+
+    public function leadFollowUpHistoryData(Request $request, $id)
+    {
+        $user = $this->check_login();
+        $this->set_timezone();
+
+        $enquiry = VisaEnquiry::find($id);
+
+        if (!$enquiry) {
+            return response()->json([
+                'message' => 'Enquiry not found.',
+            ], 404);
+        }
+
+        $subscriber = $user->user_type == "Subscriber" ? $user : User::find($user->added_by);
+
+        if ((int) $enquiry->subscriber_id !== (int) $subscriber->id) {
+            return response()->json([
+                'message' => 'You are not allowed to view follow-ups for this enquiry.',
+            ], 403);
+        }
+
+        $rows = app(LeadEnquiryService::class)->followUpHistoryRows($enquiry);
+
+        return response()->json([
+            'draw' => (int) $request->input('draw', 1),
+            'recordsTotal' => count($rows),
+            'recordsFiltered' => count($rows),
+            'data' => $rows,
+            'total' => count($rows),
+        ]);
     }
 
     public function convertEnquiryClient(Request $request){
@@ -7412,7 +8532,7 @@ public function showFeedbackPopup()
             if ((int) $enquiry->status === 1) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'This enquiry is already converted to client.'
+                    'message' => 'This enquiry has already been converted to a client.'
                 ]);
             }
 
@@ -7442,8 +8562,19 @@ public function showFeedbackPopup()
             if ($existingClient) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'A client with same email or contact number already exists.'
+                    'message' => 'A client with the same email or contact number already exists.'
                 ]);
+            }
+
+            $offerBenefitService = app(OfferBenefitService::class);
+            $membership_plan = Membership::where('plan_name', '=', $subscriber->membership)->first();
+            if ($membership_plan && strcasecmp((string) $membership_plan->client_limit, 'Unlimited') !== 0) {
+                if (!$offerBenefitService->canAddClient($subscriber)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Client limit reached. Upgrade membership to add more clients.',
+                    ]);
+                }
             }
 
             $client = new Clients();
@@ -7512,7 +8643,7 @@ public function showFeedbackPopup()
 
             /* Update enquiry status */
             $enquiry->status = 1;
-            $enquiry->save();
+            app(LeadEnquiryService::class)->syncLeadStatusOnConversion($enquiry, $user, (int) $client->id);
 
             /* Activity Log */
             $activity = new Activities();
@@ -7535,7 +8666,7 @@ public function showFeedbackPopup()
 
             return response()->json([
                 'success' => true,
-                'message' => 'Enquiry successfully converted to client.'
+                'message' => 'Enquiry converted to client successfully.'
             ]);
 
         } catch (\Exception $e) {
@@ -7544,7 +8675,7 @@ public function showFeedbackPopup()
 
             return response()->json([
                 'success' => false,
-                'message' => 'Something went wrong.'
+                'message' => 'Something went wrong. Please try again.'
             ]);
         }
     }
@@ -7556,7 +8687,7 @@ public function showFeedbackPopup()
         if(!$enquiry){
             return response()->json([
                 'success' => false,
-                'message' => 'Enquiry not found'
+                'message' => 'Enquiry not found.'
             ]);
         }
 
@@ -7564,16 +8695,16 @@ public function showFeedbackPopup()
 
         return response()->json([
             'success' => true,
-            'message' => 'Enquiry deleted successfully'
+            'message' => 'Enquiry deleted successfully.'
         ]);
     }
 
     public function viewEnquiry($id)
     {
-        $enquiry = VisaEnquiry::with(['residencyHistory','travelHistory','refusalHistory','workExperience','children','fundingSources'])->find($id);
+        $enquiry = VisaEnquiry::with(['residencyHistory','travelHistory','refusalHistory','workExperience','children','fundingSources','workedByUser'])->find($id);
 
         if(!$enquiry){
-            return redirect()->back()->with('error','Enquiry not found');
+            return redirect()->back()->with('error', 'Enquiry not found.');
         }
         $user = $this->check_login();
         $page = "visa-enquiries";
@@ -7587,7 +8718,7 @@ public function showFeedbackPopup()
         $enquiry = VisaEnquiry::with(['residencyHistory','travelHistory','refusalHistory','workExperience','children','fundingSources'])->find($id);
 
         if (!$enquiry) {
-            return redirect()->route('enquiries')->with('error', 'Enquiry not found');
+            return redirect()->route('enquiries')->with('error', 'Enquiry not found.');
         }
 
         $subscriber = User::find($enquiry->subscriber_id);
@@ -7626,13 +8757,19 @@ public function showFeedbackPopup()
             $child->child_dob = $formatToSubscriberDate($child->child_dob);
         }
 
+        $enquiryFormSections = app(EnquiryFormSettingsService::class)->resolveSections($subscriber);
+
         return view('web.create_lead', [
             'subscriberId' => $enquiry->subscriber_id,
             'enquiry' => $enquiry,
             'isEdit' => true,
             'defaultPlace' => $defaultPlace,
             'countries' => $countries,
-            'allCountries' => Countries::orderBy('country_name', 'asc')->get()
+            'allCountries' => Countries::orderBy('country_name', 'asc')->get(),
+            'visaCategories' => app(CountryCategorySettingsService::class)->resolveVisaCategoryNames($subscriber),
+            'leadSources' => app(LeadEnquiryService::class)->sources(),
+            'leadStatuses' => app(LeadEnquiryService::class)->statuses(),
+            'enquiryFormSections' => $enquiryFormSections,
         ]);
     }
 
@@ -7641,7 +8778,7 @@ public function showFeedbackPopup()
         $request->validate([
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
-            'contact_no' => 'required|string|max:25',
+            'contact_no' => 'required|phone_intl',
             'dob' => ['nullable', function ($attribute, $value, $fail) {
                 $normalizedDob = $this->normalizeDateValue($value);
                 if ($value !== null && trim((string) $value) !== '' && $normalizedDob === null) {
@@ -7657,7 +8794,7 @@ public function showFeedbackPopup()
             'country_pref.*' => 'nullable|string|max:255|distinct',
             'visa_category' => 'required|string|max:255',
             'address' => 'required|string|min:3|max:1000',
-            'postcode' => 'nullable|string|max:50',
+            'postcode' => 'nullable|regex:/^[A-Za-z0-9\s\-]{3,10}$/',
             'country' => 'required|string|max:255',
             'spouse_apply_together' => 'nullable|boolean',
             'spouse_age' => 'nullable|integer|min:0|max:120',
@@ -7668,7 +8805,19 @@ public function showFeedbackPopup()
         $enquiry = VisaEnquiry::find($id);
 
         if (!$enquiry) {
-            return redirect()->route('enquiries')->with('error', 'Enquiry not found');
+            return redirect()->route('enquiries')->with('error', 'Enquiry not found.');
+        }
+
+        $subscriber = User::find($enquiry->subscriber_id);
+        if ($subscriber) {
+            $ccErrors = app(CountryCategorySettingsService::class)->validateEnquirySelection(
+                $subscriber,
+                $request->country_pref ?? [],
+                $request->visa_category
+            );
+            if (!empty($ccErrors)) {
+                return back()->withInput()->withErrors($ccErrors);
+            }
         }
 
         DB::beginTransaction();
@@ -7727,6 +8876,23 @@ public function showFeedbackPopup()
 
             if (isset($visaEnquiryColumns['consent_to_store_data']) && $request->has('consent_to_store_data')) {
                 $enquiryData['consent_to_store_data'] = $request->boolean('consent_to_store_data');
+            }
+
+            $leadService = app(LeadEnquiryService::class);
+            if (isset($visaEnquiryColumns['lead_source']) && $request->filled('lead_source')) {
+                $enquiryData['lead_source'] = $leadService->normalizeSource($request->lead_source, (string) ($enquiry->lead_source ?: 'Walk-in'));
+            }
+
+            if (isset($visaEnquiryColumns['lead_status']) && $request->filled('lead_status')) {
+                $enquiryData['lead_status'] = $leadService->normalizeStatus($request->lead_status, (string) ($enquiry->lead_status ?: 'Open'));
+            }
+
+            if (isset($visaEnquiryColumns['lead_worked_by_user_id']) || isset($visaEnquiryColumns['lead_worked_at'])) {
+                $leadFieldsChanged = $request->filled('lead_source') || $request->filled('lead_status');
+                if ($leadFieldsChanged) {
+                    $enquiryData['lead_worked_by_user_id'] = Auth::id();
+                    $enquiryData['lead_worked_at'] = now();
+                }
             }
 
             $enquiry->update($enquiryData);
@@ -7847,74 +9013,250 @@ public function showFeedbackPopup()
         }
     }
 
-    public function storeAppointment(Request $request)
+    public function appointmentRecords(Request $request)
     {
-        $request->validate([
-            'client_id' => 'required|exists:clients,id',
-            'client_email' => 'nullable|email',
-            'appointment_date' => 'required|date|after_or_equal:today',
-            'appointment_time' => 'required|date_format:H:i',
-            'remarks' => 'required|string|max:500',
-            'send_via' => 'required|in:email'
-        ]);
-
         $user = Auth::user();
-        $client = Clients::findOrFail($request->client_id);
-
-        $clientEmail = $request->filled('client_email') ? $request->client_email : $client->email;
-        if (empty($clientEmail)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Client email is required for email notifications.'
-            ], 422);
+        if (!$user) {
+            return response()->json(['records' => []], 401);
         }
 
-        $appointment = new Appointment();
-        $appointment->client_id = $request->client_id;
-        $appointment->subscriber_id = empty($user->added_by) ? $user->id : $user->added_by;
-        $appointment->user_id = Auth::id();
-        $appointment->appointment_date = $request->appointment_date;
-        $appointment->appointment_time = $request->appointment_time;
-        $appointment->remarks = $request->remarks;
-        $appointment->send_via = $request->send_via;
-        $appointment->calendly_link = null;
-        $appointment->calendly_event_uri = null;
-        $appointment->save();
+        try {
+            $appointmentService = app(AppointmentService::class);
+            $appointmentService->ensureTableExists();
+            $subscriberId = $appointmentService->resolveSubscriberId($user);
 
-        $responseLinks = $this->createAppointmentResponseLinks($appointment, $clientEmail);
-        $appointment->calendly_link = $responseLinks['accept_url'];
-        $appointment->save();
+            return response()
+                ->json([
+                    'records' => $this->appointmentRecordsForSubscriber($subscriberId)
+                        ->map(fn (Appointment $appointment) => $this->formatAppointmentRecord($appointment))
+                        ->values(),
+                ])
+                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+                ->header('Pragma', 'no-cache');
+        } catch (\Throwable $exception) {
+            report($exception);
 
-        $appointment->setAttribute('accept_url', $responseLinks['accept_url']);
-        $appointment->setAttribute('decline_url', $responseLinks['decline_url']);
+            return response()->json([
+                'records' => [],
+                'message' => $exception->getMessage() ?: 'Failed to load appointment records.',
+            ], 500);
+        }
+    }
+
+    public function getAppointmentRecords(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
 
         try {
-            Mail::to($clientEmail)->send(new AppointmentSchedulerMail($appointment, $client, $user));
+            $appointmentService = app(AppointmentService::class);
+            $appointmentService->ensureTableExists();
+            $subscriberId = $appointmentService->resolveSubscriberId($user);
+
+            $query = Appointment::query()
+                ->where('subscriber_id', $subscriberId)
+                ->whereNotNull('appointment_date')
+                ->with(['client', 'user']);
+
+            return DataTables::eloquent($query)
+                ->addColumn('client_name', function (Appointment $row) {
+                    return optional($row->client)->name ?? 'N/A';
+                })
+                ->addColumn('appointment_date', fn (Appointment $row) => $row->formattedDate())
+                ->addColumn('appointment_time', fn (Appointment $row) => $row->formattedTime())
+                ->editColumn('remarks', fn (Appointment $row) => Str::limit($row->remarks ?? 'N/A', 60))
+                ->addColumn('status', function (Appointment $row) {
+                    $status = strtolower((string) ($row->status ?: 'pending'));
+                    $statusClass = match ($status) {
+                        'accepted' => 'success',
+                        'canceled' => 'danger',
+                        'completed' => 'info',
+                        default => 'warning',
+                    };
+                    $statusLabel = $this->formatAppointmentStatusLabel($status);
+
+                    return '<span class="badge bg-' . $statusClass . '">' . e($statusLabel) . '</span>';
+                })
+                ->addColumn('sent_by', function (Appointment $row) {
+                    return optional($row->user)->name ?? 'N/A';
+                })
+                ->filterColumn('client_name', function ($query, $keyword) {
+                    $query->whereHas('client', function ($clientQuery) use ($keyword) {
+                        $clientQuery->where('name', 'like', '%' . $keyword . '%');
+                    });
+                })
+                ->filterColumn('sent_by', function ($query, $keyword) {
+                    $query->whereHas('user', function ($userQuery) use ($keyword) {
+                        $userQuery->where('name', 'like', '%' . $keyword . '%');
+                    });
+                })
+                ->orderColumn('appointment_date', function ($query, $order) {
+                    $query->orderBy('appointment_date', $order);
+                })
+                ->orderColumn('appointment_time', function ($query, $order) {
+                    $query->orderBy('appointment_time', $order);
+                })
+                ->rawColumns(['status'])
+                ->make(true);
+        } catch (\Throwable $exception) {
+            report($exception);
 
             return response()->json([
-                'success' => true,
-                'message' => 'Appointment invitation sent successfully.',
-                'calendly_link' => $responseLinks['accept_url'],
-            ]);
-        } catch (\Throwable $e) {
-            Log::error('Appointment scheduled but notification failed to send', [
-                'appointment_id' => $appointment->id,
-                'client_id' => $client->id,
-                'error' => $e->getMessage(),
+                'draw' => (int) $request->input('draw', 0),
+                'recordsTotal' => 0,
+                'recordsFiltered' => 0,
+                'data' => [],
+                'error' => $exception->getMessage() ?: 'Failed to load appointment records.',
+            ], 500);
+        }
+    }
+
+    private function appointmentRecordsForSubscriber(int $subscriberId)
+    {
+        return Appointment::where('subscriber_id', $subscriberId)
+            ->whereNotNull('appointment_date')
+            ->with(['client', 'user'])
+            ->orderByRaw('TIMESTAMP(appointment_date, appointment_time) DESC')
+            ->orderByDesc('created_at')
+            ->limit(100)
+            ->get();
+    }
+
+    private function formatAppointmentStatusLabel(string $status): string
+    {
+        return match ($status) {
+            'accepted' => 'Confirmed',
+            'canceled' => 'Declined',
+            'completed' => 'Completed',
+            default => 'Pending',
+        };
+    }
+
+    private function formatAppointmentRecord(Appointment $appointment): array
+    {
+        $status = strtolower((string) ($appointment->status ?: 'pending'));
+        $statusClass = match ($status) {
+            'accepted' => 'success',
+            'canceled' => 'danger',
+            'completed' => 'info',
+            default => 'warning',
+        };
+
+        return [
+            'id' => $appointment->id,
+            'client_name' => optional($appointment->client)->name ?? 'N/A',
+            'appointment_date' => $appointment->formattedDate(),
+            'appointment_time' => $appointment->formattedTime(),
+            'remarks' => Str::limit($appointment->remarks ?? 'N/A', 60),
+            'status' => $this->formatAppointmentStatusLabel($status),
+            'status_class' => $statusClass,
+            'sent_by' => optional($appointment->user)->name ?? 'N/A',
+        ];
+    }
+
+    public function storeAppointment(Request $request)
+    {
+        try {
+            $request->validate([
+                'client_id' => 'required|exists:clients,id',
+                'client_email' => 'nullable|email',
+                'appointment_date' => 'required|date|after_or_equal:today',
+                'appointment_time' => 'required|date_format:H:i',
+                'remarks' => 'required|string|max:500',
+                'send_via' => 'required|in:email',
             ]);
 
+            $user = Auth::user();
+            $appointmentService = app(AppointmentService::class);
+            $appointmentService->ensureTableExists();
+            $subscriberId = $appointmentService->resolveSubscriberId($user);
+
+            $client = Clients::where('id', $request->client_id)
+                ->where('subscriber_id', $subscriberId)
+                ->first();
+
+            if (!$client) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please select a valid client from your account.',
+                ], 422);
+            }
+
+            $clientEmail = $request->filled('client_email') ? $request->client_email : $client->email;
+            if (empty($clientEmail)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Client email is required for email notifications.',
+                ], 422);
+            }
+
+            $appointment = new Appointment();
+            $appointment->client_id = $client->id;
+            $appointment->subscriber_id = $subscriberId;
+            $appointment->user_id = Auth::id();
+            $appointment->appointment_date = Carbon::parse($request->appointment_date)->toDateString();
+            $appointment->appointment_time = Carbon::createFromFormat('H:i', $request->appointment_time)->format('H:i:s');
+            $appointment->remarks = $request->remarks;
+            $appointment->send_via = $request->send_via;
+            $appointment->status = 'pending';
+            $appointment->calendly_link = null;
+            $appointment->calendly_event_uri = null;
+            $appointment->save();
+
+            $responseLinks = $this->createAppointmentResponseLinks($appointment, $clientEmail);
+            $appointment->setAttribute('accept_url', $responseLinks['accept_url']);
+            $appointment->setAttribute('decline_url', $responseLinks['decline_url']);
+
+            $appointment->load(['client', 'user']);
+            $formattedAppointment = $this->formatAppointmentRecord($appointment);
+
+            try {
+                BrandedMail::sendWithAlertsArchive(
+                    $clientEmail,
+                    fn () => new AppointmentSchedulerMail($appointment, $client, $user)
+                );
+
+                return response()->json([
+                    'success' => true,
+                    'email_sent' => true,
+                    'message' => 'Appointment invitation sent successfully.',
+                    'appointment' => $formattedAppointment,
+                ]);
+            } catch (\Throwable $mailException) {
+                Log::error('Appointment scheduled but notification failed to send', [
+                    'appointment_id' => $appointment->id,
+                    'client_id' => $client->id,
+                    'error' => $mailException->getMessage(),
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'email_sent' => false,
+                    'message' => 'Appointment saved, but the invitation email could not be sent. Please verify mail settings and try again.',
+                    'appointment' => $formattedAppointment,
+                ]);
+            }
+        } catch (\Illuminate\Validation\ValidationException $validationException) {
+            throw $validationException;
+        } catch (\Throwable $exception) {
+            report($exception);
+
             return response()->json([
-                'success' => true,
-                'message' => 'Appointment saved successfully, but notification email could not be sent right now.',
-                'calendly_link' => $responseLinks['accept_url'],
-            ]);
+                'success' => false,
+                'message' => $exception->getMessage() ?: 'Failed to schedule appointment.',
+            ], 500);
         }
     }
 
     private function createAppointmentResponseLinks(Appointment $appointment, ?string $clientEmail): array
     {
-        $expiresAt = Carbon::parse($appointment->appointment_date.' '.$appointment->appointment_time, config('app.timezone'))
-            ->addDay();
+        $scheduledAt = $appointment->scheduledAt(config('app.timezone'));
+        $expiresAt = now()->addDays(30);
+        if ($scheduledAt && $scheduledAt->copy()->addDays(7)->gt($expiresAt)) {
+            $expiresAt = $scheduledAt->copy()->addDays(7);
+        }
 
         $routeParams = ['appointment' => $appointment->id];
         if (!empty($clientEmail)) {
@@ -7945,10 +9287,10 @@ public function showFeedbackPopup()
 
         $baseUrl = rtrim(config('services.calendly.base_url', 'https://api.calendly.com'), '/');
 
-        $startDateTime = Carbon::parse(
-            $appointment->appointment_date . ' ' . $appointment->appointment_time,
-            $sender->timezone ?? config('app.timezone')
-        );
+        $startDateTime = $appointment->scheduledAt($sender->timezone ?? config('app.timezone'));
+        if (!$startDateTime) {
+            return ['success' => false, 'message' => 'Appointment date and time are required.'];
+        }
 
         $headers = [
             'Authorization' => 'Bearer ' . $token,
@@ -7983,7 +9325,7 @@ public function showFeedbackPopup()
                     'start_date' => $startDateTime->toDateString(),
                     'end_date'   => $startDateTime->toDateString(),
                 ],
-                'location' => ['kind' => 'zoom_conference'],
+                'location' => ['kind' => 'ask_invitee'],
             ];
 
             $oneOffResponse = Http::withHeaders($headers)
@@ -8055,20 +9397,35 @@ public function showFeedbackPopup()
         }
 
         $client = Clients::find($appointment->client_id);
-        $email = $request->query('email');
-        if (!empty($email) && strcasecmp($client?->email ?? '', $email) !== 0) {
-            abort(403);
+        $sender = User::find($appointment->user_id);
+        $inviteEmail = trim((string) $request->query('email', $client?->email ?? ''));
+        $targetStatus = $action === 'accept' ? 'accepted' : 'canceled';
+
+        if ($appointment->status === $targetStatus) {
+            return view('web.appointment_response', [
+                'title' => $action === 'accept' ? 'Appointment Already Accepted' : 'Appointment Already Declined',
+                'subtitle' => 'Your response was already recorded for this appointment.',
+                'status' => $action === 'accept' ? 'accepted' : 'declined',
+                'calendlyUrl' => $action === 'accept' ? $appointment->calendly_link : null,
+            ]);
+        }
+
+        if (in_array($appointment->status, ['accepted', 'canceled'], true)) {
+            return view('web.appointment_response', [
+                'title' => 'Response Already Recorded',
+                'subtitle' => 'This appointment invitation has already been answered.',
+                'status' => 'neutral',
+                'calendlyUrl' => null,
+            ]);
         }
 
         if ($action === 'accept') {
             $appointment->status = 'accepted';
             $appointment->save();
 
-            $sender = User::find($appointment->user_id);
             $calendlyUrl = null;
-
             if ($sender) {
-                $calendly = $this->createCalendlySchedulingLinkForAppointment($appointment, $client?->email, $sender);
+                $calendly = $this->createCalendlySchedulingLinkForAppointment($appointment, $inviteEmail ?: $client?->email, $sender);
                 if ($calendly['success']) {
                     $appointment->calendly_link = $calendly['booking_url'];
                     $appointment->calendly_event_uri = $calendly['event_type_uri'];
@@ -8077,9 +9434,12 @@ public function showFeedbackPopup()
                 }
             }
 
+            $this->recordAcceptedAppointment($appointment, $client, $sender);
+            $this->notifyAppointmentResponse($appointment, $client, $sender, 'accepted');
+
             return view('web.appointment_response', [
                 'title' => 'Thank You! Appointment Accepted',
-                'subtitle' => 'Your response has been recorded successfully.',
+                'subtitle' => 'Your response has been recorded successfully. The consultant has been notified.',
                 'status' => 'accepted',
                 'calendlyUrl' => $calendlyUrl,
             ]);
@@ -8088,12 +9448,93 @@ public function showFeedbackPopup()
         $appointment->status = 'canceled';
         $appointment->save();
 
+        $this->notifyAppointmentResponse($appointment, $client, $sender, 'declined');
+
         return view('web.appointment_response', [
             'title' => 'Appointment Declined',
-            'subtitle' => 'You have declined this appointment. The sender has been updated.',
+            'subtitle' => 'You have declined this appointment. The sender has been notified.',
             'status' => 'declined',
             'calendlyUrl' => null,
         ]);
+    }
+
+    private function recordAcceptedAppointment(Appointment $appointment, ?Clients $client, ?User $sender): void
+    {
+        if (!$client || !$sender) {
+            return;
+        }
+
+        $appointmentDate = $appointment->formattedDate();
+        $appointmentTime = $appointment->formattedTime();
+        $discussion = 'Client accepted the appointment invitation for '
+            . $appointmentDate . ' at ' . $appointmentTime . '.'
+            . (!empty($appointment->remarks) ? ' Purpose: ' . $appointment->remarks : '');
+
+        $applicationId = Applications::where('client_id', $client->id)
+            ->where('subscriber_id', $appointment->subscriber_id)
+            ->orderByDesc('created_at')
+            ->value('application_id');
+
+        Client_discussions::create([
+            'subscriber_id' => $appointment->subscriber_id,
+            'user_id' => $sender->id,
+            'user_name' => $sender->name,
+            'client_id' => $client->id,
+            'client_name' => $client->name,
+            'application_id' => $applicationId,
+            'communication_type' => 'E-meet',
+            'communication_date' => $appointment->scheduledAt($sender->timezone ?? config('app.timezone')),
+            'discussion' => $discussion,
+        ]);
+    }
+
+    private function notifyAppointmentResponse(
+        Appointment $appointment,
+        ?Clients $client,
+        ?User $sender,
+        string $response
+    ): void {
+        if (!$client || !$sender) {
+            return;
+        }
+
+        $accepted = $response === 'accepted';
+        $appointmentDate = $appointment->formattedDate();
+        $appointmentTime = $appointment->formattedTime();
+        $title = $accepted
+            ? sprintf('%s accepted appointment on %s at %s', $client->name, $appointmentDate, $appointmentTime)
+            : sprintf('%s declined appointment on %s at %s', $client->name, $appointmentDate, $appointmentTime);
+        $body = $accepted
+            ? 'The client confirmed the proposed appointment. View details in Appointment Scheduler.'
+            : 'The client declined the proposed appointment. View details in Appointment Scheduler.';
+
+        try {
+            if (!empty($sender->email)) {
+                BrandedMail::sendWithAlertsArchive(
+                    $sender->email,
+                    fn () => new AppointmentResponseMail($appointment, $client, $sender, $response)
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('Appointment response email failed', [
+                'appointment_id' => $appointment->id,
+                'response' => $response,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        app(NotificationService::class)->notifyUser(
+            $sender,
+            'meeting_reminders',
+            $title,
+            $body,
+            route('my_settings') . '#appointment',
+            [
+                'appointment_id' => $appointment->id,
+                'client_id' => $client->id,
+                'response' => $response,
+            ]
+        );
     }
 
     private function sendAppointmentSms(string $phone, string $clientName, string $senderName, string $acceptLink, string $declineLink, ?string $remarks, string $appointmentDate, string $appointmentTime, string $timezone): array
@@ -8104,7 +9545,7 @@ public function showFeedbackPopup()
             "Decline: {$declineLink}\n\n".
             (!empty($remarks) ? "Meeting purpose: {$remarks}\n\n" : '').
             "Please confirm by accepting or declining the appointment using the links above.\n\n".
-            "Best regards,\nAdwiseri Team";
+            BrandedMail::emailSignaturePlain();
 
         $smsUrl = config('services.sms_gateway.url');
         $smsToken = config('services.sms_gateway.token');
@@ -8164,7 +9605,7 @@ public function showFeedbackPopup()
     {
         $user = Auth::user();
         if (!$user) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
         }
 
         $validated = $request->validate([
@@ -8181,7 +9622,7 @@ public function showFeedbackPopup()
 
         return response()->json([
             'success' => true,
-            'message' => 'Email template saved successfully',
+            'message' => 'Email template saved successfully.',
         ]);
     }
 
@@ -8189,7 +9630,7 @@ public function showFeedbackPopup()
     {
         $user = Auth::user();
         if (!$user) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
         }
 
         $audience = strtolower($user->user_type) === 'admin' ? 'admin' : 'subscriber';
@@ -8217,18 +9658,66 @@ public function showFeedbackPopup()
     {
         $user = Auth::user();
         if (!$user) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        $subscriberId = $user->user_type === 'Subscriber' ? $user->id : (int) $user->added_by;
+        $reminderType = $request->input('reminder_type', PaymentReminderSetting::TYPE_PAYMENTS);
+
+        if (!in_array($reminderType, PaymentReminderSetting::allowedScheduleTypes(), true)) {
+            return response()->json(['success' => false, 'message' => 'Invalid reminder type.'], 422);
+        }
+
+        if ($reminderType === PaymentReminderSetting::TYPE_DOCUMENTS) {
+            if (!PaymentReminderSetting::hasReminderTypeColumn()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Documents reminder settings are unavailable until the latest database update is applied.',
+                ], 503);
+            }
+
+            $validated = $request->validate([
+                'email_frequency' => 'required|in:daily,weekly,monthly,quarterly',
+                'email_to' => 'required|in:' . implode(',', PaymentReminderSetting::allowedEmailToValuesForRemindersTo(PaymentReminderSetting::REMINDERS_TO_CLIENTS)),
+            ]);
+
+            PaymentReminderSetting::saveForType(
+                $subscriberId,
+                PaymentReminderSetting::TYPE_DOCUMENTS,
+                [
+                    'reminders_to' => PaymentReminderSetting::REMINDERS_TO_CLIENTS,
+                    'client_group' => PaymentReminderSetting::CLIENT_GROUP_ALL,
+                    'email_frequency' => $validated['email_frequency'],
+                    'email_to' => $validated['email_to'],
+                ]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Documents reminder settings saved successfully.',
+            ]);
         }
 
         $validated = $request->validate([
-            'client_group' => 'required|in:all,over_500,over_100',
-            'email_frequency' => 'required|in:weekly,monthly,quarterly',
-            'email_to' => 'required|in:client_only,client_bcc_subscriber',
+            'reminders_to' => 'required|in:' . implode(',', PaymentReminderSetting::allowedRemindersToValues()),
+            'client_group' => 'required|in:' . implode(',', PaymentReminderSetting::allowedClientGroups()),
+            'email_frequency' => 'required|in:daily,weekly,monthly,quarterly',
+            'email_to' => 'required|in:' . implode(',', PaymentReminderSetting::allowedEmailToValues()),
         ]);
 
-        PaymentReminderSetting::updateOrCreate(
-            ['user_id' => $user->id],
+        $allowedEmailTo = PaymentReminderSetting::allowedEmailToValuesForRemindersTo($validated['reminders_to']);
+        if (!in_array($validated['email_to'], $allowedEmailTo, true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The selected Email To option does not match Reminders To.',
+            ], 422);
+        }
+
+        PaymentReminderSetting::saveForType(
+            $subscriberId,
+            PaymentReminderSetting::TYPE_PAYMENTS,
             [
+                'reminders_to' => $validated['reminders_to'],
                 'client_group' => $validated['client_group'],
                 'email_frequency' => $validated['email_frequency'],
                 'email_to' => $validated['email_to'],
@@ -8237,7 +9726,92 @@ public function showFeedbackPopup()
 
         return response()->json([
             'success' => true,
-            'message' => 'Payment reminder settings saved successfully',
+            'message' => 'Payment reminder settings saved successfully.',
+        ]);
+    }
+
+    public function saveApplicationReminder(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        if (!Schema::hasTable('application_reminders')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Application reminders are unavailable until the latest database update is applied.',
+            ], 503);
+        }
+
+        $subscriberId = $user->user_type === 'Subscriber' ? $user->id : (int) $user->added_by;
+
+        $validated = $request->validate([
+            'client_id' => 'required|integer|exists:clients,id',
+            'application_id' => 'required|integer|exists:applications,id',
+            'subject' => 'required|string|max:255',
+            'deadline' => 'required|date',
+            'description' => 'nullable|string|max:5000',
+            'email_frequency' => 'required|in:daily,weekly,monthly,quarterly',
+            'email_to' => 'required|in:' . implode(',', ApplicationReminder::allowedEmailToValues()),
+        ]);
+
+        $client = Clients::find($validated['client_id']);
+        $application = Applications::find($validated['application_id']);
+
+        if (!$client || (int) $client->subscriber_id !== $subscriberId) {
+            return response()->json(['success' => false, 'message' => 'Invalid client selected.'], 422);
+        }
+
+        if (!$application || (int) $application->subscriber_id !== $subscriberId || (int) $application->client_id !== (int) $validated['client_id']) {
+            return response()->json(['success' => false, 'message' => 'Invalid application selected.'], 422);
+        }
+
+        ApplicationReminder::create([
+            'user_id' => $subscriberId,
+            'client_id' => $validated['client_id'],
+            'application_id' => $validated['application_id'],
+            'subject' => $validated['subject'],
+            'description' => $validated['description'] ?? null,
+            'deadline' => $validated['deadline'],
+            'email_frequency' => $validated['email_frequency'],
+            'email_to' => $validated['email_to'],
+            'notify_user_id' => $user->id,
+            'is_active' => true,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Application reminder saved successfully.',
+        ]);
+    }
+
+    public function deleteApplicationReminder($id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        if (!Schema::hasTable('application_reminders')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Application reminders are unavailable until the latest database update is applied.',
+            ], 503);
+        }
+
+        $subscriberId = $user->user_type === 'Subscriber' ? $user->id : (int) $user->added_by;
+        $reminder = ApplicationReminder::where('user_id', $subscriberId)->where('id', $id)->first();
+
+        if (!$reminder) {
+            return response()->json(['success' => false, 'message' => 'Reminder not found.'], 404);
+        }
+
+        $reminder->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Application reminder deleted successfully.',
         ]);
     }
 
@@ -8273,7 +9847,7 @@ public function showFeedbackPopup()
             $emails = array_values(array_filter(array_map('trim', explode(',', $normalizedInput)), function ($email) {
                 return $email !== '';
             }));
-            $emails = $this->uniqueEmailRecipients($emails);
+            $emails = array_slice(array_values(array_unique($emails, SORT_STRING)), 0, 5);
 
             if (count($emails) === 0) {
                 return response()->json([
@@ -8300,15 +9874,16 @@ public function showFeedbackPopup()
                 ], 422);
             }
 
-            if (count($emails) > 5) {
-                return response()->json([
-                    'message' => 'The given data was invalid.',
-                    'errors' => [
-                        'emails' => ['Please enter no more than 5 recipient email addresses.']
-                    ]
-                ], 422);
+            $subscriberEmail = trim((string) optional($user)->email);
+
+            if ($subscriberEmail !== '') {
+                $emails = array_values(array_filter($emails, function ($email) use ($subscriberEmail) {
+                    return strcasecmp($email, $subscriberEmail) !== 0;
+                }));
+                array_unshift($emails, $subscriberEmail);
             }
 
+            $emails = array_slice(array_values(array_unique($emails, SORT_STRING)), 0, 5);
             $normalizedEmails = implode(', ', $emails);
 
             $setting = ReportSetting::updateOrCreate(
@@ -8323,7 +9898,7 @@ public function showFeedbackPopup()
 
             return response()->json([
                 'status' => true,
-                'message' => 'Report settings saved successfully! Reports will be sent according to the selected frequency schedule.',
+                'message' => 'Report settings saved successfully. Reports will be sent according to the selected schedule.',
                 'data' => $setting
             ]);
 
@@ -8344,32 +9919,6 @@ public function showFeedbackPopup()
     }
 
 
-
-    private function uniqueEmailRecipients(array $emails): array
-    {
-        $uniqueEmails = [];
-        $seenEmails = [];
-
-        foreach ($emails as $email) {
-            $email = trim((string) $email);
-
-            if ($email === '') {
-                continue;
-            }
-
-            $emailKey = strtolower($email);
-
-            if (isset($seenEmails[$emailKey])) {
-                continue;
-            }
-
-            $seenEmails[$emailKey] = true;
-            $uniqueEmails[] = $email;
-        }
-
-        return $uniqueEmails;
-    }
-
     public function downloadScheduledReport(Request $request, $file)
     {
         $safeFile = basename($file);
@@ -8382,14 +9931,151 @@ public function showFeedbackPopup()
         return response()->download($filePath);
     }
 
+    public function createManualLead()
+    {
+        $user = $this->check_login();
+
+        if (membership_access_blocked($user)) {
+            return redirect()->route('membership')->with('membership_expiry', 'Membership has expired.');
+        }
+
+        $this->set_timezone();
+
+        $subscriber = $user->user_type == "Subscriber" ? $user : User::find($user->added_by);
+
+        if ($user->user_type != "admin" && $user->user_type != "Subscriber") {
+            if (!$subscriber || membership_access_blocked_for_subscriber($subscriber)) {
+                return redirect()->route('membership')->with('membership_expiry', 'Membership has expired.');
+            }
+        } elseif ($user->user_type == "Subscriber" && membership_access_blocked($user)) {
+            return redirect()->route('membership')->with('membership_expiry', 'Membership has expired.');
+        }
+
+        $leadService = app(LeadEnquiryService::class);
+        $ccService = app(CountryCategorySettingsService::class);
+        $countries = $this->getSubscriberCountryOptions((int) $subscriber->id);
+        $allCountries = Countries::orderBy('country_name', 'asc')->get();
+        $visaCategories = $ccService->resolveVisaCategoryNames($subscriber);
+        $page = "enquiries";
+
+        return view('web.add_lead', compact(
+            'user',
+            'subscriber',
+            'countries',
+            'allCountries',
+            'visaCategories',
+            'page',
+            'leadService'
+        ) + [
+            'leadSources' => $leadService->sources(),
+            'leadStatuses' => $leadService->statuses(),
+        ]);
+    }
+
+    public function storeManualLead(Request $request)
+    {
+        $user = $this->check_login();
+        $this->set_timezone();
+
+        $subscriber = $user->user_type == "Subscriber" ? $user : User::find($user->added_by);
+
+        if (!$subscriber) {
+            return redirect()->route('enquiries')->with('error', 'Subscriber account not found.');
+        }
+
+        $leadService = app(LeadEnquiryService::class);
+        $allowedSources = $leadService->sources();
+        $allowedStatuses = $leadService->statuses();
+
+        $request->validate([
+            'full_name' => 'required|string|min:3|max:255',
+            'email' => 'required|email|max:255',
+            'contact_no' => 'required|phone_intl',
+            'country' => 'required|string|max:255',
+            'country_pref' => 'required|array|min:1',
+            'country_pref.0' => 'required|string|max:255',
+            'country_pref.*' => 'nullable|string|max:255|distinct',
+            'visa_category' => 'required|string|max:255',
+            'lead_source' => ['required', 'string', 'max:50', \Illuminate\Validation\Rule::in($allowedSources)],
+            'lead_status' => ['nullable', 'string', 'max:50', \Illuminate\Validation\Rule::in($allowedStatuses)],
+            'address' => 'nullable|string|max:1000',
+            'postcode' => 'nullable|regex:/^[A-Za-z0-9\s\-]{3,10}$/',
+            'remarks' => 'nullable|string|max:1000',
+        ]);
+
+        $ccErrors = app(CountryCategorySettingsService::class)->validateEnquirySelection(
+            $subscriber,
+            $request->country_pref ?? [],
+            $request->visa_category
+        );
+
+        if (!empty($ccErrors)) {
+            return back()->withInput()->withErrors($ccErrors);
+        }
+
+        $address = trim((string) $request->address);
+        $remarks = trim((string) $request->remarks);
+        if ($address === '' && $remarks !== '') {
+            $address = $remarks;
+        }
+        if ($address === '') {
+            $address = 'Not provided';
+        }
+
+        $payload = [
+            'full_name' => $request->full_name,
+            'email' => $request->email,
+            'contact_no' => $request->contact_no,
+            'country' => $request->country,
+            'country_pref' => $request->country_pref,
+            'visa_category' => $request->visa_category,
+            'address' => $address,
+            'postcode' => $request->postcode,
+            'lead_source' => $request->lead_source,
+            'lead_status' => $request->lead_status,
+        ];
+
+        $enquiry = $leadService->createFromExternalSource($payload, (int) $subscriber->id, $user);
+
+        $activity = new Activities();
+        $activity->subscriber_id = $subscriber->id;
+        $activity->user_id = $user->id;
+        $activity->user_name = $user->name;
+        $activity->activity_name = "New Lead Added";
+        $activity->activity_detail = "Lead {$enquiry->full_name} added manually from {$enquiry->lead_source} by {$user->name} at " . ($request->local_time ?: now()->format('d M, Y H:i:s'));
+        $activity->activity_icon = "user.png";
+        $activity->local_time = $request->local_time;
+        $activity->save();
+
+        return redirect()->route('enquiries')->with('success', 'Lead added successfully.');
+    }
+
     public function createLead($id)
     {
         $subscriberId = decrypt($id);
         $subscriber = User::find($subscriberId);
+        $ccService = app(CountryCategorySettingsService::class);
         $countries = $this->getSubscriberCountryOptions((int) $subscriberId);
         $allCountries = Countries::orderBy('country_name', 'asc')->get();
+        $visaCategories = $ccService->resolveVisaCategoryNames($subscriber);
         $defaultPlace = trim(($subscriber?->city ?? '').', '.($subscriber?->country ?? ''), ', ');
+        $leadService = app(LeadEnquiryService::class);
+        $defaultLeadSource = $leadService->normalizeSource(
+            request()->query('source') ?: request()->query('lead_source'),
+            'Walk-in'
+        );
 
-        return view('web.create_lead',compact('subscriberId','defaultPlace','countries','allCountries'));
+        $enquiryFormSections = app(EnquiryFormSettingsService::class)->resolveSectionsForSubscriberId((int) $subscriberId);
+
+        return view('web.create_lead', compact(
+            'subscriberId',
+            'defaultPlace',
+            'countries',
+            'allCountries',
+            'visaCategories',
+            'leadService',
+            'defaultLeadSource',
+            'enquiryFormSections'
+        ));
     }
 }

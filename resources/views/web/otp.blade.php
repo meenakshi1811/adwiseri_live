@@ -1,4 +1,4 @@
-@extends('web.layout.main')
+﻿@extends('web.layout.main')
 
 @section('main-section')
   <div class="container mt-5 mb-5">
@@ -13,7 +13,7 @@
 
                 <div class="mb-4">
                     <input type="text" name="otp" class="form-control mb-2" id="exampleInputOTP" aria-describedby="otpHelp" placeholder="Enter OTP">
-                    <p id="suc_msg" class="bg-success text-white" style="display: none;">OTP Sent Successfully.</p>
+                    <p id="suc_msg" class="bg-success text-white" style="display: none;">OTP sent successfully.</p>
                     <p id="err_msg" class="bg-danger text-white" style="display: none;">OTP Not Sent.</p>
                     @if(session('emailerror'))
                         <span class="text-danger" role="alert">
@@ -83,9 +83,9 @@
   @if(session()->has('nouser'))
   <script>
     Swal.fire({
-      icon: 'error',
-      title: 'Oops..',
-      text: 'No user found.'
+      icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+      title: 'Oops!',
+      text: 'No user account was found.'
     });
   </script>
   @endif

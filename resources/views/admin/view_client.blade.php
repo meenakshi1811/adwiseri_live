@@ -35,7 +35,7 @@
                             <label style="font-weight:550;">Phone Number</label>
                         </div>
                         <div class="col-6 p-2 border">
-                            {{ $client->phone }}
+                            @include('partials.phone_display', ['phone' => $client->phone])
                         </div>
                         <div class="col-6 p-2 border">
                             <label style="font-weight:550;">Email ID</label>
@@ -65,7 +65,7 @@
                             <label style="font-weight:550;">Alternate No.</label>
                         </div>
                         <div class="col-6 p-2 border">
-                            {{ $client->alternate_no }}
+                            @include('partials.phone_display', ['phone' => $client->alternate_no, 'emptyText' => '—'])
                         </div>
                         <div class="col-6 p-2 border">
                             <label style="font-weight:550;">Address</label>

@@ -1,4 +1,4 @@
-@extends('admin.layout.main')
+﻿@extends('admin.layout.main')
 
 @section('main-section')
 
@@ -86,7 +86,7 @@
                                 <label>Document Name<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="doc_name" minlength="3" maxlength="100" type="text" class="form-control @error('doc_name') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ $document->doc_name }}" required placeholder="Document Name" autocomplete="doc_name">
+                                <input name="doc_name" minlength="3" maxlength="100" type="text" class="form-control @error('doc_name') is-invalid @enderror" id="doc_name" aria-describedby="emailHelp" value="{{ $document->doc_name }}" required placeholder="Document Name" autocomplete="doc_name">
                             @error('doc_name')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -197,7 +197,7 @@
                                 <label>Document Name<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="doc_name" minlength="3" maxlength="100" type="text" class="form-control @error('doc_name') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('doc_name') }}" required placeholder="Document Name" autocomplete="doc_name">
+                                <input name="doc_name" minlength="3" maxlength="100" type="text" class="form-control @error('doc_name') is-invalid @enderror" id="doc_name" aria-describedby="emailHelp" value="{{ old('doc_name') }}" required placeholder="Document Name" autocomplete="doc_name">
                             @error('doc_name')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -267,15 +267,33 @@
                 }
             });
           });
+        var lastAutoDocName = @json(trim(old('doc_name', isset($document) ? ($document->doc_name ?? '') : '')));
+
+        function syncDocNameFromType(force) {
+            var type = ($('#doc_type').val() || '').trim();
+            if (type === '') return;
+
+            var $nameInput = $('#doc_name');
+            var currentName = ($nameInput.val() || '').trim();
+            if (force || currentName === '' || currentName === lastAutoDocName) {
+                $nameInput.val(type);
+                lastAutoDocName = type;
+            }
+        }
+
+        $('#doc_type').on('change', function () {
+            syncDocNameFromType(true);
+        });
+
         $(document).on('change', 'input[type=file]', function(){
           const file = this.files[0];
           var filepath = $(this).val();
           var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.pdf|\.JPG|\.JPEG|\.PNG|\.PDF)$/i;
           if (!allowedExtensions.exec(filepath)) {
               Swal.fire({
-                  title: "Oops..",
-                  icon:"info",
-                  html: "Please select valid file format <br>( jpg, jpeg, png or pdf )"
+                  title: "Oops!",
+                  icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                  html: "Please select a valid file format (jpg, jpeg, png, or pdf)."
               });
               $(this).val("");
               return false;
@@ -283,9 +301,9 @@
           const size = (this.files[0].size / 1024 / 1024).toFixed(2);
           if (size > 4) {
               Swal.fire({
-                  title: "Oops..",
-                  icon:"info",
-                  html: "Please select file upto 4MB"
+                  title: "Oops!",
+                  icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                  html: "Please select a file up to 4 MB."
               });
               $(this).val("");
               return false;
@@ -295,7 +313,7 @@
   </script>
   <script>
       function deleteuser(id){
-          var conf = confirm('Delete User');
+          var conf = confirm('Are you sure you want to delete this document?');
           if(conf == true){
               window.location.href = "delete_user/"+id+"";
           }
@@ -307,7 +325,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'Document deleted successfully.'
       })
     </script>
 

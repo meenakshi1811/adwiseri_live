@@ -35,6 +35,28 @@
     };
 @endphp
 
+<div class="mb-5">
+<h5 class="section-title">Lead Follow-up</h5>
+<div class="row g-3">
+<div class="col-md-3">
+<label class="field-label">Source</label>
+<div class="field-value">{{ $enquiry->lead_source ?? 'Walk-in' }}</div>
+</div>
+<div class="col-md-3">
+<label class="field-label">Follow-up Status</label>
+<div class="field-value">{{ $enquiry->lead_status ?? 'Open' }}</div>
+</div>
+<div class="col-md-3">
+<label class="field-label">Worked By</label>
+<div class="field-value">{{ optional($enquiry->workedByUser)->name ?? '-' }}</div>
+</div>
+<div class="col-md-3">
+<label class="field-label">Last Worked</label>
+<div class="field-value">{{ !empty($enquiry->lead_worked_at) ? \Carbon\Carbon::parse($enquiry->lead_worked_at)->format('d-m-Y H:i:s') : '-' }}</div>
+</div>
+</div>
+</div>
+
 
 {{-- PERSONAL DETAILS --}}
 
@@ -60,7 +82,7 @@
 
 <div class="col-md-4">
 <label class="field-label">Contact</label>
-<div class="field-value">{{ $enquiry->contact_no ?? '-' }}</div>
+<div class="field-value">@include('partials.phone_display', ['phone' => $enquiry->contact_no, 'emptyText' => '-'])</div>
 </div>
 
 <div class="col-md-4">

@@ -43,7 +43,7 @@
     </div>
 
     <footer style="text-align: center; background: #695EEE; margin: 20px 0px; color: white;">
-        <p style="text-align: center;">&copy; {{ date('Y') }} Adwiseri. All rights reserved. </p>
+        <p style="text-align: center;">&copy; {{ $copyrightYears }} Adwiseri. All rights reserved. </p>
     </footer>
 </body>
 

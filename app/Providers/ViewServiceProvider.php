@@ -2,19 +2,19 @@
 namespace App\Providers;
 
 use Illuminate\Support\Facades\View;
-use App\View\Composers\SettingViewComposer;
+use App\View\Composers\NotificationViewComposer;
 use Illuminate\Support\ServiceProvider;
 
 class ViewServiceProvider extends ServiceProvider
 {
     public function boot()
     {
-
-        // Attach the composer to multiple views using wildcards
-        View::composer(['web.layout.footer','admin.*'], SettingViewComposer::class);
-
-        // Or, attach to all views
-        // View::composer('*', SettingViewComposer::class);
+        View::composer([
+            'web.layout.footer',
+            'web.layout.auth_nav',
+            'affiliate.layout.auth_nav',
+            'admin.*',
+        ], NotificationViewComposer::class);
     }
 
     public function register()
@@ -22,3 +22,4 @@ class ViewServiceProvider extends ServiceProvider
         //
     }
 }
+

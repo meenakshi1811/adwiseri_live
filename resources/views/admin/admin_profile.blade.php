@@ -26,7 +26,7 @@
                                 <p style="font-weight:550;">Phone Number</p>
                             </div>
                             <div class="col-6">
-                                <p><span style="opacity: 0">a</span>{{ $user->phone }}</p>
+                                <p><span style="opacity: 0">a</span>@include('partials.phone_display', ['phone' => $user->phone])</p>
                             </div>
                             <div class="col-6">
                                 <p style="font-weight:550;">Email ID</p>
@@ -138,7 +138,7 @@
                             id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Name">
                     </div>
                     <div class="mb-4">
-                        <input name="phone" value="{{ $user->phone }}" required type="text" pattern="\d*" minlength="10" maxlength="10" class="form-control"
+                        <input name="phone" value="{{ \App\Support\PhoneNumber::displayE164($user->phone) }}" data-phone-e164="{{ \App\Support\PhoneNumber::displayE164($user->phone) }}" required type="tel" class="form-control"
                             id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Phone">
                     </div>
                     <div class="mb-4">
@@ -154,10 +154,12 @@
                         <select name="country" id="country" required class="form-select"
                             aria-label="Default select example">
                             <option selected value="">Country</option>
-                            @foreach ($countries as $country)
-                                <option {{ $user->country == $country->country_name ? 'selected' : '' }}
-                                    value="{{ $country->id }}">{{ $country->country_name }}</option>
-                            @endforeach
+                            @include('partials.country_select_options', [
+                                'countries' => $countries,
+                                'phoneForPrefill' => $user->phone ?? null,
+                                'savedCountry' => $user->country ?? null,
+                                'savedIsCountryName' => true,
+                            ])
                         </select>
                     </div>
                     <div class="mb-4">
@@ -281,9 +283,9 @@
                 var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.JPG|\.JPEG|\.PNG)$/i;
                 if (!allowedExtensions.exec(filepath)) {
                     Swal.fire({
-                        title: "Oops..",
-                        icon:"info",
-                        html: "Please select valid file format <br>( jpg, jpeg, png )"
+                        title: "Oops!",
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        html: "Please select a valid file format.<br>(jpg, jpeg, png)"
                     });
                     $(this).val("");
                     return false;
@@ -291,9 +293,9 @@
                 const size = (this.files[0].size / 1024 / 1024).toFixed(2);
                 if (size > 4) {
                     Swal.fire({
-                        title: "Oops..",
-                        icon:"info",
-                        html: "Please select file upto 4MB"
+                        title: "Oops!",
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        html: "Please select a file up to 4 MB."
                     });
                     $(this).val("");
                     return false;
@@ -313,9 +315,9 @@
                 var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.JPG|\.JPEG|\.PNG)$/i;
                 if (!allowedExtensions.exec(filepath)) {
                     Swal.fire({
-                        title: "Oops..",
-                        icon: "info",
-                        html: "Please select valid file format <br>( jpg, jpeg, png )"
+                        title: "Oops!",
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        html: "Please select a valid file format.<br>(jpg, jpeg, png)"
                     });
                     $(this).val("");
                     return false;
@@ -323,9 +325,9 @@
                 const size = (this.files[0].size / 1024 / 1024).toFixed(2);
                 if (size > 4) {
                     Swal.fire({
-                        title: "Oops..",
-                        icon: "info",
-                        html: "Please select file upto 4MB"
+                        title: "Oops!",
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        html: "Please select a file up to 4 MB."
                     });
                     $(this).val("");
                     return false;
@@ -362,9 +364,9 @@
         <script>
             Swal.fire({
 
-                icon: 'error',
-                title: 'Oops...',
-                text: 'Please select valid Image!'
+                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                title: 'Oops!',
+                text: 'Please select a valid image.'
             })
         </script>
     @enderror

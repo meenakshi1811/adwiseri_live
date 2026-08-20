@@ -35,7 +35,7 @@
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:25px 0;">
             <tr>
                 <td style="padding-right:14px;">
-                    <a href="{{ $appointment->accept_url }}" style="background:#28a745;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block;">
+                    <a href="{{ $appointment->accept_url }}" style="background:#695EEE;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block;">
                         Accept Appointment
                     </a>
                 </td>

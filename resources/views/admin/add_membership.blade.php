@@ -198,7 +198,7 @@
     Swal.fire({
       icon: 'success',
       title: 'Congratulations',
-      text: 'Subscription Added Successfully.'
+      text: 'Subscription added successfully.'
     })
   </script>
 

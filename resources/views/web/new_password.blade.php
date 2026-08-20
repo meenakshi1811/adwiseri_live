@@ -1,4 +1,4 @@
-@extends('web.layout.main')
+﻿@extends('web.layout.main')
 
 @section('main-section')
   <div class="container mt-5 mb-5">
@@ -36,9 +36,9 @@
   @if(session()->has('nouser'))
   <script>
     Swal.fire({
-      icon: 'error',
-      title: 'Oops..',
-      text: 'No user found.'
+      icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+      title: 'Oops!',
+      text: 'No user account was found.'
     })
   </script>
   @endif

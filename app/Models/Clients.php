@@ -4,17 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Concerns\BelongsToCurrentSubscriber;
 
 class Clients extends Model
 {
-    use HasFactory, BelongsToCurrentSubscriber;
+    use HasFactory;
     protected $table = "clients";
     protected $primaryKey = "id";
 
     protected $fillable =[
         'nationality',
         'counntry',
+        'country',
         'name',
         'subscriber_id'
     ];

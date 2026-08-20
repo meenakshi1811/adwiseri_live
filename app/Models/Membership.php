@@ -17,6 +17,7 @@ class Membership extends Model
         'reports',
         'analytics',
         'no_of_users',
+        'no_of_associates',
         'no_of_branches',
         'price_per_year',
         'messaging',

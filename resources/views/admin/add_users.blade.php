@@ -30,7 +30,7 @@
                                 <label>Phone<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="phone" type="text" pattern="\d*" minlength="9" maxlength="12" class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ $siteuser->phone }}" required placeholder="Phone Number" autocomplete="phone">
+                                <input name="phone" type="tel" class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ \App\Support\PhoneNumber::displayE164($siteuser->phone) }}" data-phone-e164="{{ \App\Support\PhoneNumber::displayE164($siteuser->phone) }}" required placeholder="Phone Number" autocomplete="phone">
                                 @error('phone')
                                     <span class="invalid-feedback" role="alert">
                                         <strong>{{ $message }}</strong>
@@ -87,9 +87,12 @@
                             <div class="col-md-8 p-1">
                                 <select name="country" id="country" class="form-control form-select @error('country') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
                                     <option value="">Select Country</option>
-                                    @foreach($countries as $country)
-                                    <option {{ ($siteuser->country == $country->country_name) ? 'selected' : '' }} value="{{ $country->id }}">{{ $country->country_name }}</option>
-                                    @endforeach
+                                    @include('partials.country_select_options', [
+                                        'countries' => $countries,
+                                        'phoneForPrefill' => $siteuser->phone ?? null,
+                                        'savedCountry' => $siteuser->country ?? null,
+                                        'savedIsCountryName' => true,
+                                    ])
                                 </select>
                                 @error('country')
                                     <span class="invalid-feedback" role="alert">
@@ -202,7 +205,7 @@
                                 <label>Phone<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="phone" type="text" pattern="\d*" minlength="9" maxlength="12" class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('phone') }}" required placeholder="Phone Number" autocomplete="phone">
+                                <input name="phone" type="tel" class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('phone') }}" required placeholder="Phone Number" autocomplete="phone">
                                 @error('phone')
                                     <span class="invalid-feedback" role="alert">
                                         <strong>{{ $message }}</strong>
@@ -270,9 +273,10 @@
                             <div class="col-md-8 p-1">
                                 <select name="country" id="country" class="form-control form-select @error('country') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
                                     <option value="">Select Country</option>
-                                    @foreach($countries as $country)
-                                    <option {{ (old('country') == $country->id) ? 'selected':'' }} value="{{ $country->id }}">{{ $country->country_name }}</option>
-                                    @endforeach
+                                    @include('partials.country_select_options', [
+                                        'countries' => $countries,
+                                        'phoneForPrefill' => old('phone'),
+                                    ])
                                 </select>
                                 @error('country')
                                     <span class="invalid-feedback" role="alert">
@@ -369,7 +373,7 @@
     // Get the date of birth value
     const dob = $('input[name="dob"]').val();
     if (!dob) {
-        alert('Please select your Date of Birth.');
+        AdwiseriAlert.oops('Please select your date of birth.');
         return; // Exit if DOB is not provided
     }
 
@@ -387,7 +391,7 @@
     // Check if the user is at least 18 years old
     if (age < 18) {
         Swal.fire({
-            icon: 'warning', // Warning icon
+            icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' }, // Warning icon
             title: 'Oops!',
             text: 'User (staff member) seems to be younger than 18. Do you want to proceed?',
             showCancelButton: true,
@@ -423,8 +427,8 @@
             //   console.log(data);
                 if(data.limit == 'full'){
                     Swal.fire({
-                        icon: 'warning',
-                        title: 'Oops..',
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        title: 'Oops!',
                         text: 'User limit reached for this Subscriber!'
                       });
                       setTimeout(function(){
@@ -495,7 +499,7 @@
   </script>
   <script>
       function deleteuser(id){
-          var conf = confirm('Delete User');
+          var conf = confirm('Are you sure you want to delete this user?');
           if(conf == true){
               window.location.href = "delete_user/"+id+"";
           }
@@ -507,7 +511,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'User deleted successfully.'
       })
     </script>
 

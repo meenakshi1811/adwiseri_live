@@ -34,9 +34,9 @@
                                 <label>Phone<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="phone" type="text" pattern="\d*" minlength="9" maxlength="12"
+                                <input name="phone" type="tel"
                                     class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1"
-                                    aria-describedby="emailHelp" value="{{ $client->phone }}" required
+                                    aria-describedby="emailHelp" value="{{ \App\Support\PhoneNumber::displayE164($client->phone) }}" data-phone-e164="{{ \App\Support\PhoneNumber::displayE164($client->phone) }}" required
                                     placeholder="Phone Number" autocomplete="phone">
                                 @error('phone')
                                     <span class="invalid-feedback" role="alert">
@@ -48,9 +48,9 @@
                                 <label>Alternate No.</label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input name="alternate_no" type="text" pattern="\d*" minlength="9" maxlength="12"
+                                <input name="alternate_no" type="tel"
                                     class="form-control @error('alternate_no') is-invalid @enderror" id="exampleInputEmail1"
-                                    aria-describedby="emailHelp" value="{{ $client->alternate_no }}"
+                                    aria-describedby="emailHelp" value="{{ \App\Support\PhoneNumber::displayE164($client->alternate_no) }}" data-phone-e164="{{ \App\Support\PhoneNumber::displayE164($client->alternate_no) }}"
                                     placeholder="Alternate Number" autocomplete="alternate_no">
                                 @error('alternate_no')
                                     <span class="invalid-feedback" role="alert">
@@ -119,10 +119,12 @@
                                     class="form-control form-select @error('country') is-invalid @enderror"
                                     id="exampleInputEmail1" aria-describedby="emailHelp" required>
                                     <option value="">Select Country</option>
-                                    @foreach ($countries as $country)
-                                        <option {{ $client->country == $country->country_name ? 'selected' : '' }}
-                                            value="{{ $country->id }}">{{ $country->country_name }}</option>
-                                    @endforeach
+                                    @include('partials.country_select_options', [
+                                        'countries' => $countries,
+                                        'phoneForPrefill' => $client->phone ?? null,
+                                        'savedCountry' => $client->country ?? null,
+                                        'savedIsCountryName' => true,
+                                    ])
                                 </select>
                                 @error('country')
                                     <span class="invalid-feedback" role="alert">
@@ -251,7 +253,7 @@
                                 <div class="mb-3">
                                     <label for="phone" class="form-label">Phone<span
                                             class="text-danger">*</span></label>
-                                    <input name="phone" type="text" pattern="\d*" minlength="9" maxlength="12"
+                                    <input name="phone" type="tel"
                                         class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1"
                                         aria-describedby="emailHelp" value="{{ old('phone') }}" required
                                         placeholder="Phone Number" autocomplete="phone">
@@ -290,11 +292,10 @@
                                         class="form-control form-select @error('country') is-invalid @enderror"
                                         id="exampleInputEmail1" aria-describedby="emailHelp" required>
                                         <option value="">Select Country</option>
-                                        @foreach ($countries as $country)
-                                            <option {{ old('country') == $country->id ? 'selected' : '' }}
-                                                value="{{ $country->id }}">{{ $country->country_name }}
-                                            </option>
-                                        @endforeach
+                                        @include('partials.country_select_options', [
+                                            'countries' => $countries,
+                                            'phoneForPrefill' => old('phone'),
+                                        ])
                                     </select>
                                     @error('country')
                                         <span class="invalid-feedback" role="alert">
@@ -453,7 +454,7 @@
                             <div class="col-md-3">
                                 <div class="mb-3">
                                     <label>Alternate No.</label>
-                                    <input name="alternate_no" type="text" pattern="\d*" minlength="9"
+                                    <input name="alternate_no" type="tel"
                                         maxlength="12" class="form-control @error('alternate_no') is-invalid @enderror"
                                         id="exampleInputEmail1" aria-describedby="emailHelp"
                                         value="{{ old('alternate_no') }}" placeholder="Alternate Number"
@@ -518,7 +519,7 @@
                                         id="app_start_date"
                                         onchange="document.getElementById('app_end_date').setAttribute('min',this.value);"
                                         aria-describedby="emailHelp" value="{{ old('job_open_date') }}" required
-                                        placeholder="Applicaiton Start Date" autocomplete="job_open_date">
+                                        placeholder="Application Start Date" autocomplete="job_open_date">
                                     @error('job_open_date')
                                         <span class="invalid-feedback" role="alert">
                                             <strong>{{ $message }}</strong>
@@ -538,16 +539,10 @@
                                         value="{{ old('job_status') }}" required>
                                         <option value="">Select Application Status
                                         </option>
-                                        <option {{ old('job_status') == 'Registration' ? 'selected' : '' }} value="Registration">
-                                            Registration</option>
+                                        <option {{ old('job_status', 'Client Registered') == 'Client Registered' ? 'selected' : '' }} value="Client Registered">
+                                            Client Registered</option>
                                         <option {{ old('job_status') == 'Applied' ? 'selected' : '' }} value="Applied">
                                             Applied</option>
-                                        <option {{ old('job_status') == 'Pending' ? 'selected' : '' }} value="Pending">
-                                            Pending</option>
-                                        <option {{ old('job_status') == 'In Process' ? 'selected' : '' }}
-                                            value="In Process">In Process</option>
-                                        <option {{ old('job_status') == 'Complete' ? 'selected' : '' }} value="Complete">
-                                            Complete</option>
                                         <option {{ old('job_status') == 'Cancelled' ? 'selected' : '' }}
                                             value="Cancelled">Cancelled</option>
                                         <option {{ old('job_status') == 'Withdrawn' ? 'selected' : '' }}
@@ -610,7 +605,7 @@
                 // Get the date of birth value
                 const dob = $('input[name="dob"]').val();
                 if (!dob) {
-                    alert('Please select your Date of Birth.');
+                    AdwiseriAlert.oops('Please select your date of birth.');
                     return; // Exit if DOB is not provided
                 }
 
@@ -628,9 +623,9 @@
                 // Check if the user is at least 18 years old
                 if (age < 18) {
                     Swal.fire({
-                        icon: 'warning', // Warning icon
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' }, // Warning icon
                         title: 'Oops!',
-                        text: 'Client seems to be younger than 18. Do you want to proceed?',
+                        text: 'This client appears to be under 18. Do you want to proceed?',
                         showCancelButton: true,
                         confirmButtonText: 'Yes, proceed',
                         cancelButtonText: 'No, cancel'
@@ -664,9 +659,9 @@
                         //   console.log(data);
                         if (data.limit == 'full') {
                             Swal.fire({
-                                icon: 'warning',
-                                title: 'Oops..',
-                                text: 'Client limit reached for this Subscriber!'
+                                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                                title: 'Oops!',
+                                text: 'Client limit reached for this subscriber.'
                             });
                             setTimeout(function() {
                                 window.location.reload();
@@ -715,7 +710,7 @@
     </script>
     <script>
         function deleteuser(id) {
-            var conf = confirm('Delete User');
+            var conf = confirm('Are you sure you want to delete this client?');
             if (conf == true) {
                 window.location.href = "delete_user/" + id + "";
             }
@@ -727,7 +722,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'User Deleted Successfully!'
+                text: 'Client deleted successfully.'
             })
         </script>
     @endif

@@ -38,7 +38,7 @@
                     @if(isset($data->message))
                         <p style="margin:0 0 6px 0;"><strong>Name:</strong> {{ $data->name }}</p>
                         <p style="margin:0 0 6px 0;"><strong>Email:</strong> {{ $data->email }}</p>
-                        <p style="margin:0 0 6px 0;"><strong>Phone:</strong> {{ $data->phone }}</p>
+                        <p style="margin:0 0 6px 0;"><strong>Phone:</strong> {{ \App\Support\PhoneNumber::displayE164($data->phone) }}</p>
                         <p style="margin:0 0 6px 0;"><strong>Country:</strong> {{ $data->country }}</p>
                         <p style="margin:0 0 12px 0;"><strong>City:</strong> {{ $data->city }}</p>
                         <p style="margin:0;"><strong>Message:</strong> {{ $data->message }}</p>
@@ -51,7 +51,7 @@
             </div>
 
             <div style="text-align:center;background:#695EEE;padding:20px 15px;color:#ffffff;">
-                <p style="margin:0 0 8px 0;">&copy; {{ date('Y') }} adwiseri. All rights reserved.</p>
+                <p style="margin:0 0 8px 0;">&copy; {{ $copyrightYears }} adwiseri. All rights reserved.</p>
                 <p style="margin:0;">
                     <a style="color:#ffffff;" href="https://adwiseri.com/terms_of_use">Terms of Use</a> |
                     <a style="color:#ffffff;" href="https://adwiseri.com/privacy_policy">Privacy Policy</a> |

@@ -1,0 +1,62 @@
+[11-Aug-2026 14:54:03 UTC] PHP Fatal error:  Uncaught Error: Undefined constant Symfony\Component\HttpFoundation\Response::HTTP_PAGE_EXPIRED in /home/adwiseri/public_html/app/Exceptions/Handler.php:202
+Stack trace:
+#0 /home/adwiseri/public_html/app/Exceptions/Handler.php(163): App\Exceptions\Handler->maskedClientMessage(500)
+#1 /home/adwiseri/public_html/app/Exceptions/Handler.php(99): App\Exceptions\Handler->resolveErrorMessage(Object(Illuminate\Contracts\Container\BindingResolutionException), 500, Object(Illuminate\Http\Request))
+#2 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/HandleExceptions.php(196): App\Exceptions\Handler->render(Object(Illuminate\Http\Request), Object(Illuminate\Contracts\Container\BindingResolutionException))
+#3 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/HandleExceptions.php(173): Illuminate\Foundation\Bootstrap\HandleExceptions->renderHttpResponse(Object(Illuminate\Contracts\Container\BindingResolutionException))
+#4 [internal function]: Illuminate\Foundation\Bootstrap\HandleExceptions->handleException(Object(Illuminate\Contracts\Container\BindingResolutionException))
+#5 {main}
+  thrown in /home/adwiseri/public_html/app/Exceptions/Handler.php on line 202
+[11-Aug-2026 14:55:02 UTC] PHP Fatal error:  Uncaught Error: Undefined constant Symfony\Component\HttpFoundation\Response::HTTP_PAGE_EXPIRED in /home/adwiseri/public_html/app/Exceptions/Handler.php:202
+Stack trace:
+#0 /home/adwiseri/public_html/app/Exceptions/Handler.php(163): App\Exceptions\Handler->maskedClientMessage(500)
+#1 /home/adwiseri/public_html/app/Exceptions/Handler.php(99): App\Exceptions\Handler->resolveErrorMessage(Object(Illuminate\Contracts\Container\BindingResolutionException), 500, Object(Illuminate\Http\Request))
+#2 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/HandleExceptions.php(196): App\Exceptions\Handler->render(Object(Illuminate\Http\Request), Object(Illuminate\Contracts\Container\BindingResolutionException))
+#3 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/HandleExceptions.php(173): Illuminate\Foundation\Bootstrap\HandleExceptions->renderHttpResponse(Object(Illuminate\Contracts\Container\BindingResolutionException))
+#4 [internal function]: Illuminate\Foundation\Bootstrap\HandleExceptions->handleException(Object(Illuminate\Contracts\Container\BindingResolutionException))
+#5 {main}
+  thrown in /home/adwiseri/public_html/app/Exceptions/Handler.php on line 202
+[11-Aug-2026 14:56:03 UTC] PHP Fatal error:  Uncaught Error: Undefined constant Symfony\Component\HttpFoundation\Response::HTTP_PAGE_EXPIRED in /home/adwiseri/public_html/app/Exceptions/Handler.php:202
+Stack trace:
+#0 /home/adwiseri/public_html/app/Exceptions/Handler.php(163): App\Exceptions\Handler->maskedClientMessage(500)
+#1 /home/adwiseri/public_html/app/Exceptions/Handler.php(99): App\Exceptions\Handler->resolveErrorMessage(Object(Illuminate\Contracts\Container\BindingResolutionException), 500, Object(Illuminate\Http\Request))
+#2 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/HandleExceptions.php(196): App\Exceptions\Handler->render(Object(Illuminate\Http\Request), Object(Illuminate\Contracts\Container\BindingResolutionException))
+#3 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/HandleExceptions.php(173): Illuminate\Foundation\Bootstrap\HandleExceptions->renderHttpResponse(Object(Illuminate\Contracts\Container\BindingResolutionException))
+#4 [internal function]: Illuminate\Foundation\Bootstrap\HandleExceptions->handleException(Object(Illuminate\Contracts\Container\BindingResolutionException))
+#5 {main}
+  thrown in /home/adwiseri/public_html/app/Exceptions/Handler.php on line 202
+[13-Aug-2026 16:10:02 UTC] PHP Fatal error:  Uncaught ReflectionException: Class "request" does not exist in /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Container/Container.php:877
+Stack trace:
+#0 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Container/Container.php(877): ReflectionClass->__construct('request')
+#1 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Container/Container.php(758): Illuminate\Container\Container->build('request')
+#2 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(853): Illuminate\Container\Container->resolve('request', Array, true)
+#3 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Container/Container.php(694): Illuminate\Foundation\Application->resolve('request', Array)
+#4 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(838): Illuminate\Container\Container->make('request', Array)
+#5 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/helpers.php(119): Illuminate\Foundation\Application->make('request', Array)
+#6 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/helpers.php(644): app('request')
+#7 /home/adwiseri/public_html/app/Exceptions/Handler.php(49): request()
+#8 [internal function]: App\Exceptions\Handler->App\Exceptions\{closure}(Object(Symfony\Component\Finder\Exception\DirectoryNotFoundException))
+#9 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Exceptions/ReportableHandler.php(45): call_user_func(Object(Closure), Object(Symfony\Component\Finder\Exception\DirectoryNotFoundException))
+#10 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Exceptions/Handler.php(235): Illuminate\Foundation\Exceptions\ReportableHandler->__invoke(Object(Symfony\Component\Finder\Exception\DirectoryNotFoundException))
+#11 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(366): Illuminate\Foundation\Exceptions\Handler->report(Object(Symfony\Component\Finder\Exception\DirectoryNotFoundException))
+#12 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(131): Illuminate\Foundation\Console\Kernel->reportException(Object(Symfony\Component\Finder\Exception\DirectoryNotFoundException))
+#13 /home/adwiseri/public_html/artisan(35): Illuminate\Foundation\Console\Kernel->handle(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+#14 {main}
+
+Next Illuminate\Contracts\Container\BindingResolutionException: Target class [request] does not exist. in /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Container/Container.php:879
+Stack trace:
+#0 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Container/Container.php(758): Illuminate\Container\Container->build('request')
+#1 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(853): Illuminate\Container\Container->resolve('request', Array, true)
+#2 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Container/Container.php(694): Illuminate\Foundation\Application->resolve('request', Array)
+#3 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(838): Illuminate\Container\Container->make('request', Array)
+#4 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/helpers.php(119): Illuminate\Foundation\Application->make('request', Array)
+#5 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/helpers.php(644): app('request')
+#6 /home/adwiseri/public_html/app/Exceptions/Handler.php(49): request()
+#7 [internal function]: App\Exceptions\Handler->App\Exceptions\{closure}(Object(Symfony\Component\Finder\Exception\DirectoryNotFoundException))
+#8 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Exceptions/ReportableHandler.php(45): call_user_func(Object(Closure), Object(Symfony\Component\Finder\Exception\DirectoryNotFoundException))
+#9 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Exceptions/Handler.php(235): Illuminate\Foundation\Exceptions\ReportableHandler->__invoke(Object(Symfony\Component\Finder\Exception\DirectoryNotFoundException))
+#10 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(366): Illuminate\Foundation\Exceptions\Handler->report(Object(Symfony\Component\Finder\Exception\DirectoryNotFoundException))
+#11 /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(131): Illuminate\Foundation\Console\Kernel->reportException(Object(Symfony\Component\Finder\Exception\DirectoryNotFoundException))
+#12 /home/adwiseri/public_html/artisan(35): Illuminate\Foundation\Console\Kernel->handle(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+#13 {main}
+  thrown in /home/adwiseri/public_html/vendor/laravel/framework/src/Illuminate/Container/Container.php on line 879

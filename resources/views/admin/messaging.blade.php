@@ -2,332 +2,383 @@
 
 @section('main-section')
 
+@push('css')
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
-  .dropdown-menu{
-    height:auto;
-    max-height:150px;
-    overflow:auto;
+  #message_form {
+    border: none;
+    padding: 0.75rem;
+  }
+  #message_form .msg-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 0.85rem;
+  }
+  #message_form .msg-row.admin-recipient-group {
+    display: none;
+  }
+  #message_form .msg-row.admin-recipient-group.is-visible {
+    display: flex;
+  }
+  #message_form .msg-label {
+    flex: 0 0 50%;
+    max-width: 50%;
+    padding-right: 0.75rem;
+  }
+  #message_form .msg-label h6 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  #message_form .msg-field {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+  #message_form .form-select,
+  #message_form .form-control,
+  #message_form textarea.form-control {
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    min-height: 38px;
+    font-size: 0.95rem;
+  }
+  #message_form .select2-container {
+    width: 100% !important;
+  }
+  #message_form .select2-container--default .select2-selection--multiple {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    min-height: 38px;
+    max-height: 110px;
+    overflow-y: auto;
+    padding: 4px 28px 4px 8px;
+    background-color: #fff;
+    position: relative;
+  }
+  #message_form .select2-container--default.select2-container--focus .select2-selection--multiple,
+  #message_form .form-select:focus,
+  #message_form .form-control:focus {
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  }
+  #message_form .select2-container--default .select2-selection--multiple .select2-selection__rendered {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 0;
+    max-height: 100px;
+    overflow-y: auto;
+  }
+  #message_form .select2-container--default .select2-selection--multiple .select2-selection__clear {
+    position: absolute;
+    right: 8px;
+    top: 6px;
+    margin: 0;
+    z-index: 2;
+    font-size: 1rem;
+    line-height: 1;
+  }
+  #message_form .select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #695EEE;
+    border: 1px solid #695EEE;
+    color: #fff;
+    border-radius: 0.25rem;
+    padding: 2px 8px 2px 4px;
+    margin: 0;
+    float: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1.35;
+    max-width: 100%;
+  }
+  #message_form .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    color: #fff !important;
+    margin: 0 6px 0 0;
+    border: none !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.4) !important;
+    border-radius: 0 !important;
+    padding: 0 6px 0 2px !important;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+    background: transparent !important;
+    flex-shrink: 0;
+  }
+  #message_form .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+    color: #f8f9fa !important;
+    background: transparent !important;
+  }
+  #message_form .select2-container--default .select2-selection--multiple .select2-selection__choice__display {
+    padding: 0;
+    cursor: default;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #message_form .select2-container--default .select2-search--inline .select2-search__field {
+    margin-top: 3px;
+    height: 24px;
+    font-family: 'Lato', sans-serif !important;
+  }
+  #message_form .select2-dropdown {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+  }
+  #message_form .select2-results__option--highlighted[aria-selected] {
+    background-color: #695EEE;
+  }
+  #message_form .select2-results__option[aria-selected="true"] {
+    background-color: #ecebff;
+  }
+  @media (max-width: 767.98px) {
+    #message_form .msg-label,
+    #message_form .msg-field {
+      flex: 0 0 100%;
+      max-width: 100%;
+      padding-right: 0;
+    }
+    #message_form .msg-label {
+      margin-bottom: 0.35rem;
+    }
   }
 </style>
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-
-
+@endpush
 
         <div class="col-lg-10 column-client">
             <div class="client-dashboard">
                 <div class="client-btn d-flex mb-2 ">
-                    {{-- <form class="form-inline d-flex justify-content-between w-100"> --}}
-                        {{-- <h3 class="text-primary">Messaging</h3> --}}
                         <h3 class="text-primary text-center flex-grow-1 text-center m-0">Messaging</h3>
-                    {{-- </form> --}}
                 </div>
-                <div class="row m-0 pb-2">
-                    <div class="col-4 border p-1 text-center bg-info text-white top_modules tab-anchor">
-                        Messaging
-                      </div>
-
-                  <div class="col-4 border p-1 text-center top_modules tab-anchor" style="cursor: pointer;" onclick="window.location.href = '{{ route('meetings') }}';">
-                    Meeting Notes (Clients)
-                  </div>
-                  <div class="col-4 border p-1 text-center top_modules tab-anchor" style="cursor: pointer;" onclick="window.location.href = '{{ route('communication') }}';">
-                  Communications
-                  </div>
-
-                </div>
+                @include('partials.admin_communication_tabs', ['activeTab' => 'messaging'])
 
                 <div class="col mt-3 p-2" style="border: 2px solid lightgrey; border-radius:7px;">
                   <h4 class="text-center pb-3">Send Message</h4>
-                  <form id="message_form" class="form-control" method="POST" action="{{route('admin_communicate')}}" >
+                  <form id="message_form" class="form-control" method="POST" action="{{ route('admin_communicate') }}">
                       @csrf
                       <input type="hidden" name="local_time" class="localtime" />
 
-                      <div class="row">
-                        <div class="col-md-6 p-1 d-flex align-items-center">
+                      <div class="msg-row">
+                        <div class="msg-label">
                             <h6>Send To</h6>
                         </div>
-                        <div class="col-md-6 p-1">
+                        <div class="msg-field">
                           <select class="form-select" id="receiver" name="receiver" required>
                             <option value="">Select Recipient(s)</option>
-                            {{-- <option value="All">All Subscribers & Users</option> --}}
-                            <option value="Subscribers">Subscribers</option>
-                            <option value="Users">Staff(Users)</option>
+                            <option value="Subscribers" {{ old('receiver') === 'Subscribers' ? 'selected' : '' }}>Subscribers</option>
+                            <option value="Users" {{ old('receiver') === 'Users' ? 'selected' : '' }}>Staff (Users)</option>
                           </select>
                             @error('sendto')
-                            <span class="text-danger">{{$message}}</span>
+                            <span class="text-danger">{{ $message }}</span>
                             @enderror
-                            {{-- <input class="form-control" minlength="3" maxlength="200" type="text" name="message" placeholder="Type Message" required /> --}}
                         </div>
-                        <div class="col-md-6 p-1 mt-3 align-items-center subscribers-row" id="next_col" style="display:none;" >
+                      </div>
+
+                      <div class="msg-row admin-recipient-group subscribers-group">
+                        <div class="msg-label">
+                            <h6>Select Subscriber(s)</h6>
                         </div>
-                        <div class="col-md-6 p-1 mt-3  dropdown_box subscribers-row"  style="display: none;">
-                            {{-- <select id="subscribersId" name="sendto[]" class="form-control" multiple>
-                                <option value="All Subscribers" {{ in_array('All Subscribers', old('sendto', [])) ? 'selected' : '' }}>All Subscribers
-                                </option>
-                                @foreach ($subscribers as $subscriber)
-                                    <option value="{{ $subscriber->id }}"
-                                        {{ in_array($subscriber->id, old('sendto', [])) ? 'selected' : '' }}>
-                                        {{ $subscriber->name }}
-                                    </option>
-                                @endforeach
-                            </select> --}}
-                            <!-- <div class="dropdown">
-                                <div class="form-control dropdown-toggle" data-bs-toggle="dropdown">
-                                    All Subscribers
-                                </div>
-                                <div class="dropdown-menu form-control">
-                                  <div class="dropdown-item" style="width: 100%;"><input type="checkbox" name="sendto[]" value="All Subscribers" /> All Subscribers</div>
-
-                                  @if($subscribers)
-                                  @foreach($subscribers as $suser)
-                                  <div class="dropdown-item" style="width: 100%;"><input type="checkbox" name="sendto[]" value="{{$suser->id}}" /> {{$suser->name}}</div>
-                                  @endforeach
-                                  @endif
-                                </div>
-                              </div> -->
-                              <div class="dropdown">
-                                <div class="form-control dropdown-toggle" data-bs-toggle="dropdown">
-                                    All Subscribers
-                                </div>
-                                <div class="dropdown-menu form-control">
-                                    <div class="dropdown-item" style="width: 100%;">
-                                        <input type="checkbox" id="selectAllSubscribers" /> All Subscribers
-                                    </div>
-
-                                    @if($subscribers)
-                                    @foreach($subscribers as $suser)
-                                    <div class="dropdown-item" style="width: 100%;">
-                                        <input type="checkbox" class="subscriberCheckbox" name="sendto[]" value="{{ $suser->id }}" /> {{ $suser->name }}
-                                    </div>
-                                    @endforeach
-                                    @endif
-                                </div>
-                            </div>
-
-
-                        </div>
-                        <div class="col-md-6 p-1 mt-3 align-items-center user-row" id="next_col"  style="display: none;">
-                        </div>
-                        <div class="col-md-6 p-1 mt-3 dropdown_box user-row" id="users" style="display: none;">
-                            {{-- <select id="userId" name="sendto[]" class="form-control" multiple>
-                                <option value="All Users" {{ in_array('All Users', old('sendto', [])) ? 'selected' : '' }}>All Users
-                                </option>
-                                @foreach ($users as $usrs)
-                                    <option value="{{ $usrs->id }}"
-                                        {{ in_array($usrs->id, old('sendto', [])) ? 'selected' : '' }}>
-                                        {{ $usrs->name }}
-                                    </option>
-                                @endforeach
-                            </select> --}}
-                          <div class="dropdown">
-                            <div class="form-control dropdown-toggle" data-bs-toggle="dropdown">
-                              Select User/s
-                            </div>
-                            <!-- <div class="dropdown-menu form-control">
-                              @if($users)
-                              <div class="dropdown-item" style="width: 100%;position:relative;"><input type="checkbox" class="users" name="sendto[]" value="All Users" /> All User</div>
-                              @foreach($users as $usrs)
-                              <div class="dropdown-item" style="width: 100%;position:relative;"><input type="checkbox" class="users" name="sendto[]" value="{{$usrs->id}}" /> {{$usrs->name}}</div>
-                              @endforeach
-                              @endif
-                            </div> -->
-                            <div class="dropdown-menu form-control">
-                                @if($users)
-                                <div class="dropdown-item" style="width: 100%;position:relative;">
-                                    <input type="checkbox" id="selectAllUsers" class="users" value="All Users" /> All User
-                                </div>
-                                @foreach($users as $usrs)
-                                <div class="dropdown-item" style="width: 100%;position:relative;">
-                                    <input type="checkbox" class="users userCheckbox" name="sendto[]" value="{{ $usrs->id }}" /> {{ $usrs->name }}
-                                </div>
+                        <div class="msg-field">
+                            <select id="subscribersId" name="sendto[]" class="form-select select2-recipients" multiple data-placeholder="Select Subscriber(s)" disabled>
+                                <option value="__all__">All Subscribers</option>
+                                @if($subscribers)
+                                @foreach($subscribers as $suser)
+                                <option value="{{ $suser->id }}">{{ $suser->name }} ({{ $suser->id }})</option>
                                 @endforeach
                                 @endif
-                            </div>
-
-                          </div>
+                            </select>
                         </div>
-                        <div class="col-md-6 p-1 d-flex align-items-center">
+                      </div>
+
+                      <div class="msg-row admin-recipient-group users-group">
+                        <div class="msg-label">
+                            <h6>Select User(s)</h6>
+                        </div>
+                        <div class="msg-field">
+                            <select id="userId" name="sendto[]" class="form-select select2-recipients" multiple data-placeholder="Select User(s)" disabled>
+                                <option value="__all__">All Users</option>
+                                @if($users)
+                                @foreach($users as $usrs)
+                                @php
+                                    $parentSubscriber = isset($subscriberLookup) ? $subscriberLookup->get($usrs->added_by) : null;
+                                    $subscriberLabel = $parentSubscriber
+                                        ? $parentSubscriber->name . '(' . $parentSubscriber->id . ')'
+                                        : 'N/A';
+                                @endphp
+                                <option value="{{ $usrs->id }}">{{ $subscriberLabel }} - {{ $usrs->name }} ({{ $usrs->id }})</option>
+                                @endforeach
+                                @endif
+                            </select>
+                        </div>
+                      </div>
+
+                      <div class="msg-row" style="align-items: flex-start;">
+                        <div class="msg-label" style="padding-top: 0.5rem;">
                             <h6>Message</h6>
                         </div>
-                        <div class="col-md-6 p-1">
-                          <textarea rows="3" class="form-control" minlength="3" maxlength="250" pattern="[a-zA-Z0-9]+" required name="message" placeholder="Type Message"></textarea>
+                        <div class="msg-field">
+                          <textarea rows="3" class="form-control" minlength="3" maxlength="250" required name="message" placeholder="Type Message">{{ old('message') }}</textarea>
                             @error('message')
-                            <span class="text-danger">{{$message}}</span>
+                            <span class="text-danger">{{ $message }}</span>
                             @enderror
-                            {{-- <input class="form-control" minlength="3" maxlength="200" type="text" name="message" placeholder="Type Message" required /> --}}
                         </div>
-                        <div class="col-md-6 p-1">
+                      </div>
+
+                      <div class="msg-row">
+                        <div class="msg-label"></div>
+                        <div class="msg-field">
+                            <input class="btn btn-primary" type="submit" value="Send" />
                         </div>
-                          <div class="col-md-6 p-1">
-                              <input class="btn btn-primary" type="submit" value="Send" />
-                          </div>
                       </div>
                   </form>
               </div>
-
             </div>
         </div>
     </div>
-
   </div>
 
-
 @endsection()
+
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    $('#selectAllSubscribers').on('change', function () {
-        $('.subscriberCheckbox').prop('checked', this.checked);
-    });
-    // When 'All User' is clicked
-    $('#selectAllUsers').on('change', function () {
-        $('.userCheckbox').prop('checked', this.checked);
-    });
-      function deleteclient(id){
-          var conf = confirm('Delete Client');
-          if(conf == true){
-              window.location.href = "delete_clients/"+id+"";
-          }
-      }
-  </script>
-  {{-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script> --}}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const $subscribers = $('#subscribersId');
+    const $users = $('#userId');
+    const receiverSelect = document.getElementById('receiver');
+    const subscribersGroup = document.querySelector('.subscribers-group');
+    const usersGroup = document.querySelector('.users-group');
+    const allOptionValue = '__all__';
 
-  <script>
-      $(document).ready(function() {
-             $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
-                $('#subscribersId, #discount_type').select2('destroy').select2({});
-            });
+    function getAllOptionValues($el) {
+        const values = [];
+        $el.find('option').each(function () {
+            const val = $(this).val();
+            if (val && val !== allOptionValue) {
+                values.push(val);
+            }
+        });
+        return values;
+    }
 
-            $('#subscribersId').select2({
-                placeholder: "    Select Subscriber/s",
-                allowClear: true,
-                width: '100%'
-            });
-            $('#subscribersId').on('select2:select', function(e) {
-                let selectedValues = $(this).val();
+    function initSelect2($el) {
+        if ($el.hasClass('select2-hidden-accessible')) {
+            $el.select2('destroy');
+        }
+        $el.select2({
+            placeholder: $el.data('placeholder') || 'Select',
+            allowClear: true,
+            width: '100%',
+            closeOnSelect: false
+        });
+    }
 
-                // If "All" is selected
-                if (selectedValues.includes("All Subscribers")) {
-                    // Deselect all other options except "All"
-                    $(this).val(["All Subscribers"]).trigger('change');
-                }
-            });
+    function bindSelectAll($el) {
+        $el.off('select2:select.selectAll select2:unselect.selectAll');
 
-            $('#subscribersId').on('select2:unselect', function(e) {
-                // Allow other selections if "All" is unselected
-                if (!$(this).val().includes("All Subscribers")) {
-                    return;
-                }
+        $el.on('select2:select.selectAll', function (e) {
+            if (e.params.data.id === allOptionValue) {
+                $(this).val(getAllOptionValues($(this))).trigger('change');
+            }
+        });
 
-                // If "All" is unselected, deselect everything
+        $el.on('select2:unselect.selectAll', function (e) {
+            // If user clears one item after select-all, just leave remaining selections
+            if (e.params && e.params.data && e.params.data.id === allOptionValue) {
                 $(this).val(null).trigger('change');
+            }
+        });
+    }
+
+    function setGroupVisibility(type) {
+        if (subscribersGroup) {
+            subscribersGroup.classList.toggle('is-visible', type === 'Subscribers');
+        }
+        if (usersGroup) {
+            usersGroup.classList.toggle('is-visible', type === 'Users');
+        }
+
+        $subscribers.prop('disabled', type !== 'Subscribers');
+        $users.prop('disabled', type !== 'Users');
+
+        if (type === 'Subscribers') {
+            initSelect2($subscribers);
+            bindSelectAll($subscribers);
+        } else if (type === 'Users') {
+            initSelect2($users);
+            bindSelectAll($users);
+        }
+    }
+
+    function clearRecipientSelects() {
+        if ($subscribers.hasClass('select2-hidden-accessible')) {
+            $subscribers.val(null).trigger('change');
+        }
+        if ($users.hasClass('select2-hidden-accessible')) {
+            $users.val(null).trigger('change');
+        }
+    }
+
+    if (receiverSelect) {
+        $(receiverSelect).on('change', function () {
+            clearRecipientSelects();
+            setGroupVisibility(this.value);
+        });
+        setGroupVisibility(receiverSelect.value);
+    }
+
+    $('#message_form').on('submit', function (e) {
+        const type = receiverSelect ? receiverSelect.value : '';
+        let $active = null;
+
+        if (type === 'Subscribers') {
+            $active = $subscribers;
+        } else if (type === 'Users') {
+            $active = $users;
+        }
+
+        let selected = $active ? ($active.val() || []) : [];
+        selected = selected.filter(function (val) {
+            return val !== allOptionValue;
+        });
+
+        if ($active) {
+            $active.val(selected);
+        }
+
+        if (!selected.length) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'No recipients selected',
+                text: 'Please choose at least one subscriber or user.'
             });
-            $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
-                $('#userId, #discount_type').select2('destroy').select2({});
-            });
-
-            $('#userId').select2({
-                placeholder: "All Users",
-                allowClear: true,
-                width: '100%'
-            });
-            $('#userId').on('select2:select', function(e) {
-                let selectedValues = $(this).val();
-
-                // If "All" is selected
-                if (selectedValues.includes("All Users")) {
-                    // Deselect all other options except "All"
-                    $(this).val(["All Users"]).trigger('change');
-                }
-            });
-
-            $('#userId').on('select2:unselect', function(e) {
-                // Allow other selections if "All" is unselected
-                if (!$(this).val().includes("All Users")) {
-                    return;
-                }
-
-                // If "All" is unselected, deselect everything
-                $(this).val(null).trigger('change');
-            });
-
-
-    $(document).on('change', '#receiver', function(e) {
-        var receiver = $(this).val();
-        console.log(receiver); // Debugging log
-
-        if (receiver === "All") {
-            $('#next_col').css('display', 'flex');
-            $("#all").css('display', 'block');
-            $(".subscribers-row").css('display', 'none');
-            $("#user-row").css('display', 'none');
-            $(".subscribers").prop('checked', false); // Uncheck all checkboxes
-            $(".users").prop('checked', false);
-        } else if (receiver === "Subscribers") {
-            console.log('Subscribers selected'); // Debugging log
-            $('#next_col').css('display', 'flex');
-            $("#all").css('display', 'none');
-            $(".subscribers-row").css('display', 'block');
-            $("#user-row").css('display', 'none');
-            $(".all").prop('checked', false);
-            $(".users").prop('checked', false);
-        } else if (receiver === "Users") {
-            console.log('Users selected'); // Debugging log
-            $('#next_col').css('display', 'flex');
-            $("#all").css('display', 'none');
-            $(".subscribers-row").css('display', 'none');
-            $(".user-row").css('display', 'block');
-            $(".all").prop('checked', false);
-            $(".subscribers").prop('checked', false);
-        } else {
-            console.log('None selected'); // Debugging log
-            $('#next_col').css('display', 'none');
-            $("#all").css('display', 'none');
-            $(".subscribers-row").css('display', 'none');
-            $(".user-row").css('display', 'none');
-            $(".all").prop('checked', false);
-            $(".subscribers").prop('checked', false);
-            $(".users").prop('checked', false);
         }
     });
-
-
 });
-
-    </script>
-      @if (session()->has('sent'))
-      <script>
-          Swal.fire({
-              icon: 'success',
-              title: 'Success',
-              text: 'Message Sent Successfully.'
-          })
-      </script>
-    @endif
-    @endpush
-
-
-    {{-- @if(session()->has('deleted'))
-    <script>
-      Swal.fire({
+</script>
+@if (session()->has('sent'))
+<script>
+    Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Client Deleted Successfully!'
-      })
-    </script>
-
-  @endif
-  @if(session()->has('sent'))
-    <script>
-      Swal.fire({
-        icon: 'success',
-        title: 'Success',
-        text: 'Message Sent Successfully!'
-      })
-    </script>
-
-  @endif --}}
-
-
-
-
+        text: 'Message sent successfully.'
+    });
+</script>
+@endif
+@if (session()->has('noUser'))
+<script>
+    Swal.fire({
+        icon: 'warning',
+        title: 'No recipients selected',
+        text: 'Please choose at least one subscriber or user.'
+    });
+</script>
+@endif
+@endpush

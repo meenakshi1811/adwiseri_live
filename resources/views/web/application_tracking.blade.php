@@ -44,9 +44,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 }
 
 .tracking-action-btn.active {
-    background-color: #0d6efd !important;
+    background-color: #695EEE !important;
     color: #fff !important;
-    border-color: #0d6efd !important;
+    border-color: #695EEE !important;
     box-shadow: 0 4px 10px rgba(13, 110, 253, 0.25);
 }
 
@@ -67,7 +67,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 .flow-arrow {
     width: 46px;
     height: 24px;
-    color: #0d6efd;
+    color: #695EEE;
     flex: 0 0 auto;
 }
 
@@ -89,7 +89,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     justify-content: center;
     text-align: center;
     box-sizing: border-box;
-    background: linear-gradient(135deg, var(--circle-color, #0d6efd), var(--circle-color-dark, #0b5ed7));
+    background: linear-gradient(135deg, var(--circle-color, #695EEE), var(--circle-color-dark, #564BB0));
     box-shadow: 0 8px 16px rgba(35, 48, 64, 0.18);
     color: #fff;
 }
@@ -150,30 +150,13 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
         <div class="col-lg-10 column-client">
             <div class="client-dashboard">
-                <div class="client-btn d-flex justify-content-between align-items-center mt-3 ">
-                    <h3 class="text-primary text-center flex-grow-1 text-center m-0">Application Tracking</h3>
-                    @if(count($clients) > 0)
-                    <button class="btn btn-info text-white" type="button" @if($application_roles->write_only == 1 or $application_roles->read_write_only == 1) id="add_new" @endif>Add New</button>
-                    @else
-                    <button class="btn btn-info text-white" type="button" @if($application_roles->write_only == 1 or $application_roles->read_write_only == 1) id="add_new_zero" @endif>Add New</button>
-                    @endif
-                    <button style="display: none;" class="btn btn-info text-white" type="button" id="back">Back</button>
-
-                </div>
-                <div class="row m-0 p-2">
-                    <div class="col-3 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('applications') }}';">
-                      Applications
-                    </div>
-                    <div class="col-3 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('client_documents') }}';">
-                      Documents
-                    </div>
-                    <div class="col-3 border p-1 text-center top_modules" @if($user->user_type == "Subscriber") onclick="window.location.href = '{{ route('user_applications') }}';" @endif>
-                      Application Management
-                    </div>
-                    <div class="col-3 border p-1 text-center bg-info text-white">
-                      Application Tracking
-                    </div>
-                </div>
+                @include('partials.application_module_header', [
+                    'activeTab' => 'tracking',
+                    'application_roles' => $application_roles,
+                    'user' => $user,
+                    'clients' => $clients,
+                    'applications' => $applications,
+                ])
 
 
                 <div class="col tracking-card">
@@ -342,8 +325,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         .summary-row { color: #222; font-size: 16px; font-weight: 600; margin-bottom: 8px; text-align: center; }
                         .flow-wrapper { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: center; }
                         .flow-step { display: flex; align-items: center; gap: 14px; }
-                        .flow-arrow { width: 46px; height: 24px; color: #0d6efd; flex: 0 0 auto; } .flow-arrow svg { width: 100%; height: 100%; display: block; }
-                        .status-circle { width: 220px; height: 220px; border-radius: 50%; border: 0; margin: 0 auto; padding: 18px; display: flex; flex-direction: column; justify-content: center; text-align: center; box-sizing: border-box; background: linear-gradient(135deg, var(--circle-color, #0d6efd), var(--circle-color-dark, #0b5ed7)); color: #fff; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                        .flow-arrow { width: 46px; height: 24px; color: #695EEE; flex: 0 0 auto; } .flow-arrow svg { width: 100%; height: 100%; display: block; }
+                        .status-circle { width: 220px; height: 220px; border-radius: 50%; border: 0; margin: 0 auto; padding: 18px; display: flex; flex-direction: column; justify-content: center; text-align: center; box-sizing: border-box; background: linear-gradient(135deg, var(--circle-color, #695EEE), var(--circle-color-dark, #564BB0)); color: #fff; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                         .status-circle hr { width: 100%; margin: 9px 0; border-color: rgba(255,255,255,0.42); }
                         .circle-range { font-size: 13px; color: rgba(255, 255, 255, 0.95); font-weight: 600; }
                         .circle-status { font-size: 18px; font-weight: 700; color: #fff; }
@@ -513,13 +496,15 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                       success: function (data) {
                           let rows = '';
 
-                          if (data.length > 0) {
-                            $('#tracking_id').text(applicationText);  // Assuming data[0].name contains the desired text
+                          if (Array.isArray(data) && data.length > 0) {
+                            $('#tracking_id').text(applicationText);
                             viewReport();
                             verifyDropDowns();
                           } else {
-                              rows = `<tr><td colspan="4" class="text-center">No data found.</td></tr>`;
-                              $('#tracking_id').text('No application selected');  // Fallback text when no data
+                              rows = `<tr><td colspan="4" class="text-center">No status data available for this application.</td></tr>`;
+                              $('#tracking_id').text(applicationText);
+                              $('#report_section').hide();
+                              $('#chart_section').hide();
                           }
 
                           const trackedStatuses = data || [];
@@ -538,7 +523,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                           renderFlowChart(trackedStatuses);
                       },
                       error: function () {
-                          alert('Failed to fetch application data.');
+                          AdwiseriAlert.error('Failed to fetch application data. Please try again.');
                           $('#application_table_body').html('');
                           $('#tracking_id').text('Error loading application data');  // Fallback text in case of error
                       }
@@ -553,31 +538,18 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
   <script>
     function deleteapplication(id){
-        var conf = confirm('Delete Application');
+        var conf = confirm('Are you sure you want to delete this application?');
         if(conf == true){
             window.location.href = "delete_application/"+id+"";
         }
     }
   </script>
-  <script>
-      $(document).ready(() => {
-
-        $("#add_new_zero").click(function(){
-            Swal.fire({
-            icon: 'info',
-            title: 'Oops...',
-            text: 'There is no applications created.'
-            });
-        });
-      })
-  </script>
-
 @if(session()->has('deleted'))
   <script>
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Application Deleted Successfully!'
+      text: 'Application deleted successfully.'
     })
   </script>
 
@@ -587,7 +559,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'New Application Added Successfully!'
+      text: 'Application added successfully.'
     })
   </script>
 
@@ -597,7 +569,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Application Updated Successfully!'
+      text: 'Application updated successfully.'
     })
   </script>
 

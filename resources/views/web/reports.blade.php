@@ -1,5 +1,6 @@
 @extends('web.layout.main')
 
+<link rel="stylesheet" href="{{ asset('web_assets/css/reports-module.css') }}">
 <style>
     /* .dt-buttons {
     position: absolute !important;
@@ -18,14 +19,10 @@
         font-weight: bold;
     }
 
-    .second-table-heading {
-        margin-top: 32px;
-    }
-
     .nav-link.active {
-        background-color: #15cfcf !important;
+        background-color: #695EEE !important;
         color: white !important;
-        border: 1px solid #15cfcf;
+        border: 1px solid #695EEE;
     }
 
     table.dataTable td.dataTables_empty,
@@ -73,7 +70,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
     }
 </style>
 <div class="col-lg-10 column-client">
-    <div class="client-dashboard">
+    <div class="client-dashboard reports-module">
         <div class="client-btn d-flex justify-content-center">
             <h3 class="text-primary px-3 text-center">Reports</h3>
         </div>
@@ -114,6 +111,11 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         <button class="nav-link" onclick="onClickCommunications()" id="communication-tab"
                             data-bs-toggle="tab" data-bs-target="#communication" type="button" role="tab"
                             aria-controls="communication" aria-selected="false">Communications</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" onclick="onClickAssociates()" id="associates-report-tab" data-bs-toggle="tab"
+                            data-bs-target="#associatesReport" type="button" role="tab" aria-controls="associatesReport"
+                            aria-selected="false">Associates</button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" onclick="onClickInvoices()" id="invocies-tab" data-bs-toggle="tab"
@@ -515,7 +517,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                         <th class="text-center">Email</th>
                                         <th class="text-center">Designation</th>
                                         <th class="text-center">Status</th>
-                                        <th class="text-center">CreatedDate</th>
+                                        <th class="text-center">Created Date</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -574,7 +576,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                         <th>Application Name (ID)</th>
                                         <th>Type</th>
                                         <th>Name</th>
-                                        <th>File</th>
+                                        <th>File Name</th>
                                         <th>File Size</th>
                                         <th>CreatedDate</th>
                                         {{-- <th>Action</th> --}}
@@ -748,7 +750,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         <div class="row">
                             <div class="col-12">
                                 <div id="reportInvoicesAP" style="display:none">
-                                    <h3 id="clientReportTitle2"></h3>
+                                    <h3 id="clientReportAPTitle2"></h3>
                                     <table class="fl-table table table-hover table-responsive p-0 m-0"
                                         style="width:100%;" id="reportInvoiceAPTable">
                                         <thead>
@@ -795,8 +797,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                 <select id="paymentFilter" class="form-select" name=""
                                     onchange="onchangePaymentsReport(this.value,this.options[this.selectedIndex].text)">
                                     <option value="" selected>Select Attribute</option>
+                                    <option value="byPaymentAmount">By Amount (Range)</option>
                                     <option value="byPaymentMode">By Payment Mode</option>
-                                    <option value="byPaymentAmount">By Payment Amount</option>
                                     <option value="byOutstandingAmount">By Outstanding Amount</option>
                                     <option value="byInvoiceType">By Payment Type </option>
                                     <option value="byVisaCountry">By Visa Country</option>
@@ -876,8 +878,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                 <select id="paymentAPFilter" class="form-select" name=""
                                     onchange="onchangePaymentsAPReport(this.value,this.options[this.selectedIndex].text)">
                                     <option value="" selected>Select Attribute</option>
+                                    <option value="byPaymentAmount">By Amount (Range)</option>
                                     <option value="byPaymentMode">By Payment Mode</option>
-                                    <option value="byPaymentAmount">By Payment Amount</option>
                                     <option value="byOutstandingAmount">By Outstanding Amount</option>
                                     <option value="byInvoiceType">By Payment Type </option>
                                     <option value="byVisaCountry">By Visa Country</option> 
@@ -992,12 +994,12 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                 style="width: 100%">
                                 <thead>
                                     <tr>
-                                        <th class="p-1 text-center">Sr.No.</th>
+                                        <th class="p-1 text-center">Referral_ID</th>
                                         <th class="p-1 text-center">Referred By(Sub_ID)</th>
                                         <th class="p-1 text-center">Referred To(Sub_ID)</th>
-                                        <th class="p-1 text-center">Referral Code</th>
+                                        <th class="p-1 text-center">Sub-Category</th>
                                         <th class="p-1 text-center">Sub_Plan</th>
-                                        <th class="p-1 text-center"> Amount_Paid (USD)</th>
+                                        <th class="p-1 text-center">Purchase (USD)</th>
                                         <th class="p-1 text-center">Commission (USD)</th>
                                         <th class="p-1 text-center"> DOS </th>
 
@@ -1011,6 +1013,65 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         </div>
                     </div>
 
+
+                    <div class="tab-pane fade" id="associatesReport" role="tabpanel" aria-labelledby="associates-report-tab">
+                        <div style="display: flex; justify-content: center; align-items: center; text-align: center;" class="row">
+                            <div class="col-4 my-3 d-flex align-items-center">
+                                <label class="mr-4 w-50 fw-bold" for="">Filter By Attribute</label>
+                                <select id="associateReportFilter" class="form-select"
+                                    onchange="onChangeAssociatesReport(this.value, this.options[this.selectedIndex].text)">
+                                    <option value="" selected>Select Attribute</option>
+                                    <option value="byCity">By City</option>
+                                    <option value="byCountry">By Country</option>
+                                    <option value="byReferrals">By Referrals</option>
+                                    <option value="byBusiness">By Business (Amount)</option>
+                                    <option value="byHomeCountry">By Client's Home Country</option>
+                                    <option value="byOutstanding">By Outstanding Payment (Amount)</option>
+                                    <option value="byYear">By Year</option>
+                                    <option value="byTimeline">By Timeline (Duration)</option>
+                                </select>
+                            </div>
+                            <div class="col-4 my-3 d-flex align-items-center ">
+                                <label class="mr-4 w-50 fw-bold">Select Duration</label>
+                                <input type="text" id="custom_date_picker15" name="custom_date_picker"
+                                    placeholder="Select Duration" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div id="reportAssociates" style="display:none">
+                                    <h3 id="associateReportTitle"></h3>
+                                    <table class="fl-table table table-hover table-responsive p-0 m-0"
+                                        style="width:100%;" id="associateReportTable">
+                                        <thead></thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-wrapper">
+                            <h3 class="second-table-heading">Associates</h3>
+                            <table class="fl-table table table-hover p-0 m-0" id="associatesTable1"
+                                style="width: 100%">
+                                <thead>
+                                    <tr>
+                                        <th class="p-1 text-center">Sr No.</th>
+                                        <th class="p-1 text-center">Associate ID</th>
+                                        <th class="p-1 text-center">Name</th>
+                                        <th class="p-1 text-center">Organization</th>
+                                        <th class="p-1 text-center">City</th>
+                                        <th class="p-1 text-center">Country</th>
+                                        <th class="p-1 text-center">Phone No</th>
+                                        <th class="p-1 text-center">Email</th>
+                                        <th class="p-1 text-center">Created Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
 
                     <div class="tab-pane fade" id="wallet" role="tabpanel" aria-labelledby="wallet-tab">
                         <div style="display: flex; justify-content: center; align-items: center; text-align: center;" class="row">
@@ -1139,6 +1200,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
 
                         <div class="table-wrapper">
+                            <h3 class="second-table-heading">Support Tickets</h3>
                             <table class="fl-table table table-hover p-0 m-0" id="SupportTicketsTable1"
                                 style="width: 100%">
                                 <thead>
@@ -1197,6 +1259,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                             </div>
                         </div>
                         <div class="table-wrapper">
+                            <h3 class="second-table-heading">Activity Log</h3>
                             <table class="fl-table table table-hover p-0 m-0" id="ActivityLogTable1"
                                 style="width: 100%">
                                 <thead>
@@ -1257,6 +1320,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
 
                         <div class="table-wrapper">
+                            <h3 class="second-table-heading">Affiliates</h3>
                             <table class="fl-table table table-hover p-0 m-0" id="AffiliatesTable1"
                                 style="width: 100%">
                                 <thead>
@@ -1328,6 +1392,40 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         });
     });
     $(document).ready(function() {
+        // Reports downloads: center-align all columns & values in Excel and PDF exports.
+        // Set as button defaults so every table's export is centered without editing each config.
+        // (CSV is plain comma-separated text and carries no cell alignment.)
+        if ($.fn.dataTable && $.fn.dataTable.ext && $.fn.dataTable.ext.buttons) {
+            var _dtButtons = $.fn.dataTable.ext.buttons;
+            if (_dtButtons.excelHtml5) {
+                _dtButtons.excelHtml5.customize = function(xlsx) {
+                    var sheet = xlsx.xl.worksheets['sheet1.xml'];
+                    // Built-in DataTables style 51 = horizontally & vertically centered
+                    $('row c', sheet).attr('s', '51');
+                };
+            }
+            if (_dtButtons.pdfHtml5) {
+                // Applies to PDF exports that do not define their own customize().
+                _dtButtons.pdfHtml5.customize = function(doc) {
+                    if (doc.styles && doc.styles.tableHeader) {
+                        doc.styles.tableHeader.alignment = 'center';
+                    }
+                    if (doc.content && doc.content[1] && doc.content[1].table) {
+                        doc.content[1].table.body.forEach(function(row) {
+                            row.forEach(function(cell) {
+                                if (cell && typeof cell === 'object') {
+                                    cell.alignment = 'center';
+                                }
+                            });
+                        });
+                    }
+                    if (doc.content && doc.content[0]) {
+                        doc.content[0].alignment = 'center';
+                    }
+                };
+            }
+        }
+
         // Use event delegation for dynamically loaded content
         $(document).on('mouseenter', '#communicationTable1 .message-tooltip', function() {
             var fullText = $(this).data('full-text');
@@ -1373,6 +1471,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
     var paymentsTable1 = false;
     var paymentsAPTable1 = false;
     var refferalsTable1 = false;
+    var associatesTable1 = false;
     var walletsTable1 = false;
     var transactionsTable1 = false;
     var Subscribers1 = false;
@@ -1399,6 +1498,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         paymentsTable1 = false;
         paymentsAPTable1 = false;
         refferalsTable1 = false;
+        associatesTable1 = false;
         walletsTable1 = false;
         transactionsTable1 = false;
         Subscribers1 = false;
@@ -1459,7 +1559,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             ],
             "pageLength": 10,
             destroy: true,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
                     title: 'Report : Clients  (' + currentDate + ')', // Custom title for CSV
@@ -1552,8 +1652,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Clients (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -1663,6 +1763,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             pickerSelector = '#custom_date_picker71';
         } else if (type == 'Referral') {
             pickerSelector = '#custom_date_picker8';
+        } else if (type == 'Associate') {
+            pickerSelector = '#custom_date_picker15';
         } else if (type == 'Wallet') {
             pickerSelector = '#custom_date_picker9';
         } else if (type == 'Affiliat') {
@@ -1706,7 +1808,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
     function deleteclient(id) {
         var localtime = new Date();
-        var conf = confirm('Delete Client');
+        var conf = confirm('Are you sure you want to delete this client?');
         if (conf == true) {
             window.location.href = "delete_client/" + id + "/" + localtime.toString() + "";
         }
@@ -1724,7 +1826,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 </script>
 <script>
     function deleteuser(id) {
-        var conf = confirm('Delete User');
+        var conf = confirm('Are you sure you want to delete this user?');
         if (conf == true) {
             window.location.href = "delete_user/" + id + "";
         }
@@ -1752,7 +1854,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 [10, 20, 50, "All"]
             ],
             "pageLength": 10,
-            dom: '<"d-flex justify-content-between align-items-center w-bold"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar reports-dt-toolbar--bold d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
                     title: 'Report : Clients  (' + currentDate + ')', // Custom title for CSV
@@ -1846,8 +1948,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Clients (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -1959,7 +2061,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             ],
             "pageLength": 10,
             destroy: true,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
                     title: 'Report :  Clients ' + text + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
@@ -2046,8 +2148,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Clients ('  + text + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''),
                         //     confirmButtonText: 'OK'
                         // });
@@ -2336,7 +2438,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 [10, 20, 50, "All"]
             ],
             "pageLength": 10,
-            dom: '<"d-flex justify-content-between align-items-center w-bold"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar reports-dt-toolbar--bold d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             buttons: [{
                     extend: 'csv',
                     title: 'Report : Applications  (' + currentDate + ')',
@@ -2431,8 +2533,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Applications  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -2745,7 +2847,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             ],
             "pageLength": 10,
             destroy: true,
-            dom: '<"d-flex justify-content-between align-items-center w-bold"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar reports-dt-toolbar--bold d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             buttons: [{
                     extend: 'csv',
                     title: 'Report : Applications  ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
@@ -2828,8 +2930,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Applications  ' + selectedText + ' (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -2874,7 +2976,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 [10, 20, 50, "All"]
             ],
             "pageLength": 10,
-            dom: '<"d-flex justify-content-between align-items-center w-bold"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar reports-dt-toolbar--bold d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
                     title: 'Report : Users (' + currentDate + ')',
@@ -2966,8 +3068,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Users  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -3067,7 +3169,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             ],
             "pageLength": 10,
             destroy: true,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             buttons: [{
                     extend: 'csv',
                     title: 'Report : Users   ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
@@ -3150,8 +3252,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Users  '+selectedText+(!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''),
                         //     confirmButtonText: 'OK'
                         // });
@@ -3225,7 +3327,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 1, 'asc'
             ]
         } else if (type == "applicationProcessed") {
-            $('#clientReportTitle').html('Users By No. of Application Assigned');
+            $('#clientReportTitle').html('Users By No. of Applications Assigned');
             dataTableSettings.columns = [{
                     title: 'Sr.No',
                     data: 'DT_RowIndex',
@@ -3389,7 +3491,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 [10, 20, 50, "All"]
             ],
             "pageLength": 10,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
                     title: 'Report : Documents  (' + currentDate + ')', // Custom title for C
@@ -3483,8 +3585,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Documents  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -3741,7 +3843,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             ],
             "pageLength": 10,
             destroy: true,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             buttons: [{
                     extend: 'csv',
                     title: 'Report : Documents  ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
@@ -3825,8 +3927,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Documents  ' + selectedText + ' (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -3872,7 +3974,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 [10, 20, 50, "All"]
             ],
             "pageLength": 10,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
                     title: 'Report :  Communications (' + currentDate + ')', // Custom title
@@ -3963,8 +4065,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Communications  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -4051,7 +4153,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             ],
             "pageLength": 10,
             destroy: true,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             buttons: [{
                     extend: 'csv',
                     title: 'Report : Communications ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
@@ -4135,8 +4237,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Communications  ' + selectedText + ' (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -4316,7 +4418,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 [10, 20, 50, "All"]
             ],
             "pageLength": 10,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
                     title: 'Report : Invoices  (' + currentDate + ')', // Custom title for CS
@@ -4411,8 +4513,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart :Invoices  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -4511,7 +4613,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             [10, 20, 50, "All"]
         ],
         "pageLength": 10,
-        dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+        dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
         "buttons": [{
                 extend: 'csv',
                 title: 'Report : Invoices  (' + currentDate + ')', // Custom title for CS
@@ -4606,8 +4708,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dataSrc: function(json) {
                 if (json.data.length === 0) {
                     // Swal.fire({
-                    //     icon: 'warning',
-                    //     title: 'No Data Available',
+                    //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                    //     title: 'Oops!',
                     //     text: 'No Data found for Chart :Invoices  (' + currentDate + ')',
                     //     confirmButtonText: 'OK'
                     // });
@@ -4718,7 +4820,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             ],
             "pageLength": 10,
             destroy: true,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             buttons: [{
                     extend: 'csv',
                     title: 'Report : Invoices  ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
@@ -4802,8 +4904,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Invoices  ' + selectedText + ' (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -4832,7 +4934,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         };
         // Configure DataTable based on report type
         if (type == 'byAmount') {
-            $('#clientReportTitle2').html('Invoices By Amount');
+            $('#clientReportTitle2').html('Invoices (AR) By Amount');
             dataTableSettings.columns = [{
                     title: 'Sr.No',
                     data: 'DT_RowIndex',
@@ -4855,7 +4957,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 [1, 'asc']
             ]
         } else if (type == 'byType') {
-            $('#clientReportTitle2').html('Invoices By Type');
+            $('#clientReportTitle2').html('Invoices (AR) By Type');
             dataTableSettings.columns = [{
                     title: 'Sr.No',
                     data: 'DT_RowIndex',
@@ -4875,7 +4977,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             ];
         } else if (type == 'byClient') {
-            $('#clientReportTitle2').html(`Invoices By Client's Home Country`);
+            $('#clientReportTitle2').html(`Invoices (AR) By Client's Home Country`);
             dataTableSettings.columns = [{
                     title: 'Sr.No',
                     data: 'DT_RowIndex',
@@ -4895,7 +4997,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             ];
         } else if (type == 'byVisaCountry') {
-            $('#clientReportTitle2').html("Invoices By Visa Country's Count");
+            $('#clientReportTitle2').html("Invoices (AR) By Visa Country's Count");
             dataTableSettings.columns = [{
                     title: 'Sr.No',
                     data: 'DT_RowIndex',
@@ -4915,7 +5017,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             ];
         } else if (type == 'byTimeLine') {
-            $('#clientReportTitle2').html(`Invoices By Timeline (Duration)`);
+            $('#clientReportTitle2').html(`Invoices (AR) By Timeline (Duration)`);
             // reportTitle = 'Invoices By Timeline';
             dataTableSettings.columns = [{
                     title: 'Sr.No',
@@ -4941,7 +5043,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 // []
             ]
         }  else if (type == 'yearly') {
-            reportTitle = 'Communication By Year';
+            $('#clientReportTitle2').html('Invoices (AR) By Year');
             dataTableSettings.columns = [{
                     title: 'Sr.No',
                     data: 'DT_RowIndex',
@@ -4997,7 +5099,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             ],
             "pageLength": 10,
             destroy: true,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             buttons: [{
                     extend: 'csv',
                     title: 'Report : Invoices  ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
@@ -5081,8 +5183,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Invoices  ' + selectedText + ' (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -5111,7 +5213,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         };
         // Configure DataTable based on report type
         if (type == 'byAmount') {
-            $('#clientReportTitle2').html('Invoices By Amount');
+            $('#clientReportAPTitle2').html('Invoices (AP) By Amount');
             dataTableSettings.columns = [{
                     title: 'Sr.No',
                     data: 'DT_RowIndex',
@@ -5134,7 +5236,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 [1, 'asc']
             ]
         } else if (type == 'byType') {
-            $('#clientReportTitle2').html('Invoices By Type');
+            $('#clientReportAPTitle2').html('Invoices (AP) By Type');
             dataTableSettings.columns = [{
                     title: 'Sr.No',
                     data: 'DT_RowIndex',
@@ -5154,7 +5256,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             ];
         } else if (type == 'byClient') {
-            $('#clientReportTitle2').html(`Invoices By Client's Home Country`);
+            $('#clientReportAPTitle2').html(`Invoices (AP) By Client's Home Country`);
             dataTableSettings.columns = [{
                     title: 'Sr.No',
                     data: 'DT_RowIndex',
@@ -5174,7 +5276,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             ];
         } else if (type == 'byVisaCountry') {
-            $('#clientReportTitle2').html("Invoices By Visa Country's Count");
+            $('#clientReportAPTitle2').html("Invoices (AP) By Visa Country's Count");
             dataTableSettings.columns = [{
                     title: 'Sr.No',
                     data: 'DT_RowIndex',
@@ -5194,7 +5296,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             ];
         } else if (type == 'byTimeLine') {
-            $('#clientReportTitle2').html(`Invoices By Timeline (Duration)`);
+            $('#clientReportAPTitle2').html(`Invoices (AP) By Timeline (Duration)`);
             // reportTitle = 'Invoices By Timeline';
             dataTableSettings.columns = [{
                     title: 'Sr.No',
@@ -5220,7 +5322,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 // []
             ]
         }  else if (type == 'yearly') {
-            reportTitle = 'Communication By Year';
+            $('#clientReportAPTitle2').html('Invoices (AP) By Year');
             dataTableSettings.columns = [{
                     title: 'Sr.No',
                     data: 'DT_RowIndex',
@@ -5268,7 +5370,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             order: [
                 [0, 'desc']
             ],
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
                     title: 'Report : Payments (AR)  (' + currentDate + ')', // Custom title for CS
@@ -5367,8 +5469,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Payments  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -5487,7 +5589,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             ],
             "pageLength": 10,
             destroy: true,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             buttons: [{
                     extend: 'csv',
                     title: 'Report : Payments (AR) ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
@@ -5572,8 +5674,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Payments  ' + selectedText + ' (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -5623,7 +5725,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             ];
         } else if (type == 'byPaymentAmount') {
-            $('#clientReportTitle5').html('Payments (AR) By Payment Amount');
+            $('#clientReportTitle5').html('Payments (AR) By Amount (Range)');
             dataTableSettings.columns = [{
                     title: 'Sr.No',
                     data: 'DT_RowIndex',
@@ -5854,7 +5956,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             order: [
                 [0, 'desc']
             ],
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
                     title: 'Report : Payments (AP)   (' + currentDate + ')', // Custom title for CS
@@ -5953,8 +6055,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Payments  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -6073,7 +6175,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             ],
             "pageLength": 10,
             destroy: true,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             buttons: [{
                     extend: 'csv',
                     title: 'Report : Payments (AP) ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
@@ -6158,8 +6260,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Payments  ' + selectedText + ' (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -6209,7 +6311,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             ];
         } else if (type == 'byPaymentAmount') {
-            $('#clientReportAPTitle5').html('Payments (AP) By Payment Amount');
+            $('#clientReportAPTitle5').html('Payments (AP) By Amount (Range)');
             dataTableSettings.columns = [{
                     title: 'Sr.No',
                     data: 'DT_RowIndex',
@@ -6432,7 +6534,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 [10, 20, 50, "All"]
             ],
             "pageLength": 10,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
                     title: 'Report : Referrals  (' + currentDate + ')', // Custom title for C
@@ -6527,8 +6629,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Referrals  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -6552,10 +6654,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             },
             columns: [{
-                    data: 'DT_RowIndex',
-                    name: 'DT_RowIndex',
-                    orderable: false,
-                    searchable: false
+                    data: 'id',
+                    name: 'id'
                 },
                 {
                     data: 'referral_by',
@@ -6566,8 +6666,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     name: 'referral_to'
                 },
                 {
-                    data: 'referral_code',
-                    name: 'referral_code'
+                    data: 'sub_category',
+                    name: 'sub_category'
                 },
                 {
                     data: 'membership',
@@ -6741,7 +6841,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             ],
             "pageLength": 10,
             destroy: true,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             buttons: [{
                     extend: 'csv',
                     title: 'Report : Referrals ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''),
@@ -6825,8 +6925,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Referrals  ' + selectedText + ' (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -6873,7 +6973,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 [10, 20, 50, "All"]
             ],
             "pageLength": 10,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
                     title: 'Report : Wallet (' + currentDate + ')', // Custom title for CSV
@@ -6972,8 +7072,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Wallets  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -7008,27 +7108,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     data: 'user_name',
-                    name: 'user_name',
-                    render: function(data, type, row) {
-                        const fullSubscriberName = row.user_name_full || data || '';
-                        if (type !== 'display') {
-                            return fullSubscriberName;
-                        }
-
-                        const escapeHtml = function(value) {
-                            return String(value || '').replace(/[&<>'"]/g, function(character) {
-                                return {
-                                    '&': '&amp;',
-                                    '<': '&lt;',
-                                    '>': '&gt;',
-                                    "'": '&#39;',
-                                    '"': '&quot;'
-                                }[character];
-                            });
-                        };
-
-                        return '<span title="' + escapeHtml(fullSubscriberName) + '">' + escapeHtml(data || fullSubscriberName) + '</span>';
-                    }
+                    name: 'user_name'
                 },
                 {
                     data: 'TransactionType',
@@ -7092,7 +7172,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             ],
             "pageLength": 10,
             destroy: true,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
                     title: 'Report : Wallet ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
@@ -7176,8 +7256,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dataSrc: function(json) {
                     if (json.data.length === 0) {
                         // Swal.fire({
-                        //     icon: 'warning',
-                        //     title: 'No Data Available',
+                        //     icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                        //     title: 'Oops!',
                         //     text: 'No Data found for Chart : Wallets  (' + currentDate + ')',
                         //     confirmButtonText: 'OK'
                         // });
@@ -7317,7 +7397,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 [10, 20, 50, "All"]
             ],
             "pageLength": 10,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
                     title: 'Report-Affiliates(' + currentDate + ')', // Custom title for
@@ -7590,17 +7670,21 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         deativeTabs();
         SupportTickets1 = true;
 
+        if ($.fn.DataTable.isDataTable('#SupportTicketsTable1')) {
+            $('#SupportTicketsTable1').DataTable().clear().destroy();
+        }
+
         var refferalsTable = $('#SupportTicketsTable1').DataTable({
             processing: true,
             serverSide: true,
-            searching: false,
+            searching: true,
             destroy: true,
             "lengthMenu": [
                 [10, 20, 50, -1],
                 [10, 20, 50, "All"]
             ],
             "pageLength": 10,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
                     title: 'Report-tickets(' + currentDate + ')', // Custom title for CSV
@@ -7703,12 +7787,16 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         $('#reportSupport').show();
         let dataTableSettings = {
             processing: true,
-            serverSide: true,
-            searching: false, // Disable the search box
+            serverSide: false, // Client-side paging so counts match the aggregated rows exactly
+            searching: true,
             info: false, // Disable the "Showing x to y of z entries" message
-            paging: false,
+            "lengthMenu": [
+                [10, 20, 50, -1],
+                [10, 20, 50, "All"]
+            ],
+            "pageLength": 10,
             destroy: true,
-            dom: 'Blfrtip',
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip',
             "buttons": [{
                     extend: 'csv',
                     title: `Report-Support Tickets ${selectedText}(${currentDate})`, // Custom title for CSV
@@ -7841,7 +7929,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 [10, 20, 50, "All"]
             ],
             "pageLength": 10,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
                     title: 'Report-Subscribers(' + currentDate + ')', // Custom title for
@@ -8063,17 +8151,21 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         deativeTabs();
         ActivityLog1 = true;
 
+        if ($.fn.DataTable.isDataTable('#ActivityLogTable1')) {
+            $('#ActivityLogTable1').DataTable().clear().destroy();
+        }
+
         var refferalsTable = $('#ActivityLogTable1').DataTable({
             processing: true,
             serverSide: true,
-            searching: false,
+            searching: true,
             destroy: true,
             "lengthMenu": [
                 [10, 20, 50, -1],
                 [10, 20, 50, "All"]
             ],
             "pageLength": 10,
-            dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
                     title: 'Report-Activity log(' + currentDate + ')', // Custom title fo
@@ -8165,12 +8257,16 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
         let dataTableSettings = {
             processing: true,
-            serverSide: true,
-            searching: false, // Disable the search box
+            serverSide: false, // Client-side paging so counts match the aggregated rows exactly
+            searching: true,
             info: false, // Disable the "Showing x to y of z entries" message
-            paging: false,
+            "lengthMenu": [
+                [10, 20, 50, -1],
+                [10, 20, 50, "All"]
+            ],
+            "pageLength": 10,
             destroy: true,
-            dom: 'Blfrtip',
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip',
             buttons: [{
                     extend: 'csv',
                     title: `Report-Activity Log ${selectedText}(${currentDate})`, // Custom title for CSV
@@ -8282,7 +8378,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
 
     function deleteapplication(id) {
-        var conf = confirm('Delete Application');
+        var conf = confirm('Are you sure you want to delete this application?');
         if (conf == true) {
             window.location.href = "delete_application/" + id + "";
         }
@@ -8313,14 +8409,14 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
         function cb(start, end) {
             // Update the display for each date picker
-            $('#custom_date_picker span, #custom_date_picker2 span, #custom_date_picker3 span, #custom_date_picker4 span, #custom_date_picker5 span, #custom_date_picker6 span, #custom_date_picker66 span, #custom_date_picker7 span,#custom_date_picker71 span, #custom_date_picker8 span, #custom_date_picker9 span, #custom_date_picker10 span, #custom_date_picker11 span, #custom_date_picker12 span, #custom_date_picker13 span, #custom_date_picker14 span')
+            $('#custom_date_picker span, #custom_date_picker2 span, #custom_date_picker3 span, #custom_date_picker4 span, #custom_date_picker5 span, #custom_date_picker6 span, #custom_date_picker66 span, #custom_date_picker7 span,#custom_date_picker71 span, #custom_date_picker8 span, #custom_date_picker9 span, #custom_date_picker10 span, #custom_date_picker11 span, #custom_date_picker12 span, #custom_date_picker13 span, #custom_date_picker14 span, #custom_date_picker15 span')
                 .html(
                     start.format('D MMMM, YYYY') + ' - ' + end.format('D MMMM, YYYY')
                 );
         }
 
         // Apply daterangepicker to all elements
-        $('#custom_date_picker, #custom_date_picker2, #custom_date_picker3, #custom_date_picker4, #custom_date_picker5, #custom_date_picker6, #custom_date_picker66, #custom_date_picker7,#custom_date_picker71,  #custom_date_picker8, #custom_date_picker9, #custom_date_picker10, #custom_date_picker11, #custom_date_picker12, #custom_date_picker13, #custom_date_picker14')
+        $('#custom_date_picker, #custom_date_picker2, #custom_date_picker3, #custom_date_picker4, #custom_date_picker5, #custom_date_picker6, #custom_date_picker66, #custom_date_picker7,#custom_date_picker71,  #custom_date_picker8, #custom_date_picker9, #custom_date_picker10, #custom_date_picker11, #custom_date_picker12, #custom_date_picker13, #custom_date_picker14, #custom_date_picker15')
             .daterangepicker({
                 startDate: start,
                 endDate: end,
@@ -8352,7 +8448,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         cb(start, end, 'Today');
 
         // Handle the apply event for each date picker
-        $('#custom_date_picker, #custom_date_picker2, #custom_date_picker3, #custom_date_picker4, #custom_date_picker5, #custom_date_picker6, #custom_date_picker66, #custom_date_picker7,  #custom_date_picker71 , #custom_date_picker8, #custom_date_picker9, #custom_date_picker10, #custom_date_picker11, #custom_date_picker12, #custom_date_picker13, #custom_date_picker14')
+        $('#custom_date_picker, #custom_date_picker2, #custom_date_picker3, #custom_date_picker4, #custom_date_picker5, #custom_date_picker6, #custom_date_picker66, #custom_date_picker7,  #custom_date_picker71 , #custom_date_picker8, #custom_date_picker9, #custom_date_picker10, #custom_date_picker11, #custom_date_picker12, #custom_date_picker13, #custom_date_picker14, #custom_date_picker15')
             .on('apply.daterangepicker', function(ev, picker) {
                 // Get the start and end date values from the picker
                 var startdate = picker.startDate.format('DD-MM-YYYY');
@@ -8446,6 +8542,13 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     if (type.trim() !== '') {
                         onChangeReferralsReport(type, selectedText);
                     }
+                } else if (associatesTable1 == true) {
+                    onClickAssociates();
+                    var type = $('#associateReportFilter').val();
+                    let selectedText = $('#associateReportFilter').find('option:selected').text();
+                    if (type && type.trim() !== '') {
+                        onChangeAssociatesReport(type, selectedText);
+                    }
                 } else if (SupportTickets1 == true) {
                     onClickSupportTickets();
                     var type = $('#supportFilter').val();
@@ -8491,13 +8594,6 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             });
 
-        $('#SupportTickets-tab').on('shown.bs.tab', function() {
-            onClickSupportTickets();
-        });
-
-        $('#ActivityLog-tab').on('shown.bs.tab', function() {
-            onClickActivityLogs();
-        });
     })(jQuery);
 
 
@@ -8508,5 +8604,203 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
     // -------------------------------------------------------------------------------
     // ---------------------- Affiliates  Report ------------------------------------------
     // -------------------------------------------------------------------------------
+</script>
+
+<script>
+    // -------------------------------------------------------------------------------
+    // ---------------------- Associates Report --------------------------------------
+    // -------------------------------------------------------------------------------
+
+    function onClickAssociates() {
+        var result = getStartAndEndDate('Associate');
+        let currentDate = `${result.startDate} - ${result.endDate}`;
+        deativeTabs();
+        associatesTable1 = true;
+
+        $('#associatesTable1').DataTable({
+            processing: true,
+            serverSide: true,
+            destroy: true,
+            lengthMenu: [
+                [10, 20, 50, -1],
+                [10, 20, 50, "All"]
+            ],
+            pageLength: 10,
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip',
+            buttons: [{
+                    extend: 'csv',
+                    title: 'Report : Associates  (' + currentDate + ')',
+                    exportOptions: { modifier: { page: 'all' } }
+                },
+                {
+                    extend: 'excel',
+                    title: 'Report : Associates  (' + currentDate + ')',
+                    exportOptions: { modifier: { page: 'all' } }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Report : Associates  (' + currentDate + ')',
+                    orientation: 'landscape',
+                    pageSize: 'A4',
+                    exportOptions: { modifier: { page: 'all' } }
+                }
+            ],
+            ajax: {
+                url: "{{ route('manage_associates_report') }}",
+                data: function(d) {
+                    d.startDate = result.startDate;
+                    d.endDate = result.endDate;
+                }
+            },
+            columns: [
+                { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
+                { data: 'associate_code', name: 'associate_code' },
+                { data: 'name', name: 'name' },
+                { data: 'organization', name: 'organization' },
+                { data: 'city', name: 'city' },
+                { data: 'country', name: 'country' },
+                { data: 'phone', name: 'phone' },
+                { data: 'email', name: 'email' },
+                { data: 'created_at', name: 'created_at' }
+            ]
+        });
+    }
+
+    function onChangeAssociatesReport(type, text) {
+        let selectedText = text;
+
+        if (!type || type === '') {
+            $('#reportAssociates').hide();
+            return;
+        }
+
+        var result = getStartAndEndDate('Associate');
+        let currentDate = `${result.startDate} - ${result.endDate}`;
+        $('#reportAssociates').show();
+
+        let reportTitle = '';
+        let columns = [];
+        const totalAssociatesTitle = 'Total (No. of Associates)';
+
+        switch (type) {
+            case 'byCity':
+                reportTitle = 'Associates By City';
+                columns = [
+                    { title: 'Sr No.', data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
+                    { title: 'City', data: 'city', name: 'city' },
+                    { title: totalAssociatesTitle, data: 'total', name: 'total' }
+                ];
+                break;
+            case 'byCountry':
+                reportTitle = 'Associates By Country';
+                columns = [
+                    { title: 'Sr No.', data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
+                    { title: 'Country', data: 'country', name: 'country' },
+                    { title: totalAssociatesTitle, data: 'total', name: 'total' }
+                ];
+                break;
+            case 'byReferrals':
+                reportTitle = 'Associates By Referrals';
+                columns = [
+                    { title: 'Sr No.', data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
+                    { title: 'Associate ID', data: 'associate_code', name: 'associate_code' },
+                    { title: 'Associate Name', data: 'name', name: 'name' },
+                    { title: 'Total (No. of Referrals)', data: 'total', name: 'total' }
+                ];
+                break;
+            case 'byBusiness':
+                reportTitle = 'Associates By Business (Amount)';
+                columns = [
+                    { title: 'Sr No.', data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
+                    { title: 'Associate ID', data: 'associate_code', name: 'associate_code' },
+                    { title: 'Associate Name', data: 'name', name: 'name' },
+                    { title: 'Total Business Amount', data: 'total', name: 'total' }
+                ];
+                break;
+            case 'byHomeCountry':
+                reportTitle = "Associates By Client's Home Country";
+                columns = [
+                    { title: 'Sr No.', data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
+                    { title: "Client's Home Country", data: 'home_country', name: 'home_country' },
+                    { title: totalAssociatesTitle, data: 'total', name: 'total' }
+                ];
+                break;
+            case 'byOutstanding':
+                reportTitle = 'Associates By Outstanding Payment (Amount)';
+                columns = [
+                    { title: 'Sr No.', data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
+                    { title: 'Associate ID', data: 'associate_code', name: 'associate_code' },
+                    { title: 'Associate Name', data: 'name', name: 'name' },
+                    { title: 'Total Outstanding', data: 'total', name: 'total' }
+                ];
+                break;
+            case 'byYear':
+                reportTitle = 'Associates By Year';
+                columns = [
+                    { title: 'Sr No.', data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
+                    { title: 'Year', data: 'year', name: 'year' },
+                    { title: totalAssociatesTitle, data: 'total', name: 'total' }
+                ];
+                break;
+            case 'byTimeline':
+                reportTitle = 'Associates By Timeline (Duration)';
+                columns = [
+                    { title: 'Sr No.', data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
+                    { title: 'Period', data: 'period', name: 'period' },
+                    { title: totalAssociatesTitle, data: 'total', name: 'total' }
+                ];
+                break;
+            default:
+                return;
+        }
+
+        $('#custom_date_picker15').prop('disabled', type == 'byYear');
+        $('#associateReportTitle').html(reportTitle);
+
+        if ($.fn.DataTable.isDataTable('#associateReportTable')) {
+            $('#associateReportTable').DataTable().clear().destroy();
+            $('#associateReportTable').empty();
+        }
+
+        $('#associateReportTable').DataTable({
+            processing: true,
+            serverSide: true,
+            searching: true,
+            lengthMenu: [
+                [10, 20, 50, -1],
+                [10, 20, 50, "All"]
+            ],
+            pageLength: 10,
+            destroy: true,
+            dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip',
+            buttons: [{
+                    extend: 'csv',
+                    title: 'Report : Associates ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''),
+                    exportOptions: { modifier: { page: 'all' } }
+                },
+                {
+                    extend: 'excel',
+                    title: 'Report : Associates ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''),
+                    exportOptions: { modifier: { page: 'all' } }
+                },
+                {
+                    extend: 'pdf',
+                    title: 'Report : Associates ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''),
+                    orientation: 'landscape',
+                    pageSize: 'A4',
+                    exportOptions: { modifier: { page: 'all' } }
+                }
+            ],
+            ajax: {
+                url: "{{ route('associatesReport') }}",
+                data: function(d) {
+                    d.type = type;
+                    d.startDate = result.startDate;
+                    d.endDate = result.endDate;
+                }
+            },
+            columns: columns
+        });
+    }
 </script>
 @endsection()

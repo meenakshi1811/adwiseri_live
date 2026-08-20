@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\URL;
 
 class ScheduledReportService
 {
-    public function dispatchForSetting(ReportSetting $setting, $trigger = 'manual')
+    public function dispatchForSetting(ReportSetting $setting, $trigger = 'manual', ?array $overrideRecipients = null, bool $skipPersistence = false)
     {
         $user = User::find($setting->user_id);
 
@@ -36,16 +36,18 @@ class ScheduledReportService
         sort($normalizedModules);
         $modulesHash = md5(json_encode($normalizedModules));
 
-        $existingSuccess = ReportDispatchLog::where('report_setting_id', $setting->id)
-            ->where('period_start', $startDate->toDateString())
-            ->where('period_end', $endDate->toDateString())
-            ->where('modules_hash', $modulesHash)
-            ->where('delivery_mode', $setting->delivery_mode)
-            ->where('status', 'sent')
-            ->first();
+        if (!$skipPersistence) {
+            $existingSuccess = ReportDispatchLog::where('report_setting_id', $setting->id)
+                ->where('period_start', $startDate->toDateString())
+                ->where('period_end', $endDate->toDateString())
+                ->where('modules_hash', $modulesHash)
+                ->where('delivery_mode', $setting->delivery_mode)
+                ->where('status', 'sent')
+                ->first();
 
-        if ($existingSuccess) {
-            return ['status' => 'skipped', 'message' => 'Report already sent for this period.'];
+            if ($existingSuccess) {
+                return ['status' => 'skipped', 'message' => 'Report already sent for this period.'];
+            }
         }
 
         $subscriberId = (strtolower($user->user_type) === 'subscriber' || strtolower($user->user_type) === 'admin') ? $user->id : $user->added_by;
@@ -77,30 +79,40 @@ class ScheduledReportService
         ->setOption('isPhpEnabled', true);
         $pdf->save($filePath);
 
-        $recipients = $this->extractRecipients($setting->emails, $user->email);
+        $recipients = $overrideRecipients !== null
+            ? array_values(array_filter(array_map('trim', $overrideRecipients)))
+            : $this->extractRecipients($setting->emails, $user->email);
         $downloadLink = URL::temporarySignedRoute('scheduled_report_download', now()->addDays(7), ['file' => $storageFileName]);
 
+        $subscriber = User::find($subscriberId);
+        $subscriberName = trim((string) ($subscriber->name ?? $user->name ?? 'Subscriber'));
+        $consultancyName = trim((string) ($subscriber->organization ?? ''));
+        if ($consultancyName === '') {
+            $consultancyName = 'consultancy';
+        }
+
         try {
-            $subject = 'Adwiseri Scheduled Report for ' . $startDate->format('d M Y');
+            $dateFormat = 'd M Y';
 
-            if ($setting->frequency !== 'daily') {
-                $subject = 'Adwiseri Scheduled Report (' . $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y') . ')';
+            if ($setting->frequency === 'daily') {
+                $subject = 'Reports - ' . $startDate->format($dateFormat);
+            } else {
+                $subject = 'Reports - ' . $startDate->format($dateFormat) . ' - ' . $endDate->format($dateFormat);
             }
-            if (empty($recipients)) {
-                $recipients = $this->extractRecipients(null, $user->email);
-            }
-
             $sentRecipients = [];
             $failedRecipients = [];
 
             foreach ($recipients as $recipient) {
                 $mailData = [
                     'subject' => $subject,
-                    'recipient_name' => $user->name ?? 'User',
+                    'name' => $subscriberName,
+                    'recipient_name' => $subscriberName,
+                    'consultancy_name' => $consultancyName,
                     'start_date' => $startDate->format('d M Y'),
                     'end_date' => $endDate->format('d M Y'),
                     'frequency' => $setting->frequency,
                     'download_link' => $downloadLink,
+                    'file_name' => $attachmentFileName,
                     'modules' => (array) $setting->modules,
                 ];
 
@@ -118,7 +130,37 @@ class ScheduledReportService
                     $statusMessage = 'Report sent to some recipients only. Failed recipients: ' . implode(', ', $failedRecipients);
                 }
 
-                $log = ReportDispatchLog::create([
+                if (!$skipPersistence) {
+                    $log = ReportDispatchLog::create([
+                        'report_setting_id' => $setting->id,
+                        'user_id' => $setting->user_id,
+                        'frequency' => $setting->frequency,
+                        'delivery_mode' => $setting->delivery_mode,
+                        'modules_hash' => $modulesHash,
+                        'period_start' => $startDate->toDateString(),
+                        'period_end' => $endDate->toDateString(),
+                        'file_name' => $storageFileName,
+                        'recipients' => json_encode($recipients),
+                        'status' => 'sent',
+                        'triggered_by' => $trigger,
+                        'sent_at' => now(),
+                        'error_message' => empty($failedRecipients) ? null : $statusMessage,
+                    ]);
+
+                    $setting->last_sent_at = $log->sent_at;
+                    $setting->last_sent_status = empty($failedRecipients) ? 'sent' : 'partial';
+                    $setting->last_sent_message = $statusMessage;
+                    $setting->last_file_name = $storageFileName;
+                    $setting->save();
+                }
+
+                return ['status' => empty($failedRecipients) ? 'sent' : 'partial', 'message' => $statusMessage, 'file' => $storageFileName];
+            }
+
+            $failedMessage = 'Report could not be sent to recipients. Please verify recipient emails and SMTP configuration.';
+
+            if (!$skipPersistence) {
+                ReportDispatchLog::create([
                     'report_setting_id' => $setting->id,
                     'user_id' => $setting->user_id,
                     'frequency' => $setting->frequency,
@@ -128,63 +170,153 @@ class ScheduledReportService
                     'period_end' => $endDate->toDateString(),
                     'file_name' => $storageFileName,
                     'recipients' => json_encode($recipients),
-                    'status' => empty($failedRecipients) ? 'sent' : 'partial',
+                    'status' => 'failed',
                     'triggered_by' => $trigger,
-                    'sent_at' => now(),
-                    'error_message' => empty($failedRecipients) ? null : $statusMessage,
+                    'error_message' => $failedMessage,
                 ]);
 
-                $setting->last_sent_at = $log->sent_at;
-                $setting->last_sent_status = empty($failedRecipients) ? 'sent' : 'partial';
-                $setting->last_sent_message = $statusMessage;
-                $setting->last_file_name = $storageFileName;
+                $setting->last_sent_status = 'failed';
+                $setting->last_sent_message = $failedMessage;
                 $setting->save();
-
-                return ['status' => empty($failedRecipients) ? 'sent' : 'partial', 'message' => $statusMessage, 'file' => $storageFileName];
             }
-
-            $failedMessage = 'Report could not be sent to recipients. Please verify recipient emails and SMTP configuration.';
-
-            ReportDispatchLog::create([
-                'report_setting_id' => $setting->id,
-                'user_id' => $setting->user_id,
-                'frequency' => $setting->frequency,
-                'delivery_mode' => $setting->delivery_mode,
-                'modules_hash' => $modulesHash,
-                'period_start' => $startDate->toDateString(),
-                'period_end' => $endDate->toDateString(),
-                'file_name' => $storageFileName,
-                'recipients' => json_encode($recipients),
-                'status' => 'failed',
-                'triggered_by' => $trigger,
-                'error_message' => $failedMessage,
-            ]);
-
-            $setting->last_sent_status = 'failed';
-            $setting->last_sent_message = $failedMessage;
-            $setting->save();
 
             return ['status' => 'failed', 'message' => $failedMessage];
         } catch (\Exception $e) {
-            ReportDispatchLog::create([
-                'report_setting_id' => $setting->id,
-                'user_id' => $setting->user_id,
-                'frequency' => $setting->frequency,
-                'delivery_mode' => $setting->delivery_mode,
-                'modules_hash' => $modulesHash,
-                'period_start' => $startDate->toDateString(),
-                'period_end' => $endDate->toDateString(),
-                'file_name' => $storageFileName,
-                'recipients' => json_encode($recipients),
-                'status' => 'failed',
-                'triggered_by' => $trigger,
-                'error_message' => $e->getMessage(),
-            ]);
+            if (!$skipPersistence) {
+                ReportDispatchLog::create([
+                    'report_setting_id' => $setting->id,
+                    'user_id' => $setting->user_id,
+                    'frequency' => $setting->frequency,
+                    'delivery_mode' => $setting->delivery_mode,
+                    'modules_hash' => $modulesHash,
+                    'period_start' => $startDate->toDateString(),
+                    'period_end' => $endDate->toDateString(),
+                    'file_name' => $storageFileName,
+                    'recipients' => json_encode($recipients),
+                    'status' => 'failed',
+                    'triggered_by' => $trigger,
+                    'error_message' => $e->getMessage(),
+                ]);
 
-            $setting->last_sent_status = 'failed';
-            $setting->last_sent_message = $e->getMessage();
-            $setting->save();
+                $setting->last_sent_status = 'failed';
+                $setting->last_sent_message = $e->getMessage();
+                $setting->save();
+            }
 
+            return ['status' => 'failed', 'message' => 'Report send failed: ' . $e->getMessage()];
+        }
+    }
+
+    public function sendTestEmail(string $recipient, ?int $userId = null): array
+    {
+        $recipient = trim($recipient);
+
+        if (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
+            return ['status' => 'failed', 'message' => 'Invalid email address: ' . $recipient];
+        }
+
+        $setting = null;
+
+        try {
+            $query = ReportSetting::query();
+            if ($userId) {
+                $query->where('user_id', $userId);
+            }
+            $setting = $query->first();
+        } catch (\Throwable $e) {
+            $setting = null;
+        }
+
+        if ($setting && $this->isSettingReadyForDispatch($setting)) {
+            $result = $this->dispatchForSetting($setting, 'test', [$recipient], true);
+            if (in_array($result['status'], ['sent', 'partial'], true)) {
+                return $result;
+            }
+        }
+
+        return $this->sendStandaloneTestEmail($recipient);
+    }
+
+    private function isSettingReadyForDispatch(ReportSetting $setting): bool
+    {
+        $user = User::find($setting->user_id);
+        $modules = (array) ($setting->modules ?? []);
+
+        return $user
+            && count($modules) > 0
+            && !empty($setting->frequency)
+            && !empty($setting->delivery_mode);
+    }
+
+    public function sendStandaloneTestEmail(string $recipient): array
+    {
+        $recipient = trim($recipient);
+
+        if (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
+            return ['status' => 'failed', 'message' => 'Invalid email address: ' . $recipient];
+        }
+
+        try {
+            $startDate = now()->copy()->subDay()->startOfDay();
+            $endDate = now()->copy()->subDay()->endOfDay();
+            $generatedFor = (object) [
+                'name' => 'Test Recipient',
+                'email' => $recipient,
+            ];
+
+            $reportData = [
+                ['title' => 'Clients', 'rows' => []],
+                ['title' => 'Applications', 'rows' => []],
+            ];
+
+            $storageFileName = 'scheduled_report_test_' . now()->format('Ymd_His') . '.pdf';
+            $attachmentFileName = 'Adwiseri Scheduled Report Test ' . $startDate->format('d M Y') . '.pdf';
+            $reportDir = storage_path('app/reports');
+
+            if (!file_exists($reportDir)) {
+                mkdir($reportDir, 0755, true);
+            }
+
+            $filePath = $reportDir . '/' . $storageFileName;
+
+            PDF::loadView('reports.scheduled_report_pdf', [
+                'reportData' => $reportData,
+                'startDate' => $startDate,
+                'endDate' => $endDate,
+                'frequency' => 'daily',
+                'generatedFor' => $generatedFor,
+            ])->setPaper('a4', 'portrait')
+                ->setOption('isHtml5ParserEnabled', true)
+                ->setOption('isPhpEnabled', true)
+                ->save($filePath);
+
+            $downloadLink = URL::temporarySignedRoute(
+                'scheduled_report_download',
+                now()->addDays(7),
+                ['file' => $storageFileName]
+            );
+
+            $mailData = [
+                'subject' => 'Reports - ' . $startDate->format('d M Y') . ' (Test)',
+                'name' => 'Test Recipient',
+                'recipient_name' => 'Test Recipient',
+                'consultancy_name' => 'Demo Consultancy',
+                'start_date' => $startDate->format('d M Y'),
+                'end_date' => $endDate->format('d M Y'),
+                'frequency' => 'daily',
+                'download_link' => $downloadLink,
+                'file_name' => $attachmentFileName,
+                'modules' => ['clients', 'applications'],
+            ];
+
+            Mail::to($recipient)->send(new ScheduledReportMail($mailData, $filePath, $attachmentFileName));
+
+            return [
+                'status' => 'sent',
+                'message' => 'Test report email sent successfully to ' . $recipient . '.',
+                'file' => $storageFileName,
+            ];
+        } catch (\Throwable $e) {
             return ['status' => 'failed', 'message' => 'Report send failed: ' . $e->getMessage()];
         }
     }
@@ -465,45 +597,12 @@ class ScheduledReportService
 
     private function extractRecipients($emails, $fallbackEmail)
     {
-        $fallbackEmail = trim((string) $fallbackEmail);
-        $recipients = [];
-
-        if (!empty($emails)) {
-            $normalizedInput = str_replace(["\r\n", "\r", "\n", ";"], ',', (string) $emails);
-            $recipients = array_filter(array_map('trim', explode(',', $normalizedInput)), function ($email) {
-                return $email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL);
-            });
+        if (empty($emails)) {
+            return [$fallbackEmail];
         }
 
-        if ($fallbackEmail !== '' && filter_var($fallbackEmail, FILTER_VALIDATE_EMAIL)) {
-            array_unshift($recipients, $fallbackEmail);
-        }
+        $items = array_filter(array_map('trim', explode(',', $emails)));
 
-        return $this->uniqueRecipients($recipients);
-    }
-
-    private function uniqueRecipients(array $emails): array
-    {
-        $uniqueEmails = [];
-        $seenEmails = [];
-
-        foreach ($emails as $email) {
-            $email = trim((string) $email);
-
-            if ($email === '') {
-                continue;
-            }
-
-            $emailKey = strtolower($email);
-
-            if (isset($seenEmails[$emailKey])) {
-                continue;
-            }
-
-            $seenEmails[$emailKey] = true;
-            $uniqueEmails[] = $email;
-        }
-
-        return $uniqueEmails;
+        return empty($items) ? [$fallbackEmail] : array_values(array_unique($items));
     }
 }

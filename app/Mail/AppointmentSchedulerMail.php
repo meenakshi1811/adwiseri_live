@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Support\BrandedMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
@@ -19,13 +20,25 @@ class AppointmentSchedulerMail extends Mailable
 
     public function build()
     {
-        return $this->from(config('mail.from.address'), 'Sent on behalf of ' . $this->sender->name)
+        $content = BrandedMail::renderBody('emails.bodies.appointment', [
+            'appointment' => $this->appointment,
+            'client' => $this->client,
+            'sender' => $this->sender,
+        ]);
+
+        $headerTitle = 'Appointment Invitation';
+        $subscriberName = trim((string) ($this->sender->name ?? ''));
+
+        $mail = $this->from(BrandedMail::alertsFromAddress(), BrandedMail::alertsFromName($subscriberName))
             ->subject('Appointment Invitation - Response Required')
-            ->view('web.appointment_scheduler_mail')
-            ->with([
-                'appointment' => $this->appointment,
-                'client' => $this->client,
-                'sender' => $this->sender,
-            ]);
+            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle'));
+
+        if (!empty($this->sender->email)) {
+            BrandedMail::applySubscriberReplyTo($mail, $this->sender->email, $this->sender->name);
+        } else {
+            BrandedMail::applyDefaultReplyTo($mail);
+        }
+
+        return $mail;
     }
 }

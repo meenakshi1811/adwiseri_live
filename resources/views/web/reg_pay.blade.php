@@ -14,7 +14,7 @@
 
 <div class="container mt-5 pt-5 mb-5">
     <div class="row justify-content-center">
-        <div class="col-md-6">
+        <div class="col-md-8 col-lg-7">
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
                     <h3 class="card-title mb-0">Payment Details</h3>
@@ -27,6 +27,34 @@
                         <p>{{ Session::get('success') }}</p>
                     </div>
                     @endif
+
+                    <div class="mb-4 p-3 border rounded bg-light">
+                        <div class="row mb-2">
+                            <div class="col-sm-5"><strong>Plan</strong></div>
+                            <div class="col-sm-7">{{ $membership->plan_name ?? '' }}</div>
+                        </div>
+                        <form method="GET" action="{{ route('reg_pay') }}" class="row g-2 align-items-end mb-2">
+                            <div class="col-sm-5">
+                                <label for="duration" class="form-label mb-1"><strong>Subscription Term</strong></label>
+                            </div>
+                            <div class="col-sm-7">
+                                @include('partials.subscription_duration_select', [
+                                    'name' => 'duration',
+                                    'id' => 'duration',
+                                    'selected' => $duration ?? 1,
+                                    'required' => true,
+                                ])
+                            </div>
+                            <div class="col-12 text-end">
+                                <button type="submit" class="btn btn-outline-primary btn-sm">Update total</button>
+                            </div>
+                        </form>
+                        <div class="row">
+                            <div class="col-sm-5"><strong>Total (USD)</strong></div>
+                            <div class="col-sm-7"><span id="reg_pay_total">${{ number_format($amount, 0) }}</span></div>
+                        </div>
+                        <small class="text-muted d-block mt-2">Long-term signup is available for new subscribers — choose 1, 2, 3, 4, or 5 years.</small>
+                    </div>
 
                     <form id="payment-form" action="{{ route('stripe.postreg') }}" method="POST" class="require-validation" data-cc-on-file="false" data-stripe-publishable-key="{{ env('STRIPE_KEY') }}" onsubmit="document.getElementById('pay_btn').style.display = 'none';">
                         @csrf
@@ -61,7 +89,7 @@
                         </div>
 
                         <div class="d-grid">
-                            <button class="btn btn-primary btn-lg" type="submit" id="pay_btn">Pay Now (${{ $amount }})</button>
+                            <button class="btn btn-primary btn-lg" type="submit" id="pay_btn">Pay Now (${{ number_format($amount, 0) }})</button>
                         </div>
 
                     </form>

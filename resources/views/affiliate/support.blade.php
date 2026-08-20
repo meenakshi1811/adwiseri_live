@@ -1,4 +1,4 @@
-@extends('affiliate.layout.main')
+﻿@extends('affiliate.layout.main')
 @section('main-section')
 
 
@@ -17,12 +17,14 @@ $setting_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Support')->first();
 @endphp
     <div class="col-lg-10 column-client">
-        <div class="col d-flex align-items-center">
-            <h3 class="text-primary px-2 flex-grow-1 text-center m-0">Support</h3>
-            <a href="{{ route('ask_support_affiliate') }}"><b>Ask For Support (Raise Ticket)</b></a>
+        <div class="col position-relative py-2 mb-2">
+            <h3 class="text-primary text-center m-0">Support</h3>
+            <div class="position-absolute top-50 end-0 translate-middle-y pe-2">
+                <a href="{{ route('ask_support_affiliate') }}"><b>Ask For Support (Raise Ticket)</b></a>
+            </div>
         </div>
         <div class="col">
-            <p class="px-2 m-0"><strong>FAQs</strong></p>
+            <p class="px-2 m-0 text-center"><strong>FAQs</strong></p>
             @foreach($faqs as $faq)
             <div class="col p-1">
                 <button class="btn btn-outline-dark text-start" style="width: 100%;" type="button" data-bs-toggle="collapse"
@@ -58,8 +60,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     <script>
         Swal.fire({
             icon: 'success',
-            title: 'Thank You',
-            text: 'Message sent successfully to Support. Support team will contact you soon..',
+            title: 'Thank you',
+            text: 'Your message was sent to support. Our team will contact you shortly.',
         });
     </script>
 @endif

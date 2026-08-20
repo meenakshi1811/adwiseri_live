@@ -1,4 +1,4 @@
-@extends('web.layout.main')
+﻿@extends('web.layout.main')
 
 @section('main-section')
 @php 
@@ -27,7 +27,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                       <h4>{{ $invoice->company_name }}</h4>
                       <p class="m-1" style="line-height: 1;">{{ $invoice->city }}, {{ $invoice->state }}</p>
                       <p class="m-1" style="line-height: 1;">{{ $invoice->country }}, {{ $invoice->pincode }}</p>
-                      <p class="m-1" style="line-height: 1;">{{ $invoice->phone }}</p>
+                      <p class="m-1" style="line-height: 1;">{{ \App\Support\PhoneNumber::displayE164($invoice->phone) }}</p>
                     </div>
                     <div class="col-6 d-flex justify-content-end">
                         <div class="row m-0" style="height: fit-content;">
@@ -93,7 +93,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 </script>
 <script>
     function deleteuser(id){
-        var conf = confirm('Delete User');
+        var conf = confirm('Are you sure you want to delete this payment?');
         if(conf == true){
             window.location.href = "delete_siteuser/"+id+"";
         }
@@ -103,8 +103,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'User Added Successfully.'
+      title: 'Success',
+      text: 'Payment recorded successfully.'
     })
   </script>
 
@@ -114,7 +114,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'User Deleted Successfully!'
+      text: 'Payment deleted successfully.'
     })
   </script>
 
@@ -122,9 +122,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 @if(session()->has('user_limit'))
   <script>
     Swal.fire({
-      icon: 'warning',
-      title: 'User Limit!',
-      text: 'Upgrade membership to add more Users!'
+      icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+      title: 'User Limit Reached',
+      text: 'Upgrade your membership to add more users.'
     })
   </script>
 

@@ -44,8 +44,12 @@
                                     <option {{ (old('invoices_list') == $invoice['id']) ? 'selected' : '' }}
                                             value="{{ $invoice['id'] }}"
                                             data-client-id="{{ $invoice['client_id'] }}"
+                                            data-application-id="{{ $invoice['application_code'] }}"
+                                            data-application-display="{{ $invoice['application_display'] }}"
+                                            data-amount="{{ $invoice['amount'] }}"
                                             data-outstanding="{{ $invoice['outstanding_amount'] }}"
-                                            data-paid="{{ $invoice['paid_amount'] }}">
+                                            data-paid="{{ $invoice['paid_amount'] }}"
+                                            data-service="{{ $invoice['service_description'] }}">
                                             {{ $invoice['display_label'] }}
                                         </option>
                                     @endforeach
@@ -80,32 +84,16 @@
                                 @enderror
                             </div>
                             <input type="hidden" name="client_id" id="client_id_hidden" value="{{ old('client_id') }}">
-                            <input type="hidden" name="application_id" id="application_id">
-                           
-                            <!-- <div class="col-md-4 p-1">
-                                <label>Client Name<span class="text-danger" style="font-size: 18px;">*</span></label>
-                            </div>
-                            <div class="col-md-8 p-1">
-                            <input type="text" class="form-control" id="client_id" name="client_id"
-                            placeholder="Select Application" readonly class="form-control form-select @error('client') is-invalid @enderror">
-                                @error('subscriber')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
+                            <input type="hidden" name="application_id" id="application_id" value="{{ old('application_id') }}">
+
                             <div class="col-md-4 p-1">
-                                <label>Select Application<span class="text-danger" style="font-size: 18px;">*</span></label>
+                                <label>Application (ID)</label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input type="text" class="form-control" id="application_id" name="application_id"
-                                    placeholder="Select Application" readonly class="form-control form-select @error('application_id') is-invalid @enderror">
-                                @error('application_id')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div> -->
+                                <input type="text" class="form-control" id="application_display" readonly
+                                    placeholder="Application (ID)" value="{{ old('application_display') }}">
+                            </div>
+
                             <div class="col-md-4 p-1">
                                 <label>Service Offered</label>
                             </div>
@@ -197,10 +185,11 @@
                                 class="form-control date @error('payment_date') is-invalid @enderror"
                                 id="payment_date"
                                 aria-describedby="emailHelp"
-                                value="{{ old('payment_date') }}"
+                                value="{{ old('payment_date', date('d-m-Y')) }}"
                                 placeholder="{{ date('d-m-Y') }}"
                                 autocomplete="off"
-                                min="{{ date('d-m-Y') }}"
+                                max="{{ date('d-m-Y') }}"
+                                required
                                 />
                                 @error('payment_date')
                                     <span class="invalid-feedback" role="alert">
@@ -231,27 +220,51 @@
     <script>
          // Function to fetch selected invoice details
          function fetchInvoiceDetails() {
-            const selectedInvoiceId = document.getElementById("invoices_list").value;
+            const invoiceSelect = document.getElementById("invoices_list");
+            const selectedOption = invoiceSelect.options[invoiceSelect.selectedIndex];
+            const selectedInvoiceId = invoiceSelect.value;
             if (!selectedInvoiceId) return;
+
+            // Prefill from option data while waiting for / validating via API
+            if (selectedOption) {
+                document.getElementById("client_id").value = selectedOption.dataset.clientId || "";
+                document.getElementById("client_id_hidden").value = selectedOption.dataset.clientId || "";
+                document.getElementById("application_id").value = selectedOption.dataset.applicationId || "";
+                document.getElementById("application_display").value = selectedOption.dataset.applicationDisplay || "";
+                document.getElementById("service_description").value = selectedOption.dataset.service || "";
+                document.getElementById("amount").value = selectedOption.dataset.amount || "";
+                document.getElementById("amount_paid_existing").value = parseFloat(selectedOption.dataset.paid || '0').toFixed(2);
+                document.getElementById("outstanding_amount").value = parseFloat(selectedOption.dataset.outstanding || '0').toFixed(2);
+                document.getElementById("paid_amount").value = "";
+            }
 
             fetch(`/invoices/${selectedInvoiceId}`)
                 .then(response => response.json())
                 .then(data => {
+                    if (data.error) {
+                        return;
+                    }
                     // Set selected client in dropdown
                     const clientDropdown = document.getElementById("client_id");
-                    // clientDropdown.removeAttribute("readonly");
-                    clientDropdown.value = data.client;
-                    document.getElementById("client_id_hidden").value = data.client || "";
+                    if (data.client) {
+                        clientDropdown.value = data.client || "";
+                        document.getElementById("client_id_hidden").value = data.client || "";
+                    }
 
-                    // Set selected application in dropdown
-                    const appDropdown = document.getElementById("application_id");
-                    // appDropdown.removeAttribute("readonly");
-                    appDropdown.value = data.applicationID || "";
-                    document.getElementById("service_description").value = data.service;
-                    document.getElementById("amount").value = data.amount;
-                    document.getElementById("amount_paid_existing").value = data.paidAmmount.toFixed(2);
+                    // Keep option-prefilled application when API cannot resolve one
+                    if (data.applicationID || data.applicationDisplay || data.applicationName) {
+                        document.getElementById("application_id").value = data.applicationID || "";
+                        document.getElementById("application_display").value = data.applicationDisplay || data.applicationName || "";
+                    }
+                    if (data.service) {
+                        document.getElementById("service_description").value = data.service || "";
+                    }
+                    if (data.amount !== undefined && data.amount !== null && data.amount !== "") {
+                        document.getElementById("amount").value = data.amount;
+                    }
+                    document.getElementById("amount_paid_existing").value = Number(data.paidAmmount || 0).toFixed(2);
                     document.getElementById("paid_amount").value = "";
-                    document.getElementById("outstanding_amount").value = data.outstandingAmount.toFixed(2);
+                    document.getElementById("outstanding_amount").value = Number(data.outstandingAmount || 0).toFixed(2);
                 })
                 .catch(error => console.error("Error fetching invoice details:", error));
         }
@@ -273,30 +286,18 @@
             });
             invoiceSelect.value = '';
 
-            if(show ==false) {
-                document.getElementById("client_id").value = '';
-                document.getElementById("client_id_hidden").value = '';
+            document.getElementById("client_id").value = '';
+            document.getElementById("client_id_hidden").value = '';
+            document.getElementById("application_id").value = '';
+            document.getElementById("application_display").value = '';
+            document.getElementById("service_description").value = '';
+            document.getElementById("amount").value = '';
+            document.getElementById("paid_amount").value = '';
+            document.getElementById("amount_paid_existing").value = '';
+            document.getElementById("outstanding_amount").value = '';
 
-                document.getElementById("application_id").removeAttribute("readonly");
-                document.getElementById("application_id").value = '';
-
-                // document.getElementById("service_description").removeAttribute("readonly");
-                document.getElementById("service_description").value = '';
-
-                // document.getElementById("amount").removeAttribute("readonly");
-                document.getElementById("amount").value = '';
-
-                document.getElementById("paid_amount").removeAttribute("readonly");
-                document.getElementById("paid_amount").value = '';
-                document.getElementById("amount_paid_existing").value = '';
-                document.getElementById("outstanding_amount").value = '';
-
-             }
-             else{
-                document.getElementById("service_description").setAttribute("readonly", "readonly");
-                document.getElementById("amount").setAttribute("readonly", "readonly");
-                // document.getElementById("paid_amount").setAttribute("readonly", "readonly");
-             }
+            document.getElementById("service_description").setAttribute("readonly", "readonly");
+            document.getElementById("amount").setAttribute("readonly", "readonly");
         }
     </script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
@@ -317,9 +318,9 @@
                         //   console.log(data);
                         if (data.limit == 'full') {
                             Swal.fire({
-                                icon: 'warning',
-                                title: 'Oops..',
-                                text: 'Client limit reached for this Subscriber!'
+                                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+                                title: 'Oops!',
+                                text: 'Client limit reached for this subscriber.'
                             });
                             setTimeout(function() {
                                 window.location.reload();
@@ -406,7 +407,7 @@
                 if (showAlert) {
                     if (typeof Swal !== 'undefined') {
                         Swal.fire({
-                            icon: 'warning',
+                            icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
                             title: 'Oops!',
                             text: message
                         });
@@ -442,7 +443,7 @@
     </script>
     <script>
         function deleteuser(id) {
-            var conf = confirm('Delete User');
+            var conf = confirm('Are you sure you want to delete this payment?');
             if (conf == true) {
                 window.location.href = "delete_user/" + id + "";
             }
@@ -454,7 +455,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'User Deleted Successfully!'
+                text: 'Payment deleted successfully.'
             })
         </script>
     @endif

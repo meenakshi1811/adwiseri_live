@@ -39,7 +39,7 @@
                                placeholder="Enter Your Name" required>
                     </div>
                     <div class="col-md-6">
-                        <input type="text" name="phone" pattern="\d*" minlength="9" maxlength="12"
+                        <input type="tel" name="phone"
                                @if($user) value="{{$user->phone}}" @endif
                                class="form-control"
                                placeholder="Enter Your Phone No." required>
@@ -51,14 +51,11 @@
                         <select style="font-size: 14px;" name="country"
                                 class="form-control form-select" required>
                             <option value="">Select Your Country</option>
-                            @foreach($countries as $country)
-                            <option @if($user)
-                                    {{($user->country == $country->country_name) ? 'selected':''}}
-                                    @endif
-                                    value="{{ $country->country_name }}">
-                                {{ $country->country_name }}
-                            </option>
-                            @endforeach
+                            @include('partials.country_select_options_by_name', [
+                                'countries' => $countries,
+                                'phoneForPrefill' => $user->phone ?? null,
+                                'savedCountry' => $user->country ?? null,
+                            ])
                         </select>
                     </div>
                     <div class="col-md-6">
@@ -129,7 +126,7 @@
 @if(session()->has('g-recaptcha-response'))
 <script>
 Swal.fire({
-  icon: 'error',
+  icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
   title: 'Oops!',
   text: 'Please complete the reCAPTCHA to proceed.',
 });
@@ -142,7 +139,7 @@ Swal.fire({
     Swal.fire({
         icon: 'success',
         title: 'Thanks for getting in touch.',
-        text: 'We will serve with your query at the earliest.'
+        text: 'We will respond to your query as soon as possible.'
     })
 
 document.querySelector('#contact_us').addEventListener('submit', function (event) {
@@ -176,7 +173,7 @@ document.querySelector('#contact_us').addEventListener('submit', function (event
         }else if (!recaptchaResponse) {
             event.preventDefault(); // Prevent form submission
             Swal.fire({
-                icon: 'error',
+                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
                 title: 'Oops!',
                 text: 'Please complete the reCAPTCHA to proceed.',
             });

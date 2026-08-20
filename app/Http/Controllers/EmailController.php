@@ -34,7 +34,7 @@ class EmailController extends Controller
         //     if (Mail::failures()) {
         //         echo 'Sorry! Please try again latter';
         //     }else{
-        //         echo 'Great! Successfully send in your mail';
+        //         echo 'Your email was sent successfully.';
         //     }
     }
 
@@ -74,7 +74,7 @@ class EmailController extends Controller
             // Send success response
             return response()->json([
                 'success' => true,
-                'message' => 'OTP sent successfully to your email!',
+                'message' => 'OTP sent successfully to your email.',
             ]);
         } catch (\Exception $e) {
             // Handle any exceptions and send an error response

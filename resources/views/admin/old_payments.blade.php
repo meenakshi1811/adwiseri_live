@@ -48,7 +48,7 @@
                             <td class="text-center">{{ $pay->discount }}</td>
                             <td class="text-center">{{ $pay->tax }}</td>
                             <td class="text-center">{{ $pay->total }}</td>
-                            <td class="text-center">{{ date("d-m-Y", strtotime($pay->created_at)) }}</td>
+                            <td class="text-center">{{ date("d-m-Y H:i:s", strtotime($pay->created_at)) }}</td>
                             <td class="text-center"><a style="background:none; border:none;" onclick="window.open('{{ route('print_payment', $pay->id) }}', 'Print Invoice', 'height=700, width=1440')" class="m-0 p-0"><i class="fa-solid fa-download btn p-1 text-info" style="font-size:14px;"></i></a></td>
                         </tr>
                         @endforeach
@@ -81,7 +81,7 @@
       // }, 1000);
     }
       function deleteclient(id){
-          var conf = confirm('Delete Client');
+          var conf = confirm('Are you sure you want to delete this client?');
           if(conf == true){
               window.location.href = "delete_clients/"+id+"";
           }
@@ -93,7 +93,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Client Deleted Successfully!'
+        text: 'Client deleted successfully.'
       })
     </script>
 

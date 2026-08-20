@@ -1,4 +1,5 @@
 @extends('admin.layout.main')
+<link rel="stylesheet" href="{{ asset('web_assets/css/reports-module.css') }}">
 <style>
     /* .form-select {
         width: auto !important;
@@ -18,9 +19,9 @@
     }
 
     .nav-link.active {
-        background-color: #15cfcf !important;
+        background-color: #695EEE !important;
         color: white !important;
-        border: 1px solid #15cfcf;
+        border: 1px solid #695EEE;
     }
 </style>
 @section('main-section')
@@ -62,9 +63,9 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
     }
 </style>
 <div class="col-lg-10 column-client">
-    <div class="client-dashboard">
-        <div class="client-btn d-flex justify-content-between ">
-            <h3 class="text-primary px-3">Reports</h3>
+    <div class="client-dashboard reports-module">
+        <div class="client-btn d-flex justify-content-center mb-2">
+            <h3 class="text-primary px-3 text-center">Reports</h3>
         </div>
 
 
@@ -487,6 +488,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                         <th>Email</th>
                                         <th>Designation</th>
                                         <th>Status</th>
+                                        <th>Created Date</th>
                                         {{-- <th>View</th> --}}
                                     </tr>
                                 </thead>
@@ -542,7 +544,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                         <th>Application ID</th>
                                         <th>Type</th>
                                         <th>Name</th>
-                                        <th>File</th>
+                                        <th>File Name</th>
                                         <th>File Size</th>
                                         <th>Uploaded Date</th>
                                         {{-- <th>Action</th> --}}
@@ -803,13 +805,13 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                 style="width: 100%">
                                 <thead>
                                     <tr>
-                                        <th class="p-1 text-center">Sr.No.</th>
+                                        <th class="p-1 text-center">Referral_ID</th>
                                         <th class="p-1 text-start">Referred By(Sub_ID)</th>
                                         <th class="p-1 text-start">Referred To(Sub_ID)</th>
-                                        <th class="p-1 text-start">Referral Code</th>
+                                        <th class="p-1 text-start">Sub-Category</th>
                                         <th class="p-1 text-start">Sub_Plan</th>
-                                        <th class="p-1 text-start"> Amount_Paid (USD)</th>
-                                        <th class="p-1 text-start">Commission (USD)</th>
+                                        <th class="p-1 text-start">Purchase (USD)</th>
+                                        <th class="p-1 text-center">Commission (USD)</th>
                                         <th class="p-1 text-start"> DOS </th>
 
                                         <th class="p-1 text-start">Date</th>
@@ -1103,7 +1105,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
     Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'User deleted successfully.'
     })
 </script>
 @endif
@@ -1137,6 +1139,40 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         }
     }
     $(document).ready(function() {
+        // Reports downloads: center-align all columns & values in Excel and PDF exports.
+        // Set as button defaults so every table's export is centered without editing each config.
+        // (CSV is plain comma-separated text and carries no cell alignment.)
+        if ($.fn.dataTable && $.fn.dataTable.ext && $.fn.dataTable.ext.buttons) {
+            var _dtButtons = $.fn.dataTable.ext.buttons;
+            if (_dtButtons.excelHtml5) {
+                _dtButtons.excelHtml5.customize = function(xlsx) {
+                    var sheet = xlsx.xl.worksheets['sheet1.xml'];
+                    // Built-in DataTables style 51 = horizontally & vertically centered
+                    $('row c', sheet).attr('s', '51');
+                };
+            }
+            if (_dtButtons.pdfHtml5) {
+                // Applies to PDF exports that do not define their own customize().
+                _dtButtons.pdfHtml5.customize = function(doc) {
+                    if (doc.styles && doc.styles.tableHeader) {
+                        doc.styles.tableHeader.alignment = 'center';
+                    }
+                    if (doc.content && doc.content[1] && doc.content[1].table) {
+                        doc.content[1].table.body.forEach(function(row) {
+                            row.forEach(function(cell) {
+                                if (cell && typeof cell === 'object') {
+                                    cell.alignment = 'center';
+                                }
+                            });
+                        });
+                    }
+                    if (doc.content && doc.content[0]) {
+                        doc.content[0].alignment = 'center';
+                    }
+                };
+            }
+        }
+
         // Use event delegation for dynamically loaded content
         $(document).on('mouseenter', '#communicationTable1 .message-tooltip', function() {
             var fullText = $(this).data('full-text');
@@ -1454,7 +1490,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
     function deleteclient(id) {
         var localtime = new Date();
-        var conf = confirm('Delete Client');
+        var conf = confirm('Are you sure you want to delete this client?');
         if (conf == true) {
             window.location.href = "delete_client/" + id + "/" + localtime.toString() + "";
         }
@@ -1472,7 +1508,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 </script>
 <script>
     function deleteuser(id) {
-        var conf = confirm('Delete User');
+        var conf = confirm('Are you sure you want to delete this user?');
         if (conf == true) {
             window.location.href = "delete_user/" + id + "";
         }
@@ -2470,7 +2506,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 ]
             });
         } else if (type == "referrals") {
-            $('#reportTitle1').html('Subscribers By Refferals');
+            $('#reportTitle1').html('Subscribers By Referrals');
 
             var dataTable = $('#subscriberTable').DataTable({
                 processing: true,
@@ -2486,7 +2522,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
                 "buttons": [{
                         extend: 'csv',
-                        title: 'RSubscribers By Referrals(' + currentDate + ')', // Custom title for C
+                        title: 'Subscribers By Referrals(' + currentDate + ')', // Custom title for C
                         exportOptions: {
                             modifier: {
                                 page: 'all' // Export all data, not just the current page
@@ -2586,7 +2622,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 ]
             });
         } else if (type == "wallet") {
-            $('#reportTitle1').html('Subscribers By wallet Amount');
+            $('#reportTitle1').html('Subscribers By Wallet Amount');
 
             var dataTable = $('#subscriberTable').DataTable({
                 processing: true,
@@ -3917,6 +3953,10 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     data: 'status',
                     name: 'status'
                 },
+                {
+                    data: 'created_at',
+                    name: 'created_at'
+                },
                 //{ data: 'action', name: 'action' },
             ],
             "order": [], //
@@ -4122,7 +4162,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
             ];
         } else if (type == "message") {
-            $('#clientReportTitle').html('Users By messages');
+            $('#clientReportTitle').html('Users By Messages');
             dataTableSettings.columns = [{
                     title: "User",
                     data: 'user_id',
@@ -4144,7 +4184,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 }
             ];
         } else if (type == "users") {
-            $('#clientReportTitle').html('Users By messages');
+            $('#clientReportTitle').html('Users By Messages');
             dataTableSettings.columns = [{
                     title: "Subscriber name",
                     data: 'subscriber_id',
@@ -5162,7 +5202,7 @@ function checkDataAndToggleButtons(table) {
                 }
             ];
         } else if (type == 'byVisaCountry') {
-            $('#clientReportTitle2').html("InInvoices By Visa Country's County");
+            $('#clientReportTitle2').html("Invoices By Visa Country's Count");
             dataTableSettings.columns = [{
                     title: "Visa Country",
                     data: 'to_country',
@@ -5633,7 +5673,7 @@ function checkDataAndToggleButtons(table) {
             dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
-                    title: 'Report Refferals(' + currentDate + ')', // Custom title for C
+                    title: 'Report Referrals(' + currentDate + ')', // Custom title for C
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -5642,7 +5682,7 @@ function checkDataAndToggleButtons(table) {
                 },
                 {
                     extend: 'excel',
-                    title: 'Report Refferals(' + currentDate + ')', // Custom title for Exc
+                    title: 'Report Referrals(' + currentDate + ')', // Custom title for Exc
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -5651,7 +5691,7 @@ function checkDataAndToggleButtons(table) {
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report Refferals(' + currentDate + ')', // Custom title for P
+                    title: 'Report Referrals(' + currentDate + ')', // Custom title for P
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -5669,10 +5709,8 @@ function checkDataAndToggleButtons(table) {
                 }
             },
             columns: [{
-                    data: 'DT_RowIndex',
-                    name: 'DT_RowIndex',
-                    orderable: false,
-                    searchable: false
+                    data: 'id',
+                    name: 'id'
                 },
                 {
                     data: 'referral_by',
@@ -5683,8 +5721,8 @@ function checkDataAndToggleButtons(table) {
                     name: 'referral_to'
                 },
                 {
-                    data: 'referral_code',
-                    name: 'referral_code'
+                    data: 'sub_category',
+                    name: 'sub_category'
                 },
                 {
                     data: 'membership',
@@ -6026,27 +6064,7 @@ function checkDataAndToggleButtons(table) {
                 },
                 {
                     data: 'user_name',
-                    name: 'user_name',
-                    render: function(data, type, row) {
-                        const fullSubscriberName = row.user_name_full || data || '';
-                        if (type !== 'display') {
-                            return fullSubscriberName;
-                        }
-
-                        const escapeHtml = function(value) {
-                            return String(value || '').replace(/[&<>'"]/g, function(character) {
-                                return {
-                                    '&': '&amp;',
-                                    '<': '&lt;',
-                                    '>': '&gt;',
-                                    "'": '&#39;',
-                                    '"': '&quot;'
-                                }[character];
-                            });
-                        };
-
-                        return '<span title="' + escapeHtml(fullSubscriberName) + '">' + escapeHtml(data || fullSubscriberName) + '</span>';
-                    }
+                    name: 'user_name'
                 },
                 {
                     data: 'TransactionType',
@@ -6809,7 +6827,7 @@ function checkDataAndToggleButtons(table) {
         $('#reportSupport').show();
         let dataTableSettings = {
             processing: true,
-            serverSide: true,
+            serverSide: false, // Client-side paging so counts match the aggregated rows exactly
             searching: true, // Disable the search box
             // Disable the "Showing x to y of z entries" message
             "lengthMenu": [
@@ -7467,7 +7485,7 @@ function checkDataAndToggleButtons(table) {
 
         let dataTableSettings = {
             processing: true,
-            serverSide: true,
+            serverSide: false, // Client-side paging so counts match the aggregated rows exactly
             searching: true, // Disable the search box
             // Disable the "Showing x to y of z entries" message
             "lengthMenu": [
@@ -7632,7 +7650,7 @@ function checkDataAndToggleButtons(table) {
 
 
     function deleteapplication(id) {
-        var conf = confirm('Delete Application');
+        var conf = confirm('Are you sure you want to delete this application?');
         if (conf == true) {
             window.location.href = "delete_application/" + id + "";
         }
@@ -7663,7 +7681,7 @@ function checkDataAndToggleButtons(table) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Success',
-                        text: 'Invoice Status Updated Successfully!'
+                        text: 'Invoice status updated successfully.'
                     })
                 }
             }

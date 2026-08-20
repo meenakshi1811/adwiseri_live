@@ -31,6 +31,7 @@ use App\Models\Internal_Invoices;
 use App\Models\Client_discussions;
 use App\Models\Tickets;
 use App\Models\PaymentARs;
+use App\Support\PaymentModeChartFilter;
 use App\Models\Invoice_settings;
 use App\Models\DemoRequests;
 use App\Models\UserRoles;
@@ -41,6 +42,9 @@ use App\Models\Internal_communications;
 use App\Models\Affiliates;
 use App\Models\Dependants;
 use App\Models\Feedbacks;
+use App\Services\OfferBenefitService;
+use App\Http\Controllers\Concerns\ScopesConsultancyReports;
+use App\Http\Controllers\AssociateController;
 use Carbon\CarbonInterface;
 
 use DataTables;
@@ -52,12 +56,63 @@ use DB;
 
 class SubscriberFilterController extends Controller
 {
+    use ScopesConsultancyReports;
+
+    /**
+     * Age buckets shared by Clients / Users By Age Group analytics charts.
+     * Returns [labelsSqlFragment, caseSqlExpression] for TIMESTAMPDIFF age.
+     */
+    private function ageGroupBucketSql(string $dobColumn = 'dob'): array
+    {
+        $ageExpr = "TIMESTAMPDIFF(YEAR, {$dobColumn}, CURDATE())";
+
+        $labelsSql = '(SELECT "Under 18" AS age_group UNION ALL
+            SELECT "18-24" UNION ALL
+            SELECT "25-34" UNION ALL
+            SELECT "35-44" UNION ALL
+            SELECT "45-55" UNION ALL
+            SELECT "55 +" ) AS age_groups';
+
+        /* 45-55 = ages 45..54; 55+ = ages 55 and above (no double-count at 55). */
+        $caseSql = "
+            CASE
+                WHEN {$ageExpr} < 18 THEN 'Under 18'
+                WHEN {$ageExpr} BETWEEN 18 AND 24 THEN '18-24'
+                WHEN {$ageExpr} BETWEEN 25 AND 34 THEN '25-34'
+                WHEN {$ageExpr} BETWEEN 35 AND 44 THEN '35-44'
+                WHEN {$ageExpr} BETWEEN 45 AND 54 THEN '45-55'
+                ELSE '55 +'
+            END
+        ";
+
+        return [$labelsSql, $caseSql];
+    }
+
+    private function applyAgeGroupConsultancyScope($query, User $user, string $column)
+    {
+        if ($this->isConsultancyMember($user)) {
+            $subscriberId = $this->consultancySubscriberId($user);
+            if ($subscriberId) {
+                return $query->where($column, $subscriberId);
+            }
+        }
+
+        if ($user->user_type === 'admin' && !empty(request()->subid)) {
+            return $query->where($column, (int) request()->subid);
+        }
+
+        return $query;
+    }
+
     private function parseReportDate(?string $value, bool $isEndDate = false): Carbon
     {
         $value = trim((string) $value);
 
         if ($value === '') {
-            return $isEndDate ? Carbon::now()->endOfDay() : Carbon::now()->startOfDay();
+            // No date supplied: treat as an open range (all-time) instead of "today".
+            // Charts such as "By Age Group" / "By Gender" are run without an explicit
+            // date range, so defaulting the start bound to "today" made them return no rows.
+            return $isEndDate ? Carbon::now()->endOfDay() : Carbon::create(1970, 1, 1)->startOfDay();
         }
 
         $normalizedValue = str_replace(['/', '.'], '-', $value);
@@ -94,27 +149,85 @@ class SubscriberFilterController extends Controller
         return $isEndDate ? $date->endOfDay() : $date->startOfDay();
     }
 
-
-    private function resolveReportSubscriberId($user): ?int
+    private function formatClientApplicationChartLabel(?string $clientName, ?string $applicationName, $applicationId = null): string
     {
-        if ($user->user_type === 'admin') {
-            return request()->filled('subid') ? (int) request()->input('subid') : null;
+        $clientName = trim((string) $clientName);
+        $applicationName = trim((string) $applicationName);
+
+        if ($applicationName === '' && $applicationId !== null && $applicationId !== '') {
+            $applicationName = 'Application ' . $applicationId;
         }
 
-        if ($user->user_type === 'Subscriber') {
-            return (int) $user->id;
+        $parts = preg_split('/\s+/', $clientName, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $shortName = $parts[0] ?? '';
+
+        if (count($parts) > 1) {
+            $shortName .= ' ' . strtoupper(mb_substr($parts[count($parts) - 1], 0, 1)) . '.';
         }
 
-        if (!empty($user->added_by)) {
-            return (int) $user->added_by;
+        if ($applicationName !== '') {
+            return $shortName !== '' ? $shortName . ' - ' . $applicationName : $applicationName;
         }
 
-        return request()->filled('subid') ? (int) request()->input('subid') : null;
+        return $shortName !== '' ? $shortName : 'Unknown';
     }
 
-    private function scopeQueryToSubscriber($query, ?int $subscriberId, string $column = 'subscriber_id')
+    private function buildTimelineDurationData($query, $query1): \Illuminate\Support\Collection
     {
-        return $subscriberId ? $query->where($column, $subscriberId) : $query;
+        $currentDate = now();
+        $lastWeekStart = now()->subWeek()->startOfWeek();
+        $lastWeekEnd = now()->subWeek()->endOfWeek();
+        $lastMonthStart = now()->subMonth()->startOfMonth();
+        $lastMonthEnd = now()->subMonth()->endOfMonth();
+        $lastQuarterStart = now()->subQuarter()->startOfQuarter();
+        $lastQuarterEnd = now()->subQuarter()->endOfQuarter();
+        $lastYearStart = now()->subYear()->startOfYear();
+        $lastYearEnd = now()->subYear()->endOfYear();
+
+        $inspectionStartDate = (clone $query1)->orderBy('created_at', 'asc')->first();
+
+        $todayApplications = (clone $query)->whereDate('created_at', $currentDate)
+            ->selectRaw("'Today' as type, COUNT(*) as count")
+            ->get();
+
+        $lastWeekApplications = (clone $query)->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])
+            ->selectRaw("'Last Week' as type, COUNT(*) as count")
+            ->get();
+
+        $lastMonthApplications = (clone $query)->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])
+            ->selectRaw("'Last Month' as type, COUNT(*) as count")
+            ->get();
+
+        $lastQuarterApplications = (clone $query)->whereBetween('created_at', [$lastQuarterStart, $lastQuarterEnd])
+            ->selectRaw("'Last Quarter' as type, COUNT(*) as count")
+            ->get();
+
+        $yearlyApplications = (clone $query)->whereBetween('created_at', [$lastYearStart, $lastYearEnd])
+            ->selectRaw("'Last Year' as type, COUNT(*) as count")
+            ->get();
+
+        $sinceInspectionQuery = clone $query1;
+        if ($inspectionStartDate) {
+            $sinceInspectionQuery = $sinceInspectionQuery->whereDate('created_at', '>=', $inspectionStartDate->created_at);
+        }
+
+        $sinceInspectionData = $sinceInspectionQuery
+            ->selectRaw("'Since Inception' as type, COUNT(*) as count")
+            ->get();
+
+        return collect()
+            ->merge($todayApplications)
+            ->merge($lastWeekApplications)
+            ->merge($lastMonthApplications)
+            ->merge($lastQuarterApplications)
+            ->merge($yearlyApplications)
+            ->merge($sinceInspectionData)
+            ->map(function ($item) {
+                return [
+                    'type' => $item['type'],
+                    'count' => (int) $item['count'],
+                ];
+            });
     }
 
 
@@ -124,7 +237,6 @@ class SubscriberFilterController extends Controller
         $user = auth()->user();
         $startDate = $this->parseReportDate(request()->input('startDate'));
         $endDate = $this->parseReportDate(request()->input('endDate'), true);
-        $reportSubscriberId = $this->resolveReportSubscriberId($user);
         if (request()->type == "country") {
 
             if ($user->user_type == 'admin') {
@@ -442,18 +554,21 @@ class SubscriberFilterController extends Controller
             }
             return response()->json(['data' => $client_docs]);
         } elseif (request()->type == "byClientHomeCountry") {
-            $query = $this->scopeQueryToSubscriber(Clients::query(), $reportSubscriberId);
+            $query = new Clients();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                // Apply condition for 'Subscriber' user type and membership types
+                $query = $query->where('subscriber_id', request()->subid);
+            }
 
             $clients = $query->whereBetween('created_at', [$startDate, $endDate])
-                ->whereNotNull('nationality')
-                ->where('nationality', '!=', '')
-                ->whereRaw('LOWER(nationality) != ?', ['null'])
+                ->whereNotNull('country')
+                ->where('country', '!=', '')
                 ->select(
-                    'nationality', // Select the country (nationality)
-                    DB::raw('COUNT(*) AS No_of_clients') // Count the number of clients per country
+                    'country',
+                    DB::raw('COUNT(*) AS No_of_clients')
                 )
-                ->groupBy('nationality') // Group by country
-                ->orderBy('No_of_clients', 'desc') // Order by number of clients, most to least
+                ->groupBy('country')
+                ->orderBy('No_of_clients', 'desc')
                 ->get();
 
             return response()->json(['data' => $clients]);
@@ -470,33 +585,54 @@ class SubscriberFilterController extends Controller
                 ->select('visa_country', DB::raw('COUNT(DISTINCT client_id) as total_clients')) // Count distinct clients per visa_country
                 ->get();
             return response()->json(['data' => $clientByVisaCountry]);
+        } elseif (request()->type === 'clientVisaChartFilterAvailability') {
+            $subscriberId = (int) request()->subid;
+            $availability = app(\App\Services\AnalyticsClientChartService::class)
+                ->visaDetailFilterAvailability($subscriberId);
+
+            return response()->json(['data' => $availability]);
+        } elseif (in_array(request()->type, [
+            'byClientUniversity',
+            'byClientCourse',
+            'byClientIntake',
+            'byClientEmployer',
+            'byClientJobRole',
+        ], true)) {
+            $subscriberId = (int) request()->subid;
+            $chartService = app(\App\Services\AnalyticsClientChartService::class);
+
+            $fieldMap = [
+                'byClientUniversity' => ['column' => 'institution', 'scope' => 'study'],
+                'byClientCourse' => ['column' => 'course_name', 'scope' => 'study'],
+                'byClientIntake' => ['column' => 'intake', 'scope' => 'study'],
+                'byClientEmployer' => ['column' => 'employer_name', 'scope' => 'work'],
+                'byClientJobRole' => ['column' => 'employment_role', 'scope' => 'work'],
+            ];
+
+            $config = $fieldMap[request()->type];
+            $rows = $chartService->aggregateClientsByVisaDetailField(
+                $subscriberId,
+                $config['column'],
+                $config['scope'],
+                $startDate,
+                $endDate
+            );
+
+            return response()->json(['data' => $rows]);
         } elseif (request()->type == "byAgeGroupClient") {
+            [$labelsSql, $caseSql] = $this->ageGroupBucketSql('dob');
 
-            $query =  new Clients();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                // Apply condition for 'Subscriber' user type and membership types
-                $query =   $query->where('subscriber_id', request()->subid);
-            }
+            $query = Clients::query();
+            $query = $this->applyAgeGroupConsultancyScope($query, $user, 'subscriber_id');
 
-            $clientsAgeGroup = DB::table(DB::raw('(SELECT "Under 18" AS age_group UNION ALL 
-                        SELECT "18-24" UNION ALL 
-                        SELECT "25-34" UNION ALL 
-                        SELECT "35-44" UNION ALL 
-                        SELECT "45-55" UNION ALL 
-                        SELECT "55 +" ) AS age_groups'))
+            $clientsAgeGroup = DB::table(DB::raw($labelsSql))
                 ->leftJoinSub(
                     $query->whereBetween('created_at', [$startDate, $endDate])
                         ->whereNotNull('dob')
-                        ->selectRaw("
-                                CASE 
-                                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) < 18 THEN 'Under 18'
-                                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 18 AND 24 THEN '18-24'
-                                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 25 AND 34 THEN '25-34'
-                                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 35 AND 44 THEN '35-44'
-                                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 45 AND 55 THEN '45-55'
-                                    ELSE '55 +'
-                                END AS age_group, COUNT(*) AS count
-                            ")
+                        ->where('dob', '!=', '')
+                        ->where('dob', '!=', '0000-00-00')
+                        ->whereRaw('dob REGEXP ?', ['^[0-9]{4}-[0-9]{2}-[0-9]{2}'])
+                        ->selectRaw("{$caseSql} AS age_group, COUNT(*) AS count")
                         ->groupBy('age_group'),
                     'clients',
                     'age_groups.age_group',
@@ -605,21 +741,25 @@ class SubscriberFilterController extends Controller
                 ->addIndexColumn()
                 ->make(true);
         } elseif (request()->type == "byPaymentModeClientChart") {
-            $query = $this->scopeQueryToSubscriber(
-                PaymentARs::query(),
-                $reportSubscriberId,
-                'payment_ar.subscriber_id'
-            );
+            $query = new PaymentARs();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query = $query->where('payment_ar.subscriber_id', request()->subid);
+            }
 
             $clientsPaymentMode = $query
                 ->whereBetween('payment_ar.created_at', [$startDate, $endDate])
                 ->whereNotNull('payment_ar.client_id')
-                ->whereNotNull('payment_ar.payment_mode')
-                ->whereRaw("TRIM(payment_ar.payment_mode) != ''")
-                ->whereRaw('LOWER(TRIM(payment_ar.payment_mode)) != ?', ['null'])
-                ->selectRaw('TRIM(payment_ar.payment_mode) as payment_mode')
-                ->selectRaw('COUNT(payment_ar.id) as no_of_applications')
-                ->groupByRaw('TRIM(payment_ar.payment_mode)')
+                ->join('clients', 'clients.id', '=', 'payment_ar.client_id')
+                ->leftJoin('applications', 'applications.id', '=', 'payment_ar.application_id');
+
+            PaymentModeChartFilter::applyToQuery($clientsPaymentMode, 'payment_mode', 'payment_ar');
+
+            $clientsPaymentMode = $clientsPaymentMode
+                ->select(
+                    'payment_ar.payment_mode', // ✅ Ensure this is included
+                    DB::raw('COUNT(payment_ar.id) as no_of_applications') // ✅ Count applications per mode
+                )
+                ->groupBy('payment_ar.payment_mode')
                 ->orderBy('no_of_applications', 'desc')
                 ->get();
 
@@ -655,124 +795,30 @@ class SubscriberFilterController extends Controller
                     'applications.application_name',
                     'applications.application_id'
                 ) // Group by subscriber, client, and application
-                ->get();
+                ->get()
+                ->map(function ($row) {
+                    $row->chart_label = $this->formatClientApplicationChartLabel(
+                        $row->client_name,
+                        $row->application_name,
+                        $row->application_id
+                    );
+
+                    return $row;
+                });
 
             return response()->json(['data' => $clinetDocuments]);
         } elseif (request()->type == "byClientNoOfClientsTimeline") {
-            $currentYear = date('Y');
-            $currentDate = now();
-            $lastWeekStart = now()->subWeek()->startOfWeek();
-            $lastWeekEnd = now()->subWeek()->endOfWeek();
-            $lastMonthStart = now()->subMonth()->startOfMonth();
-            $lastMonthEnd = now()->subMonth()->endOfMonth();
-            $lastQuarterStart = now()->subQuarter()->startOfQuarter();
-            $lastQuarterEnd = now()->subQuarter()->endOfQuarter();
-            $lastYearStart = now()->subYear()->startOfYear();
-            $lastYearEnd = now()->subYear()->endOfYear();
-           
+            $query = new Clients();
+            $query1 = clone $query;
 
-            // Base query with subscriber scope. Keep the current-year filter only on relative duration buckets;
-            // the Since Inception bucket uses the same subscriber scope without the year limit.
-            $query = $this->scopeQueryToSubscriber(
-                Clients::whereYear('created_at', '=', $currentYear),
-                $reportSubscriberId
-            );
-            $query1 = $this->scopeQueryToSubscriber(Clients::query(), $reportSubscriberId);
-            $inspectionStartDate = (clone $query1)->orderBy('created_at', 'asc')->first();
-            
-            // 🔹 Today's Applications
-            $todayApplications = clone $query;
-            $todayApplications = $todayApplications->whereDate('created_at', $currentDate)
-                ->selectRaw("'Today' as type, COUNT(*) as count")
-                ->get();
-            
-            // 🔹 Last Week's Applications
-            $lastWeekApplications = clone $query;
-            $lastWeekApplications = $lastWeekApplications->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])
-                ->selectRaw("'Last Week' as type, COUNT(*) as count")
-                ->get();
-            
-            // 🔹 Last Month's Applications
-            $lastMonthApplications = clone $query;
-            $lastMonthApplications = $lastMonthApplications->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])
-                ->selectRaw("'Last Month' as type, COUNT(*) as count")
-                ->get();
-            
-            // 🔹 Last Quarter's Applications
-            $lastQuarterApplications = clone $query;
-            $lastQuarterApplications = $lastQuarterApplications->whereBetween('created_at', [$lastQuarterStart, $lastQuarterEnd])
-                ->selectRaw("'Last Quarter' as type, COUNT(*) as count")
-                ->get();
-            
-            $yearlyApplications = clone $query;
-            $yearlyApplications = $yearlyApplications->whereBetween('created_at', [$lastYearStart, $lastYearEnd])
-                ->selectRaw("'Last Year' as type, COUNT(*) as count")
-                ->get();
-
-            // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData = (clone $query1);
-            if ($inspectionStartDate) {
-                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise')
+                && $user->user_type == 'Subscriber') {
+                $query = $query->where('subscriber_id', $user->id);
+                $query1 = $query1->where('subscriber_id', $user->id);
             }
-            $sinceInspectionData = $sinceInspectionData
-                ->selectRaw("'Since Inception' as type, COUNT(*) as count")
-                ->get();
-            
-            // 🔹 Weekly Applications
-            $weeklyApplications = clone $query;
-            $weeklyApplications = $weeklyApplications->selectRaw("
-                WEEK(created_at) as week_num, 
-                YEAR(created_at) as year_num, 
-                COUNT(*) as count
-            ")
-                ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'asc')
-                ->orderBy('week_num', 'asc')
-                ->get();
-            
-            // 🔹 Quarterly Applications
-            $quarterlyApplications = clone $query;
-            $quarterlyApplications = $quarterlyApplications->selectRaw("
-                YEAR(created_at) as year, 
-                QUARTER(created_at) as quarter, 
-                COUNT(*) as count
-            ")
-                ->groupBy('year', 'quarter')
-                ->orderBy('year', 'asc')
-                ->orderBy('quarter', 'asc')
-                ->get();
-            
-            // 🔹 Monthly Applications
-            $monthlyApplications = clone $query;
-            $monthlyApplications = $monthlyApplications->selectRaw("
-                YEAR(created_at) as year, 
-                MONTH(created_at) as month, 
-                COUNT(*) as count
-            ")
-                ->groupBy('year', 'month')
-                ->orderBy('year', 'asc')
-                ->orderBy('month', 'asc')
-                ->get();
-            
-            // 🔹 Merge All Data
-            $formattedData = collect()
-                ->merge($todayApplications)
-                ->merge($lastWeekApplications)
-                ->merge($lastMonthApplications)
-                ->merge($lastQuarterApplications)
-                ->merge($yearlyApplications)
-                // ->merge($quarterlyApplications)
-                // ->merge($monthlyApplications)
-                ->merge($sinceInspectionData); // ✅ Replacing past year with "Since Inception"
-            
-            // 🔹 Format Data for Output
-            $formattedData = $formattedData->map(function ($item) {
-                return [
-                    'type' => $item['type'],
-                    'count' => $item['count'],
-                ];
-            });
-            
+
+            $formattedData = $this->buildTimelineDurationData($query, $query1);
+
             return response()->json([
                 'status' => 'success',
                 'data' => $formattedData
@@ -803,19 +849,16 @@ class SubscriberFilterController extends Controller
             $clientsOutstandingAmount = $query->whereBetween('payment_ar.created_at', [$startDate, $endDate])
                 ->whereNotNull('payment_ar.client_id') // Ensure there is a client_id
                 ->join('clients', 'clients.id', '=', 'payment_ar.client_id') // ✅ Properly join clients table
-                ->leftJoin('applications', 'applications.id', '=', 'payment_ar.application_id') // ✅ Join applications if needed
                 ->select(
                     'payment_ar.client_id',
-                    'payment_ar.application_id',
-                    'payment_ar.service_description',
                     'clients.name as client_name', // ✅ Properly select client name
-                    // ✅ Select application name if needed
                     DB::raw('MAX(payment_ar.created_at) as created_at'),
+                    // ✅ Club ALL outstanding across the client's applications/invoices into a single per-client total
                     DB::raw('SUM(payment_ar.amount - payment_ar.paid_amount) as amount_to_pay')
                 )
-                ->groupBy('payment_ar.client_id', 'payment_ar.application_id', 'payment_ar.service_description', 'clients.name')
+                ->groupBy('payment_ar.client_id', 'clients.name') // ✅ One entry per client (amounts clubbed together)
                 ->havingRaw('SUM(payment_ar.amount - payment_ar.paid_amount) > 0')
-                ->orderBy('created_at', 'desc')
+                ->orderByDesc('amount_to_pay') // ✅ Largest outstanding client first
                 ->get();
             return response()->json(['data' => $clientsOutstandingAmount]);
         } elseif (request()->type == "byClientDependant") {
@@ -858,50 +901,65 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' => $applicationByHomeCountry]);
         } elseif (request()->type == "byApplicationType") {
 
-            $query = $this->scopeQueryToSubscriber(Applications::query(), $reportSubscriberId);
+            $query = new Applications();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query = $query->where('subscriber_id', request()->subid);
+            }
+            // $byApplicationType = $query->whereBetween('created_at', [$startDate, $endDate])
+            //     ->whereNotNull('visa_country')  // Ensures visa_country is not null
+            //     ->groupBy('application_name')  // Group by visa_country
+            //     ->selectRaw(
+            //         'application_name,
+                    
+            //          COUNT(client_id) AS number_of_clients') // Count distinct clients per visa_country
+            //     ->get();
 
             $byApplicationType = $query->whereBetween('created_at', [$startDate, $endDate])
-                ->whereNotNull('application_name')
-                ->where('application_name', '!=', '')
-                ->whereRaw('LOWER(application_name) != ?', ['null'])
-                ->select('application_name')
-                ->selectRaw('COUNT(*) AS number_of_applications')
                 ->groupBy('application_name')
-                ->orderBy('number_of_applications', 'desc')
+                ->select('application_name', DB::raw('COUNT(*) AS number_of_clients'))
+                ->orderByDesc('number_of_clients')
                 ->get();
 
             return response()->json(['data' => $byApplicationType]);
         } elseif (request()->type == "byApplicationStatus") {
 
-            $applicationStatusOrder = [
-                'Client Registered',
-                'Client Counselled',
-                'Preparation',
-                'Apointment Booked',
-                'Applied',
-                'Decision',
-                'Appeal Lodged',
-                'Appeal Decision',
-                'AR / JR Lodged',
-                'AR / JR Decision',
-                'Withdrawn',
-                'Cancelled',
-            ];
+            $query = Applications::query();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query = $query->where('subscriber_id', request()->subid);
+            }
 
-            $query = $this->scopeQueryToSubscriber(Applications::query(), $reportSubscriberId);
-
-            $byApplicationStatus = $query->whereBetween('created_at', [$startDate, $endDate])
-                ->whereIn('application_status', $applicationStatusOrder)
-                ->select('application_status')
-                ->selectRaw('COUNT(*) as status_count')
+            $countsByStatus = $query->whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw("COALESCE(NULLIF(application_status, ''), 'Not Set') as application_status, COUNT(*) as status_count")
                 ->groupBy('application_status')
-                ->orderByRaw(
-                    'FIELD(application_status, ' . implode(',', array_fill(0, count($applicationStatusOrder), '?')) . ')',
-                    $applicationStatusOrder
-                )
-                ->get();
+                ->pluck('status_count', 'application_status');
 
-            return response()->json(['data' => $byApplicationStatus]);
+            $statusFlow = AssociateController::APPLICATION_STATUS_OPTIONS;
+            $byApplicationStatus = collect();
+
+            foreach ($statusFlow as $status) {
+                $byApplicationStatus->push([
+                    'application_status' => $status,
+                    'status_count' => (int) ($countsByStatus[$status] ?? 0),
+                ]);
+            }
+
+            foreach ($countsByStatus as $status => $count) {
+                if (!in_array($status, $statusFlow, true) && $status !== 'Not Set') {
+                    $byApplicationStatus->push([
+                        'application_status' => $status,
+                        'status_count' => (int) $count,
+                    ]);
+                }
+            }
+
+            if ($countsByStatus->has('Not Set')) {
+                $byApplicationStatus->push([
+                    'application_status' => 'Not Set',
+                    'status_count' => (int) $countsByStatus['Not Set'],
+                ]);
+            }
+
+            return response()->json(['data' => $byApplicationStatus->values()]);
         } elseif (request()->type == "byApplicationCountsByDependantsChart") {
 
             $dependantBuckets = [
@@ -974,72 +1032,80 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $byApplicationDependant]);
         } elseif (request()->type == 'byApplicationPaymentModeChart') {
-
-            $applications = $this->scopeQueryToSubscriber(
-                PaymentARs::query(),
-                $reportSubscriberId,
-                'payment_ar.subscriber_id'
-            )
-                ->leftJoin('applications', function ($join) {
-                    $join->on('applications.subscriber_id', '=', 'payment_ar.subscriber_id')
-                        ->on(function ($applicationJoin) {
-                            $applicationJoin->on('applications.id', '=', 'payment_ar.application_id')
-                                ->orOn('applications.application_id', '=', 'payment_ar.application_id');
-                        });
-                })
+            // Applications by payment mode must come from payment_ar (client payments ledger).
+            // The old query joined applications × invoices.user_id, which cartesian-producted
+            // every application with every subscription invoice and only surfaced Card/Cash.
+            $query = PaymentARs::query()
                 ->whereBetween('payment_ar.created_at', [$startDate, $endDate])
-                ->whereNotNull('payment_ar.application_id')
                 ->whereNotNull('payment_ar.payment_mode')
-                ->whereRaw("TRIM(payment_ar.payment_mode) != ''")
-                ->whereRaw('LOWER(TRIM(payment_ar.payment_mode)) != ?', ['null'])
-                ->where(function ($query) {
-                    $query->where('payment_ar.type', 'ar')
-                        ->orWhereNull('payment_ar.type')
-                        ->orWhereRaw("TRIM(payment_ar.type) = ''");
-                })
-                ->selectRaw('TRIM(payment_ar.payment_mode) as payment_mode')
-                ->selectRaw('COUNT(DISTINCT COALESCE(applications.id, payment_ar.application_id)) as no_of_applications')
-                ->selectRaw("GROUP_CONCAT(DISTINCT COALESCE(CONCAT(applications.application_name, ' (', applications.application_id, ')'), payment_ar.application_id) SEPARATOR ', ') as application_names")
-                ->groupByRaw('TRIM(payment_ar.payment_mode)')
-                ->havingRaw('COUNT(DISTINCT COALESCE(applications.id, payment_ar.application_id)) > 0')
-                ->orderBy('no_of_applications', 'desc')
+                ->whereRaw("TRIM(payment_ar.payment_mode) <> ''");
+
+            if (!empty(request()->subid)) {
+                $query->where('payment_ar.subscriber_id', request()->subid);
+            } elseif (
+                ($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise')
+                && $user->user_type == 'Subscriber'
+            ) {
+                $query->where('payment_ar.subscriber_id', $user->id);
+            }
+
+            PaymentModeChartFilter::applyToQuery($query, 'payment_mode', 'payment_ar');
+
+            $applications = $query
+                ->select(
+                    'payment_ar.payment_mode',
+                    DB::raw(
+                        "COUNT(DISTINCT CONCAT(
+                            CASE WHEN payment_ar.application_id IS NOT NULL THEN 'app-' ELSE 'pay-' END,
+                            COALESCE(payment_ar.application_id, payment_ar.id)
+                        )) as no_of_applications"
+                    )
+                )
+                ->groupBy('payment_ar.payment_mode')
+                ->havingRaw('no_of_applications > 0')
+                ->orderByDesc('no_of_applications')
                 ->get();
 
-            return  DataTables::of($applications)
-                ->addIndexColumn()
-                ->make(true);
+            return response()->json(['data' => $applications]);
         } elseif (request()->type == "byOutstandingAplicationPaymentsAmountChart") {
-            $query = $this->scopeQueryToSubscriber(
-                PaymentARs::query(),
-                $reportSubscriberId,
-                'payment_ar.subscriber_id'
-            );
+            $query = new PaymentARs();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query = $query->where('payment_ar.subscriber_id', request()->subid);
+            }
 
-            $applicationOutstandingAmount = $query
-                ->leftJoin('applications', 'applications.id', '=', 'payment_ar.application_id')
-                ->leftJoin('clients', 'clients.id', '=', 'payment_ar.client_id')
-                ->whereBetween('payment_ar.created_at', [$startDate, $endDate])
+            $applicationOutstandingAmount = $query->whereBetween('payment_ar.created_at', [$startDate, $endDate])
                 ->where('payment_ar.type', 'ar')
-                ->whereNotNull('payment_ar.client_id')
+                ->join('clients', 'clients.id', '=', 'payment_ar.client_id')
+                ->leftJoin('applications', 'applications.id', '=', 'payment_ar.application_id')
                 ->select(
                     'payment_ar.client_id',
                     'payment_ar.application_id',
-                    'payment_ar.service_description',
-                    DB::raw("CONCAT(COALESCE(clients.name, 'Unknown Client'), ' - ', COALESCE(NULLIF(CONCAT(applications.application_name, ' (', applications.application_id, ')'), ' ()'), NULLIF(payment_ar.service_description, ''), 'N/A')) as application_name"),
+                    'payment_ar.invoice_no',
+                    'clients.name as client_name',
+                    DB::raw("CONCAT(
+                                clients.name,
+                                ' - ',
+                                COALESCE(
+                                    NULLIF(TRIM(CONCAT(applications.application_name, ' (', applications.application_id, ')')), '()'),
+                                    NULLIF(TRIM(MAX(payment_ar.service_description)), ''),
+                                    CONCAT('Invoice ', payment_ar.invoice_no)
+                                )
+                            ) as application_name"),
                     DB::raw('MAX(payment_ar.created_at) as created_at'),
-                    DB::raw('MAX(COALESCE(payment_ar.amount, 0)) - SUM(COALESCE(payment_ar.paid_amount, 0)) as amount_to_pay')
+                    DB::raw('(MAX(payment_ar.amount) - SUM(payment_ar.paid_amount)) as amount_to_pay')
                 )
                 ->groupBy(
                     'payment_ar.client_id',
                     'payment_ar.application_id',
-                    'payment_ar.service_description',
+                    'payment_ar.invoice_no',
                     'clients.name',
                     'applications.application_name',
                     'applications.application_id'
                 )
-                ->havingRaw('MAX(COALESCE(payment_ar.amount, 0)) - SUM(COALESCE(payment_ar.paid_amount, 0)) > 0')
-                ->orderBy('amount_to_pay', 'desc')
+                ->havingRaw('(MAX(payment_ar.amount) - SUM(payment_ar.paid_amount)) > 0')
+                ->orderByDesc('amount_to_pay')
                 ->get();
+
             return response()->json(['data' => $applicationOutstandingAmount]);
         } elseif (request()->type == "byNumberOfApplicationDocumentStoreChart") {
             $query = Client_Docs::join('clients', 'client_docs.client_id', '=', 'clients.id') // Join clients table
@@ -1173,11 +1239,9 @@ class SubscriberFilterController extends Controller
  
             
             // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData = (clone $query1);
-            if ($inspectionStartDate) {
-                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
-            }
+            $sinceInspectionData = clone $query1;
             $sinceInspectionData = $sinceInspectionData
+                ->whereDate('created_at', '>=', $inspectionStartDate->created_at) 
                 ->selectRaw("'Since Inception' as type, COUNT(*) as count")
                 ->get();
             
@@ -1259,19 +1323,16 @@ class SubscriberFilterController extends Controller
             //     ->orderBy('no_of_docs', 'desc') // Order by highest number of docs
             //     ->limit(50) // Limit results (optional)
             //     ->get();
-            $byDocumentNoofApplications = $query->leftJoin('applications', function ($join) {
-                    $join->on('client_docs.application_id', '=', 'applications.application_id')
-                        ->orOn('client_docs.application_id', '=', 'applications.id');
-                })
-                ->whereBetween('client_docs.created_at', [$startDate, $endDate])
-                ->whereNotNull('client_docs.application_id')
+            $byDocumentNoofApplications = $query->join('applications', 'client_docs.application_id', '=', 'applications.application_id') // Join applications table
+                ->whereBetween('client_docs.created_at', [$startDate, $endDate]) // Filter by date range
+                ->whereNotNull('client_docs.application_id') // Ensure application_id exists
                 ->select(
-                    DB::raw("COALESCE(CONCAT(applications.application_name, ' (', applications.application_id, ')'), CONCAT('Application ', client_docs.application_id)) as application_name"),
-                    DB::raw('COUNT(DISTINCT client_docs.id) as no_of_docs')
+                    DB::raw("CONCAT(applications.application_name, ' (', applications.application_id, ')') as application_name"), // Format: Test (1)
+                    DB::raw('COUNT(DISTINCT client_docs.id) as no_of_docs') // Count total number of documents
                 )
-                ->groupBy('client_docs.application_id', 'applications.application_id', 'applications.application_name')
-                ->orderBy('no_of_docs', 'desc')
-                ->limit(20)
+                ->groupBy('applications.application_id', 'applications.application_name') // Group by application_id & application_name
+                ->orderBy('no_of_docs', 'desc') // Order by highest number of docs
+                ->limit(50) // Limit results (optional)
                 ->get();
 
                     
@@ -1312,6 +1373,265 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $byUserTimeline]);
         } elseif (request()->type == "byDocumentTimeline(Duration)") {
+            $query = new Client_Docs();
+            $query1 = clone $query;
+
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise')
+                && $user->user_type == 'Subscriber') {
+                $query = $query->where('user_id', $user->id);
+                $query1 = $query1->where('user_id', $user->id);
+            }
+
+            $formattedData = $this->buildTimelineDurationData($query, $query1);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $formattedData
+            ]);
+            
+        
+        
+        } elseif (request()->type == "ByClientsTopDocs") {
+
+            $query = new Client_Docs();
+
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise')
+                && $user->user_type == 'Subscriber'
+            ) {
+                $query = $query->where('client_docs.user_id', request()->subid);
+            }
+
+            $ByClientsTopDocs = $query->whereNotNull('client_id')->join('clients', 'client_docs.client_id', '=', 'clients.id') // Join clients table
+                ->whereBetween('client_docs.created_at', [$startDate, $endDate]) // Filter by date range
+                ->select(
+                    'clients.name as client_name', // Client Name
+                    DB::raw('COUNT(DISTINCT client_docs.id) as no_of_docs') // Count total number of documents
+                )
+                ->groupBy('clients.id', 'clients.name') // Group by client
+                ->orderBy('no_of_docs', 'desc') // Order by highest number of docs
+                ->limit(50) // Limit results (optional)
+                ->get();
+
+            return response()->json(['data' => $ByClientsTopDocs]);
+        } elseif (request()->type == "byFileSizeDocsChart") {
+            $query = Client_Docs::join('clients', 'client_docs.client_id', '=', 'clients.id')
+
+                ->join('applications', 'client_docs.application_id', '=', 'applications.application_id') // Joining applications table
+                ->select(
+                    'client_docs.doc_file',
+                    'client_docs.client_id',
+                    'clients.name as client_name',
+                    'applications.application_name', // Select the application name
+                    'applications.application_id as application_id', // Select the application ID
+                    'client_docs.doc_name',
+                    'client_docs.id'
+                )
+                ->whereBetween('client_docs.created_at', [$startDate, $endDate]);
+
+            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
+                $query->where('client_docs.user_id', $user->id);
+            }
+
+            $documents = $query->get();
+            $filesWithSize = [];
+            foreach ($documents as $doc) {
+                // Construct the file path
+                $filePath = public_path('web_assets/users/client' . $doc->client_id . '/docs/' . $doc->doc_file);
+
+                // Check if the file exists
+                if (file_exists($filePath)) {
+                    // Get file size in bytes
+                    $fileSize = filesize($filePath);
+
+                    // Format the file size
+                    $formattedSize = $fileSize < 1024
+                        ? $fileSize . ' B'
+                        : ($fileSize < 1048576
+                            ? round($fileSize / 1024, 2) . ' KB'
+                            : ($fileSize < 1073741824
+                                ? round($fileSize / 1048576, 2) . ' MB'
+                                : round($fileSize / 1073741824, 2) . ' GB'));
+
+                    // Add the document and its size to the array
+                    $filesWithSize[] = [
+                        'client_name' => $doc->client_name . '(' . $doc->client_id . ')',
+                        'application_name' => $doc->application_name . '(' . $doc->application_id . ')', // Application name
+                        'application_id' => $doc->application_id, // Application ID
+                        'docs_name' => $doc->doc_name . ' (' . $doc->id . ')',
+                        'doc_file' => \App\Support\DocumentFileName::forTable($doc->doc_file, $doc->doc_name),
+                        'file_size' => $fileSize, // Size in bytes
+                        'formatted_size' => $formattedSize, // Human-readable size
+                    ];
+                }
+            }
+            // Sort files by size (highest to lowest)
+            usort($filesWithSize, function ($a, $b) {
+                return $b['file_size'] <=> $a['file_size'];
+            });
+            $topFiles = array_slice($filesWithSize, 0, 50);
+
+            return response()->json(['data' => $topFiles]);
+        } elseif (request()->type == "byFileTypeDocsChart") {
+            // Count by extension from DB records (not disk), so missing/moved files still appear in Analytics.
+            $query = Client_Docs::query()
+                ->select(
+                    DB::raw("LOWER(SUBSTRING_INDEX(client_docs.doc_file, '.', -1)) as file_type"),
+                    DB::raw('COUNT(*) as count')
+                )
+                ->where('client_docs.user_id', $user->id)
+                ->whereNotNull('client_docs.doc_file')
+                ->where('client_docs.doc_file', '!=', '')
+                ->where('client_docs.doc_file', 'like', '%.%')
+                ->whereBetween('client_docs.created_at', [$startDate, $endDate])
+                ->groupBy('file_type')
+                ->orderByDesc('count');
+
+            $fileTypeCount = $query->get()
+                ->filter(function ($row) {
+                    $type = trim((string) ($row->file_type ?? ''));
+                    return $type !== '';
+                })
+                ->map(function ($row) {
+                    return [
+                        'file_type' => strtolower(trim((string) $row->file_type)),
+                        'count' => (int) $row->count,
+                    ];
+                })
+                ->values()
+                ->all();
+
+            return response()->json(['data' => $fileTypeCount]);
+        } elseif (request()->type == "byUserRoleChart") {
+
+            $query =  new User();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                // Apply condition for 'Subscriber' user type and membership types
+                $query =   $query->where('added_by', request()->subid);
+            }
+
+            // Filter by 'added_by' if 'subid' is provided
+            $roles = $query->whereBetween('created_at', [$startDate, $endDate])
+                ->select('designation', DB::raw('count(*) as users'))
+                ->groupBy('designation')
+                ->get();
+
+            return response()->json(['data' => $roles]);
+        } elseif (request()->type == "byUserAgeGroupChart") {
+            [$labelsSql, $caseSql] = $this->ageGroupBucketSql('dob');
+
+            $query = User::query()->where('user_type', 'User');
+            $query = $this->applyAgeGroupConsultancyScope($query, $user, 'added_by');
+
+            $byUserAgeGroup = DB::table(DB::raw($labelsSql))
+                ->leftJoinSub(
+                    $query->whereBetween('created_at', [$startDate, $endDate])
+                        ->whereNotNull('dob')
+                        ->where('dob', '!=', '')
+                        ->where('dob', '!=', '0000-00-00')
+                        ->whereRaw('dob REGEXP ?', ['^[0-9]{4}-[0-9]{2}-[0-9]{2}'])
+                        ->selectRaw("{$caseSql} AS age_group, COUNT(*) AS count")
+                        ->groupBy('age_group'),
+                    'age_counts',
+                    'age_groups.age_group',
+                    '=',
+                    'age_counts.age_group'
+                )
+                ->select('age_groups.age_group', DB::raw('COALESCE(age_counts.count, 0) AS count'))
+                ->orderByRaw("
+                        FIELD(age_groups.age_group, 'Under 18', '18-24', '25-34', '35-44', '45-55', '55 +')
+                    ")
+                ->get();
+                // ✅ Check if all counts are 0, and return empty if so
+                if ($byUserAgeGroup->sum('count') === 0) {
+                    return response()->json(['data' => []]); // frontend will show "No data available"
+                }
+            return response()->json(['data' => $byUserAgeGroup]);
+        } elseif (request()->type == "byUserGenderChart") {
+            $query =  new User();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                // Apply condition for 'Subscriber' user type and membership types
+                $query =   $query->where('added_by', request()->subid);
+            }
+            $byUserGender = $query->whereBetween('created_at', [$startDate, $endDate])->select(
+                DB::raw('COUNT(*) AS count') // Count referrals per year
+            )
+                ->groupBy('gender') // Group by year
+                ->orderBy('count', 'desc') // Order by count, highest to lowest
+                ->get();
+            return response()->json(['data' => $byUserGender]);
+        } elseif (request()->type == "byUserApplicationProcessedChart") {
+
+            $query =  new Application_assignments();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                // Apply condition for 'Subscriber' user type and membership types
+                $query =   $query->where('subscriber_id', request()->subid);
+            }
+            $byUserTotalApplicationAssigned = $query->whereBetween('application_assignments.created_at', [$startDate, $endDate])
+                ->join('users', 'users.id', '=', 'application_assignments.user_id')
+                ->select(
+                    'users.id as user_id',
+                    'users.name as user_name',
+                    DB::raw('COUNT(application_assignments.id) AS total_assignments')
+                )
+                ->groupBy('users.id', 'users.name') // Group by user_id and user_name
+                ->orderBy('total_assignments', 'desc') // Order by assignment count (highest first)
+                ->get();
+
+            return response()->json(['data' => $byUserTotalApplicationAssigned]);
+        } elseif (request()->type == "byUserMeetingNotesChart") {
+
+            $query = new Client_discussions();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query =   $query->where('subscriber_id', request()->subid);
+            }
+            $application = $query->whereBetween('created_at', [$startDate, $endDate])->select('user_name', DB::raw('count(discussion) as discussion'))->groupBy('user_name')->get();
+            return response()->json(['data' => $application]);
+        } elseif (request()->type == "byUserModeofCommunicationChart") {
+
+            $query = new Client_discussions();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query =   $query->where('subscriber_id', request()->subid);
+            }
+            $byUserModeofCommunication =  $query->whereBetween('created_at', [$startDate, $endDate])
+                ->select(
+                    'communication_type',
+                    DB::raw("COUNT(DISTINCT user_id) AS total_users") // Count distinct users for each communication type
+                )
+                ->groupBy('communication_type') // Group by communication type
+                ->get();
+
+            return response()->json(['data' => $byUserModeofCommunication]);
+
+            // -------------------------- work from here by Adil iqbal ---------------------
+
+        } elseif (request()->type == "byUserNoofMessagesChart") {
+
+
+            $query = new Internal_communications();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query =   $query->where('subscriber_id', request()->subid);
+            }
+            $byUserNoofMessages = $query->whereBetween('internal_communications.created_at', [$startDate, $endDate])
+                ->join('users', 'internal_communications.send_by', '=', 'users.id')
+                ->select('users.name', DB::raw('COUNT(*) as total_messages'))
+                ->groupBy('users.name')->get();
+            return response()->json(['data' => $byUserNoofMessages]);
+        } elseif (request()->type == "byUserYear") {
+            $query = new User();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query =   $query->where('added_by', request()->subid);
+            }
+            $byUserTimeline =   $query->select(
+                DB::raw('YEAR(created_at) AS year'), // Extract year from referral creation date
+                DB::raw('COUNT(*) AS count') // Count referrals per year
+            )
+                ->groupBy(DB::raw('YEAR(created_at)')) // Group by year
+                ->orderBy('year', 'asc') // Order from oldest to newest
+                ->get();
+
+
+            return response()->json(['data' =>  $byUserTimeline]);
+        }  elseif (request()->type == "byUserTimeline(Duration)") {
             $currentYear = date('Y');
             $currentDate = now();
             $lastWeekStart = now()->subWeek()->startOfWeek();
@@ -1323,15 +1643,16 @@ class SubscriberFilterController extends Controller
             $lastYearStart = now()->subYear()->startOfYear();
             $lastYearEnd = now()->subYear()->endOfYear();
 
-            $query =   new Client_Docs();
-            $query1 = clone $query;
+            $query = User::query()->where('user_type', 'User');
+            $query1 = User::query()->where('user_type', 'User');
             if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') 
             && $user->user_type == 'Subscriber') {
-            $query = $query->where('user_id', $user->id)->whereYear('created_at', '=', $currentYear);
-            // $query1 = $query1->where('users.referral_code', $user->referral);;
-            $inspectionStartDate = $query1->where('user_id', $user->id)->orderBy('created_at','asc')->first();
+            $query = $query->where('added_by', $user->id)->whereYear('created_at', '=', $currentYear);
+            // Scope the "Since Inception" base to this subscriber's staff too, otherwise it counts all users in the system.
+            $query1 = $query1->where('added_by', $user->id);
+            $inspectionStartDate = (clone $query1)->orderBy('created_at','asc')->first();
             }else{
-                $inspectionStartDate = $query1->orderBy('created_at','asc')->first();
+                $inspectionStartDate = (clone $query1)->orderBy('created_at','asc')->first();
             }
         
         // 🔹 Today's Applications
@@ -1430,293 +1751,15 @@ class SubscriberFilterController extends Controller
             'data' => $formattedData
         ]);
             
-        
-        
-        } elseif (request()->type == "ByClientsTopDocs") {
-
-            $query = new Client_Docs();
-
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise')
-                && $user->user_type == 'Subscriber'
-            ) {
-                $query = $query->where('client_docs.user_id', request()->subid);
-            }
-
-            $ByClientsTopDocs = $query->whereNotNull('client_id')->join('clients', 'client_docs.client_id', '=', 'clients.id') // Join clients table
-                ->whereBetween('client_docs.created_at', [$startDate, $endDate]) // Filter by date range
-                ->select(
-                    'clients.name as client_name', // Client Name
-                    DB::raw('COUNT(DISTINCT client_docs.id) as no_of_docs') // Count total number of documents
-                )
-                ->groupBy('clients.id', 'clients.name') // Group by client
-                ->orderBy('no_of_docs', 'desc') // Order by highest number of docs
-                ->limit(50) // Limit results (optional)
-                ->get();
-
-            return response()->json(['data' => $ByClientsTopDocs]);
-        } elseif (request()->type == "byFileSizeDocsChart") {
-            $query = Client_Docs::join('clients', 'client_docs.client_id', '=', 'clients.id')
-
-                ->join('applications', 'client_docs.application_id', '=', 'applications.application_id') // Joining applications table
-                ->select(
-                    'client_docs.doc_file',
-                    'client_docs.client_id',
-                    'clients.name as client_name',
-                    'applications.application_name', // Select the application name
-                    'applications.application_id as application_id', // Select the application ID
-                    'client_docs.doc_name',
-                    'client_docs.id'
-                )
-                ->whereBetween('client_docs.created_at', [$startDate, $endDate]);
-
-            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
-                $query->where('client_docs.user_id', $user->id);
-            }
-
-            $documents = $query->get();
-            $filesWithSize = [];
-            foreach ($documents as $doc) {
-                // Construct the file path
-                $filePath = public_path('web_assets/users/client' . $doc->client_id . '/docs/' . $doc->doc_file);
-
-                // Check if the file exists
-                if (file_exists($filePath)) {
-                    // Get file size in bytes
-                    $fileSize = filesize($filePath);
-
-                    // Format the file size
-                    $formattedSize = $fileSize < 1024
-                        ? $fileSize . ' B'
-                        : ($fileSize < 1048576
-                            ? round($fileSize / 1024, 2) . ' KB'
-                            : ($fileSize < 1073741824
-                                ? round($fileSize / 1048576, 2) . ' MB'
-                                : round($fileSize / 1073741824, 2) . ' GB'));
-
-                    // Add the document and its size to the array
-                    $filesWithSize[] = [
-                        'client_name' => $doc->client_name . '(' . $doc->client_id . ')',
-                        'application_name' => $doc->application_name . '(' . $doc->application_id . ')', // Application name
-                        'application_id' => $doc->application_id, // Application ID
-                        'docs_name' => $doc->doc_name . ' (' . $doc->id . ')',
-                        'doc_file' => $doc->doc_file,
-                        'file_size' => $fileSize, // Size in bytes
-                        'formatted_size' => $formattedSize, // Human-readable size
-                    ];
-                }
-            }
-            // Sort files by size (highest to lowest)
-            usort($filesWithSize, function ($a, $b) {
-                return $b['file_size'] <=> $a['file_size'];
-            });
-            $topFiles = array_slice($filesWithSize, 0, 10);
-
-            return response()->json(['data' => $topFiles]);
-        } elseif (request()->type == "byFileTypeDocsChart") {
-
-            $query = new  Client_Docs();
-            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
-                $query->where('client_docs.user_id', $user->id);
-            }
-
-            $fileTypeCount = $query->whereBetween('client_docs.created_at', [$startDate, $endDate])
-                ->whereNotNull('client_docs.doc_file')
-                ->where('client_docs.doc_file', '!=', '')
-                ->selectRaw("LOWER(SUBSTRING_INDEX(client_docs.doc_file, '.', -1)) as file_type, COUNT(*) as count")
-                ->groupBy('file_type')
-                ->orderBy('count', 'desc')
-                ->get();
-
-            return response()->json(['data' => $fileTypeCount]);
-        } elseif (request()->type == "byUserRoleChart") {
-
-            $query =  new User();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                // Apply condition for 'Subscriber' user type and membership types
-                $query =   $query->where('added_by', request()->subid);
-            }
-
-            // Filter by 'added_by' if 'subid' is provided
-            $roles = $query->whereBetween('created_at', [$startDate, $endDate])
-                ->select('designation', DB::raw('count(*) as users'))
-                ->groupBy('designation')
-                ->get();
-
-            return response()->json(['data' => $roles]);
-        } elseif (request()->type == "byUserAgeGroupChart") {
-
-            $query =  new User();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                // Apply condition for 'Subscriber' user type and membership types
-                $query =   $query->where('added_by', request()->subid);
-            }
-
-            $byUserAgeGroup = DB::table(DB::raw('(SELECT "Under 18" AS age_group UNION ALL 
-                SELECT "18-24" UNION ALL 
-                SELECT "25-34" UNION ALL 
-                SELECT "35-44" UNION ALL 
-                SELECT "45-55" UNION ALL 
-                SELECT "55 +" ) AS age_groups'))
-                ->leftJoinSub(
-                    $query->whereBetween('created_at', [$startDate, $endDate])
-                        ->whereNotNull('dob')
-                        ->selectRaw("
-                                CASE 
-                                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) < 18 THEN 'Under 18'
-                                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 18 AND 24 THEN '18-24'
-                                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 25 AND 34 THEN '25-34'
-                                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 35 AND 44 THEN '35-44'
-                                    WHEN TIMESTAMPDIFF(YEAR, dob, CURDATE()) BETWEEN 45 AND 55 THEN '45-55'
-                                    ELSE '55 +'
-                                END AS age_group, COUNT(*) AS count
-                            ")
-                        ->groupBy('age_group'),
-                    'clients',
-                    'age_groups.age_group',
-                    '=',
-                    'clients.age_group'
-                )
-                ->select('age_groups.age_group', DB::raw('COALESCE(clients.count, 0) AS count'))
-                ->orderByRaw("
-                        FIELD(age_groups.age_group, 'Under 18', '18-24', '25-34', '35-44', '45-55', '55 +')
-                    ")
-                ->get();
-                // ✅ Check if all counts are 0, and return empty if so
-                if ($byUserAgeGroup->sum('count') === 0) {
-                    return response()->json(['data' => []]); // frontend will show "No data available"
-                }
-            return response()->json(['data' => $byUserAgeGroup]);
-        } elseif (request()->type == "byUserGenderChart") {
-            $query =  new User();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                // Apply condition for 'Subscriber' user type and membership types
-                $query =   $query->where('added_by', request()->subid);
-            }
-            $byUserGender = $query->whereBetween('created_at', [$startDate, $endDate])->select(
-                DB::raw('COUNT(*) AS count') // Count referrals per year
-            )
-                ->groupBy('gender') // Group by year
-                ->orderBy('count', 'desc') // Order by count, highest to lowest
-                ->get();
-            return response()->json(['data' => $byUserGender]);
-        } elseif (request()->type == "byUserApplicationProcessedChart") {
-
-            $query =  new Application_assignments();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                // Apply condition for 'Subscriber' user type and membership types
-                $query =   $query->where('subscriber_id', request()->subid);
-            }
-            $byUserTotalApplicationAssigned = $query->whereBetween('application_assignments.created_at', [$startDate, $endDate])
-                ->join('users', 'users.id', '=', 'application_assignments.user_id')
-                ->select(
-                    'users.id as user_id',
-                    'users.name as user_name',
-                    DB::raw('COUNT(application_assignments.id) AS total_assignments')
-                )
-                ->groupBy('users.id', 'users.name') // Group by user_id and user_name
-                ->orderBy('total_assignments', 'desc') // Order by assignment count (highest first)
-                ->get();
-
-            return response()->json(['data' => $byUserTotalApplicationAssigned]);
-        } elseif (request()->type == "byUserMeetingNotesChart") {
-
-            $query = new Client_discussions();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query =   $query->where('subscriber_id', request()->subid);
-            }
-            $application = $query->whereBetween('created_at', [$startDate, $endDate])->select('user_name', DB::raw('count(discussion) as discussion'))->groupBy('user_name')->get();
-            return response()->json(['data' => $application]);
-        } elseif (request()->type == "byUserModeofCommunicationChart") {
-
-            $query = new Client_discussions();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query =   $query->where('subscriber_id', request()->subid);
-            }
-            $byUserModeofCommunication =  $query->whereBetween('created_at', [$startDate, $endDate])
-                ->select(
-                    'communication_type',
-                    DB::raw("COUNT(DISTINCT user_id) AS total_users") // Count distinct users for each communication type
-                )
-                ->groupBy('communication_type') // Group by communication type
-                ->get();
-
-            return response()->json(['data' => $byUserModeofCommunication]);
-
-            // -------------------------- work from here by Adil iqbal ---------------------
-
-        } elseif (request()->type == "byUserNoofMessagesChart") {
-
-
-            $query = new Internal_communications();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query =   $query->where('subscriber_id', request()->subid);
-            }
-            $byUserNoofMessages = $query->whereBetween('internal_communications.created_at', [$startDate, $endDate])
-                ->join('users', 'internal_communications.send_by', '=', 'users.id')
-                ->select('users.name', DB::raw('COUNT(*) as total_messages'))
-                ->groupBy('users.name')->get();
-            return response()->json(['data' => $byUserNoofMessages]);
-        } elseif (request()->type == "byUserYear") {
-            $query = new User();
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query =   $query->where('added_by', request()->subid);
-            }
-            $byUserTimeline =   $query->select(
-                DB::raw('YEAR(created_at) AS year'), // Extract year from referral creation date
-                DB::raw('COUNT(*) AS count') // Count referrals per year
-            )
-                ->groupBy(DB::raw('YEAR(created_at)')) // Group by year
-                ->orderBy('year', 'asc') // Order from oldest to newest
-                ->get();
 
 
             return response()->json(['data' =>  $byUserTimeline]);
-        }  elseif (request()->type == "byUserTimeline(Duration)") {
-            $currentDate = now();
-            $lastWeekStart = now()->subWeek()->startOfWeek();
-            $lastWeekEnd = now()->subWeek()->endOfWeek();
-            $lastMonthStart = now()->subMonth()->startOfMonth();
-            $lastMonthEnd = now()->subMonth()->endOfMonth();
-            $lastQuarterStart = now()->subQuarter()->startOfQuarter();
-            $lastQuarterEnd = now()->subQuarter()->endOfQuarter();
-            $lastYearStart = now()->subYear()->startOfYear();
-            $lastYearEnd = now()->subYear()->endOfYear();
-
-            $query = User::query();
-
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise')
-                && $user->user_type == 'Subscriber') {
-                $query->where('added_by', $user->id);
-            } elseif (!empty(request()->subid)) {
-                $query->where('added_by', request()->subid);
-            }
-
-            $timelineBuckets = [
-                'Today' => (clone $query)->whereDate('created_at', $currentDate)->count(),
-                'Last Week' => (clone $query)->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])->count(),
-                'Last Month' => (clone $query)->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])->count(),
-                'Last Quarter' => (clone $query)->whereBetween('created_at', [$lastQuarterStart, $lastQuarterEnd])->count(),
-                'Last Year' => (clone $query)->whereBetween('created_at', [$lastYearStart, $lastYearEnd])->count(),
-                'Since Inception' => (clone $query)->count(),
-            ];
-
-            $formattedData = collect($timelineBuckets)->map(function ($count, $type) {
-                return [
-                    'type' => $type,
-                    'count' => $count,
-                ];
-            })->values();
-
-            return response()->json([
-                'status' => 'success',
-                'data' => $formattedData
-            ]);
         } elseif (request()->type == "byInvoiceAmountChart") {
 
-            $query = $this->scopeQueryToSubscriber(
-                Internal_Invoices::whereBetween('created_at', [$startDate, $endDate])->where('type', 'ar'),
-                $reportSubscriberId
-            );
+            $query = Internal_Invoices::whereBetween('created_at', [$startDate, $endDate]);
+            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
+                $query = $query->where('subscriber_id', $user->id)->where('type', 'ar');
+            }
             $byInvoiceAmount = $query
                 ->selectRaw("
                 CASE 
@@ -1740,11 +1783,11 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $byInvoiceAmount]);
         } elseif (request()->type == "byInvoiceTypeChart") {
-            $query = $this->scopeQueryToSubscriber(
-                Internal_Invoices::whereBetween('created_at', [$startDate, $endDate])->where('type', 'ar'),
-                $reportSubscriberId
-            );
-            $byInvoiceType = $query
+            $query = Internal_Invoices::whereBetween('created_at', [$startDate, $endDate]);
+            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
+                $query = $query->where('subscriber_id', $user->id)->where('type', 'ar');
+            }
+            $byInvoiceType = $query->whereBetween('created_at', [$startDate, $endDate])
                 ->select('status') // Include the `status` field
                 ->selectRaw('COUNT(*) as number_of_invoices') // Count invoices per status
                 ->selectRaw('SUM(total) as total_amount_sum') // Sum of `total` per status
@@ -1754,11 +1797,11 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $byInvoiceType]);
         } elseif (request()->type == "byInvoiceServiceOfferedChart") {
-            $query = $this->scopeQueryToSubscriber(
-                Internal_Invoices::whereBetween('created_at', [$startDate, $endDate])->where('type', 'ar'),
-                $reportSubscriberId
-            );
-            $byInvoiceServiceOffered = $query
+            $query = Internal_Invoices::whereBetween('created_at', [$startDate, $endDate]);
+            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
+                $query = $query->where('subscriber_id', $user->id)->where('type', 'ar');
+            }
+            $byInvoiceServiceOffered = $query->whereBetween('created_at', [$startDate, $endDate])
                 ->select('detail') // Include the `status` field
                 ->selectRaw('COUNT(*) as number_of_invoices') // Count invoices per status
                 ->selectRaw('SUM(total) as total_amount_sum') // Sum of `total` per status
@@ -1769,10 +1812,10 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $byInvoiceServiceOffered]);
         } elseif (request()->type == "byInvoiceYear") {
-            $query = $this->scopeQueryToSubscriber(
-                Internal_Invoices::where('type', 'ar'),
-                $reportSubscriberId
-            );
+            $query = new Internal_Invoices ();
+            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
+                $query = $query->where('subscriber_id', $user->id)->where('type', 'ar');
+            }
             $byInvoiceServiceOffered  = $query
          // ✅ Ensure correct filtering
             ->select(
@@ -1798,16 +1841,12 @@ class SubscriberFilterController extends Controller
             $lastYearStart = now()->subYear()->startOfYear();
             $lastYearEnd = now()->subYear()->endOfYear();
             
-            // Get Inspection Start Date (modify this based on where the date is stored)
-            // Base Query
-            $query = $this->scopeQueryToSubscriber(
-                Internal_Invoices::whereYear('created_at', '=', $currentYear)->where('type', 'ar'),
-                $reportSubscriberId
-            );
-            $query1 = $this->scopeQueryToSubscriber(
-                Internal_Invoices::where('type', 'ar'),
-                $reportSubscriberId
-            );
+            // Keep every AR timeline bucket on the same invoice type and subscriber scope.
+            $query = Internal_Invoices::query()->where('type', 'ar');
+            if ($user->user_type == 'Subscriber') {
+                $query->where('subscriber_id', $user->id);
+            }
+            $query1 = clone $query;
             $inspectionStartDate = (clone $query1)->orderBy('created_at', 'asc')->first();
             // 🔹 Today's Applications
             $todayApplications = clone $query;
@@ -1839,11 +1878,10 @@ class SubscriberFilterController extends Controller
                 ->get();
             
             // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData = (clone $query1);
-            if ($inspectionStartDate) {
-                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
-            }
-            $sinceInspectionData = $sinceInspectionData
+            $sinceInspectionData = (clone $query1)
+                ->when($inspectionStartDate, function ($invoiceQuery) use ($inspectionStartDate) {
+                    $invoiceQuery->whereDate('created_at', '>=', $inspectionStartDate->created_at);
+                })
                 ->selectRaw("'Since Inception' as type, COUNT(*) as count")
                 ->get();
             
@@ -1909,10 +1947,10 @@ class SubscriberFilterController extends Controller
         }
         elseif (request()->type == "byInvoiceAPAmountChart") {
 
-            $query = $this->scopeQueryToSubscriber(
-                Internal_Invoices::whereBetween('created_at', [$startDate, $endDate])->where('type', 'ap'),
-                $reportSubscriberId
-            );
+            $query = Internal_Invoices::whereBetween('created_at', [$startDate, $endDate]);
+            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
+                $query = $query->where('subscriber_id', $user->id)->where('type', 'ap');
+            }
             $byInvoiceAmount = $query
                 ->selectRaw("
                 CASE 
@@ -1936,11 +1974,11 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $byInvoiceAmount]);
         } elseif (request()->type == "byInvoiceAPTypeChart") {
-            $query = $this->scopeQueryToSubscriber(
-                Internal_Invoices::whereBetween('created_at', [$startDate, $endDate])->where('type', 'ap'),
-                $reportSubscriberId
-            );
-            $byInvoiceType = $query
+            $query = Internal_Invoices::whereBetween('created_at', [$startDate, $endDate]);
+            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
+                $query = $query->where('subscriber_id', $user->id)->where('type', 'ap');
+            }
+            $byInvoiceType = $query->whereBetween('created_at', [$startDate, $endDate])
                 ->select('status') // Include the `status` field
                 ->selectRaw('COUNT(*) as number_of_invoices') // Count invoices per status
                 ->selectRaw('SUM(total) as total_amount_sum') // Sum of `total` per status
@@ -1950,25 +1988,31 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $byInvoiceType]);
         } elseif (request()->type == "byInvoiceAPServiceOfferedChart") {
-            $query = $this->scopeQueryToSubscriber(
-                Internal_Invoices::whereBetween('created_at', [$startDate, $endDate])->where('type', 'ap'),
-                $reportSubscriberId
-            );
-            $byInvoiceServiceOffered = $query
-                ->select('detail') // Include the `status` field
-                ->selectRaw('COUNT(*) as number_of_invoices') // Count invoices per status
-                ->selectRaw('SUM(total) as total_amount_sum') // Sum of `total` per status
-                ->groupBy('detail') // Group by `status`
+            // AP invoices record Product/Service Taken (from vendors), grouped by detail.
+            $query = Internal_Invoices::query()
+                ->where('type', 'ap')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->whereNotNull('detail')
+                ->where('detail', '!=', '');
+
+            if ($user->user_type == 'Subscriber') {
+                $query->where('subscriber_id', $user->id);
+            }
+
+            $byInvoiceServicesTaken = $query
+                ->select('detail')
+                ->selectRaw('COUNT(*) as number_of_invoices')
+                ->selectRaw('SUM(total) as total_amount_sum')
+                ->groupBy('detail')
+                ->orderByDesc('number_of_invoices')
                 ->get();
 
-
-
-            return response()->json(['data' => $byInvoiceServiceOffered]);
+            return response()->json(['data' => $byInvoiceServicesTaken]);
         } elseif (request()->type == "byInvoiceAPYear") {
-            $query = $this->scopeQueryToSubscriber(
-                Internal_Invoices::where('type', 'ap'),
-                $reportSubscriberId
-            );
+            $query = new Internal_Invoices ();
+            if (in_array($user->membership, ['Adwiseri', 'Adwiseri+', 'Enterprise']) && $user->user_type == 'Subscriber') {
+                $query = $query->where('subscriber_id', $user->id)->where('type', 'ap');
+            }
             $byInvoiceServiceOffered  = $query
          // ✅ Ensure correct filtering
             ->select(
@@ -1994,16 +2038,12 @@ class SubscriberFilterController extends Controller
             $lastYearStart = now()->subYear()->startOfYear();
             $lastYearEnd = now()->subYear()->endOfYear();
             
-            // Get Inspection Start Date (modify this based on where the date is stored)
-            // Base Query
-            $query = $this->scopeQueryToSubscriber(
-                Internal_Invoices::whereYear('created_at', '=', $currentYear)->where('type', 'ap'),
-                $reportSubscriberId
-            );
-            $query1 = $this->scopeQueryToSubscriber(
-                Internal_Invoices::where('type', 'ap'),
-                $reportSubscriberId
-            );
+            // Keep every AP timeline bucket on the same invoice type and subscriber scope.
+            $query = Internal_Invoices::query()->where('type', 'ap');
+            if ($user->user_type == 'Subscriber') {
+                $query->where('subscriber_id', $user->id);
+            }
+            $query1 = clone $query;
             $inspectionStartDate = (clone $query1)->orderBy('created_at', 'asc')->first();
             // 🔹 Today's Applications
             $todayApplications = clone $query;
@@ -2035,11 +2075,10 @@ class SubscriberFilterController extends Controller
                 ->get();
             
             // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData = (clone $query1);
-            if ($inspectionStartDate) {
-                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
-            }
-            $sinceInspectionData = $sinceInspectionData
+            $sinceInspectionData = (clone $query1)
+                ->when($inspectionStartDate, function ($invoiceQuery) use ($inspectionStartDate) {
+                    $invoiceQuery->whereDate('created_at', '>=', $inspectionStartDate->created_at);
+                })
                 ->selectRaw("'Since Inception' as type, COUNT(*) as count")
                 ->get();
             
@@ -2105,20 +2144,12 @@ class SubscriberFilterController extends Controller
         }
 
          elseif (request()->type == "byPaymentARChart") {
-            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
-
-            $byPaymentAR = DB::table(DB::raw('(SELECT "1-99" AS amount_range UNION ALL
-                        SELECT "100-249" UNION ALL
-                        SELECT "250-499" UNION ALL
-                        SELECT "500-999" UNION ALL
-                        SELECT "1000-2499" UNION ALL
-                        SELECT "2500-4999" UNION ALL
-                        SELECT "5000-9999" UNION ALL
-                        SELECT "10,000+" ) AS amount_ranges'))
-                ->leftJoinSub(
-                    $query->where('type', 'ar')
-                        ->whereBetween('created_at', [$startDate, $endDate])
-                        ->selectRaw('
+            $query = new PaymentARs();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query =   $query->where('subscriber_id', request()->subid);
+            }
+            $byPaymentAR = $query->where('type', 'ar')->select(
+                DB::raw('
                             CASE
                                 WHEN amount BETWEEN 1 AND 99 THEN "1-99"
                                 WHEN amount BETWEEN 100 AND 249 THEN "100-249"
@@ -2128,35 +2159,22 @@ class SubscriberFilterController extends Controller
                                 WHEN amount BETWEEN 2500 AND 4999 THEN "2500-4999"
                                 WHEN amount BETWEEN 5000 AND 9999 THEN "5000-9999"
                                 WHEN amount >= 10000 THEN "10,000+"
-                            END AS amount_range,
-                            COUNT(*) as number_of_invoices
-                        ')
-                        ->groupBy('amount_range'),
-                    'payments',
-                    'amount_ranges.amount_range',
-                    '=',
-                    'payments.amount_range'
-                )
-                ->select('amount_ranges.amount_range', DB::raw('COALESCE(payments.number_of_invoices, 0) AS number_of_invoices'))
-                ->orderByRaw("FIELD(amount_ranges.amount_range, '1-99', '100-249', '250-499', '500-999', '1000-2499', '2500-4999', '5000-9999', '10,000+')")
+                            END AS amount_range')
+            )
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw('COUNT(*) as number_of_invoices')
+                ->groupBy('amount_range')
+                ->orderBy('amount_range', 'asc')
                 ->get();
 
             return response()->json(['data' => $byPaymentAR]);
         } elseif (request()->type == "byPaymentAPChart") {
-            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
-
-            $byPaymentAP = DB::table(DB::raw('(SELECT "1-99" AS amount_range UNION ALL
-                        SELECT "100-249" UNION ALL
-                        SELECT "250-499" UNION ALL
-                        SELECT "500-999" UNION ALL
-                        SELECT "1000-2499" UNION ALL
-                        SELECT "2500-4999" UNION ALL
-                        SELECT "5000-9999" UNION ALL
-                        SELECT "10,000+" ) AS amount_ranges'))
-                ->leftJoinSub(
-                    $query->where('type', 'ap')
-                        ->whereBetween('created_at', [$startDate, $endDate])
-                        ->selectRaw('
+            $query = new PaymentARs();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query =   $query->where('subscriber_id', request()->subid);
+            }
+            $byPaymentAR = $query->where('type', 'ap')->select(
+                DB::raw('
                             CASE
                                 WHEN amount BETWEEN 1 AND 99 THEN "1-99"
                                 WHEN amount BETWEEN 100 AND 249 THEN "100-249"
@@ -2166,30 +2184,35 @@ class SubscriberFilterController extends Controller
                                 WHEN amount BETWEEN 2500 AND 4999 THEN "2500-4999"
                                 WHEN amount BETWEEN 5000 AND 9999 THEN "5000-9999"
                                 WHEN amount >= 10000 THEN "10,000+"
-                            END AS amount_range,
-                            COUNT(*) as number_of_invoices
-                        ')
-                        ->groupBy('amount_range'),
-                    'payments',
-                    'amount_ranges.amount_range',
-                    '=',
-                    'payments.amount_range'
-                )
-                ->select('amount_ranges.amount_range', DB::raw('COALESCE(payments.number_of_invoices, 0) AS number_of_invoices'))
-                ->orderByRaw("FIELD(amount_ranges.amount_range, '1-99', '100-249', '250-499', '500-999', '1000-2499', '2500-4999', '5000-9999', '10,000+')")
+                            END AS amount_range')
+            )
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw('COUNT(*) as number_of_invoices')
+                ->groupBy('amount_range')
+                ->orderBy('amount_range', 'asc')
                 ->get();
 
-            return response()->json(['data' => $byPaymentAP]);
+            return response()->json(['data' => $byPaymentAR]);
         } elseif (request()->type == "byPaymentModeChart") {
-            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
+            $query = new PaymentARs();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query =   $query->where('subscriber_id', request()->subid);
+            }
             $byPaymentMode = $query->whereBetween('created_at', [$startDate, $endDate])
+                ->where('type', 'ar');
+
+            PaymentModeChartFilter::applyToQuery($byPaymentMode, 'payment_mode');
+
+            $byPaymentMode = $byPaymentMode
                 ->selectRaw('payment_mode, COUNT(*) as number_of_invoices')
                 ->groupBy('payment_mode') // Group by payment mode
-                ->where('type', 'ar')
                 ->get();
             return response()->json(['data' => $byPaymentMode]);
         } elseif (request()->type == "byPaymentYearChart") {
-            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
+            $query = new PaymentARs();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query =   $query->where('subscriber_id', request()->subid);
+            }
             $byPaymentMode  =$query
            // ✅ Ensure correct filtering
             ->select(
@@ -2212,111 +2235,64 @@ class SubscriberFilterController extends Controller
             $lastQuarterEnd = now()->subQuarter()->endOfQuarter();
             $lastYearStart = now()->subYear()->startOfYear();
             $lastYearEnd = now()->subYear()->endOfYear();
-            // Get Inspection Start Date (modify this based on where the date is stored)
-            
-            // Base Query
-            $query = $this->scopeQueryToSubscriber(
-                PaymentARs::whereYear('created_at', '=', $currentYear)->where('type', 'ar'),
-                $reportSubscriberId
-            );
-            $query1 = $this->scopeQueryToSubscriber(
-                PaymentARs::where('type', 'ar'),
-                $reportSubscriberId
-            );
+
+            // Keep every AR payment timeline bucket on the same type + subscriber scope.
+            $query = PaymentARs::query()->where('type', 'ar');
+            if ($user->user_type == 'Subscriber') {
+                $query->where('subscriber_id', $user->id);
+            }
+            $query1 = clone $query;
             $inspectionStartDate = (clone $query1)->orderBy('created_at', 'asc')->first();
-            
-            // 🔹 Today's Applications
+
             $todayApplications = clone $query;
             $todayApplications = $todayApplications->whereDate('created_at', $currentDate)
                 ->selectRaw("'Today' as type, COUNT(*) as count")
                 ->get();
-            
-            // 🔹 Last Week's Applications
+
             $lastWeekApplications = clone $query;
             $lastWeekApplications = $lastWeekApplications->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])
                 ->selectRaw("'Last Week' as type, COUNT(*) as count")
                 ->get();
-            
-            // 🔹 Last Month's Applications
+
             $lastMonthApplications = clone $query;
             $lastMonthApplications = $lastMonthApplications->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])
                 ->selectRaw("'Last Month' as type, COUNT(*) as count")
                 ->get();
-            
-            // 🔹 Last Quarter's Applications
+
             $lastQuarterApplications = clone $query;
             $lastQuarterApplications = $lastQuarterApplications->whereBetween('created_at', [$lastQuarterStart, $lastQuarterEnd])
                 ->selectRaw("'Last Quarter' as type, COUNT(*) as count")
                 ->get();
-                
+
             $yearlyApplications = clone $query;
             $yearlyApplications = $yearlyApplications->whereBetween('created_at', [$lastYearStart, $lastYearEnd])
                 ->selectRaw("'Last Year' as type, COUNT(*) as count")
                 ->get();
-            // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData = (clone $query1);
-            if ($inspectionStartDate) {
-                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
-            }
-            $sinceInspectionData = $sinceInspectionData
+
+            $sinceInspectionData = (clone $query1)
+                ->when($inspectionStartDate, function ($paymentQuery) use ($inspectionStartDate) {
+                    $paymentQuery->whereDate('created_at', '>=', $inspectionStartDate->created_at);
+                })
                 ->selectRaw("'Since Inception' as type, COUNT(*) as count")
                 ->get();
-            
-            // 🔹 Weekly Applications
-            $weeklyApplications = clone $query;
-            $weeklyApplications = $weeklyApplications->selectRaw("
-                WEEK(created_at) as week_num, 
-                YEAR(created_at) as year_num, 
-                COUNT(*) as count
-            ")
-                ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'asc')
-                ->orderBy('week_num', 'asc')
-                ->get();
-            
-            // 🔹 Quarterly Applications
-            $quarterlyApplications = clone $query;
-            $quarterlyApplications = $quarterlyApplications->selectRaw("
-                YEAR(created_at) as year, 
-                QUARTER(created_at) as quarter, 
-                COUNT(*) as count
-            ")
-                ->groupBy('year', 'quarter')
-                ->orderBy('year', 'asc')
-                ->orderBy('quarter', 'asc')
-                ->get();
-            
-            // 🔹 Monthly Applications
-            $monthlyApplications = clone $query;
-            $monthlyApplications = $monthlyApplications->selectRaw("
-                YEAR(created_at) as year, 
-                MONTH(created_at) as month, 
-                COUNT(*) as count
-            ")
-                ->groupBy('year', 'month')
-                ->orderBy('year', 'asc')
-                ->orderBy('month', 'asc')
-                ->get();
-            
-            // 🔹 Merge All Data
+
             $formattedData = collect()
                 ->merge($todayApplications)
                 ->merge($lastWeekApplications)
                 ->merge($lastMonthApplications)
                 ->merge($lastQuarterApplications)
                 ->merge($yearlyApplications)
-                // ->merge($quarterlyApplications)
-                // ->merge($monthlyApplications)
-                ->merge($sinceInspectionData); // ✅ Replacing past year with "Since Inception"
-            
-            // 🔹 Format Data for Output
+                ->merge($sinceInspectionData);
+
             $formattedData = $formattedData->map(function ($item) {
                 return [
-                    'type' => $item['type'],
+                    'type' => $item['type'] ?? null,
                     'count' => $item['count'],
                 ];
-            });
-            
+            })->filter(function ($item) {
+                return !empty($item['type']);
+            })->values();
+
             return response()->json([
                 'status' => 'success',
                 'data' => $formattedData
@@ -2350,8 +2326,11 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byPaymentAmountChart") {
-            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
-            $byPaymentMode = $query->where('type', 'ar')->select(
+            $query = new PaymentARs();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query =   $query->where('subscriber_id', request()->subid)->where('type', 'ar');
+            }
+            $byPaymentMode = $query->where('type', 'ap')->select(
                 DB::raw('
                         CASE
                             WHEN amount BETWEEN 1 AND 99 THEN "1-99"
@@ -2372,10 +2351,10 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' =>  $byPaymentMode]);
         } elseif (request()->type == "byPaymentOutstandingAmout") {
 
-            $outstandingSubquery = $this->scopeQueryToSubscriber(
-                PaymentARs::where('type', 'ar')->whereRaw('amount - paid_amount > 0'),
-                $reportSubscriberId
-            );
+            $query = PaymentARs::where('type', 'ar');
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query =   $query->where('subscriber_id', request()->subid);
+            }
             $paymentOutstanding = PaymentARs::selectRaw("
         CASE 
             WHEN total_outstanding BETWEEN 1 AND 99 THEN '1-99'
@@ -2390,8 +2369,8 @@ class SubscriberFilterController extends Controller
         COUNT(*) as total_invoices
     ")
                 ->fromSub(
-                    $outstandingSubquery
-                        ->selectRaw('SUM(amount - paid_amount) as total_outstanding')
+                    PaymentARs::selectRaw('SUM(amount - paid_amount) as total_outstanding')
+                        ->whereRaw('amount - paid_amount > 0') // Ensures only unpaid invoices are considered
                         ->groupBy('client_id', 'application_id', 'service_description'),
                     'outstanding'
                 )
@@ -2431,15 +2410,25 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byPaymentModeChartAP") {
-            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
+            $query = new PaymentARs();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query =   $query->where('subscriber_id', request()->subid);
+            }
             $byPaymentMode = $query->whereBetween('created_at', [$startDate, $endDate])
+                ->where('type', 'ap');
+
+            PaymentModeChartFilter::applyToQuery($byPaymentMode, 'payment_mode');
+
+            $byPaymentMode = $byPaymentMode
                 ->selectRaw('payment_mode, COUNT(*) as number_of_invoices')
                 ->groupBy('payment_mode') // Group by payment mode
-                ->where('type', 'ap')
                 ->get();
             return response()->json(['data' => $byPaymentMode]);
         } elseif (request()->type == "byPaymentYearChartAP") {
-            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
+            $query = new PaymentARs();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query =   $query->where('subscriber_id', request()->subid);
+            }
             $byPaymentMode  =$query
            // ✅ Ensure correct filtering
             ->select(
@@ -2462,111 +2451,64 @@ class SubscriberFilterController extends Controller
             $lastQuarterEnd = now()->subQuarter()->endOfQuarter();
             $lastYearStart = now()->subYear()->startOfYear();
             $lastYearEnd = now()->subYear()->endOfYear();
-            // Get Inspection Start Date (modify this based on where the date is stored)
-            
-            // Base Query
-            $query = $this->scopeQueryToSubscriber(
-                PaymentARs::whereYear('created_at', '=', $currentYear)->where('type', 'ap'),
-                $reportSubscriberId
-            );
-            $query1 = $this->scopeQueryToSubscriber(
-                PaymentARs::where('type', 'ap'),
-                $reportSubscriberId
-            );
+
+            // Keep every AP payment timeline bucket on the same type + subscriber scope.
+            $query = PaymentARs::query()->where('type', 'ap');
+            if ($user->user_type == 'Subscriber') {
+                $query->where('subscriber_id', $user->id);
+            }
+            $query1 = clone $query;
             $inspectionStartDate = (clone $query1)->orderBy('created_at', 'asc')->first();
-            
-            // 🔹 Today's Applications
+
             $todayApplications = clone $query;
             $todayApplications = $todayApplications->whereDate('created_at', $currentDate)
                 ->selectRaw("'Today' as type, COUNT(*) as count")
                 ->get();
-            
-            // 🔹 Last Week's Applications
+
             $lastWeekApplications = clone $query;
             $lastWeekApplications = $lastWeekApplications->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])
                 ->selectRaw("'Last Week' as type, COUNT(*) as count")
                 ->get();
-            
-            // 🔹 Last Month's Applications
+
             $lastMonthApplications = clone $query;
             $lastMonthApplications = $lastMonthApplications->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])
                 ->selectRaw("'Last Month' as type, COUNT(*) as count")
                 ->get();
-            
-            // 🔹 Last Quarter's Applications
+
             $lastQuarterApplications = clone $query;
             $lastQuarterApplications = $lastQuarterApplications->whereBetween('created_at', [$lastQuarterStart, $lastQuarterEnd])
                 ->selectRaw("'Last Quarter' as type, COUNT(*) as count")
                 ->get();
-                
+
             $yearlyApplications = clone $query;
             $yearlyApplications = $yearlyApplications->whereBetween('created_at', [$lastYearStart, $lastYearEnd])
                 ->selectRaw("'Last Year' as type, COUNT(*) as count")
                 ->get();
-            // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData = (clone $query1);
-            if ($inspectionStartDate) {
-                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
-            }
-            $sinceInspectionData = $sinceInspectionData
+
+            $sinceInspectionData = (clone $query1)
+                ->when($inspectionStartDate, function ($paymentQuery) use ($inspectionStartDate) {
+                    $paymentQuery->whereDate('created_at', '>=', $inspectionStartDate->created_at);
+                })
                 ->selectRaw("'Since Inception' as type, COUNT(*) as count")
                 ->get();
-            
-            // 🔹 Weekly Applications
-            $weeklyApplications = clone $query;
-            $weeklyApplications = $weeklyApplications->selectRaw("
-                WEEK(created_at) as week_num, 
-                YEAR(created_at) as year_num, 
-                COUNT(*) as count
-            ")
-                ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'asc')
-                ->orderBy('week_num', 'asc')
-                ->get();
-            
-            // 🔹 Quarterly Applications
-            $quarterlyApplications = clone $query;
-            $quarterlyApplications = $quarterlyApplications->selectRaw("
-                YEAR(created_at) as year, 
-                QUARTER(created_at) as quarter, 
-                COUNT(*) as count
-            ")
-                ->groupBy('year', 'quarter')
-                ->orderBy('year', 'asc')
-                ->orderBy('quarter', 'asc')
-                ->get();
-            
-            // 🔹 Monthly Applications
-            $monthlyApplications = clone $query;
-            $monthlyApplications = $monthlyApplications->selectRaw("
-                YEAR(created_at) as year, 
-                MONTH(created_at) as month, 
-                COUNT(*) as count
-            ")
-                ->groupBy('year', 'month')
-                ->orderBy('year', 'asc')
-                ->orderBy('month', 'asc')
-                ->get();
-            
-            // 🔹 Merge All Data
+
             $formattedData = collect()
                 ->merge($todayApplications)
                 ->merge($lastWeekApplications)
                 ->merge($lastMonthApplications)
                 ->merge($lastQuarterApplications)
                 ->merge($yearlyApplications)
-                // ->merge($quarterlyApplications)
-                // ->merge($monthlyApplications)
-                ->merge($sinceInspectionData); // ✅ Replacing past year with "Since Inception"
-            
-            // 🔹 Format Data for Output
+                ->merge($sinceInspectionData);
+
             $formattedData = $formattedData->map(function ($item) {
                 return [
-                    'type' => $item['type'],
+                    'type' => $item['type'] ?? null,
                     'count' => $item['count'],
                 ];
-            });
-            
+            })->filter(function ($item) {
+                return !empty($item['type']);
+            })->values();
+
             return response()->json([
                 'status' => 'success',
                 'data' => $formattedData
@@ -2600,7 +2542,10 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byPaymentAmountChartAP") {
-            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
+            $query = new PaymentARs();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query =   $query->where('subscriber_id', request()->subid)->where('type', 'ap');
+            }
             $byPaymentMode = $query->where('type', 'ap')->select(
                 DB::raw('
                         CASE
@@ -2623,10 +2568,10 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' =>  $byPaymentMode]);
         } elseif (request()->type == "byPaymentOutstandingAmoutAP") {
 
-            $outstandingSubquery = $this->scopeQueryToSubscriber(
-                PaymentARs::where('type', 'ap')->whereRaw('amount - paid_amount > 0'),
-                $reportSubscriberId
-            );
+            $query = new PaymentARs();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query =   $query->where('subscriber_id', request()->subid)->where('type', 'ap');
+            }
             $paymentOutstanding = PaymentARs::selectRaw("
         CASE 
             WHEN total_outstanding BETWEEN 1 AND 99 THEN '1-99'
@@ -2641,13 +2586,14 @@ class SubscriberFilterController extends Controller
         COUNT(*) as total_invoices
     ")
                 ->fromSub(
-                    $outstandingSubquery
-                        ->selectRaw('SUM(amount - paid_amount) as total_outstanding')
+                    PaymentARs::selectRaw('SUM(amount - paid_amount) as total_outstanding')
+                        ->whereRaw('amount - paid_amount > 0') // Ensures only unpaid invoices are considered
                         ->groupBy('client_id', 'application_id', 'service_description'),
                     'outstanding'
                 )
                 ->groupBy('amount_range')
                 ->orderByRaw("FIELD(amount_range, '1-99', '100-249', '250-499', '500-999', '1000-2499', '2500-4999', '5000-9999', '10,000+') ASC")
+                ->where('type', 'ap')
                 ->get();
 
             return response()->json(['data' => $paymentOutstanding]);
@@ -2744,137 +2690,40 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' =>  $byCommunicationMeetingNoteType]);
         } elseif (request()->type == "byCommunicationMessagesByYear") {
           
-            $query = new Internal_communications();
+            $query =   new Client_discussions();
+            $query1 = clone $query;
 
-            if (!empty(request()->subid)) {
-                $query = $query->where('subscriber_id', request()->subid);
-            } elseif (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', $user->id);
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query =  $query = $query->where('subscriber_id', $user->id);
             }
 
             $byUserTimeline = $query
-                ->whereBetween('internal_communications.created_at', [$startDate, $endDate])
+                // ✅ Ensure correct filtering
                 ->select(
-                    DB::raw('YEAR(internal_communications.created_at) AS year'),
-                    DB::raw('COUNT(*) AS count')
+                    DB::raw('YEAR(created_at) AS year'), // ✅ Specify users.created_at to avoid ambiguity
+                    DB::raw('COUNT(*) AS count') // ✅ Count based on users.id
                 )
-                ->groupBy(DB::raw('YEAR(internal_communications.created_at)'))
-                ->orderBy('year', 'asc')
+                ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
+                ->orderBy('year', 'asc') // ✅ Sort by oldest first
                 ->get();
 
             return response()->json(['data' => $byUserTimeline]);
         } elseif (request()->type == "byCommunicationMessagesByTimeline(Duration)") {
-            $currentYear = date('Y');
-            $currentDate = now();
-            $lastWeekStart = now()->subWeek()->startOfWeek();
-            $lastWeekEnd = now()->subWeek()->endOfWeek();
-            $lastMonthStart = now()->subMonth()->startOfMonth();
-            $lastMonthEnd = now()->subMonth()->endOfMonth();
-            $lastQuarterStart = now()->subQuarter()->startOfQuarter();
-            $lastQuarterEnd = now()->subQuarter()->endOfQuarter();
-           
-
-            $query =   new Client_discussions();
+            $query = new Client_discussions();
             $query1 = clone $query;
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') 
-            && $user->user_type == 'Subscriber') {
-            $query = $query->where('subscriber_id', $user->id)->whereYear('created_at', '=', $currentYear);
-            // $query1 = $query1->where('users.referral_code', $user->referral);;
-            $inspectionStartDate = $query1->where('subscriber_id', $user->id)->orderBy('created_at','asc')->first();
-            }else{
-                $inspectionStartDate = $query1->orderBy('created_at','asc')->first();
+
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise')
+                && $user->user_type == 'Subscriber') {
+                $query = $query->where('subscriber_id', $user->id);
+                $query1 = $query1->where('subscriber_id', $user->id);
             }
-        
-        // 🔹 Today's Applications
-        $todayApplications = clone $query;
-        $todayApplications = $todayApplications->whereDate('created_at', $currentDate)
-            ->selectRaw("'Today' as type, COUNT(*) as count")
-            ->get();
-        
-        // 🔹 Last Week's Applications
-        $lastWeekApplications = clone $query;
-        $lastWeekApplications = $lastWeekApplications->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])
-            ->selectRaw("'Last Week' as type, COUNT(*) as count")
-            ->get();
-        
-        // 🔹 Last Month's Applications
-        $lastMonthApplications = clone $query;
-        $lastMonthApplications = $lastMonthApplications->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])
-            ->selectRaw("'Last Month' as type, COUNT(*) as count")
-            ->get();
-        
-        // 🔹 Last Quarter's Applications
-        $lastQuarterApplications = clone $query;
-        $lastQuarterApplications = $lastQuarterApplications->whereBetween('created_at', [$lastQuarterStart, $lastQuarterEnd])
-            ->selectRaw("'Last Quarter' as type, COUNT(*) as count")
-            ->get();
-        
-        // 🔹 Since Inception Data (Replacing "Past Year Data")
-        $sinceInspectionData = clone $query1;
-        $sinceInspectionData = $sinceInspectionData
-            ->whereDate('created_at', '>=', $inspectionStartDate->created_at) 
-            ->selectRaw("'Since Inception' as type, COUNT(*) as count")
-            ->get();
-        
-        // 🔹 Weekly Applications
-        $weeklyApplications = clone $query;
-        $weeklyApplications = $weeklyApplications->selectRaw("
-            WEEK(created_at) as week_num, 
-            YEAR(created_at) as year_num, 
-            COUNT(*) as count
-        ")
-            ->groupBy('year_num', 'week_num')
-            ->orderBy('year_num', 'asc')
-            ->orderBy('week_num', 'asc')
-            ->get();
-        
-        // 🔹 Quarterly Applications
-        $quarterlyApplications = clone $query;
-        $quarterlyApplications = $quarterlyApplications->selectRaw("
-            YEAR(created_at) as year, 
-            QUARTER(created_at) as quarter, 
-            COUNT(*) as count
-        ")
-            ->groupBy('year', 'quarter')
-            ->orderBy('year', 'asc')
-            ->orderBy('quarter', 'asc')
-            ->get();
-        
-        // 🔹 Monthly Applications
-        $monthlyApplications = clone $query;
-        $monthlyApplications = $monthlyApplications->selectRaw("
-            YEAR(created_at) as year, 
-            MONTH(created_at) as month, 
-            COUNT(*) as count
-        ")
-            ->groupBy('year', 'month')
-            ->orderBy('year', 'asc')
-            ->orderBy('month', 'asc')
-            ->get();
-        
-        // 🔹 Merge All Data
-        $formattedData = collect()
-            ->merge($todayApplications)
-            ->merge($lastWeekApplications)
-            ->merge($lastMonthApplications)
-            ->merge($lastQuarterApplications)
-            ->merge($weeklyApplications)
-            ->merge($quarterlyApplications)
-            ->merge($monthlyApplications)
-            ->merge($sinceInspectionData); // ✅ Replacing past year with "Since Inception"
-        
-        // 🔹 Format Data for Output
-        $formattedData = $formattedData->map(function ($item) {
-            return [
-                'type' => $item['type'],
-                'count' => $item['count'],
-            ];
-        });
-        
-        return response()->json([
-            'status' => 'success',
-            'data' => $formattedData
-        ]);
+
+            $formattedData = $this->buildTimelineDurationData($query, $query1);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $formattedData
+            ]);
 
             
         } elseif (request()->type == "byCommunicationMeetingNotesByYear") {
@@ -2913,126 +2762,17 @@ class SubscriberFilterController extends Controller
                 ->get();
             return response()->json(['data' =>  $byCommunicationMeetingNoteType]);
         } elseif (request()->type == "byCommunicationMeetingNotesByTimeline(Duration)") {
-           
-            $currentYear = date('Y');
-            $currentDate = now();
-            $lastWeekStart = now()->subWeek()->startOfWeek();
-            $lastWeekEnd = now()->subWeek()->endOfWeek();
-            $lastMonthStart = now()->subMonth()->startOfMonth();
-            $lastMonthEnd = now()->subMonth()->endOfMonth();
-            $lastQuarterStart = now()->subQuarter()->startOfQuarter();
-            $lastQuarterEnd = now()->subQuarter()->endOfQuarter();
-            $lastYearStart = now()->subYear()->startOfYear();
-            $lastYearEnd = now()->subYear()->endOfYear();
-            
-            // Get Inspection Start Date (modify this based on where the date is stored)
-            
-            // Base Query
-            $query =   new Internal_communications();
+            $query = new Internal_communications();
             $query1 = clone $query;
-            
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') 
-                && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', $user->id)->whereYear('created_at', '=', $currentYear);
-                // $query1 = $query1->where('users.referral_code', $user->referral);;
-                $inspectionStartDate = $query1->where('subscriber_id', $user->id)->orderBy('created_at','asc')->first();
-            }else{
-                $inspectionStartDate = $query1->orderBy('created_at','asc')->first();
-            }
-            
-            // 🔹 Today's Applications
-            $todayApplications = clone $query;
-            $todayApplications = $todayApplications->whereDate('created_at', $currentDate)
-                ->selectRaw("'Today' as type, COUNT(*) as count")
-                ->get();
-            
-            // 🔹 Last Week's Applications
-            $lastWeekApplications = clone $query;
-            $lastWeekApplications = $lastWeekApplications->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])
-                ->selectRaw("'Last Week' as type, COUNT(*) as count")
-                ->get();
-            
-            // 🔹 Last Month's Applications
-            $lastMonthApplications = clone $query;
-            $lastMonthApplications = $lastMonthApplications->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])
-                ->selectRaw("'Last Month' as type, COUNT(*) as count")
-                ->get();
-            
-            // 🔹 Last Quarter's Applications
-            $lastQuarterApplications = clone $query;
-            $lastQuarterApplications = $lastQuarterApplications->whereBetween('created_at', [$lastQuarterStart, $lastQuarterEnd])
-                ->selectRaw("'Last Quarter' as type, COUNT(*) as count")
-                ->get();
 
-            $yearlyApplications = clone $query;
-            $yearlyApplications = $yearlyApplications->whereBetween('created_at', [$lastYearStart, $lastYearEnd])
-                ->selectRaw("'Last Year' as type, COUNT(*) as count")
-                ->get();
-            
-            // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData = (clone $query1);
-            if ($inspectionStartDate) {
-                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise')
+                && $user->user_type == 'Subscriber') {
+                $query = $query->where('subscriber_id', $user->id);
+                $query1 = $query1->where('subscriber_id', $user->id);
             }
-            $sinceInspectionData = $sinceInspectionData
-                ->selectRaw("'Since Inception' as type, COUNT(*) as count")
-                ->get();
-            
-            // 🔹 Weekly Applications
-            $weeklyApplications = clone $query;
-            $weeklyApplications = $weeklyApplications->selectRaw("
-                WEEK(created_at) as week_num, 
-                YEAR(created_at) as year_num, 
-                COUNT(*) as count
-            ")
-                ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'asc')
-                ->orderBy('week_num', 'asc')
-                ->get();
-            
-            // 🔹 Quarterly Applications
-            $quarterlyApplications = clone $query;
-            $quarterlyApplications = $quarterlyApplications->selectRaw("
-                YEAR(created_at) as year, 
-                QUARTER(created_at) as quarter, 
-                COUNT(*) as count
-            ")
-                ->groupBy('year', 'quarter')
-                ->orderBy('year', 'asc')
-                ->orderBy('quarter', 'asc')
-                ->get();
-            
-            // 🔹 Monthly Applications
-            $monthlyApplications = clone $query;
-            $monthlyApplications = $monthlyApplications->selectRaw("
-                YEAR(created_at) as year, 
-                MONTH(created_at) as month, 
-                COUNT(*) as count
-            ")
-                ->groupBy('year', 'month')
-                ->orderBy('year', 'asc')
-                ->orderBy('month', 'asc')
-                ->get();
-            
-            // 🔹 Merge All Data
-            $formattedData = collect()
-                ->merge($todayApplications)
-                ->merge($lastWeekApplications)
-                ->merge($lastMonthApplications)
-                ->merge($lastQuarterApplications)
-                ->merge($yearlyApplications)
-                // ->merge($quarterlyApplications)
-                // ->merge($monthlyApplications)
-                ->merge($sinceInspectionData); // ✅ Replacing past year with "Since Inception"
-            
-            // 🔹 Format Data for Output
-            $formattedData = $formattedData->map(function ($item) {
-                return [
-                    'type' => $item['type'],
-                    'count' => $item['count'],
-                ];
-            });
-            
+
+            $formattedData = $this->buildTimelineDurationData($query, $query1);
+
             return response()->json([
                 'status' => 'success',
                 'data' => $formattedData
@@ -3267,117 +3007,52 @@ class SubscriberFilterController extends Controller
                 'data' => $formattedData
             ]);
         } elseif (request()->type == "byWalletTransactionType") {
-            $walletOwner = $user;
+            $query = Referrals::query()
+                ->walletTableVisible()
+                ->whereNotNull('type')
+                ->where('type', '!=', '')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->select(
+                    'type',
+                    DB::raw('COUNT(*) as transaction_count')
+                );
 
-            if ($user->user_type !== 'Subscriber' && !empty($user->added_by)) {
-                $walletOwner = User::find($user->added_by) ?? $user;
+            if ($user->user_type == 'Subscriber') {
+                $query->where('userid', $user->id);
             }
 
-            $query = Referrals::whereBetween('created_at', [$startDate, $endDate]);
+            $transactions = $query->groupBy('type')->orderByDesc('transaction_count')->get();
 
-            if (($walletOwner->membership == 'Adwiseri' || $walletOwner->membership == "Adwiseri+" || $walletOwner->membership == "Enterprise")
-                && $walletOwner->user_type == 'Subscriber'
-            ) {
-                $query = $query->where(function ($walletQuery) use ($walletOwner) {
-                    $walletQuery->where('userid', $walletOwner->id);
-
-                    if (!empty($walletOwner->referral)) {
-                        $walletQuery->orWhere('referral_code', $walletOwner->referral);
-                    }
-                });
-            }
-
-            $transactions = $query->whereNotNull('type')
-                ->get(['type'])
-                ->map(function ($walletTransaction) {
-                    $rawType = trim((string) $walletTransaction->type);
-                    $normalizedType = strtolower(str_replace([' ', '-'], '_', $rawType));
-
-                    if (in_array($normalizedType, ['double_term', 'double_term_subscription', 'double_the_subscription_term'], true)) {
-                        return [
-                            'transaction_type' => '',
-                        ];
-                    }
-
-                    switch ($normalizedType) {
-                        case 'cashback':
-                            $displayText = 'Cashback';
-                            break;
-                        case 'one_off':
-                        case 'one_off_credit':
-                            $displayText = 'One-off credit';
-                            break;
-                        case 'wallet_transaction':
-                        case 'purchase':
-                            $displayText = 'Purchase';
-                            break;
-                        case 'renewal':
-                            $displayText = 'Renewal';
-                            break;
-                        case 'upgrade':
-                            $displayText = 'Upgrade';
-                            break;
-                        case 'dispute':
-                        case 'dispute_resolution':
-                            $displayText = 'Dispute resolution';
-                            break;
-                        default:
-                            $displayText = $rawType;
-                            break;
-                    }
-
-                    return [
-                        'transaction_type' => $displayText,
-                    ];
-                })
-                ->filter(function ($walletTransaction) {
-                    return $walletTransaction['transaction_type'] !== '';
-                })
-                ->groupBy('transaction_type')
-                ->map(function ($groupedTransactions, $transactionType) {
-                    return [
-                        'transaction_type' => $transactionType,
-                        'transaction_count' => $groupedTransactions->count(),
-                    ];
-                })
-                ->sortBy('transaction_type')
-                ->values();
+            $formattedTransactions = $transactions->map(function ($row) {
+                return [
+                    'transaction_type' => app(OfferBenefitService::class)->offerTypeLabel((string) $row->type),
+                    'transaction_count' => (int) $row->transaction_count,
+                ];
+            })->filter(function ($row) {
+                return !empty($row['transaction_type']) && $row['transaction_count'] > 0;
+            })->values();
 
             return response()->json([
                 'status' => 'success',
-                'data' => $transactions
+                'data' => $formattedTransactions
             ]);
         } elseif (request()->type == "byWalletYear") {
-            $walletOwner = $user;
-
-            if ($user->user_type !== 'Subscriber' && !empty($user->added_by)) {
-                $walletOwner = User::find($user->added_by) ?? $user;
+            $query = Referrals::query()->walletTableVisible();
+            if ($user->user_type == 'Subscriber') {
+                $query->where('userid', $user->id);
             }
 
-            $query = Referrals::query();
-            if (($walletOwner->membership == 'Adwiseri' || $walletOwner->membership == 'Adwiseri+' || $walletOwner->membership == 'Enterprise') && $walletOwner->user_type == 'Subscriber') {
-                $query = $query->where(function ($walletQuery) use ($walletOwner) {
-                    $walletQuery->where('userid', $walletOwner->id);
-
-                    if (!empty($walletOwner->referral)) {
-                        $walletQuery->orWhere('referral_code', $walletOwner->referral);
-                    }
-                });
-            }
-
-            $byUserTimeline = $query
-                // ✅ Ensure correct filtering
+            $byWalletYear = $query
                 ->select(
-                    DB::raw('YEAR(created_at) AS year'), // ✅ Specify users.created_at to avoid ambiguity
-                    DB::raw('COUNT(id) AS count') // ✅ Count based on users.id
+                    DB::raw('YEAR(created_at) AS year'),
+                    DB::raw('COUNT(id) AS count')
                 )
-                ->groupBy(DB::raw('YEAR(created_at)')) // ✅ Group by extracted year
-                ->orderBy('year', 'asc') // ✅ Sort by oldest first
+                ->groupBy(DB::raw('YEAR(created_at)'))
+                ->orderBy('year', 'asc')
                 ->get();
 
-            return response()->json(['data' => $byUserTimeline]);
+            return response()->json(['data' => $byWalletYear]);
         } elseif (request()->type == "byWalletTimeline(Duration)") {
-            $currentYear = date('Y');
             $currentDate = now();
             $lastWeekStart = now()->subWeek()->startOfWeek();
             $lastWeekEnd = now()->subWeek()->endOfWeek();
@@ -3385,125 +3060,61 @@ class SubscriberFilterController extends Controller
             $lastMonthEnd = now()->subMonth()->endOfMonth();
             $lastQuarterStart = now()->subQuarter()->startOfQuarter();
             $lastQuarterEnd = now()->subQuarter()->endOfQuarter();
-            
-            // Get Inspection Start Date (modify this based on where the date is stored)
-            
-            // Base Query
-            $walletOwner = $user;
+            $lastYearStart = now()->subYear()->startOfYear();
+            $lastYearEnd = now()->subYear()->endOfYear();
 
-            if ($user->user_type !== 'Subscriber' && !empty($user->added_by)) {
-                $walletOwner = User::find($user->added_by) ?? $user;
+            // Count only wallet-ledger referral rows for this subscriber.
+            $query = Referrals::query()->walletTableVisible();
+            if ($user->user_type == 'Subscriber') {
+                $query->where('userid', $user->id);
             }
-
-            $query = Referrals::query();
             $query1 = clone $query;
-            
-            if (($walletOwner->membership == 'Adwiseri' || $walletOwner->membership == 'Adwiseri+' || $walletOwner->membership == 'Enterprise')
-                && $walletOwner->user_type == 'Subscriber') {
-                $query = $query->where(function ($walletQuery) use ($walletOwner) {
-                    $walletQuery->where('userid', $walletOwner->id);
+            $inspectionStartDate = (clone $query1)->orderBy('created_at', 'asc')->first();
 
-                    if (!empty($walletOwner->referral)) {
-                        $walletQuery->orWhere('referral_code', $walletOwner->referral);
-                    }
-                })->whereYear('created_at', '=', $currentYear);
-                // $query1 = $query1->where('users.referral_code', $user->referral);;
-                $inspectionStartDate = $query1->where(function ($walletQuery) use ($walletOwner) {
-                    $walletQuery->where('userid', $walletOwner->id);
-
-                    if (!empty($walletOwner->referral)) {
-                        $walletQuery->orWhere('referral_code', $walletOwner->referral);
-                    }
-                })->orderBy('created_at','asc')->first();
-            }else{
-                $inspectionStartDate = $query1->orderBy('created_at','asc')->first();
-            }
-            
-            // 🔹 Today's Applications
-            $todayApplications = clone $query;
-            $todayApplications = $todayApplications->whereDate('created_at', $currentDate)
+            $todayApplications = (clone $query)->whereDate('created_at', $currentDate)
                 ->selectRaw("'Today' as type, COUNT(*) as count")
                 ->get();
-            
-            // 🔹 Last Week's Applications
-            $lastWeekApplications = clone $query;
-            $lastWeekApplications = $lastWeekApplications->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])
+
+            $lastWeekApplications = (clone $query)->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])
                 ->selectRaw("'Last Week' as type, COUNT(*) as count")
                 ->get();
-            
-            // 🔹 Last Month's Applications
-            $lastMonthApplications = clone $query;
-            $lastMonthApplications = $lastMonthApplications->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])
+
+            $lastMonthApplications = (clone $query)->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])
                 ->selectRaw("'Last Month' as type, COUNT(*) as count")
                 ->get();
-            
-            // 🔹 Last Quarter's Applications
-            $lastQuarterApplications = clone $query;
-            $lastQuarterApplications = $lastQuarterApplications->whereBetween('created_at', [$lastQuarterStart, $lastQuarterEnd])
+
+            $lastQuarterApplications = (clone $query)->whereBetween('created_at', [$lastQuarterStart, $lastQuarterEnd])
                 ->selectRaw("'Last Quarter' as type, COUNT(*) as count")
                 ->get();
-            
-            // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData = clone $query1;
-            $sinceInspectionData = $sinceInspectionData
-                ->whereDate('created_at', '>=', $inspectionStartDate->created_at ?? 0) 
+
+            $yearlyApplications = (clone $query)->whereBetween('created_at', [$lastYearStart, $lastYearEnd])
+                ->selectRaw("'Last Year' as type, COUNT(*) as count")
+                ->get();
+
+            $sinceInspectionData = (clone $query1)
+                ->when($inspectionStartDate, function ($walletQuery) use ($inspectionStartDate) {
+                    $walletQuery->whereDate('created_at', '>=', $inspectionStartDate->created_at);
+                })
                 ->selectRaw("'Since Inception' as type, COUNT(*) as count")
                 ->get();
-            
-            // 🔹 Weekly Applications
-            $weeklyApplications = clone $query;
-            $weeklyApplications = $weeklyApplications->selectRaw("
-                WEEK(created_at) as week_num, 
-                YEAR(created_at) as year_num, 
-                COUNT(*) as count
-            ")
-                ->groupBy('year_num', 'week_num')
-                ->orderBy('year_num', 'asc')
-                ->orderBy('week_num', 'asc')
-                ->get();
-            
-            // 🔹 Quarterly Applications
-            $quarterlyApplications = clone $query;
-            $quarterlyApplications = $quarterlyApplications->selectRaw("
-                YEAR(created_at) as year, 
-                QUARTER(created_at) as quarter, 
-                COUNT(*) as count
-            ")
-                ->groupBy('year', 'quarter')
-                ->orderBy('year', 'asc')
-                ->orderBy('quarter', 'asc')
-                ->get();
-            
-            // 🔹 Monthly Applications
-            $monthlyApplications = clone $query;
-            $monthlyApplications = $monthlyApplications->selectRaw("
-                YEAR(created_at) as year, 
-                MONTH(created_at) as month, 
-                COUNT(*) as count
-            ")
-                ->groupBy('year', 'month')
-                ->orderBy('year', 'asc')
-                ->orderBy('month', 'asc')
-                ->get();
-            
-            // 🔹 Merge All Data
+
             $formattedData = collect()
                 ->merge($todayApplications)
                 ->merge($lastWeekApplications)
                 ->merge($lastMonthApplications)
                 ->merge($lastQuarterApplications)
-                ->merge($sinceInspectionData); // ✅ Replacing past year with "Since Inception"
-            
-            // 🔹 Format Data for Output
-            $formattedData = $formattedData->filter(function ($item) {
-                return !empty($item['type']);
-            })->map(function ($item) {
+                ->merge($yearlyApplications)
+                ->merge($sinceInspectionData);
+
+            $formattedData = $formattedData->map(function ($item) {
                 return [
-                    'type' => $item['type'],
+                    'type' => $item['type'] ?? null,
                     'count' => $item['count'],
                 ];
+            })->filter(function ($item) {
+                return !empty($item['type']);
             })->values();
-            
+
             return response()->json([
                 'status' => 'success',
                 'data' => $formattedData
@@ -3527,6 +3138,41 @@ class SubscriberFilterController extends Controller
                     'number_of_tickets' => $item->number_of_tickets,
                 ];
             });
+
+            return response()->json(['data' => $data]);
+        } elseif (request()->type == "ByUser" || request()->type == "byTicketUser") {
+            // Support Tickets → By User: tickets raised, grouped by the user who created them.
+            $query = Tickets::query()
+                ->whereNotNull('user_id')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->select(
+                    'user_id',
+                    DB::raw('COUNT(*) as number_of_tickets')
+                )
+                ->groupBy('user_id')
+                ->orderByDesc('number_of_tickets');
+
+            if ($user->user_type == 'Subscriber') {
+                $query->where('subscriber_id', $user->id);
+            } elseif (!empty(request()->subid)) {
+                $query->where('subscriber_id', request()->subid);
+            }
+
+            $data = $query->get()
+                ->map(function ($row) {
+                    $ticketUser = User::find($row->user_id);
+                    $name = $ticketUser ? trim((string) $ticketUser->name) : '';
+
+                    return [
+                        'user_id' => $row->user_id,
+                        'username' => $name !== '' ? $name : 'Unknown',
+                        'number_of_tickets' => (int) $row->number_of_tickets,
+                    ];
+                })
+                ->filter(function ($row) {
+                    return $row['number_of_tickets'] > 0;
+                })
+                ->values();
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byTicketYear") {
@@ -3596,11 +3242,9 @@ class SubscriberFilterController extends Controller
                 ->get();
             
             // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData = (clone $query1);
-            if ($inspectionStartDate) {
-                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
-            }
+            $sinceInspectionData = clone $query1;
             $sinceInspectionData = $sinceInspectionData
+                ->whereDate('created_at', '>=', $inspectionStartDate->created_at) 
                 ->selectRaw("'Since Inception' as type, COUNT(*) as count")
                 ->get();
             
@@ -3640,24 +3284,26 @@ class SubscriberFilterController extends Controller
                 ->orderBy('month', 'asc')
                 ->get();
             
-            // 🔹 Merge All Data
+            // 🔹 Merge All Data (named timeline buckets only — weekly/monthly/quarterly rows have no `type` label)
             $formattedData = collect()
                 ->merge($todayApplications)
                 ->merge($lastWeekApplications)
                 ->merge($lastMonthApplications)
                 ->merge($lastQuarterApplications)
-                ->merge($weeklyApplications)
-                ->merge($quarterlyApplications)
-                ->merge($monthlyApplications)
+                // ->merge($weeklyApplications)
+                // ->merge($quarterlyApplications)
+                // ->merge($monthlyApplications)
                 ->merge($sinceInspectionData); // ✅ Replacing past year with "Since Inception"
             
             // 🔹 Format Data for Output
             $formattedData = $formattedData->map(function ($item) {
                 return [
-                    'type' => $item['type'],
+                    'type' => $item['type'] ?? null,
                     'count' => $item['count'],
                 ];
-            });
+            })->filter(function ($item) {
+                return !empty($item['type']);
+            })->values();
             
             return response()->json([
                 'status' => 'success',
@@ -3665,21 +3311,26 @@ class SubscriberFilterController extends Controller
             ]);
             
         } elseif (request()->type == "bySupportStaffChart") {
-            $startDate = $this->parseReportDate(request()->input('startDate', request()->start));
-            $endDate = $this->parseReportDate(request()->input('endDate', request()->end), true);
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
-            $query = Tickets::whereBetween('created_at', [$startDate, $endDate]);
-            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
-                $query = $query->where('subscriber_id', $user->id);
+            if (!empty(request()->subid)) {
+                $cd = Tickets::select(
+                    'user_id',
+                    DB::raw('COUNT(id) AS no_of_tickets_solved'),
+                    DB::raw('AVG(TIMESTAMPDIFF(SECOND, `created_at`, `updated_at`)) / 3600 AS avg_time_taken_hours')
+                )->where('subscriber_id', request()->subid)
+                    ->groupBy('user_id')
+                    ->get();
+            } else {
+                $cd = Tickets::select(
+                    'user_id',
+                    DB::raw('COUNT(id) AS no_of_tickets_solved'),
+                    DB::raw('AVG(TIMESTAMPDIFF(SECOND, `created_at`, `updated_at`)) / 3600 AS avg_time_taken_hours')
+                )
+                    ->groupBy('user_id')
+                    ->get();
             }
-
-            $cd = $query->select(
-                'user_id',
-                DB::raw('COUNT(id) AS no_of_tickets_solved'),
-                DB::raw('AVG(TIMESTAMPDIFF(SECOND, `created_at`, `updated_at`)) / 3600 AS avg_time_taken_hours')
-            )
-                ->groupBy('user_id')
-                ->get();
 
 
             $data = $cd->map(function ($row) {
@@ -3945,11 +3596,9 @@ class SubscriberFilterController extends Controller
                 ->get();
             
             // 🔹 Since Inception Data (Replacing "Past Year Data")
-            $sinceInspectionData = (clone $query1);
-            if ($inspectionStartDate) {
-                $sinceInspectionData->whereDate('created_at', '>=', $inspectionStartDate->created_at);
-            }
+            $sinceInspectionData = clone $query1;
             $sinceInspectionData = $sinceInspectionData
+                ->whereDate('created_at', '>=', $inspectionStartDate->created_at) 
                 ->selectRaw("'Since Inception' as type, COUNT(*) as count")
                 ->get();
             
@@ -4050,7 +3699,10 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $result]);
         } elseif (request()->type == "byPaymentModePaymentAmountChart") {
-            $query = $this->scopeQueryToSubscriber(PaymentARs::query(), $reportSubscriberId);
+            $query = new PaymentARs();
+            if (($user->membership == 'Adwiseri' || $user->membership == 'Adwiseri+' || $user->membership == 'Enterprise') && $user->user_type == 'Subscriber') {
+                $query =   $query->where('subscriber_id', request()->subid);
+            }
 
             if (!empty(request()->subid)) {
 

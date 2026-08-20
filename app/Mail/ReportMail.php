@@ -2,8 +2,9 @@
 
 namespace App\Mail;
 
+use App\Services\EmailTemplateService;
+use App\Support\BrandedMail;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
@@ -11,25 +12,31 @@ class ReportMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    /**
-     * Create a new message instance.
-     *
-     * @return void
-     */
     public function __construct($data)
     {
-        //
         $this->data = $data;
     }
 
-    /**
-     * Build the message.
-     *
-     * @return $this
-     */
     public function build()
     {
         $data = $this->data;
-        return $this->subject("adwiseri Monthly Reports")->view('web.reporttemplate',compact('data'));
+        $owner = app(EmailTemplateService::class)->resolveTemplateOwner($data);
+        $template = app(EmailTemplateService::class)->getTemplateForUser($owner, 'subscriber', 'reports');
+
+        $defaultSubject = 'Adwiseri Monthly Reports';
+        $headerTitle = 'Monthly Reports';
+
+        if ($template && !empty(trim((string) $template->body))) {
+            $payload = BrandedMail::dataFromObject($data);
+            $content = BrandedMail::replacePlaceholders($template->body, $payload);
+            $subject = BrandedMail::replacePlaceholders($template->subject ?: $defaultSubject, $payload);
+        } else {
+            $content = BrandedMail::renderBody('emails.bodies.report_monthly', compact('data'));
+            $subject = $defaultSubject;
+        }
+
+        return BrandedMail::applyPlatformEnvelope(
+            $this->subject($subject)->view(BrandedMail::LAYOUT, compact('content', 'headerTitle'))
+        );
     }
 }

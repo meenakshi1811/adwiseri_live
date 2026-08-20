@@ -68,14 +68,7 @@
         </ul>
         <form class="log-btn" style="margin-top:auto;margin-bottom:auto;">
           @if(isset($user))
-          <a class="icon-round mr-4 {{ $totalTickets  > 0 ? 'has-notifications' : '' }}" href="{{route('manage_support')}}">
-            <i class="fas fa-bell"></i>
-            <span class="notification-count">{{  $totalTickets  }}</span> <!-- Notification count for bell -->
-        </a>
-        <a class="icon-round mr-4 {{ $envelopeCount > 0 ? 'has-notifications' : '' }}" href="{{route('communication')}}">
-            <i class="fas fa-envelope"></i>
-            <span class="notification-count">{{ $envelopeCount }}</span> <!-- Notification count for envelope -->
-        </a>
+          @include('partials.topbar_notifications')
           <a href="{{ route('admin_profile') }}" class="btn btn-outline-success login-btn"><img src="{{ asset('web_assets/images/login.png') }}" width="20"
             height="20" alt=""> {{ $user->name }}</a>
           <a href="{{ route('logout') }}" class="btn btn-outline-success demo-btn"><img src="{{ asset('web_assets/images/logout.png') }}" width="20"
@@ -90,38 +83,31 @@
     </div>
   </nav>
   <!---Navbar END-->
-  <div class="container-fluid dashboard-box mt-5 mb-5 px-lg-5">
+  <div class="container-fluid dashboard-box mt-3 mb-3 px-lg-5">
 
-    <div class="row  client-row">
+    <div class="row client-row{{ ($page ?? '') === 'dashboard' ? ' dashboard-equal-cols' : '' }}">
         <div class="col-lg-2 column-dashbox">
             <div class="dash-box">
-                @if(!$user->is_support)
-                <a href="{{ route('admin_dashboard') }}" @if($page == "dashboard") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                @php
+                    $isAdminStaff = (int) ($user->is_support ?? 0) === 1;
+                @endphp
+                {{-- Admin Staff modules: Subscribers, Activity Logs, Demo Requests only --}}
+                @if(!$isAdminStaff)
+                <a href="{{ route('admin_dashboard') }}" @if($page == "dashboard") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
                                     <i class="fas fa-home"></i> <!-- Font Awesome icon -->
                                 </span>
                                 Dashboard
                             </a>
-                <!-- <div class="dashbox-btn d-flex">
-                    <img src="{{ asset('web_assets/images/dash.png') }}" width="30" height="30" alt="">
-                    <a href="{{ route('admin_dashboard') }}" @if($page == "dashboard") style="font-weight:700;" @endif>Dashboard</a>
-                </div> -->
-                @endif
-                <!-- <a style="cursor: pointer;" class="sidebar-menu-item">
-                                <span class="sidebar-menu-icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                                Admin Panel
-                            </a> -->
                             <div class="sidebar-menu-item" id="manage_btn">
                                 <a style="cursor: pointer;">
                                 <span class="sidebar-menu-icon">
                                 <i class="fa-solid fa-toolbox"></i>
                                 </span>Admin Panel</a>
                             </div>
-                            <div class="" id="manage_box" @if($page == "contactus" or $page == "about_adwiseri" or $page == "features" or $page == "membership") style="margin-left:25px;flex-direction: column;display:flex;" @else style="margin-left:25px;flex-direction: column;display:none;" @endif>
+                            <div class="" id="manage_box" @if($page == "contactus" or $page == "about_adwiseri" or $page == "features" or $page == "membership" or $page == "landing_discounts_offers" or $page == "demo_request" or $page == "feedbacks" or $page == "admin_staff") style="margin-left:25px;flex-direction: column;display:flex;" @else style="margin-left:25px;flex-direction: column;display:none;" @endif>
                                 
-                                    <a href="{{ route('manage_contactus') }}" @if($page == "contactus") style="font-weight:700;background-color:#9f9aed;color:white;" @endif class="sidebar-menu-item">
+                                    <a href="{{ route('manage_contactus') }}" @if($page == "contactus") style="font-weight:700;background-color:#695EEE;color:white;" @endif class="sidebar-menu-item">
                                         <span class="sidebar-menu-icon">
                                         <i class="fa-solid fa-address-book"></i>
                                         </span>
@@ -129,7 +115,7 @@
                                     </a>
                                 
                                 
-                                    <a href="{{ route('manage_about_adwiseri') }}" @if($page == "about_adwiseri") style="font-weight:700;background-color:#9f9aed;color:white;" @endif class="sidebar-menu-item">
+                                    <a href="{{ route('manage_about_adwiseri') }}" @if($page == "about_adwiseri") style="font-weight:700;background-color:#695EEE;color:white;" @endif class="sidebar-menu-item">
                                         <span class="sidebar-menu-icon">
                                             <i class="fas fa-info-circle"></i> <!-- Font Awesome icon -->
                                         </span>
@@ -137,7 +123,7 @@
                                     </a>
                                 
                                 
-                                    <a href="{{ route('manage_features') }}" @if($page == "features") style="font-weight:700;background-color:#9f9aed;color:white;" @endif class="sidebar-menu-item">
+                                    <a href="{{ route('manage_features') }}" @if($page == "features") style="font-weight:700;background-color:#695EEE;color:white;" @endif class="sidebar-menu-item">
                                         <span class="sidebar-menu-icon">
                                             <i class="fas fa-cogs"></i> <!-- Font Awesome icon -->
                                         </span>
@@ -145,15 +131,29 @@
                                     </a>
                                 
                                 
-                                    <a href="{{ route('manage_membership') }}" @if($page == "membership") style="font-weight:700;background-color:#9f9aed;color:white;" @endif class="sidebar-menu-item">
+                                    <a href="{{ route('manage_membership') }}" @if($page == "membership") style="font-weight:700;background-color:#695EEE;color:white;" @endif class="sidebar-menu-item">
                                         <span class="sidebar-menu-icon">
                                             <i class="fas fa-credit-card"></i> <!-- Font Awesome icon -->
                                         </span>
                                         Subscriptions
                                     </a>
+
+                                    <a href="{{ route('manage_landing_discounts_offers') }}" @if($page == "landing_discounts_offers") style="font-weight:700;background-color:#695EEE;color:white;" @endif class="sidebar-menu-item">
+                                        <span class="sidebar-menu-icon">
+                                            <i class="fas fa-tags"></i>
+                                        </span>
+                                        Discounts &amp; Offers
+                                    </a>
+
+                                    <a href="{{ route('manage_homepage_sections') }}" @if($page == "homepage_sections") style="font-weight:700;background-color:#695EEE;color:white;" @endif class="sidebar-menu-item">
+                                        <span class="sidebar-menu-icon">
+                                            <i class="fas fa-home"></i>
+                                        </span>
+                                        Homepage Sections
+                                    </a>
                                 
                                 
-                                    <a href="{{ route('demo_requests') }}" @if($page == "demo_request") style="font-weight:700;background-color:#9f9aed;color:white;" @endif class="sidebar-menu-item">
+                                    <a href="{{ route('demo_requests') }}" @if($page == "demo_request") style="font-weight:700;background-color:#695EEE;color:white;" @endif class="sidebar-menu-item">
                                         <span class="sidebar-menu-icon">
                                             <i class="fas fa-video"></i> <!-- Font Awesome icon -->
                                         </span>
@@ -161,7 +161,7 @@
                                     </a>
                                 
                                 
-                                    <a href="{{ route('admin_feedback') }}" @if($page == "feedbacks") style="font-weight:700;background-color:#9f9aed;color:white;" @endif class="sidebar-menu-item">
+                                    <a href="{{ route('admin_feedback') }}" @if($page == "feedbacks") style="font-weight:700;background-color:#695EEE;color:white;" @endif class="sidebar-menu-item">
                                         <span class="sidebar-menu-icon">
                                             <i class="fas fa-comments"></i> <!-- Font Awesome icon -->
                                         </span>
@@ -169,7 +169,7 @@
                                     </a>
                                 
                                 
-                                    <a href="{{ route('admin_staff') }}" @if($page == "admin_staff") style="font-weight:700;background-color:#9f9aed;color:white;" @endif class="sidebar-menu-item">
+                                    <a href="{{ route('admin_staff') }}" @if($page == "admin_staff") style="font-weight:700;background-color:#695EEE;color:white;" @endif class="sidebar-menu-item">
                                         <span class="sidebar-menu-icon">
                                             <i class="fas fa-user-tie"></i> <!-- Font Awesome icon -->
                                         </span>
@@ -177,46 +177,38 @@
                                     </a>
                                 
                             </div>
+                @endif
 
-                            <!-- <div class="dashbox-btn d-flex" id="manage_btn">
-                    <img src="{{ asset('web_assets/images/manage.png') }}" width="30" height="30" alt="">
-                    <a style="cursor: pointer;">Admin Panel</a>
-                </div>
-                <div class="dashbox-btn" id="manage_box" @if($page == "contactus" or $page == "about_adwiseri" or $page == "features" or $page == "membership") style="flex-direction: column;display:flex;" @else style="flex-direction: column;display:none;" @endif>
-                  <div class="dashbox-btn d-flex">
-                    <a href="{{ route('manage_contactus') }}" @if($page == "contactus") style="font-weight:700;" @endif>Contact Us</a>
-                  </div>
-                  <div class="dashbox-btn d-flex">
-                    <a href="{{ route('manage_about_adwiseri') }}" @if($page == "about_adwiseri") style="font-weight:700;" @endif>About adwiseri</a>
-                  </div>
-                  <div class="dashbox-btn d-flex">
-                    <a href="{{ route('manage_features') }}" @if($page == "features") style="font-weight:700;" @endif>Features</a>
-                  </div>
-                  <div class="dashbox-btn d-flex">
-                    <a href="{{ route('manage_membership') }}" @if($page == "membership") style="font-weight:700;" @endif>Subscriptions</a>
-                  </div>
-                  <div class="dashbox-btn d-flex">
-                    <a href="{{ route('demo_requests') }}" @if($page == "demo_request") style="font-weight:700;" @endif>Demo Requests</a>
-                  </div>
-                  <div class="dashbox-btn d-flex">
-                    <a href="{{ route('admin_feedback') }}" @if($page == "feedbacks") style="font-weight:700;" @endif>Feedbacks</a>
-                </div>
-                <div class="dashbox-btn d-flex">
-                    <a href="{{ route('admin_staff') }}" @if($page == "admin_staff") style="font-weight:700;" @endif>Admin Staff</a>
-                </div>
-                </div> -->
-                <a href="{{ route('subscribers') }}" @if($page == "subscriber") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                <a href="{{ route('subscribers') }}" @if($page == "subscriber") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
                                 <i class="fa-solid fa-subscript"></i> <!-- Font Awesome icon -->
                                 </span>
                                 Subscribers
                             </a>
-                <!-- <div class="dashbox-btn d-flex">
-                    <img src="{{ asset('web_assets/images/clients.png') }}" width="30" height="30" alt="">
-                    <a href="{{ route('subscribers') }}" @if($page == "subscriber") style="font-weight:700;" @endif>Subscribers</a>
-                </div> -->
-                @if(!$user->is_support)
-                <a href="{{ route('manage_clients') }}" @if($page == "clients") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+
+                @if($isAdminStaff)
+                <a href="{{ route('activity_log') }}" @if($page == "activity_log") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
+                                <span class="sidebar-menu-icon">
+                                <i class="fa-solid fa-person-circle-exclamation"></i>
+                                </span>
+                                Activity Logs
+                            </a>
+                <a href="{{ route('demo_requests') }}" @if($page == "demo_request") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
+                                <span class="sidebar-menu-icon">
+                                    <i class="fas fa-video"></i>
+                                </span>
+                                Demo Requests
+                            </a>
+                @endif
+
+                @if(!$isAdminStaff)
+                <a href="{{ route('email_subscribers') }}" @if($page == "email_subscribers") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
+                                <span class="sidebar-menu-icon">
+                                <i class="fa-solid fa-envelope"></i>
+                                </span>
+                                Email Subscribers
+                            </a>
+                <a href="{{ route('manage_clients') }}" @if($page == "clients") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
                                 <i class="fas fa-users"></i> <!-- Font Awesome icon -->
                                 </span>
@@ -226,7 +218,7 @@
                     <img src="{{ asset('web_assets/images/admin_client.png') }}" width="30" height="30" alt="">
                     <a href="{{ route('manage_clients') }}" @if($page == "clients") style="font-weight:700;" @endif>Clients</a>
                 </div> -->
-                <a href="{{ route('manage_applications') }}" @if($page == "applications") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                <a href="{{ route('manage_applications') }}" @if($page == "applications") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
                                 <i class="fa-solid fa-window-restore"></i> <!-- Font Awesome icon -->
                                 </span>
@@ -240,7 +232,7 @@
                     <img src="{{ asset('web_assets/images/user.png') }}" width="30" height="30" alt="">
                     <a href="{{ route('manage_dependents') }}" @if($page == "applications") style="font-weight:700;" @endif>Dependents</a>
                 </div> --}}
-                <a href="{{ route('manage_users') }}" @if($page == "users") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                <a href="{{ route('manage_users') }}" @if($page == "users") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
                                 <i class="fas fa-user"></i> <!-- Font Awesome icon -->
                                 </span>
@@ -250,7 +242,7 @@
                     <img src="{{ asset('web_assets/images/users.png') }}" width="30" height="30" alt="">
                     <a href="{{ route('manage_users') }}" @if($page == "users") style="font-weight:700;" @endif> Users &nbsp;(Staff)</a>
                 </div> -->
-                <a href="{{ route('manage_invoices') }}" @if($page == "invoices") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                <a href="{{ route('manage_invoices') }}" @if($page == "invoices") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
                                 <i class="fas fa-file"></i> <!-- Font Awesome icon -->
                                 </span>
@@ -260,7 +252,7 @@
                     <img src="{{ asset('web_assets/images/invoices.png') }}" width="30" height="30" alt="">
                     <a href="{{ route('manage_invoices') }}" @if($page == "invoices") style="font-weight:700;" @endif>Invoices</a>
                 </div> -->
-                <a href="{{ route('admin_messaging') }}" @if($page == "communication") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                <a href="{{ route('admin_messaging') }}" @if($page == "communication") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
                                 <i class="fa-solid fa-comment"></i> <!-- Font Awesome icon -->
                                 </span>
@@ -270,7 +262,7 @@
                     <img src="{{ asset('web_assets/images/applications.png') }}" width="30" height="30" alt="">
                     <a href="{{ route('admin_messaging') }}" @if($page == "communication") style="font-weight:700;" @endif>Communications</a>
                 </div> -->
-                <a href="{{ route('payments') }}" @if($page == "payments") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                <a href="{{ route('payments') }}" @if($page == "payments") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
                                 <i class="fas fa-dollar"></i> <!-- Font Awesome icon -->
                                 </span>
@@ -280,7 +272,7 @@
                     <img src="{{ asset('web_assets/images/payments.png') }}" width="30" height="30" alt="">
                     <a href="{{ route('payments') }}" @if($page == "payments") style="font-weight:700;" @endif>Payments</a>
                 </div> -->
-                <a href="{{ route('admin_referral') }}" @if($page == "wallet") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                <a href="{{ route('admin_referral') }}" @if($page == "wallet") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
                                 <i class="fa-solid fa-asterisk"></i> <!-- Font Awesome icon -->
                                 </span>
@@ -290,7 +282,7 @@
                     <img src="{{ asset('web_assets/images/documents.png') }}" width="30" height="30" alt="">
                     <a href="{{ route('admin_referral') }}" @if($page == "wallet") style="font-weight:700;" @endif>Referrals & Wallets</a>
                 </div> -->
-                <a href="{{ route('analytics') }}" @if($page == "analytics") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                <a href="{{ route('analytics') }}" @if($page == "analytics") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
                                 <i class="fa-solid fa-chart-simple"></i> <!-- Font Awesome icon -->
                                 </span>
@@ -300,7 +292,7 @@
                     <img src="{{ asset('web_assets/images/analytics.png') }}" width="30" height="30" alt="">
                     <a href="{{route('analytics')}}" @if($page == "analytics") style="font-weight:700;" @endif >Analytics</a>
                 </div> -->
-                <a href="{{ route('reports') }}" @if($page == "reports") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                <a href="{{ route('reports') }}" @if($page == "reports") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
                                 <i class="fa-solid fa-flag"></i> <!-- Font Awesome icon -->
                                 </span>
@@ -310,7 +302,7 @@
                     <img src="{{ asset('web_assets/images/reports.png') }}" width="30" height="30" alt="">
                     <a href="{{ route('reports') }}" @if($page == "reports") style="font-weight:700;" @endif>Reports</a>
                 </div> -->
-                <a href="{{ route('affiliates') }}" @if($page == "affiliates") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                <a href="{{ route('affiliates') }}" @if($page == "affiliates") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
                                 <i class="fa-solid fa-bell"></i> <!-- Font Awesome icon -->
                                 </span>
@@ -320,36 +312,34 @@
                     <img src="{{ asset('web_assets/images/affiliates.png') }}" width="30" height="30" alt="">
                     <a href="{{route('affiliates')}}"  @if($page == "affiliates") style="font-weight:700;" @endif>Affiliates</a>
                 </div> -->
-                <a href="{{ route('activity_log') }}" @if($page == "activity_log") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                <a href="{{ route('activity_log') }}" @if($page == "activity_log") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
                                 <i class="fa-solid fa-person-circle-exclamation"></i>
                                 </span>
                                 Activity Logs
                             </a>
+                <a href="{{ route('error_log') }}" @if($page == "error_log") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
+                                <span class="sidebar-menu-icon">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                </span>
+                                Error Log
+                            </a>
                 <!-- <div class="dashbox-btn d-flex">
                     <img src="{{ asset('web_assets/images/activity_log.png') }}" width="30" height="30">
                     <a href="{{ route('activity_log') }}" @if($page == "activity_log") style="font-weight:700;" @endif>Activity Logs</a>
                 </div> -->
-                <a href="{{ route('settings') }}" @if($page == "settings") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                <a href="{{ route('settings') }}" @if($page == "settings") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
                                 <i class="fa-solid fa-gear"></i> <!-- Font Awesome icon -->
                                 </span>
                                 Settings
                             </a>
-                <!-- <div class="dashbox-btn d-flex">
-                    <img src="{{ asset('web_assets/images/settings.png') }}" width="30" height="30" alt="">
-                    <a href="{{ route('settings') }}" @if($page == "settings") style="font-weight:700;" @endif>Settings</a>
-                </div> -->
-                @endif
-                <a href="{{ route('manage_support') }}" @if($page == "support") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                <a href="{{ route('manage_support') }}" @if($page == "support") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
                                 <i class="fa-solid fa-circle-info"></i>
                                 </span>
                                 Support
                             </a>
-                <!-- <div class="dashbox-btn d-flex">
-                    <img src="{{ asset('web_assets/images/supports.png') }}" width="30" height="30" alt="">
-                    <a href="{{ route('manage_support') }}" @if($page == "support") style="font-weight:700;" @endif>Support</a>
-                </div> -->
+                @endif
             </div>
         </div>

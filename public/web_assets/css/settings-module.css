@@ -1,0 +1,86 @@
+/**
+ * Settings module — titles, section names, and connected tab strip.
+ */
+.settings-module .client-btn h3,
+.settings-module #settingsTabContent .tab-pane > .row > p,
+.settings-module #settingsTabContent .table-wrapper > .row > p,
+.settings-module .offers-panel__title,
+.settings-module .offers-history__title,
+.settings-module .cc-settings-hero h5,
+.settings-module .cc-documents-panel .panel-title {
+    text-align: center !important;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    color: var(--adwiseri-primary, #695EEE) !important;
+}
+
+.settings-module .client-btn {
+    justify-content: center !important;
+}
+
+.settings-module #settingsTabContent .tab-pane > .row > p,
+.settings-module #settingsTabContent .table-wrapper > .row > p {
+    font-size: 18px;
+    font-weight: 550;
+}
+
+/* Connected tab strip — no outer box, tabs touch side-by-side within each row */
+.settings-module #settingsTab.nav-tabs {
+    position: relative;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    align-content: flex-end;
+    gap: 0 !important;
+    border: none !important;
+    padding-bottom: 0;
+    margin-bottom: 1rem;
+    background: transparent;
+}
+
+.settings-module #settingsTab .nav-item {
+    position: relative;
+    margin: 0 !important;
+}
+
+.settings-module #settingsTab .nav-link {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 0 !important;
+    margin-left: 0;
+    border-radius: 0 !important;
+    border: 1px solid var(--adwiseri-tab-border, #e2e6f0) !important;
+    border-bottom: 2px solid var(--adwiseri-tab-border, #e2e6f0) !important;
+}
+
+.settings-module #settingsTab .nav-item:not(.settings-tab-row-start) .nav-link {
+    margin-left: -1px;
+}
+
+.settings-module #settingsTab .nav-item.settings-tab-row-start .nav-link {
+    border-top-left-radius: var(--adwiseri-tab-radius, 10px) !important;
+}
+
+.settings-module #settingsTab .nav-item.settings-tab-row-end .nav-link {
+    border-top-right-radius: var(--adwiseri-tab-radius, 10px) !important;
+}
+
+.settings-module #settingsTab .nav-link:hover {
+    z-index: 2;
+    border-bottom-color: var(--adwiseri-tab-border, #e2e6f0) !important;
+}
+
+.settings-module #settingsTab .nav-link.active {
+    border-color: var(--adwiseri-primary, #695eee) !important;
+    border-bottom-color: var(--adwiseri-primary, #695eee) !important;
+    z-index: 3;
+}
+
+/* Per-row baseline under wrapped rows */
+.settings-module #settingsTab .settings-tab-row-line {
+    position: absolute;
+    height: 2px;
+    background: var(--adwiseri-tab-border, #e2e6f0);
+    pointer-events: none;
+    z-index: 0;
+}

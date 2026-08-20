@@ -3,30 +3,19 @@
 @section('main-section')
 
         @php
-        if($invoice->user_id == null){
-          $userid = 1;
-        }
-        else{
-          $userid = $invoice->user_id;
-        }
-        $currencyValue = trim((string) ($user->currency ?? 'USD'));
-        $currencySymbols = ['USD' => '$', 'INR' => '₹', 'EUR' => '€', 'GBP' => '£', 'AUD' => 'A$', 'CAD' => 'C$', 'SGD' => 'S$', 'AED' => 'د.إ'];
-        if (preg_match('/\((.*?)\)/', $currencyValue, $currencyMatch)) {
-            $currency = $currencyMatch[1];
-        } else {
-            $currencyCode = strtoupper(preg_replace('/[^A-Za-z]/', '', $currencyValue));
-            $currency = $currencySymbols[$currencyCode] ?? $currencyValue;
-        }
-        $descriptionLabel = ($invoice->type ?? '') === 'ap' ? ($invoice->detail ?: 'Plan Purchase / Renewal / Upgrade') : 'Professional Fees (' . $invoice->detail . ')';
-        $subtotal = (float) $invoice->amount;
-        $discountAmount = $subtotal * ((float) $invoice->discount / 100);
-        $taxable = $subtotal - $discountAmount;
-        $taxAmount = $taxable * ((float) $invoice->tax / 100);
-        $total = $taxable + $taxAmount;
-        $formattedSubtotal = number_format($subtotal, 2);
-        $formattedDiscountAmount = number_format($discountAmount, 2);
-        $formattedTaxAmount = number_format($taxAmount, 2);
-        $formattedTotal = number_format($total, 2);
+        $issuerLogo = \App\Support\InvoiceIssuerLogo::resolve($invoice, $u ?? null);
+        $subscriberLogoUrl = $issuerLogo['url'];
+
+        $invoiceAmount = (float) $invoice->amount;
+        $discountPercent = $invoice->isSubscriptionPackageInvoice() ? 0.0 : (float) $invoice->discount;
+        $taxPercent = $invoice->isSubscriptionPackageInvoice() ? 0.0 : (float) $invoice->tax;
+        $discountAmount = $invoiceAmount * ($discountPercent / 100);
+        $taxableAmount = $invoiceAmount - $discountAmount;
+        $taxAmount = $taxableAmount * ($taxPercent / 100);
+        $invoiceTotal = $invoice->isSubscriptionPackageInvoice()
+            ? (float) $invoice->total
+            : ($taxableAmount + $taxAmount);
+        $taxLabel = app(\App\Services\InvoiceSnapshotService::class)->resolvedTaxLabel($invoice, $invoiceSetting ?? null);
         @endphp
         <style>
     .invoice-box {
@@ -40,7 +29,7 @@
 
     .invoice-box h3 {
         font-weight: 600;
-        border-bottom: 2px solid #0061f2;
+        border-bottom: 2px solid #695EEE;
         padding-bottom: 10px;
         margin-bottom: 30px;
     }
@@ -80,13 +69,23 @@
         font-weight: 600;
     }
 
+    .table-invoice .desc-col {
+        text-align: left;
+    }
+
+    .table-invoice .amount-col {
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
     .total-row td {
         font-weight: bold;
         background-color: #eef2f6;
     }
 
     .download-btn {
-        background-color: #0061f2;
+        background-color: #695EEE;
         color: #fff;
         padding: 8px 20px;
         border: none;
@@ -95,7 +94,7 @@
     }
 
     .download-btn:hover {
-        background-color: #004ec2;
+        background-color: #564BB0;
         cursor: pointer;
     }
 
@@ -103,7 +102,7 @@
         background: #f8f9fa;
         padding: 15px;
         margin-top: 30px;
-        border-left: 4px solid #0061f2;
+        border-left: 4px solid #695EEE;
         font-size: 0.95rem;
     }
 
@@ -116,29 +115,33 @@
     <div class="invoice-box">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
-                @if($invoice->subscriber_id)
-                    <img src="{{ asset('web_assets/users/user'.$invoice->subscriber_id.'/' . $invoice->logo) }}" alt="Logo" style="max-height:70px; object-fit:contain;">
+                @if(!empty($subscriberLogoUrl))
+                    <img src="{{ $subscriberLogoUrl }}" alt="Logo" style="max-height:70px; object-fit:contain;">
                 @else
-                    <img src="{{ asset('web_assets/users/user'.$invoice->user_id.'/' . $invoice->logo) }}" alt="Logo" style="max-height:70px; object-fit:contain;">
+                    <div class="text-primary fw-bold" style="font-size: 1.35rem;">{{ $invoice->name ?? 'Adwiseri' }}</div>
                 @endif
             </div>
-            <div>
-                <button 
-                    class="download-btn"
-                        onclick="download_invoice({{ $invoice->id }})"
-                >Download PDF</button>
+            <div class="invoice-page-actions">
+                <form method="POST" action="{{ route('admin_resend_invoice_email', $invoice->id) }}" class="d-inline"
+                      onsubmit="return confirm('Resend invoice email to {{ $invoice->to_email }}?');">
+                    @csrf
+                    <button type="submit" class="invoice-btn invoice-btn-outline">
+                        <i class="fa-solid fa-paper-plane"></i> Resend Email
+                    </button>
+                </form>
+                <button type="button" class="invoice-btn invoice-btn-primary" onclick="download_invoice({{ $invoice->id }})">
+                    <i class="fa-solid fa-download"></i> Download PDF
+                </button>
+                <a href="{{ route('admin_edit_invoice', $invoice->id) }}" class="invoice-btn invoice-btn-outline">
+                    <i class="fa-solid fa-pen-to-square"></i> Edit Invoice
+                </a>
             </div>
         </div>
 
+        @include('web.partials.invoice_audit_bar')
+
         <h3 class="text-primary text-center">Invoice</h3>
         <div class="d-flex justify-content-center align-items-center mb-3">
-            <span class="me-2" style="display:inline-flex; width:28px; height:28px;">
-                @if($invoice->subscriber_id)
-                    <img src="{{ asset('web_assets/users/user'.$invoice->subscriber_id.'/' . $invoice->logo) }}" alt="Logo" style="width:100%; height:100%; object-fit:contain;">
-                @else
-                    <img src="{{ asset('web_assets/users/user'.$invoice->user_id.'/' . $invoice->logo) }}" alt="Logo" style="width:100%; height:100%; object-fit:contain;">
-                @endif
-            </span>
             <strong>{{ $invoice->name }}</strong>
         </div>
 
@@ -153,72 +156,11 @@
             </div>
         </div> -->
 
-        <div class="row">
-            <div class="col-6">
-                <h6 class="mb-2"><strong>Bill To:</strong></h6>
-                <p class="mb-1">{{ $invoice->to_name }}</p>
-                <p class="mb-1">{{ $invoice->to_address }}</p>
-                <p class="mb-1">{{ $invoice->to_city }}, {{ $invoice->to_state }}</p>
-                <p class="mb-1">{{ $invoice->to_country }} - {{ $invoice->to_pincode }}</p>
-            </div>
-            <div class="col-6 text-right">
-                <div class="invoice-meta">
-                    <p>Invoice No.: <strong>{{ $invoice->invoice_no }}</strong></p>
-                    <p>Date: <strong>{{ date('d-m-Y', strtotime($invoice->created_at)) }}</strong></p>
-                </div>
-            </div>
-        </div>
-
-        <table class="table-invoice">
-            <thead>
-                <tr>
-                    <th class="p-1 text-center">Description</th>
-                    <th class="p-1 text-center">Amount ({{ $currency }})</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td class="p-1 text-center">{{ $descriptionLabel }}</td>
-                    <td class="p-1 text-center">{{ $currency }} {{ $formattedSubtotal }}</td>
-                </tr>
-                @if($invoice->discount != 0)
-                <tr>
-                    <td class="p-1 text-center">Discount ({{ $invoice->discount }}%)</td>
-                    <td class="p-1 text-center">-{{ $currency }} {{ $formattedDiscountAmount }}</td>
-                </tr>
-                @endif
-                <tr>
-                    <td class="p-1 text-center">Tax ({{ $invoice->tax }}%)</td>
-                    <td class="p-1 text-center">{{ $currency }} {{ $formattedTaxAmount }}</td>
-                </tr>
-                <tr class="total-row">
-                    <td class="p-1 text-center" class="text-right">Total</td>
-                    <td class="p-1 text-center">
-{{ $currency }} {{ $formattedTotal }}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-        @php
-            $paymentLink = isset($invoiceSetting->payment_link) ? trim((string) $invoiceSetting->payment_link) : '';
-        @endphp
-        @if(!empty($paymentLink) && filter_var($paymentLink, FILTER_VALIDATE_URL))
-            <div class="note-box">
-                <p><strong>Payment Link:</strong> 
-                    <a style="color: inherit !important;
-    text-decoration: none !important;
-    background: none !important; border: none;" target="_blank" href="{{ $paymentLink }}">{{ $paymentLink }}</a>
-                </p>
-            </div>
-        @endif
-        <div style="margin-top: 60px; text-align: center; font-size: 0.9rem; line-height: 1.6;">
-            <div>
-                Thanks for your business !
-            </div>
-            <!-- <div>
-                {{ $invoice->address }}, {{ $invoice->city }}, {{ $invoice->state }}, {{ $invoice->country }} - {{ $invoice->pincode }}
-            </div> -->
-        </div>
+        @include('partials.invoice_document_styles')
+        @include('partials.invoice_document_core', [
+            'forPdf' => false,
+            'qrSubscriberId' => $invoice->subscriber_id ?: ($issuerLogo['owner_user_id'] ?? ($invoice->user_id ?? 1)),
+        ])
     </div>
 </div>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
@@ -272,19 +214,49 @@
   </script>
   <script>
       function deleteuser(id){
-          var conf = confirm('Delete User');
+          var conf = confirm('Are you sure you want to delete this invoice?');
           if(conf == true){
               window.location.href = "delete_user/"+id+"";
           }
       }
   </script>
 
+  @if(session()->has('invoice_updated'))
+    <script>
+      Swal.fire({
+        icon: 'success',
+        title: 'Success',
+        text: 'Invoice updated successfully.'
+      })
+    </script>
+  @endif
+
+  @if(session()->has('invoice_email_sent'))
+    <script>
+      Swal.fire({
+        icon: 'success',
+        title: 'Email Sent',
+        text: @json(session('invoice_email_sent'))
+      })
+    </script>
+  @endif
+
+  @if(session()->has('invoice_email_failed'))
+    <script>
+      Swal.fire({
+        icon: 'error',
+        title: 'Email Failed',
+        text: @json(session('invoice_email_failed'))
+      })
+    </script>
+  @endif
+
   @if(session()->has('deleted'))
     <script>
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'Invoice deleted successfully.'
       })
     </script>
 

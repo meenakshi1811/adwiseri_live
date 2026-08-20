@@ -115,6 +115,7 @@
         </ul> --}}
             <form class="log-btn" style="width: 100%;margin:auto;">
                 @if (isset($user))
+                    @include('partials.topbar_notifications')
                     <a href="{{ route('userprofile_affiliate') }}" class="btn btn-outline-success login-btn"><img
                             src="{{ asset('web_assets/images/login.png') }}" width="20" height="20"
                             alt=""> {{ $user->name }}</a>
@@ -148,80 +149,32 @@
             <div class="col-lg-2 column-dashbox">
                 <div class="dash-box">
                     @if (isset($user))
-                            <a href="{{ route('affiliate.dashboard_affiliate') }}" @if($page == "dashboard") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                            {{-- Affiliate modules: Subscribers, Referrals, Wallet, Commissions --}}
+                            <a href="{{ route('subscribers_affiliate') }}" @if($page == "subscribers") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
-                                    <i class="fas fa-home"></i> <!-- Font Awesome icon -->
+                                    <i class="fa-solid fa-subscript"></i>
                                 </span>
-                                Dashboard
+                                Subscribers
                             </a>
-                            <!-- <div class="dashbox-btn d-flex">
-                                <img src="{{ asset('web_assets/images/dash.png') }}" width="30" height="30"
-                                    alt="">
-                                <a href="{{ route('affiliate.dashboard_affiliate') }}"
-                                    @if ($page == 'dashboard') style="font-weight:700;" @endif>Dashboard</a>
-                            </div> -->
-                            <a href="{{ route('referrals_affiliate') }}" @if($page == "referrals") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                            <a href="{{ route('referrals_affiliate') }}" @if($page == "referrals") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
-                                    <i class="fas fa-asterisk"></i> <!-- Font Awesome icon -->
+                                    <i class="fas fa-asterisk"></i>
                                 </span>
                                 Referrals
                             </a>
-                        <!-- <div class="dashbox-btn d-flex">
-                            <img src="{{ asset('web_assets/images/affiliates.png') }}" width="30" height="30"
-                                alt="">
-                            <a href="{{ route('referrals_affiliate') }}"
-                                @if ($page == 'referrals') style="font-weight:700;" @endif>Referrals</a>
-                        </div> -->
-                        <a href="{{ route('wallet_affiliate') }}" @if($page == "wallet") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                        <a href="{{ route('wallet_affiliate') }}" @if($page == "wallet") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
-                                    <i class="fas fa-dollar"></i> <!-- Font Awesome icon -->
+                                    <i class="fas fa-dollar"></i>
                                 </span>
                                 Wallet
                             </a>
-                        <!-- <div class="dashbox-btn d-flex">
-                            <img src="{{ asset('web_assets/images/documents.png') }}" width="30" height="30"
-                                alt="">
-                            <a href="{{ route('wallet_affiliate') }}"
-                                @if ($page == 'wallet') style="font-weight:700;" @endif>Wallet</a>
-                        </div> -->
-                        <a href="{{ route('support_affiliate') }}" @if($page == "support") style="font-weight:700;background-color:#9f9aed;color:white" @endif class="sidebar-menu-item">
+                        <a href="{{ route('commissions_affiliate') }}" @if($page == "commissions") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
-                                <i class="fa-solid fa-circle-info"></i>
+                                    <i class="fas fa-coins"></i>
                                 </span>
-                                Support
+                                Commissions
                             </a>
-                        <!-- <div class="dashbox-btn d-flex">
-                            <img src="{{ asset('web_assets/images/supports.png') }}" width="30" height="30"
-                                alt="">
-                            <a href="{{ route('support_affiliate') }}"
-                                @if ($page == 'support') style="font-weight:700;" @endif>Support</a>
-                        </div> -->
                     @endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                    {{-- @if (isset($user))
-                  @if ($user->user_type == 'Subscriber')
-                  <div class="dashbox-btn d-flex">
-                      <img src="{{ asset('web_assets/images/admin_client.png') }}" width="30" height="30" alt="">
-                      <a href="{{ route('job_role') }}" @if ($page == 'job_role') style="font-weight:700;" @endif>Job Role</a>
-                  </div>
-                  @endif
-                @endif --}}
                 </div>
             </div>
 @endif

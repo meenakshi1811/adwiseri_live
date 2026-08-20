@@ -1,4 +1,4 @@
-@extends('admin.layout.main')
+﻿@extends('admin.layout.main')
 
 @section('main-section')
 
@@ -16,28 +16,32 @@
                         <input type="hidden" value="{{ $assignment->id }}" name="id" />
                         <div class="row">
                             <div class="col-md-4 p-1">
-                                <label>Client<span class="text-danger" style="font-size: 18px;">*</span></label>
+                                <label>Client (ID)<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <input readonly name="client_id" value="{{ $client->id }}" id="client_id" required class="form-control @error('client_id') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp">
-                                   
+                                @php
+                                    $clientLabel = ($client->name ?? '') . '(' . ($client->id ?? $assignment->client_id) . ')';
+                                    $selectedApp = collect($applications)->firstWhere('application_id', $assignment->application_id);
+                                    $applicationLabel = $selectedApp
+                                        ? trim(($selectedApp->application_name ?? '') . ' (' . $selectedApp->application_id . ')')
+                                        : (string) $assignment->application_id;
+                                @endphp
+                                <input type="text" class="form-control" value="{{ $clientLabel }}" readonly>
+                                <input type="hidden" name="client_id" id="client_id" value="{{ $assignment->client_id }}">
                                 @error('client_id')
-                                    <span class="invalid-feedback" role="alert">
+                                    <span class="invalid-feedback d-block" role="alert">
                                         <strong>{{ $message }}</strong>
                                     </span>
                                 @enderror
                             </div>
                             <div class="col-md-4 p-1">
-                                <label>Application<span class="text-danger" style="font-size: 18px;">*</span></label>
+                                <label>Application (ID)<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
-                                <select name="application_id" id="application_id" class="form-control @error('application_id') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
-                                    @foreach($applications as $app)
-                                    <option {{ ($app->application_id == $assignment->application_id) ? 'selected' : ''}} value="{{ $app->application_id }}">{{ $app->application_id }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="text" class="form-control" value="{{ $applicationLabel }}" readonly>
+                                <input type="hidden" name="application_id" id="application_id" value="{{ $assignment->application_id }}">
                                 @error('application_id')
-                                    <span class="invalid-feedback" role="alert">
+                                    <span class="invalid-feedback d-block" role="alert">
                                         <strong>{{ $message }}</strong>
                                     </span>
                                 @enderror
@@ -47,8 +51,9 @@
                             </div>
                             <div class="col-md-8 p-1">
                                 <select name="user_id" id="user_id" class="form-control form-select @error('user_id') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
+                                    <option value="">Select User/Advisor</option>
                                     @foreach($advisors as $u)
-                                    <option {{ ($u->id == $assignment->user_id) ? 'selected' : ''}} value="{{ $u->id }}">{{ $u->name."(".$u->designation.")" }}</option>
+                                    <option {{ ($u->id == $assignment->user_id) ? 'selected' : ''}} value="{{ $u->id }}">{{ $u->name }} ({{ $u->designation }})</option>
                                     @endforeach
                                 </select>
                                 @error('user_id')
@@ -170,7 +175,7 @@
   </script>
   <script>
       function deleteuser(id){
-          var conf = confirm('Delete User');
+          var conf = confirm('Are you sure you want to delete this assignment?');
           if(conf == true){
               window.location.href = "delete_user/"+id+"";
           }
@@ -182,7 +187,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'User Deleted Successfully!'
+        text: 'Assignment deleted successfully.'
       })
     </script>
   

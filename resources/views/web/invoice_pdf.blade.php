@@ -3,12 +3,19 @@
 
 <head>
     <meta charset="utf-8">
+    @include('partials.invoice_document_styles')
     <style>
+        @page {
+            margin: 24px 28px 70px 28px;
+        }
+
         body {
             font-family: DejaVu Sans, Arial, sans-serif;
             color: #1f2937;
             font-size: 12px;
             line-height: 1.5;
+            margin: 0;
+            padding: 0;
         }
 
         .header {
@@ -35,114 +42,28 @@
         }
 
         .logo {
-            max-height: 38.5px;
-            max-width: 140px;
+            max-height: 55px;
+            max-width: 200px;
             margin-bottom: 6px;
         }
-
-        .grid {
-            width: 100%;
-            margin-bottom: 16px;
-        }
-
-        .grid td {
-            vertical-align: top;
-            width: 50%;
-        }
-
-        .section-title {
-            font-size: 11px;
-            letter-spacing: .5px;
-            text-transform: uppercase;
-            color: #6b7280;
-            margin-bottom: 4px;
-            font-weight: bold;
-        }
-
-        .box {
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            padding: 10px;
-            min-height: 90px;
-        }
-
-        table.items {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 8px;
-        }
-
-        table.items th,
-        table.items td {
-            border: 1px solid #d1d5db;
-            padding: 8px;
-        }
-
-        table.items th {
-            background: #eff3ff;
-            text-align: left;
-        }
-
-        .right {
-            text-align: right;
-        }
-
-        .totals {
-            width: 45%;
-            margin-left: auto;
-            margin-top: 10px;
-            border-collapse: collapse;
-        }
-
-        .totals td {
-            border: 1px solid #d1d5db;
-            padding: 6px 8px;
-        }
-
-        .totals .grand td {
-            font-weight: bold;
-            background: #eff3ff;
-        }
-
-        .footer {
-            position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 20px;
-            text-align: center;
-            font-size: 12px;
-            color: #4b5563;
-        }
-
     </style>
 </head>
 
 <body>
     @php
         $amount = (float) ($data->amount ?? 0);
-        $discountPercent = (float) ($data->discount ?? 0);
-        $taxPercent = (float) ($data->tax ?? 0);
-        $discountAmount = $amount * ($discountPercent / 100);
-        $taxable = $amount - $discountAmount;
-        $taxAmount = $taxable * ($taxPercent / 100);
-        $total = (float) ($data->total ?? ($taxable + $taxAmount));
-        $currencyValue = trim((string) ($data->currency ?? 'USD'));
-        $currencySymbols = ['USD' => '$', 'INR' => '₹', 'EUR' => '€', 'GBP' => '£', 'AUD' => 'A$', 'CAD' => 'C$', 'SGD' => 'S$', 'AED' => 'د.إ'];
-        if (preg_match('/\((.*?)\)/', $currencyValue, $currencyMatch)) {
-            $currency = $currencyMatch[1];
-        } else {
-            $currencyCode = strtoupper(preg_replace('/[^A-Za-z]/', '', $currencyValue));
-            $currency = $currencySymbols[$currencyCode] ?? $currencyValue;
-        }
-        $statusRaw = (string) ($data->status ?? '-');
-        $statusLabel = $statusRaw === 'PartiallyPaid' ? 'Partially Paid' : ($statusRaw === 'UnPaid' ? 'Unpaid' : $statusRaw);
         $subscriberName = trim((string) ($data->company_name ?? $data->subscriber_name ?? $data->from_name ?? 'Adwiseri'));
         $subscriberName = preg_replace('/^Sent on behalf of\s+/i', '', $subscriberName) ?: 'Adwiseri';
-        $subscriberEmail = trim((string) ($data->display_from_email ?? $data->subscriber_email ?? $data->email ?? $data->reply_to_email ?? $data->from_email ?? ''));
+        $subscriberEmail = trim((string) ($data->subscriber_email ?? $data->display_from_email ?? ''));
         $subscriberLogoCandidates = [];
 
         if (!empty($data->logo_path)) {
-            $subscriberLogoCandidates[] = public_path($data->logo_path);
+            if (str_starts_with((string) $data->logo_path, DIRECTORY_SEPARATOR)
+                || preg_match('#^[A-Za-z]:\\\\#', (string) $data->logo_path)) {
+                $subscriberLogoCandidates[] = $data->logo_path;
+            } else {
+                $subscriberLogoCandidates[] = public_path($data->logo_path);
+            }
         }
 
         if (!empty($data->logo)) {
@@ -177,25 +98,10 @@
                 }
             }
         }
-        $planName = trim((string) ($data->plan_name ?? ($data->subscription_type ?? ($data->membership ?? ''))));
-        $planLabel = strcasecmp($planName, 'free') === 0 ? 'FREE' : $planName;
-        $detailText = trim((string) ($data->detail ?? 'Professional Services'));
-        $hasSubscriptionFeesDetail = preg_match('/subscri[pb]tion fees/i', $detailText) === 1;
 
-        if (
-            preg_match('/subscri[pb]tion fees\s*\(\s*free(?:\s+plan)?\s*\)/i', $detailText) ||
-            (strcasecmp($planName, 'free') === 0 && $hasSubscriptionFeesDetail)
-        ) {
-            $detailText = 'Subscription (FREE Plan)';
-        }
-
-        if (
-            $planName !== '' &&
-            $hasSubscriptionFeesDetail &&
-            stripos($detailText, ' plan') === false
-        ) {
-            $detailText .= ' (' . $planLabel . ' Plan)';
-        }
+        $forPdf = true;
+        $showCompanyName = empty($logoPath);
+        $isAdwiseriInvoice = \App\Support\BrandedMail::isPlatformBrand($subscriberName);
     @endphp
 
     <table class="header">
@@ -204,10 +110,10 @@
                 @if(!empty($logoPath))
                     <img class="logo" src="{{ $logoPath }}" alt="Logo">
                 @endif
-                @if(empty($hasSubscriberLogo))
+                @if($showCompanyName)
                     <div class="company">{{ $subscriberName }}</div>
                 @endif
-                @if(!empty($subscriberEmail))
+                @if(!$isAdwiseriInvoice && !empty($subscriberEmail))
                     <div>{{ $subscriberEmail }}</div>
                 @endif
             </td>
@@ -217,70 +123,14 @@
         </tr>
     </table>
 
-    <table class="grid">
-        <tr>
-            <td style="padding-right:8px;">
-                <div class="section-title">Bill To</div>
-                <div class="box">
-                    <strong>{{ $data->name ?? '-' }}</strong><br>
-                    @if(!empty($data->to_address)){{ $data->to_address }}<br>@endif
-                    @if(!empty($data->to_city) || !empty($data->to_state)){{ trim(($data->to_city ?? '') . ', ' . ($data->to_state ?? ''), ', ') }}<br>@endif
-                    @if(!empty($data->to_country) || !empty($data->to_pincode)){{ trim(($data->to_country ?? '') . ' - ' . ($data->to_pincode ?? ''), ' -') }}<br>@endif
-                    {{ $data->to_email ?? '' }}
-                </div>
-            </td>
-            <td style="padding-left:8px;">
-                <div class="section-title">Invoice Details</div>
-                <div class="box">
-                    <strong>Invoice No:</strong> {{ $data->invoice_no ?? '-' }}<br>
-                    <strong>Invoice Date:</strong> {{ !empty($data->invoice_date) ? date('d-m-Y', strtotime($data->invoice_date)) : '-' }}<br>
-                    @if(($data->status ?? '') !== 'Paid')
-                        <strong>Due Date:</strong> {{ !empty($data->due_date) ? date('d-m-Y', strtotime($data->due_date)) : '-' }}<br>
-                    @endif
-                    <strong>Status:</strong> {{ $statusLabel }}
-                </div>
-            </td>
-        </tr>
-    </table>
+    @include('partials.invoice_document_core', [
+        'forPdf' => true,
+        'isAdwiseriInvoice' => $isAdwiseriInvoice,
+        'showFooterThanks' => false,
+    ])
 
-    <table class="items">
-        <thead>
-            <tr>
-                <th style="width:72%;">Description</th>
-                <th class="right" style="width:28%;">Amount</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>{{ $detailText }}</td>
-                <td>{{ $currency }} {{ number_format($amount, 2) }}</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <table class="totals">
-        <tr>
-            <td>Subtotal</td>
-            <td class="right">{{ $currency }} {{ number_format($amount, 2) }}</td>
-        </tr>
-        @if($discountPercent > 0)
-            <tr>
-                <td>Discount ({{ number_format($discountPercent, 2) }}%)</td>
-                <td class="right">- {{ $currency }} {{ number_format($discountAmount, 2) }}</td>
-            </tr>
-        @endif
-        <tr>
-            <td>Tax ({{ number_format($taxPercent, 2) }}%)</td>
-            <td class="right">{{ $currency }} {{ number_format($taxAmount, 2) }}</td>
-        </tr>
-        <tr class="grand">
-            <td>Total</td>
-            <td class="right">{{ $currency }} {{ number_format($total, 2) }}</td>
-        </tr>
-    </table>
-
-    <div class="footer">
-        <div>Thanks for your business !</div>
+    <div class="invoice-doc-pdf-footer">
+        @include('partials.invoice_document_footer', ['isAdwiseriInvoice' => $isAdwiseriInvoice])
     </div>
 </body>
 

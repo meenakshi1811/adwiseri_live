@@ -1,4 +1,4 @@
-@extends('web.layout.main')
+﻿@extends('web.layout.main')
 
 @section('main-section')
 @php
@@ -13,83 +13,83 @@ $report_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','R
 $subscription_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Subscription')->first();
 $setting_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Settings')->first();
 $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Support')->first();
+
+$canViewMessages = $user->user_type == 'admin'
+    || ($communication_roles && ($communication_roles->read_only == 1 || $communication_roles->read_write_only == 1));
+$canDeleteMessages = $user->user_type == 'admin'
+    || ($communication_roles && ($communication_roles->write_only == 1 || $communication_roles->read_write_only == 1));
 @endphp
 
         <div class="col-lg-10 column-client">
             <div class="col-12 d-flex justify-content-between align-items-center  mb-3">
-
                     <h3 class="text-primary text-center flex-grow-1 text-center m-0">Communications</h3>
               </div>
             <div class="client-dashboard">
-              <div class="row m-0 pb-2">
-                <div class="col-4 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('messaging') }}';">
-                    Messaging
-                  </div>
+              @include('partials.communication_tabs', ['activeTab' => 'communication'])
 
-                <div class="col-4 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('client_discussion') }}';">
-                  Meeting Notes (Clients)
-                </div>
-                <div class="col-4 border p-1 text-center bg-info text-white top_modules">
-                    Communication
-                  </div>
-
-              </div>
+              <link rel="stylesheet" href="{{ asset('web_assets/css/topbar-notifications.css') }}">
+              @include('partials.communication_inbox_toolbar')
 
               <div class="table-wrapper m-0 communication">
-                <table class="fl-table table table-hover p-0 m-0" id="clientTable">
+                <table class="fl-table table table-hover p-0 m-0 comm-table" id="clientTable">
                     <thead>
                     <tr>
                         <th class="p-1 text-center">Sr No.</th>
+                        <th class="p-1 text-center">Status</th>
                         <th class="p-1 text-center">Comm. ID</th>
                         <th class="p-1 text-center">Sent By</th>
                         <th class="p-1 text-center">Sent To</th>
                         <th class="p-1 text-center">Message</th>
                         <th class="p-1 text-center">Date</th>
                         <th class="p-1 text-center">Action</th>
-
-
                     </tr>
                     </thead>
                         <tbody>
                             @if($messages != null)
                                 @foreach($messages as $sn => $msg)
-                                <tr>
-                                    @php
+                                @php
+                                    $messageStatus = $notificationService->messageStatusForUser($user, $msg);
                                     if($msg->send_by == 1){
                                         $receiver = $user->name;
                                     }
                                     else{
                                         $receiver = "";
                                         $receivernames = json_decode($msg->receiver_name, true);
-                                        foreach($receivernames as $k => $name){
-                                            if($k == count($receivernames)-1){
-                                                $receiver = $receiver.$name;
-                                            }
-                                            else{
-                                                $receiver = $receiver.$name.", ";
+                                        if (is_array($receivernames)) {
+                                            foreach($receivernames as $k => $name){
+                                                if($k == count($receivernames)-1){
+                                                    $receiver = $receiver.$name;
+                                                }
+                                                else{
+                                                    $receiver = $receiver.$name.", ";
+                                                }
                                             }
                                         }
                                     }
-                                    @endphp
-                                    <!-- Adjust column widths -->
+                                @endphp
+                                <tr class="{{ $messageStatus === 'unread' ? 'comm-row-unread' : '' }}" data-message-id="{{ $msg->id }}" data-message-status="{{ $messageStatus }}">
                                     <td class="p-1 text-center" style="width: 5%;">{{ $sn+1 }}</td>
-                                    <td class="p-1 text-center" style="width: 10%;">{{ $msg->communication_id }}</td>
+                                    <td class="p-1 text-center comm-status-cell" style="width: 10%;">
+                                        @include('partials.communication_status_badge', ['message' => $msg, 'messageStatus' => $messageStatus])
+                                    </td>
+                                    <td class="p-1 text-center comm-id-cell" style="width: 10%;">{{ $msg->communication_id }}</td>
                                     <td class="p-1 text-center" style="width: 15%;">{{ $msg->sender_name }} ({{ $msg->send_by }})</td>
                                     <td  data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $receiver }}"  class="p-1 text-center" style="width: 15%;">@if(strlen($receiver) > 22){{ substr($receiver, 0, 22) }}... @else {{ $receiver }} @endif</td>
-                                    <!-- Increase message column width -->
-                                    <td  data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $msg->message }}"  class="p-1 text-center" style="width: 40%;">@if(strlen($msg->message) > 50){{ substr($msg->message, 0, 50) }}... @else {{ $msg->message }} @endif</td>
-                                    <td class="p-1 text-center" style="width: 10%;">{{ \Carbon\Carbon::parse($msg->created_at)->format('d-m-Y') }}</td>
-                                    <td class="p-1 text-center action-icon">
-                                        <a @if($communication_roles->read_only == 1 or $communication_roles->read_write_only == 1) href="{{ route('view_message', $msg->id) }}" @else href="#" @endif style="text-decoration:none;">
-                                            <i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i>
-                                        </a>
+                                    <td  data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $msg->message }}"  class="p-1 text-center comm-message-cell" style="width: 35%;">@if(strlen($msg->message) > 50){{ substr($msg->message, 0, 50) }}... @else {{ $msg->message }} @endif</td>
+                                    <td class="p-1 text-center" style="width: 10%;">{{ \Carbon\Carbon::parse($msg->created_at)->format('d-m-Y H:i:s') }}</td>
+                                    <td class="p-1 text-center action-icon" style="width: 12%;">
+                                        @include('partials.communication_action_buttons', [
+                                            'message' => $msg,
+                                            'messageStatus' => $messageStatus,
+                                            'canView' => $canViewMessages,
+                                            'canDelete' => $canDeleteMessages || ((int) $msg->send_by === (int) $user->id),
+                                            'viewRoute' => $canViewMessages ? route('view_message', $msg->id) : '#',
+                                        ])
                                     </td>
                                 </tr>
                                 @endforeach
                             @endif
                         </tbody>
-
-
                 </table>
               </div>
             </div>
@@ -97,7 +97,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     </div>
 
   </div>
-  {{-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script> --}}
+@include('partials.communication_action_scripts')
 <script>
     document.addEventListener("DOMContentLoaded", function() {
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -105,6 +105,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 });
+
   function togglepage(page){
     var vpage = page;
     if(vpage == "communication"){
@@ -118,21 +119,13 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
   }
 
 </script>
-  <script>
-    function deleteapplication(id){
-        var conf = confirm('Delete Application');
-        if(conf == true){
-            window.location.href = "delete_application/"+id+"";
-        }
-    }
-</script>
 
 @if(session()->has('deleted'))
   <script>
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Application Deleted Successfully!'
+      text: 'Application deleted successfully.'
     })
   </script>
 
@@ -142,7 +135,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Message Sent Successfully!'
+      text: 'Message sent successfully.'
     })
   </script>
 
@@ -152,7 +145,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Application Updated Successfully!'
+      text: 'Application updated successfully.'
     })
   </script>
 

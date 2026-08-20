@@ -30,12 +30,15 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     </div>
 
     <div class="container-fluid member-mainbox mt-5 mb-5">
-        <h1 class="text-center mb-4">Price Plans</h1>
+        <h1 class="text-center mb-4">@if(isset($user) && isset($myplan)) Upgrade Plan @else Price Plans @endif</h1>
+        @if(isset($user) && isset($myplan))
+        <p class="text-center text-muted mb-4">Your current plan and available upgrades. Downgrades are only available at renewal.</p>
+        @endif
         <div class="owl-carousel owl-theme" id="subscription-plan">
             @foreach($membership as $plan)
             @if(empty($myplan))
             <div class="plan-card">
-                <h3 class="plan-title">{{ $plan->plan_name }} Plan
+                <h3 class="plan-title">{{ $plan->plan_name }}
                     </h3>
                 <ul class="plan-features">
                     <li>Client Limit: {{ $plan->client_limit }}</li>
@@ -44,35 +47,35 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     <li>Reports: {{ $plan->reports }}</li>
                     <li>Invoicing:
                         @if($plan->invoicing == 'Yes')
-                            <i class="fa fa-check icon-circle text-success"></i>
+                            <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
                         @endif
                     </li>
                     <li>Analytics:
                         @if($plan->analytics === 'Yes')
-                            <i class="fa fa-check icon-circle text-success"></i>
+                            <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
                         @endif
                     </li>
                     <li>Multi-Device Support:
                         @if($plan->multi_device_support === 'Yes')
-                            <i class="fa fa-check icon-circle text-success"></i>
+                            <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
                         @endif
                     </li>
                     <li>Secure Environment:
                         @if($plan->secure_environment === 'Yes')
-                            <i class="fa fa-check icon-circle text-success"></i>
+                            <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
                         @endif
                     </li>
                     <li>Multi-Currency Support:
                         @if($plan->multi_currency_support === 'Yes')
-                            <i class="fa fa-check icon-circle text-success"></i>
+                            <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
                         @endif
@@ -96,10 +99,18 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 <button  class="subscribe-btn" onclick="window.location.href = '{{ route('user_register_plan',$plan->plan_name) }}';">Subscribe</button>
 
             </div>
-            @elseif( $plan->plan_name != 'Free')
+            @elseif($plan->plan_name != 'Free')
+            @php
+                $isCurrentPlan = isset($myplan) && $plan->plan_name === $myplan->plan_name;
+                $isHigherPlan = isset($myplan) && \App\Services\SubscriptionTermPricing::isUpgradePlan($myplan, $plan);
+            @endphp
+
+            @if(!$isCurrentPlan && !$isHigherPlan)
+                @continue
+            @endif
 
             <div class="plan-card">
-                <h3 class="plan-title">{{ $plan->plan_name }} Plan
+                <h3 class="plan-title">{{ $plan->plan_name }}
                     </h3>
                 <ul class="plan-features">
                     <li>Client Limit: {{ $plan->client_limit }}</li>
@@ -108,35 +119,35 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     <li>Reports: {{ $plan->reports }}</li>
                     <li>Invoicing:
                         @if($plan->invoicing == 'Yes')
-                            <i class="fa fa-check icon-circle text-success"></i>
+                            <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
                         @endif
                     </li>
                     <li>Analytics:
                         @if($plan->analytics === 'Yes')
-                            <i class="fa fa-check icon-circle text-success"></i>
+                            <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
                         @endif
                     </li>
                     <li>Multi-Device Support:
                         @if($plan->multi_device_support === 'Yes')
-                            <i class="fa fa-check icon-circle text-success"></i>
+                            <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
                         @endif
                     </li>
                     <li>Secure Environment:
                         @if($plan->secure_environment === 'Yes')
-                            <i class="fa fa-check icon-circle text-success"></i>
+                            <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
                         @endif
                     </li>
                     <li>Multi-Currency Support:
                         @if($plan->multi_currency_support === 'Yes')
-                            <i class="fa fa-check icon-circle text-success"></i>
+                            <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
                         @endif
@@ -157,38 +168,22 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     Subscribe
                 </button> --}}
                 @if(isset($user))
-                @if($plan->plan_name == $myplan->plan_name)
-                  @if((new DateTime("now")) > (new DateTime($subscriber->membership_expiry_date)))
+                @if($isCurrentPlan)
+                  @if(isset($subscriber) && \App\Services\SubscriptionTermPricing::isSubscriptionLapsed($subscriber))
+                    <button class="subscribe-btn subscribe-btn--active" type="button">Lapsed</button>
+                  @elseif((new DateTime("now")) > (new DateTime($subscriber->membership_expiry_date)))
                   <button class="subscribe-btn" @if($user->user_type == "Subscriber") onclick="window.location.href = '{{ route('upgrade_membership', $plan->plan_name) }}';" @endif>Renew</button>
                   @else
                     @if($user->membership_type == "Trial")
                     <button class="subscribe-btn" @if($user->user_type == "Subscriber") onclick="window.location.href = '{{ route('upgrade_membership', $plan->plan_name) }}';" @endif>Active</button>
                     @else
-                    <button class="subscribe-btn" >Active</button>
+                    <button class="subscribe-btn subscribe-btn--active" type="button">Current Plan</button>
                     @endif
                   @endif
-                @else
-                  @if(isset($myplan))
-                    @if($plan->plan_order < $myplan->plan_order)
-                      @if($plan->plan_name == "Free" or $plan->plan_name == "Free Plan")
-                      <button class="subscribe-btn" onclick="Swal.fire({ icon: 'warning', title: 'New Subscriber Only', html: 'FREE plan is available to new subscribers only.' });">Free</button>
-                      @elseif(count($total_users)>$plan->no_of_users or count($total_clients)>$plan->client_limit)
-                      <button class="subscribe-btn" onclick="Swal.fire({ icon: 'warning', title: 'User/Client Limit', text: 'User/Client limit of this plan is less than your registered no. of users/clients.' });">Downgrade</button>
-                      @elseif((new DateTime("now")) > (new DateTime($subscriber->membership_expiry_date)))
-                      <button class="subscribe-btn" @if($user->user_type == "Subscriber") @endif >
-                        Downgrade
-                      </button>
-                      @else
-                      <button class="subscribe-btn" @if($user->user_type == "Subscriber") @endif >
-                        Downgrade
-                      </button>
-                      @endif
-                    @else
+                @elseif($isHigherPlan)
                     <button class="subscribe-btn" @if($user->user_type == "Subscriber") onclick="window.location.href = '{{ route('upgrade_membership', $plan->plan_name) }}';" @endif >
                       Upgrade
                     </button>
-                    @endif
-                  @endif
                 @endif
               @else
                 <button  class="subscribe-btn" onclick="window.location.href = '{{ route('user_register_plan',$plan->plan_name) }}';">Subscribe</button>
@@ -204,28 +199,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
       <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <script>
-      @if(isset($user))
-      function downgrade_plan(name){
-        var myformData = new FormData();
-        myformData.append('id', "{{ $user->id }}");
-        myformData.append('plan_name', name);
-        myformData.append('_token', "{{ csrf_token() }}");
-        console.log(myformData);
-        $.ajax({
-            url: "{{ route('downgrade_plan') }}",
-            method: 'POST',
-            data: myformData,
-            cache: false,
-            contentType: false,
-            processData: false,
-            success: function(data) {
-                if(data == "success"){
-                  window.location.reload();
-                }
-            }
-        });
-    }
-    @endif
         $(document).ready(function() {
 
 
@@ -237,16 +210,16 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
         icon: 'success',
         title: 'Congratulations',
-        text: 'Profile Updated Successfully.'
+        text: 'Profile updated successfully.'
     })
 </script>
 @endif
 @if(session()->has('membership_expiry'))
     <script>
       Swal.fire({
-        icon: 'warning',
-        title: 'Membership Expired!',
-        text: 'Please Renew or Upgrade Your Membership!'
+        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+        title: 'Membership expired',
+        text: 'Please renew or upgrade your membership.'
       })
     </script>
 

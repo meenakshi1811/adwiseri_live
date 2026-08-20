@@ -25,13 +25,13 @@ use App\Models\User;
                     <table class="fl-table table table-hover p-0 m-0" id="userTable">
                         <thead>
                         <tr>
-                            <th class="p-1 text-center">Sr.No.</th>
+                            <th class="p-1 text-center">Referral_ID</th>
 
                             <th class="p-1 text-center">Referred By(Sub_ID)</th>
                             <th class="p-1 text-center">Referred To(Sub_ID)</th>
-                            <th class="p-1 text-center">Referral Code</th>
+                            <th class="p-1 text-center">Sub-Category</th>
                             <th class="p-1 text-center">Sub_Plan</th>
-                            <th class="p-1 text-center"> Amount_Paid (USD)</th>
+                            <th class="p-1 text-center">Purchase (USD)</th>
 
                             <th class="p-1 text-center"> DOS </th>
                             <th class="p-1 text-center">Commission (USD)</th>
@@ -41,10 +41,10 @@ use App\Models\User;
                         <tbody>
                         @foreach($referrals as $key => $ref)
                         <tr>
-                            <td class="p-1 text-center">{{ $key+1 }}</td>
+                            <td class="p-1 text-center">{{ $ref->id }}</td>
                             <td class="p-1 text-center">{{ User::where('referral',$ref->referral_code)->first()->name }}({{User::where('referral',$ref->referral_code)->first()->id}})</td>
                             <td class="p-1 text-center">{{ $ref->user_name }}({{$ref->userid}})</td>
-                            <td class="p-1 text-center">{{ $ref->referral_code }}</td>
+                            <td class="p-1 text-center">{{ $ref->user ? $ref->user->sub_category : '' }}</td>
                             <td class="p-1 text-center">{{ $ref->user ? $ref->user->membership : '' }}</td>
                             <td class="p-1 text-center">{{ $ref->total_amount }}</td>
                             <td class="p-1 text-center">   {{ $ref->user && $ref->user->membership_start_date && $ref->user->membership_expiry_date
@@ -53,7 +53,7 @@ use App\Models\User;
                                     : '')
                                 : '' }} </td>
                             <td class="p-1 text-center">{{ $ref->amount_added }}</td>
-                            <td class="p-1 text-center">{{  \Carbon\Carbon::parse($ref->created_at)->format('d-m-Y') }}</td>
+                            <td class="p-1 text-center">{{  \Carbon\Carbon::parse($ref->created_at)->format('d-m-Y H:i:s') }}</td>
                         </tr>
                         @endforeach
                         <tbody>
@@ -77,7 +77,7 @@ use App\Models\User;
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Client Deleted Successfully!'
+      text: 'Referral deleted successfully.'
     })
   </script>
 

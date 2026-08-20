@@ -2,9 +2,9 @@
 
 namespace App\Mail;
 
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Support\BrandedMail;
+use App\Support\InvoiceMailAttachment;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
@@ -12,51 +12,41 @@ class Invoicemail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    /**
-     * Create a new message instance.
-     *
-     * @return void
-     */
+    /** @var object */
+    public $data;
+
     public function __construct($maildata)
     {
-        //
         $this->data = $maildata;
     }
 
-    /**
-     * Build the message.
-     *
-     * @return $this
-     */
     public function build()
     {
         $data = $this->data;
+        $content = BrandedMail::renderBody('emails.bodies.invoice', compact('data'));
+        $headerTitle = 'Invoice ' . ($data->invoice_no ?? '');
 
-        $pdf = Pdf::loadView('web.invoice_pdf', compact('data'))
-            ->setPaper('a4', 'portrait')
-            ->setOption('isHtml5ParserEnabled', true)
-            ->setOption('isPhpEnabled', true);
+        $subscriberLabel = BrandedMail::stripSentOnBehalfPrefix(
+            $data->from_name ?? ($data->company_name ?? 'Subscriber')
+        );
 
-        $fileName = 'Invoice-' . ($data->invoice_no ?? 'document') . '.pdf';
+        $mail = $this->subject('New Invoice ' . ($data->invoice_no ?? ''))
+            ->from(BrandedMail::alertsFromAddress(), BrandedMail::alertsFromName($subscriberLabel))
+            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle'));
 
-        $mail = $this->subject('New Invoice');
-
-        // ✅ FROM
-        if (!empty($data->from_email)) {
-            $mail->from($data->from_email, $data->from_name ?? null);
-        }
-
-        // ✅ REPLY-TO (FIXED HERE)
-        if (!empty($data->reply_to_email)) {
-            $mail->replyTo(
-                $data->reply_to_email,
-                $data->reply_to_name ?? null
+        $subscriberReplyEmail = trim((string) ($data->subscriber_email ?? $data->reply_to_email ?? ''));
+        if ($subscriberReplyEmail !== '') {
+            BrandedMail::applySubscriberReplyTo(
+                $mail,
+                $subscriberReplyEmail,
+                $data->reply_to_name ?? ($data->subscriber_name ?? null)
             );
+        } else {
+            BrandedMail::applyDefaultReplyTo($mail);
         }
 
-        return $mail->view('web.invoicetemplate', compact('data'))
-            ->attachData($pdf->output(), $fileName, [
-                'mime' => 'application/pdf',
-            ]);
+        $mail = InvoiceMailAttachment::attachInvoicePdf($mail, $data);
+
+        return $mail;
     }
 }

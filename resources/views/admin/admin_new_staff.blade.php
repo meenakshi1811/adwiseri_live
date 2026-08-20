@@ -24,7 +24,7 @@
                             <label>Phone<span class="text-danger" style="font-size: 18px;">*</span></label>
                         </div>
                         <div class="col-md-8 p-1">
-                            <input name="phone" type="text" pattern="\d*" minlength="9" maxlength="12" class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('phone') }}" required placeholder="Phone Number" autocomplete="phone">
+                            <input name="phone" type="tel" class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('phone') }}" required placeholder="Phone Number" autocomplete="phone">
                             @error('phone')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -80,9 +80,10 @@
                         <div class="col-md-8 p-1">
                             <select name="country" id="country" class="form-control form-select @error('country') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
                                 <option value="">Select Country</option>
-                                @foreach($countries as $country)
-                                <option {{($country->id == old('country')) ? 'selected':''}} value="{{ $country->id }}">{{ $country->country_name }}</option>
-                                @endforeach
+                                @include('partials.country_select_options', [
+                                    'countries' => $countries,
+                                    'phoneForPrefill' => old('phone'),
+                                ])
                             </select>
                             @error('country')
                                 <span class="invalid-feedback" role="alert">
@@ -172,8 +173,8 @@
   <script>
     Swal.fire({
       icon: 'success',
-      title: 'Congratulations',
-      text: 'User Added Successfully.'
+      title: 'Success',
+      text: 'Staff member added successfully.'
     })
   </script>
 
@@ -192,7 +193,7 @@
                 // Get the date of birth value
                 const dob = $('input[name="dob"]').val();
                 if (!dob) {
-                    alert('Please select your Date of Birth.');
+                    AdwiseriAlert.oops('Please select your date of birth.');
                     return; // Exit if DOB is not provided
                 }
 
@@ -210,9 +211,9 @@
                 // Check if the user is at least 18 years old
                 if (age < 18) {
                     Swal.fire({
-                        icon: 'warning', // Warning icon
+                        icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' }, // Warning icon
                         title: 'Oops!',
-                        text: 'Admin Staff seems to be younger than 18. Do you want to proceed?',
+                        text: 'This staff member appears to be under 18. Do you want to proceed?',
                         showCancelButton: true,
                         confirmButtonText: 'Yes, proceed',
                         cancelButtonText: 'No, cancel'

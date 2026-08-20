@@ -52,7 +52,7 @@
             </div>
 
             <div style="text-align:center;background:#695EEE;padding:20px 15px;color:#ffffff;">
-                <p style="margin:0 0 8px 0;">&copy; {{ date('Y') }} adwiseri. All rights reserved.</p>
+                <p style="margin:0 0 8px 0;">&copy; {{ $copyrightYears }} adwiseri. All rights reserved.</p>
                 <p style="margin:0;">
                     <a style="color:#ffffff;" href="https://adwiseri.com/terms_of_use">Terms of Use</a> |
                     <a style="color:#ffffff;" href="https://adwiseri.com/privacy_policy">Privacy Policy</a> |

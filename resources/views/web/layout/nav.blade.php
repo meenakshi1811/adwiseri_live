@@ -52,7 +52,7 @@
 <nav class="navbar navbar-expand-lg navbar-light fixed-top" style="background:#695EEE;">
     <div class="container-fluid">
       <!-- Brand -->
-      <a class="navbar-brand text-white" href="{{ route('/') }}"><img class="logo-fix" width="170" src="{{ asset('web_assets/images/Style2.png') }}" /></a>
+      <a class="navbar-brand text-white" href="{{ route('/') }}"><img class="logo-fix" src="{{ asset('web_assets/images/Style2.png') }}" alt="adwiseri" /></a>
 
       <!-- Hamburger Menu Button -->
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">

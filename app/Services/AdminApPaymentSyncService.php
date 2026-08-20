@@ -32,7 +32,9 @@ class AdminApPaymentSyncService
             PaymentARs::create([
                 'subscriber_id' => $subscriberId,
                 'invoice_no' => $invoice->invoice_no,
-                'service_provider' => $invoice->name ?: ($invoice->to_name ?: 'adwiseri.com'),
+                'service_provider' => $invoice->isSubscriptionApInvoice()
+                    ? Internal_Invoices::ADWISERI_VENDOR_NAME
+                    : ($invoice->to_name ?: Internal_Invoices::ADWISERI_VENDOR_NAME),
                 'service_taken' => $invoice->detail ?: 'Subscription Fees',
                 'amount' => (float) $invoice->total,
                 'paid_amount' => (float) $invoice->total,

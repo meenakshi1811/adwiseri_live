@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\OfferBenefitService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +13,6 @@ class Referrals extends Model
     protected $table = "referrals";
     protected $primaryKey = "id";
     protected $fillable = [
-        'user_id',
         'userid',
         'user_name',
         'total_amount',
@@ -21,7 +21,10 @@ class Referrals extends Model
         'previous_balance',
         'wallet_balance',
         'type',
-        'offer_id'
+        'offer_id',
+        'applied_by',
+        'applied_by_name',
+        'debit_amount',
     ];
     public function user(){
         return $this->belongsTo(User::class,'userid');
@@ -49,8 +52,8 @@ class Referrals extends Model
 
         // Define date formats based on the country
         $dateFormat = match (strtoupper($countryCode)) {
-            'US' => 'd-m-Y', // MM/DD/YYYY for US
-            default => 'd-m-Y', // DD-MM-YYYY for other countries
+            'US' => 'd-m-Y H:i:s',
+            default => 'd-m-Y H:i:s',
         };
 
         // Format and return the `dob` field
@@ -58,5 +61,14 @@ class Referrals extends Model
     }
     public function offer(){
         return $this->belongsTo(Offers::class,'offer_id');
+    }
+
+    public function scopeWalletTableVisible($query)
+    {
+        return $query->where(function ($inner) {
+            $inner->whereIn('type', OfferBenefitService::walletTableReferralTypes())
+                ->orWhere('type', 'like', 'Plan Upgrade %')
+                ->orWhere('type', 'like', 'Plan Renewal %');
+        });
     }
 }

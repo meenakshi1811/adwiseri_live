@@ -142,7 +142,7 @@
   @error('g-recaptcha-response')
       <script>
          Swal.fire({
-                icon: 'error',
+                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
                 title: 'Oops!',
                 text: 'Please complete the reCAPTCHA to proceed.',
             });

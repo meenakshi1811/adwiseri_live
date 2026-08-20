@@ -85,7 +85,7 @@
                     <div class="mb-4">
                         <div class="col p-2 d-flex justify-content-center align-items-center" style="position: relative;border:1px solid lightgrey;border-radius:7px;height:100px;width:100%;overflow:hidden;">
                             <input id="advisori_img" name="image" style="position: absolute;width:100%;height:100%;top:0px;left:0px;opacity:0;" type="file" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Plan Name">
-                            <img id="advisori_img_preview" src="{{ asset('admin_assets/about_advisori/image/'.$about_adwiseri->image) }}" style="heigth:auto;width:auto;max-width:100%;max-height:100%;" />
+                            <img id="advisori_img_preview" src="{{ asset('admin_assets/about_advisori/image/'.$about_adwiseri->image) }}" style="height:auto;width:auto;max-width:100%;max-height:100%;" />
                         </div>
                     </div>
                     <div class="mb-4">
@@ -173,8 +173,8 @@
     <script>
       Swal.fire({
         icon: 'success',
-        title: 'Congratulations',
-        text: 'About Adwiseri Updated Successfully.'
+        title: 'Success',
+        text: 'About Advisori updated successfully.'
       })
     </script>
 
@@ -182,8 +182,9 @@
 @error('icon')
   <script>
   Swal.fire({
-    icon: 'error',
-    title: 'Oops...',
+    icon: 'warning',
+    customClass: { icon: 'adwiseri-oops-icon' },
+    title: 'Oops!',
     text: '{{ $message }}'
   })
 </script>
