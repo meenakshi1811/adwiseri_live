@@ -25,14 +25,14 @@
     font-weight: 550;
 }
 
-/* Connected tab strip — no outer box, tabs touch side-by-side within each row */
+/* Settings tab strip — round-cut tabs with gap (matches system nav-tabs) */
 .settings-module #settingsTab.nav-tabs {
     position: relative;
     flex-wrap: wrap;
     align-items: flex-end;
     align-content: flex-end;
-    gap: 0 !important;
-    border: none !important;
+    gap: var(--adwiseri-tab-gap, 0.5rem) !important;
+    border-bottom: 2px solid var(--adwiseri-tab-border, #e2e6f0) !important;
     padding-bottom: 0;
     margin-bottom: 1rem;
     background: transparent;
@@ -46,28 +46,16 @@
 .settings-module #settingsTab .nav-link {
     position: relative;
     z-index: 1;
-    margin-bottom: 0 !important;
+    margin-bottom: -2px !important;
     margin-left: 0;
-    border-radius: 0 !important;
+    border-radius: var(--adwiseri-tab-radius, 10px) var(--adwiseri-tab-radius, 10px) 0 0 !important;
     border: 1px solid var(--adwiseri-tab-border, #e2e6f0) !important;
-    border-bottom: 2px solid var(--adwiseri-tab-border, #e2e6f0) !important;
-}
-
-.settings-module #settingsTab .nav-item:not(.settings-tab-row-start) .nav-link {
-    margin-left: -1px;
-}
-
-.settings-module #settingsTab .nav-item.settings-tab-row-start .nav-link {
-    border-top-left-radius: var(--adwiseri-tab-radius, 10px) !important;
-}
-
-.settings-module #settingsTab .nav-item.settings-tab-row-end .nav-link {
-    border-top-right-radius: var(--adwiseri-tab-radius, 10px) !important;
+    border-bottom: 2px solid transparent !important;
 }
 
 .settings-module #settingsTab .nav-link:hover {
     z-index: 2;
-    border-bottom-color: var(--adwiseri-tab-border, #e2e6f0) !important;
+    border-bottom-color: transparent !important;
 }
 
 .settings-module #settingsTab .nav-link.active {

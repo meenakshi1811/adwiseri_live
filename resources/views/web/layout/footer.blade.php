@@ -102,24 +102,22 @@
   var local_time = new Date();
   console.log(local_time.toString());
   $(document).ready(() => {
-      if ($('#subscriberTable').length) {
-          $('#subscriberTable').DataTable({"aaSorting": []});
-      }
-      if ($('#clientTable').length) {
-          $('#clientTable').DataTable({"aaSorting": []});
-      }
-      if ($('#associateTable').length) {
-          $('#associateTable').DataTable({"aaSorting": []});
-      }
-      if ($('#businessTable').length) {
-          $('#businessTable').DataTable({"aaSorting": []});
-      }
-      if ($('#userTable').length) {
-          $('#userTable').DataTable({"aaSorting": []});
-      }
-      if ($('#usersTable').length) {
-          $('#usersTable').DataTable({"aaSorting": []});
-      }
+      var defaultDataTableOptions = { aaSorting: [] };
+      [
+          '#subscriberTable',
+          '#clientTable',
+          '#associateTable',
+          '#businessTable',
+          '#userTable',
+          '#usersTable',
+          '#invoiceTable',
+          '#paymentTable'
+      ].forEach(function (selector) {
+          var $table = $(selector);
+          if ($table.length && !$.fn.DataTable.isDataTable($table)) {
+              $table.DataTable(defaultDataTableOptions);
+          }
+      });
       // $('.dataTables_length').css('text-align','left');
       $(".localtime").attr("value",local_time.toString());
       var $planCarousel = $("#subscription-plan");

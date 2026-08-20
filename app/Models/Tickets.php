@@ -51,6 +51,17 @@ class Tickets extends Model
         return $this->subscriber;
     }
 
+    public function raisedByDisplay(): string
+    {
+        $raiser = $this->ticketRaiser();
+
+        if (!$raiser) {
+            return '—';
+        }
+
+        return trim((string) $raiser->name) . '(' . $raiser->id . ')';
+    }
+
     public function ticketViewRoute(): string
     {
         return route('my_query', $this->id);

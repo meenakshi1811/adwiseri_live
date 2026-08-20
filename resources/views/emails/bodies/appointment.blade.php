@@ -19,4 +19,5 @@
 </table>
 
 <p style="margin:0 0 16px 0;">Once you respond, the sender will see your decision in their appointment records.</p>
+<p style="margin:0 0 16px 0;">Please note: responses within the last hour before the scheduled time, or after the scheduled date and time, will require confirmation before the consultant is notified.</p>
 <p style="margin:0;">Best regards,<br><strong>{{ $sender->name }}</strong></p>

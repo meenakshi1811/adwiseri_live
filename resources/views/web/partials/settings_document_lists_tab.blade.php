@@ -4,7 +4,7 @@
         <p class="m-0 p-1" style="font-size:18px;font-weight: 550;">Documents List</p>
     </div>
     <p class="text-muted px-1 small">
-        Standard document requirements by country and visa category. Use the builder under <strong>C &amp; C</strong> to add or edit lists.
+        Standard document requirements by country and visa category. Use the builder under <strong>Countries &amp; Categories</strong> to add or edit lists.
     </p>
     <div class="mt-3">
         <button type="button" class="btn btn-sm btn-outline-primary" id="open-cc-doc-builder">

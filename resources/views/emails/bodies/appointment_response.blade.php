@@ -1,6 +1,10 @@
 <p style="margin:0 0 12px 0;">Dear {{ $sender->name }},</p>
 
-@if($accepted)
+@if(!empty($seekNext))
+    <p style="margin:0 0 16px 0;">
+        <strong>{{ $client->name }}</strong> responded after the cut-off time and requested to seek the next available appointment.
+    </p>
+@elseif($accepted)
     <p style="margin:0 0 16px 0;">
         <strong>{{ $client->name }}</strong> has accepted your appointment invitation.
     </p>

@@ -91,6 +91,7 @@
                             <th class="text-center">Ticket ID</th>
                             <th class="text-center">Issue</th>
                             <th class="text-center">Department</th>
+                            <th class="text-center">Raised By</th>
                             <th class="text-center">Status</th>
                             <th class="text-center">Date</th>
                             <th class="text-center">Action</th>
@@ -103,6 +104,7 @@
                             <td class="text-center">{{ $tic->ticket_no }}</td>
                             <td class="text-wrap text-center">{{ $tic->issue }}</td>
                             <td class="text-center">{{ $tic->support }}</td>
+                            <td class="text-center">{{ $tic->raisedByDisplay() }}</td>
                             <td class="text-center">{{ $tic->status }}</td>
                             <td class="text-center">{{ date("d-m-Y H:i:s", strtotime($tic->created_at)) }}</td>
                             <td class="text-center">

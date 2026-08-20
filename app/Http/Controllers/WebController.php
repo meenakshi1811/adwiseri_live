@@ -5961,10 +5961,16 @@ class WebController extends Controller
         if ($user) {
             if ($user->user_type == "Subscriber" || $user->user_type == "Affiliate") {
                 $subscriber = $user;
-                $tickets = Tickets::where('subscriber_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->get();
+                $tickets = Tickets::with(['user:id,name', 'subscriber:id,name'])
+                    ->where('subscriber_id', '=', $subscriber->id)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
             } else {
                 $subscriber = User::find($user->added_by);
-                $tickets = Tickets::where('user_id', '=', $user->id)->orderBy('created_at', 'desc')->get();
+                $tickets = Tickets::with(['user:id,name', 'subscriber:id,name'])
+                    ->where('user_id', '=', $user->id)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
             }
             $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
             $page = "support";
@@ -9066,7 +9072,7 @@ class WebController extends Controller
                 })
                 ->addColumn('appointment_date', fn (Appointment $row) => $row->formattedDate())
                 ->addColumn('appointment_time', fn (Appointment $row) => $row->formattedTime())
-                ->editColumn('remarks', fn (Appointment $row) => Str::limit($row->remarks ?? 'N/A', 60))
+                ->editColumn('remarks', fn (Appointment $row) => $row->remarks ?? 'N/A')
                 ->addColumn('status', function (Appointment $row) {
                     $status = strtolower((string) ($row->status ?: 'pending'));
                     $statusClass = match ($status) {
@@ -9082,6 +9088,15 @@ class WebController extends Controller
                 ->addColumn('sent_by', function (Appointment $row) {
                     return optional($row->user)->name ?? 'N/A';
                 })
+                ->addColumn('sent_on', function (Appointment $row) {
+                    return $row->created_at
+                        ? Carbon::parse($row->created_at)->format('d-m-Y H:i:s')
+                        : 'N/A';
+                })
+                ->addColumn('action', function () {
+                    return '<button type="button" class="btn btn-link p-0 m-0 appointment-record-view-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="View" aria-label="View appointment">'
+                        . '<i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></button>';
+                })
                 ->filterColumn('client_name', function ($query, $keyword) {
                     $query->whereHas('client', function ($clientQuery) use ($keyword) {
                         $clientQuery->where('name', 'like', '%' . $keyword . '%');
@@ -9092,13 +9107,22 @@ class WebController extends Controller
                         $userQuery->where('name', 'like', '%' . $keyword . '%');
                     });
                 })
+                ->filterColumn('sent_on', function ($query, $keyword) {
+                    $query->whereRaw("DATE_FORMAT(created_at, '%d-%m-%Y %H:%i:%s') like ?", ['%' . $keyword . '%']);
+                })
                 ->orderColumn('appointment_date', function ($query, $order) {
                     $query->orderBy('appointment_date', $order);
                 })
                 ->orderColumn('appointment_time', function ($query, $order) {
                     $query->orderBy('appointment_time', $order);
                 })
-                ->rawColumns(['status'])
+                ->orderColumn('sent_on', function ($query, $order) {
+                    $query->orderBy('created_at', $order);
+                })
+                ->orderColumn('id', function ($query, $order) {
+                    $query->orderBy('id', $order);
+                })
+                ->rawColumns(['status', 'action'])
                 ->make(true);
         } catch (\Throwable $exception) {
             report($exception);
@@ -9149,10 +9173,13 @@ class WebController extends Controller
             'client_name' => optional($appointment->client)->name ?? 'N/A',
             'appointment_date' => $appointment->formattedDate(),
             'appointment_time' => $appointment->formattedTime(),
-            'remarks' => Str::limit($appointment->remarks ?? 'N/A', 60),
+            'remarks' => $appointment->remarks ?? 'N/A',
             'status' => $this->formatAppointmentStatusLabel($status),
             'status_class' => $statusClass,
             'sent_by' => optional($appointment->user)->name ?? 'N/A',
+            'sent_on' => $appointment->created_at
+                ? Carbon::parse($appointment->created_at)->format('d-m-Y H:i:s')
+                : 'N/A',
         ];
     }
 
@@ -9400,6 +9427,7 @@ class WebController extends Controller
         $sender = User::find($appointment->user_id);
         $inviteEmail = trim((string) $request->query('email', $client?->email ?? ''));
         $targetStatus = $action === 'accept' ? 'accepted' : 'canceled';
+        $choice = trim((string) $request->query('choice', ''));
 
         if ($appointment->status === $targetStatus) {
             return view('web.appointment_response', [
@@ -9419,6 +9447,24 @@ class WebController extends Controller
             ]);
         }
 
+        if ($appointment->status === 'pending'
+            && $this->isAppointmentResponseCutoffReached($appointment)
+            && !in_array($choice, ['dont_notify', 'seek_next'], true)) {
+            return view('web.appointment_response_cutoff', [
+                'title' => 'Oops!',
+                'subtitle' => 'Cut-off time has reached for this appointment.',
+                'prompt' => 'Do you still want to notify the consultant or seek another appointment?',
+                'dontNotifyUrl' => $this->signedAppointmentResponseUrl($appointment, $action, $inviteEmail, 'dont_notify'),
+                'seekNextUrl' => $this->signedAppointmentResponseUrl($appointment, $action, $inviteEmail, 'seek_next'),
+            ]);
+        }
+
+        if ($choice === 'seek_next') {
+            return $this->finalizeAppointmentSeekNext($appointment, $client, $sender, $inviteEmail, $action);
+        }
+
+        $notifyConsultant = $choice !== 'dont_notify';
+
         if ($action === 'accept') {
             $appointment->status = 'accepted';
             $appointment->save();
@@ -9434,12 +9480,16 @@ class WebController extends Controller
                 }
             }
 
-            $this->recordAcceptedAppointment($appointment, $client, $sender);
-            $this->notifyAppointmentResponse($appointment, $client, $sender, 'accepted');
+            $this->recordAppointmentClientResponse($appointment, $client, $sender, 'accepted');
+            if ($notifyConsultant) {
+                $this->notifyAppointmentResponse($appointment, $client, $sender, 'accepted');
+            }
 
             return view('web.appointment_response', [
                 'title' => 'Thank You! Appointment Accepted',
-                'subtitle' => 'Your response has been recorded successfully. The consultant has been notified.',
+                'subtitle' => $notifyConsultant
+                    ? 'Your response has been recorded successfully. The consultant has been notified.'
+                    : 'Your response has been recorded successfully.',
                 'status' => 'accepted',
                 'calendlyUrl' => $calendlyUrl,
             ]);
@@ -9448,27 +9498,106 @@ class WebController extends Controller
         $appointment->status = 'canceled';
         $appointment->save();
 
-        $this->notifyAppointmentResponse($appointment, $client, $sender, 'declined');
+        $this->recordAppointmentClientResponse($appointment, $client, $sender, 'declined');
+        if ($notifyConsultant) {
+            $this->notifyAppointmentResponse($appointment, $client, $sender, 'declined');
+        }
 
         return view('web.appointment_response', [
             'title' => 'Appointment Declined',
-            'subtitle' => 'You have declined this appointment. The sender has been notified.',
+            'subtitle' => $notifyConsultant
+                ? 'You have declined this appointment. The sender has been notified.'
+                : 'You have declined this appointment.',
             'status' => 'declined',
             'calendlyUrl' => null,
         ]);
     }
 
-    private function recordAcceptedAppointment(Appointment $appointment, ?Clients $client, ?User $sender): void
+    private function isAppointmentResponseCutoffReached(Appointment $appointment): bool
     {
+        $scheduledAt = $appointment->scheduledAt(config('app.timezone'));
+
+        if (!$scheduledAt) {
+            return false;
+        }
+
+        return now()->gte($scheduledAt->copy()->subHour());
+    }
+
+    private function signedAppointmentResponseUrl(
+        Appointment $appointment,
+        string $action,
+        string $inviteEmail,
+        string $choice
+    ): string {
+        $routeParams = [
+            'appointment' => $appointment->id,
+            'action' => $action,
+            'choice' => $choice,
+        ];
+
+        if ($inviteEmail !== '') {
+            $routeParams['email'] = $inviteEmail;
+        }
+
+        $scheduledAt = $appointment->scheduledAt(config('app.timezone'));
+        $expiresAt = now()->addDay();
+        if ($scheduledAt && $scheduledAt->copy()->addDays(7)->gt($expiresAt)) {
+            $expiresAt = $scheduledAt->copy()->addDays(7);
+        }
+
+        return URL::temporarySignedRoute('appointment.respond', $expiresAt, $routeParams);
+    }
+
+    private function finalizeAppointmentSeekNext(
+        Appointment $appointment,
+        ?Clients $client,
+        ?User $sender,
+        string $inviteEmail,
+        string $originalAction
+    ) {
+        $appointment->status = 'canceled';
+        $appointment->save();
+
+        $this->recordAppointmentClientResponse($appointment, $client, $sender, 'declined', true);
+        $this->notifyAppointmentSeekNext($appointment, $client, $sender, $originalAction);
+
+        return view('web.appointment_response', [
+            'title' => 'Request Received',
+            'subtitle' => 'Your request to seek the next available appointment has been recorded. The consultant will be in touch.',
+            'status' => 'neutral',
+            'calendlyUrl' => null,
+        ]);
+    }
+
+    private function recordAppointmentClientResponse(
+        Appointment $appointment,
+        ?Clients $client,
+        ?User $sender,
+        string $response,
+        bool $seekNextAppointment = false
+    ): void {
         if (!$client || !$sender) {
             return;
         }
 
         $appointmentDate = $appointment->formattedDate();
         $appointmentTime = $appointment->formattedTime();
-        $discussion = 'Client accepted the appointment invitation for '
-            . $appointmentDate . ' at ' . $appointmentTime . '.'
-            . (!empty($appointment->remarks) ? ' Purpose: ' . $appointment->remarks : '');
+
+        if ($seekNextAppointment) {
+            $discussion = 'Client responded after the cut-off time and requested to seek the next available appointment.'
+                . ' Original slot: ' . $appointmentDate . ' at ' . $appointmentTime . '.';
+        } elseif ($response === 'accepted') {
+            $discussion = 'Client accepted the appointment invitation for '
+                . $appointmentDate . ' at ' . $appointmentTime . '.';
+        } else {
+            $discussion = 'Client declined the appointment invitation for '
+                . $appointmentDate . ' at ' . $appointmentTime . '.';
+        }
+
+        if (!empty($appointment->remarks)) {
+            $discussion .= ' Purpose: ' . $appointment->remarks;
+        }
 
         $applicationId = Applications::where('client_id', $client->id)
             ->where('subscriber_id', $appointment->subscriber_id)
@@ -9533,6 +9662,54 @@ class WebController extends Controller
                 'appointment_id' => $appointment->id,
                 'client_id' => $client->id,
                 'response' => $response,
+            ]
+        );
+    }
+
+    private function notifyAppointmentSeekNext(
+        Appointment $appointment,
+        ?Clients $client,
+        ?User $sender,
+        string $originalAction
+    ): void {
+        if (!$client || !$sender) {
+            return;
+        }
+
+        $appointmentDate = $appointment->formattedDate();
+        $appointmentTime = $appointment->formattedTime();
+        $title = sprintf('%s requested the next appointment after cut-off', $client->name);
+        $body = sprintf(
+            'The client responded after the cut-off time for the appointment on %s at %s and requested to seek the next available appointment.',
+            $appointmentDate,
+            $appointmentTime
+        );
+
+        try {
+            if (!empty($sender->email)) {
+                BrandedMail::sendWithAlertsArchive(
+                    $sender->email,
+                    fn () => new AppointmentResponseMail($appointment, $client, $sender, 'seek_next')
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('Appointment seek-next email failed', [
+                'appointment_id' => $appointment->id,
+                'original_action' => $originalAction,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        app(NotificationService::class)->notifyUser(
+            $sender,
+            'meeting_reminders',
+            $title,
+            $body,
+            route('my_settings') . '#appointment',
+            [
+                'appointment_id' => $appointment->id,
+                'client_id' => $client->id,
+                'response' => 'seek_next',
             ]
         );
     }

@@ -3,7 +3,7 @@
 @section('main-section')
 
         <div class="col-lg-10 column-client">
-            <div class="client-dashboard">
+            <div class="client-dashboard users-module">
                 <div class="col-12 client-btn d-flex justify-content-between align-items-center mb-3">
                     <h3 class="text-primary text-center flex-grow-1 text-center m-0">Users (Staff)</h3>
                     <div class="d-flex gap-2 mb-0 module-header-actions">

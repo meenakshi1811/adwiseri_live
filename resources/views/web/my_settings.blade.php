@@ -24,6 +24,24 @@
         font-weight: bold;
     }
 
+    #appointmentRecordsTable th,
+    #appointmentRecordsTable td {
+        text-align: center !important;
+        vertical-align: middle;
+    }
+
+    #appointmentRecordsTable th {
+        font-weight: 600;
+    }
+
+    #appointmentRecordsTable .appointment-purpose-col {
+        min-width: 240px;
+        width: 30%;
+        white-space: normal;
+        word-break: break-word;
+        text-align: center !important;
+    }
+
     .service-status-switch {
         display: inline-flex;
         align-items: center;
@@ -748,7 +766,7 @@
                 @if(strtolower($user->user_type) !== 'admin')
                 <li class="nav-item">
                     <button class="nav-link" id="cc-tab" data-bs-toggle="tab" href="#cc-settings" role="tab"
-                        aria-controls="cc-settings" aria-selected="false">C &amp; C</button>
+                        aria-controls="cc-settings" aria-selected="false">Countries &amp; Categories</button>
                 </li>
                 <li class="nav-item">
                     <button class="nav-link" id="dashboard-settings-tab" data-bs-toggle="tab" href="#dashboard-settings" role="tab"
@@ -961,7 +979,7 @@
                             <h5><i class="fa fa-sliders me-1"></i> Country &amp; Visa Category Preferences</h5>
                             <p class="mb-2">
                                 Add New Service only lists countries and visa categories you have saved under
-                                <strong>C &amp; C</strong>. It never shows the full world list.
+                                <strong>Countries &amp; Categories</strong>. It never shows the full world list.
                             </p>
                             <div class="cc-stat-row mt-2 mb-2">
                                 <span class="cc-stat-pill"><i class="fa fa-globe"></i> <span id="serviceCcCountriesCount">{{ $serviceCcCountries->count() }}</span> preferred countries</span>
@@ -989,9 +1007,9 @@
                                     <div class="cc-defaults-notice mb-2" id="serviceCcEmptyNotice">
                                         <i class="fa fa-circle-info"></i>
                                         <div>
-                                            <strong>No C &amp; C preferences saved yet.</strong>
+                                            <strong>No Countries &amp; Categories preferences saved yet.</strong>
                                             Configure your preferred countries and visa categories in the
-                                            <strong>C &amp; C</strong> tab, then return here to add services for those combinations only.
+                                            <strong>Countries &amp; Categories</strong> tab, then return here to add services for those combinations only.
                                         </div>
                                     </div>
                                     <div class="cc-selected-chips d-none" id="serviceCcCountryChips"></div>
@@ -1000,7 +1018,7 @@
                             </div>
                             <div class="text-center mt-2">
                                 <button type="button" class="btn btn-outline-primary btn-sm" id="open-cc-from-services">
-                                    Manage C &amp; C Preferences
+                                    Manage Countries &amp; Categories Preferences
                                 </button>
                             </div>
                         </div>
@@ -1023,7 +1041,7 @@
                                         <option value="{{ $countryName }}">{{ $countryName }}</option>
                                     @endforeach
                                 </select>
-                                <small class="text-muted d-block mt-1">From your saved C &amp; C countries (plus NA).</small>
+                                <small class="text-muted d-block mt-1">From your saved Countries &amp; Categories countries (plus NA).</small>
                             </div>
                         </div>
                         <div class="row p-1 mb-3 align-items-center">
@@ -1037,7 +1055,7 @@
                                         <option value="{{ $serviceNameOption }}">{{ $serviceNameOption }}</option>
                                     @endforeach
                                 </select>
-                                <small class="text-muted d-block mt-1">Consultation plus your saved C &amp; C visa categories.</small>
+                                <small class="text-muted d-block mt-1">Consultation plus your saved Countries &amp; Categories visa categories.</small>
                             </div>
                         </div>
                         <div class="row p-1 mb-3 align-items-center">
@@ -2016,16 +2034,50 @@
                             id="appointmentRecordsTable">
                             <thead>
                                 <tr>
-                                    <th>Client</th>
-                                    <th>Date</th>
-                                    <th>Time</th>
-                                    <th>Purpose</th>
-                                    <th>Status</th>
-                                    <th>Sent By</th>
+                                    <th class="text-center">ID</th>
+                                    <th class="text-center">Client</th>
+                                    <th class="text-center">Date</th>
+                                    <th class="text-center">Time</th>
+                                    <th class="text-center appointment-purpose-col">Purpose</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-center">Sent By</th>
+                                    <th class="text-center">Sent On</th>
+                                    <th class="text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
                         </table>
+                    </div>
+
+                    <div class="modal fade" id="appointmentRecordViewModal" tabindex="-1" aria-labelledby="appointmentRecordViewModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="appointmentRecordViewModalLabel">Appointment Details</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <dl class="row mb-0 appointment-record-view-list">
+                                        <dt class="col-sm-4 text-end">ID</dt>
+                                        <dd class="col-sm-8 text-start" id="appointment-view-id">—</dd>
+                                        <dt class="col-sm-4 text-end">Client</dt>
+                                        <dd class="col-sm-8 text-start" id="appointment-view-client">—</dd>
+                                        <dt class="col-sm-4 text-end">Date</dt>
+                                        <dd class="col-sm-8 text-start" id="appointment-view-date">—</dd>
+                                        <dt class="col-sm-4 text-end">Time</dt>
+                                        <dd class="col-sm-8 text-start" id="appointment-view-time">—</dd>
+                                        <dt class="col-sm-4 text-end">Purpose</dt>
+                                        <dd class="col-sm-8 text-start" id="appointment-view-purpose">—</dd>
+                                        <dt class="col-sm-4 text-end">Status</dt>
+                                        <dd class="col-sm-8 text-start" id="appointment-view-status">—</dd>
+                                        <dt class="col-sm-4 text-end">Sent By</dt>
+                                        <dd class="col-sm-8 text-start" id="appointment-view-sent-by">—</dd>
+                                        <dt class="col-sm-4 text-end">Sent On</dt>
+                                        <dd class="col-sm-8 text-start" id="appointment-view-sent-on">—</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 @endif
 
@@ -2329,23 +2381,60 @@
             $('#appointmentRecordsTable').DataTable({
                 processing: true,
                 serverSide: true,
-                order: [[1, 'desc'], [2, 'desc']],
+                order: [[7, 'desc']],
                 pageLength: 10,
                 lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
                 ajax: {
                     url: "{{ route('get_appointment_records') }}",
                     type: 'GET',
                 },
+                columnDefs: [
+                    { targets: '_all', className: 'text-center align-middle' },
+                    { targets: 4, className: 'text-center align-middle appointment-purpose-col' },
+                    { targets: 8, orderable: false, searchable: false },
+                ],
                 columns: [
+                    { data: 'id', name: 'id' },
                     { data: 'client_name', name: 'client_name' },
                     { data: 'appointment_date', name: 'appointment_date' },
                     { data: 'appointment_time', name: 'appointment_time' },
                     { data: 'remarks', name: 'remarks' },
                     { data: 'status', name: 'status', orderable: false, searchable: false },
                     { data: 'sent_by', name: 'sent_by' },
+                    { data: 'sent_on', name: 'sent_on' },
+                    { data: 'action', name: 'action', orderable: false, searchable: false },
                 ],
+                drawCallback: function () {
+                    document.querySelectorAll('#appointmentRecordsTable [data-bs-toggle="tooltip"]').forEach(function (el) {
+                        bootstrap.Tooltip.getOrCreateInstance(el);
+                    });
+                },
             });
         }
+
+        function showAppointmentRecordModal(rowData) {
+            $('#appointment-view-id').text(rowData.id ?? '—');
+            $('#appointment-view-client').text(rowData.client_name ?? '—');
+            $('#appointment-view-date').text(rowData.appointment_date ?? '—');
+            $('#appointment-view-time').text(rowData.appointment_time ?? '—');
+            $('#appointment-view-purpose').text(rowData.remarks ?? '—');
+            $('#appointment-view-status').html(rowData.status ?? '—');
+            $('#appointment-view-sent-by').text(rowData.sent_by ?? '—');
+            $('#appointment-view-sent-on').text(rowData.sent_on ?? '—');
+
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('appointmentRecordViewModal')).show();
+        }
+
+        $(document).on('click', '#appointmentRecordsTable .appointment-record-view-btn', function (event) {
+            event.preventDefault();
+
+            const table = $('#appointmentRecordsTable').DataTable();
+            const rowData = table.row($(this).closest('tr')).data();
+
+            if (rowData) {
+                showAppointmentRecordModal(rowData);
+            }
+        });
 
         function reloadAppointmentRecordsTable(resetPaging) {
             if (!$.fn.DataTable.isDataTable('#appointmentRecordsTable')) {
@@ -2741,8 +2830,8 @@
             } else if ($('#serviceCcEmptyNotice').length === 0) {
                 $('#serviceCcPreferencesBody').prepend(
                     '<div class="cc-defaults-notice mb-2" id="serviceCcEmptyNotice">' +
-                    '<i class="fa fa-circle-info"></i><div><strong>No C &amp; C preferences saved yet.</strong> ' +
-                    'Configure preferred countries and visa categories in the <strong>C &amp; C</strong> tab.</div></div>'
+                    '<i class="fa fa-circle-info"></i><div><strong>No Countries &amp; Categories preferences saved yet.</strong> ' +
+                    'Configure preferred countries and visa categories in the <strong>Countries &amp; Categories</strong> tab.</div></div>'
                 );
             } else {
                 $('#serviceCcEmptyNotice').removeClass('d-none');

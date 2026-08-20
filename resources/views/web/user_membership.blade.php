@@ -52,7 +52,7 @@ $effectiveLimits = $effectiveLimits ?? app(\App\Services\OfferBenefitService::cl
             <div class="client-dashboard subscription-module">
                 <div class="client-btn subscription-module-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3 px-2">
                     <div class="subscription-module-title-wrap">
-                        <h3 class="text-primary m-0">Subscription :: {{ $myplan->plan_name }} Plan @if((new DateTime("now")) > (new DateTime($subscriber->membership_expiry_date))) Plan Expired @endif</h3>
+                        <h3 class="text-primary m-0">Subscription :: {{ $myplan->plan_name }} Plan</h3>
                         <span class="subscription-expiry-line p-0 m-0">@if((new DateTime("now")) > (new DateTime($subscriber->membership_expiry_date))) Plan Expired @else Expires @endif on : {{ $formattedHeaderExpiry }}</span>
                     </div>
                     <div class="subscription-header-actions d-flex flex-wrap align-items-center justify-content-end gap-2">

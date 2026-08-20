@@ -503,8 +503,11 @@ class DashboardPreferenceService
                 $invoices = Internal_Invoices::where('subscriber_id', $subscriber->id)->get();
                 $ar = $invoices->filter(fn ($i) => strtolower((string) $i->type) === 'ar')->count();
                 $ap = $invoices->filter(fn ($i) => strtolower((string) $i->type) === 'ap')->count();
+                $taxCollected = $this->totalCollectedTax($subscriber);
 
-                return 'AR: ' . $ar . ' &nbsp; AP: ' . $ap;
+                return 'AR: ' . $ar
+                    . ' &nbsp; AP: ' . $ap
+                    . ' &nbsp; Tax Collected: ' . number_format($taxCollected, 2, '.', '');
 
             case 'payments':
                 $ap = round((float) PaymentARs::whereRaw('LOWER(type) = ?', ['ap'])
@@ -513,8 +516,11 @@ class DashboardPreferenceService
                 $ar = round((float) PaymentARs::whereRaw('LOWER(type) = ?', ['ar'])
                     ->where('subscriber_id', $subscriber->id)
                     ->sum(DB::raw('amount - paid_amount')), 2);
+                $taxCollected = $this->totalCollectedTax($subscriber);
 
-                return 'AR: ' . $ar . ' &nbsp; AP: ' . $ap;
+                return 'AR: ' . number_format($ar, 2, '.', '')
+                    . ' &nbsp; AP: ' . number_format($ap, 2, '.', '')
+                    . ' &nbsp; Tax Collected: ' . number_format($taxCollected, 2, '.', '');
 
             case 'referrals':
                 return (string) $this->referralsQuery($subscriber)
@@ -541,6 +547,71 @@ class DashboardPreferenceService
         }
 
         return '0';
+    }
+
+    /**
+     * Tax portion actually collected on AR invoices (paid share of each invoice's tax line).
+     */
+    private function totalCollectedTax(User $subscriber): float
+    {
+        $invoices = Internal_Invoices::query()
+            ->where('subscriber_id', $subscriber->id)
+            ->whereRaw('LOWER(type) = ?', ['ar'])
+            ->whereNotIn(DB::raw('LOWER(status)'), ['cancelled', 'withdrawn'])
+            ->get(['invoice_no', 'amount', 'discount', 'tax', 'total', 'detail', 'export_service_tax_exempt']);
+
+        if ($invoices->isEmpty()) {
+            return 0.0;
+        }
+
+        $paidByInvoice = PaymentARs::query()
+            ->where('subscriber_id', $subscriber->id)
+            ->whereRaw('LOWER(type) = ?', ['ar'])
+            ->select('invoice_no', DB::raw('SUM(paid_amount) as paid_total'))
+            ->groupBy('invoice_no')
+            ->pluck('paid_total', 'invoice_no');
+
+        $collected = 0.0;
+
+        foreach ($invoices as $invoice) {
+            if ($invoice->isSubscriptionPackageInvoice() || $invoice->isExportServiceTaxExempt()) {
+                continue;
+            }
+
+            $taxAmount = $this->invoiceTaxAmount($invoice);
+            if ($taxAmount <= 0) {
+                continue;
+            }
+
+            $invoiceTotal = round((float) $invoice->total, 2);
+            if ($invoiceTotal <= 0) {
+                continue;
+            }
+
+            $paid = round((float) ($paidByInvoice[$invoice->invoice_no] ?? 0), 2);
+            if ($paid <= 0) {
+                continue;
+            }
+
+            $collected += $taxAmount * min(1.0, $paid / $invoiceTotal);
+        }
+
+        return round($collected, 2);
+    }
+
+    private function invoiceTaxAmount(Internal_Invoices $invoice): float
+    {
+        $amount = (float) ($invoice->amount ?? 0);
+        $discount = (float) ($invoice->discount ?? 0);
+        $taxPercent = (float) ($invoice->tax ?? 0);
+
+        if ($taxPercent <= 0 || $amount <= 0) {
+            return 0.0;
+        }
+
+        $discountedSubtotal = $amount - ($amount * $discount / 100);
+
+        return round($discountedSubtotal * ($taxPercent / 100), 2);
     }
 
     private function buildChartData(User $subscriber, array $slot): array

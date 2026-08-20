@@ -26,6 +26,7 @@ class AppointmentResponseMail extends Mailable
     public function build()
     {
         $accepted = $this->response === 'accepted';
+        $seekNext = $this->response === 'seek_next';
         $appointmentDate = !empty($this->appointment->appointment_date)
             ? Carbon::parse($this->appointment->appointment_date)->format('F j, Y')
             : 'N/A';
@@ -38,14 +39,20 @@ class AppointmentResponseMail extends Mailable
             'client' => $this->client,
             'sender' => $this->sender,
             'accepted' => $accepted,
+            'seekNext' => $seekNext,
             'appointmentDate' => $appointmentDate,
             'appointmentTime' => $appointmentTime,
         ]);
 
-        $headerTitle = $accepted ? 'Appointment Accepted' : 'Appointment Declined';
-        $subject = $accepted
-            ? 'Appointment Accepted by ' . $this->client->name
-            : 'Appointment Declined by ' . $this->client->name;
+        if ($seekNext) {
+            $headerTitle = 'Client Requested Next Appointment';
+            $subject = 'Next appointment requested by ' . $this->client->name;
+        } else {
+            $headerTitle = $accepted ? 'Appointment Accepted' : 'Appointment Declined';
+            $subject = $accepted
+                ? 'Appointment Accepted by ' . $this->client->name
+                : 'Appointment Declined by ' . $this->client->name;
+        }
 
         $mail = $this->from(BrandedMail::alertsFromAddress(), BrandedMail::alertsFromName($this->client->name))
             ->subject($subject)

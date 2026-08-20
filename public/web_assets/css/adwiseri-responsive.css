@@ -254,9 +254,33 @@
     -webkit-overflow-scrolling: touch;
 }
 
-/* Space between container top edge and DataTables "Show X entries" row */
-.dataTables_wrapper {
-    padding-top: 0.5rem;
+/* Space between section top edge / preceding border and DataTables controls row */
+.table-wrapper > .dataTables_wrapper,
+.column-client .client-dashboard .dataTables_wrapper,
+.column-client .userdash-client .dataTables_wrapper {
+    padding-top: 8px;
+}
+
+.dataTables_wrapper > .row:first-child,
+.dataTables_wrapper > .d-flex:first-child,
+.dataTables_wrapper > .reports-dt-toolbar:first-child {
+    margin-top: 0;
+}
+
+/* Small gap between "Show X entries / Search" row and the table header border */
+.dataTables_wrapper > .row:first-child,
+.dataTables_wrapper > .reports-dt-toolbar:first-child {
+    margin-bottom: 6px;
+}
+
+/* Breathing room above the table block after module tabs or filter toolbars */
+.module-tab-row + .table-wrapper,
+.module-tab-row + #users-tab-panel .table-wrapper,
+.module-tab-row + .table-filter-toolbar,
+.module-tab-row + .multi-table-filter-toolbar,
+.table-filter-toolbar + .table-wrapper,
+.multi-table-filter-toolbar + .table-wrapper {
+    margin-top: 0.5rem;
 }
 
 table.fl-table,

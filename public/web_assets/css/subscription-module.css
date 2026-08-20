@@ -45,34 +45,34 @@
     flex-direction: column;
     align-items: center;
     gap: 0.65rem;
-    padding: 1rem 0.75rem;
     width: 100%;
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: 1rem 0.75rem;
 }
 
 .subscription-module .subscription-detail-row {
-    display: inline-flex;
-    flex-wrap: nowrap;
+    display: grid;
+    grid-template-columns: minmax(11rem, 14rem) minmax(10rem, 1fr);
+    column-gap: 0.75rem;
+    width: 100%;
     align-items: baseline;
-    justify-content: center;
-    gap: 0;
-    max-width: 100%;
 }
 
 .subscription-module .subscription-detail-label {
-    flex: 0 1 auto;
     text-align: right;
     font-weight: 550;
     white-space: nowrap;
 }
 
-.subscription-module .subscription-detail-label::after {
-    content: ':';
-}
-
 .subscription-module .subscription-detail-value {
-    flex: 0 1 auto;
     text-align: left;
     font-weight: 400;
+}
+
+.subscription-module .subscription-detail-value::before {
+    content: ': ';
+    font-weight: 550;
 }
 
 .subscription-module .subscription-detail-value p {
