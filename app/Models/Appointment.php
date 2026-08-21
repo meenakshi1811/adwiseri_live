@@ -37,6 +37,39 @@ class Appointment extends Model
         return Carbon::parse($date . ' ' . $time, $timezone);
     }
 
+    public function isPast(?string $timezone = null): bool
+    {
+        $scheduledAt = $this->scheduledAt($timezone);
+
+        if (!$scheduledAt) {
+            return false;
+        }
+
+        $timezone = $timezone ?: config('app.timezone');
+
+        return now($timezone)->gte($scheduledAt);
+    }
+
+    public static function scheduledAtFromInput(string $date, string $time, ?string $timezone = null): ?Carbon
+    {
+        $timezone = $timezone ?: config('app.timezone');
+
+        try {
+            $normalizedTime = Carbon::createFromFormat('H:i', $time)->format('H:i:s');
+        } catch (\Throwable $exception) {
+            try {
+                $normalizedTime = Carbon::parse($time)->format('H:i:s');
+            } catch (\Throwable $exception) {
+                return null;
+            }
+        }
+
+        return Carbon::parse(
+            Carbon::parse($date)->format('Y-m-d') . ' ' . $normalizedTime,
+            $timezone
+        );
+    }
+
     public function formattedDate(string $format = 'd-m-Y'): string
     {
         return !empty($this->appointment_date)

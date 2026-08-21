@@ -11,6 +11,7 @@ use App\Models\Activities;
 use App\Models\Applications;
 use App\Models\UserRoles;
 use App\Services\TableFilterCountService;
+use App\Services\TaxSummaryService;
 use Auth;
 use Mail;
 use App\Mail\Invoicemail;
@@ -23,7 +24,13 @@ use Carbon\Carbon;
 
 class PaymentController extends Controller
 {
-    //
+    protected TaxSummaryService $taxSummaryService;
+
+    public function __construct(TaxSummaryService $taxSummaryService)
+    {
+        $this->taxSummaryService = $taxSummaryService;
+    }
+
 
     public function invoice_id()
     {
@@ -756,6 +763,48 @@ class PaymentController extends Controller
 
         $paidAmount = (float) $query->sum('paid_amount');
         return max(0, ((float) $payment->amount) - $paidAmount);
+    }
+
+    public function taxSummaryData(Request $request)
+    {
+        if (!$request->ajax()) {
+            abort(404);
+        }
+
+        try {
+            $user = auth()->user();
+            $subscriber = $user->user_type === 'Subscriber'
+                ? $user
+                : User::find($user->added_by);
+
+            if (!$subscriber) {
+                return response()->json([
+                    'message' => 'Unable to resolve subscriber account.',
+                    'total_collected_tax_formatted' => '0.00',
+                    'by_timeline' => [],
+                    'by_year' => [],
+                ], 403);
+            }
+
+            $summary = $this->taxSummaryService->summary($subscriber);
+
+            return response()->json([
+                'draw' => (int) $request->input('draw', 1),
+                'total_collected_tax' => $summary['total_collected_tax'],
+                'total_collected_tax_formatted' => $summary['total_collected_tax_formatted'],
+                'by_timeline' => $summary['by_timeline'],
+                'by_year' => $summary['by_year'],
+            ]);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'Unable to load tax data.',
+                'total_collected_tax_formatted' => '0.00',
+                'by_timeline' => [],
+                'by_year' => [],
+            ], 500);
+        }
     }
 
 }

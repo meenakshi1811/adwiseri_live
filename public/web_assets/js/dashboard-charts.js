@@ -24,6 +24,9 @@
   var rerenderTimer = null;
   var rerenderAttempts = 0;
   var resizeTimer = null;
+  var postRenderResizeTimers = [];
+  var layoutStableTimer = null;
+  var booted = false;
 
   function paletteFor(count) {
     var colors = [];
@@ -347,20 +350,146 @@
   function destroyDashCharts() {
     dashChartInstances.forEach(function (chart) {
       try {
+        if (chart && chart.canvas) {
+          resetCanvasSize(chart.canvas);
+        }
         if (chart && typeof chart.destroy === 'function') {
           chart.destroy();
         }
       } catch (e) {}
     });
     dashChartInstances = [];
+
+    document.querySelectorAll('.dash-chart-canvas canvas').forEach(function (canvas) {
+      resetCanvasSize(canvas);
+    });
+  }
+
+  function resetCanvasSize(canvas) {
+    if (!canvas) {
+      return;
+    }
+
+    canvas.removeAttribute('width');
+    canvas.removeAttribute('height');
+    canvas.style.width = '';
+    canvas.style.height = '';
+    canvas.style.maxWidth = '';
+    canvas.style.maxHeight = '';
   }
 
   function chartHostReady(canvas) {
     if (!canvas || !canvas.parentElement) {
       return false;
     }
+
     var host = canvas.parentElement;
-    return host.clientWidth >= 40 && host.clientHeight >= 40;
+    if (host.clientWidth < 40 || host.clientHeight < 40) {
+      return false;
+    }
+
+    var panel = host.closest('.dash-chart-panel');
+    if (panel && panel.clientWidth > 0) {
+      var panelRatio = host.clientWidth / panel.clientWidth;
+      if (panelRatio < 0.85) {
+        return false;
+      }
+    }
+
+    var row = host.closest('.dash-charts-row');
+    if (row && row.clientWidth > 0) {
+      var minExpectedWidth = row.clientWidth * 0.35;
+      if (host.clientWidth < minExpectedWidth) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  function allChartHostsReady() {
+    if (!dashCharts.length) {
+      return true;
+    }
+
+    return dashCharts.every(function (cfg) {
+      if (cfg.empty) {
+        return true;
+      }
+
+      var canvas = document.getElementById(cfg.id);
+      return chartHostReady(canvas);
+    });
+  }
+
+  function clearPostRenderResizeTimers() {
+    postRenderResizeTimers.forEach(function (timerId) {
+      clearTimeout(timerId);
+    });
+    postRenderResizeTimers = [];
+  }
+
+  function schedulePostRenderResize() {
+    clearPostRenderResizeTimers();
+    [0, 120, 300, 600].forEach(function (delay) {
+      postRenderResizeTimers.push(setTimeout(function () {
+        if (!dashChartInstances.length && dashCharts.length) {
+          scheduleRerender();
+          return;
+        }
+        resizeDashCharts();
+        equalizeDashboardColumns();
+      }, delay));
+    });
+  }
+
+  function whenLayoutStable(callback) {
+    clearTimeout(layoutStableTimer);
+
+    var attempts = 0;
+    var lastWidths = null;
+
+    function probe() {
+      attempts += 1;
+
+      if (allChartHostsReady()) {
+        var widths = dashCharts.map(function (cfg) {
+          if (cfg.empty) {
+            return 0;
+          }
+          var canvas = document.getElementById(cfg.id);
+          return canvas && canvas.parentElement ? canvas.parentElement.clientWidth : 0;
+        });
+
+        if (lastWidths && widths.join('|') === lastWidths.join('|')) {
+          callback();
+          return;
+        }
+
+        lastWidths = widths;
+      }
+
+      if (attempts >= 30) {
+        callback();
+        return;
+      }
+
+      layoutStableTimer = setTimeout(function () {
+        requestAnimationFrame(probe);
+      }, 50);
+    }
+
+    if (document.readyState === 'complete') {
+      requestAnimationFrame(probe);
+      return;
+    }
+
+    window.addEventListener('load', function onLoad() {
+      window.removeEventListener('load', onLoad);
+      requestAnimationFrame(probe);
+    }, { once: true });
+
+    requestAnimationFrame(probe);
   }
 
   function renderChart(cfg) {
@@ -382,6 +511,8 @@
         existing.destroy();
       }
     }
+
+    resetCanvasSize(canvas);
 
     var style = chartStyleOf(cfg);
     var radial = isRadialDashChart(style);
@@ -593,12 +724,13 @@
       equalizeDashboardColumns();
     });
 
-    if (pending && rerenderAttempts < 20) {
+    if (pending && rerenderAttempts < 30) {
       rerenderAttempts += 1;
       clearTimeout(rerenderTimer);
       rerenderTimer = setTimeout(renderAllDashCharts, 100);
     } else {
       rerenderAttempts = 0;
+      schedulePostRenderResize();
       setTimeout(equalizeDashboardColumns, 50);
     }
   }
@@ -756,12 +888,18 @@
     registerDataLabelsPlugin();
     applyChartDefaults();
     bindChartObservers();
-    equalizeDashboardColumns();
     scheduleRerender();
   }
 
   function boot() {
-    init(global.__DASHBOARD_CHARTS__ || []);
+    if (booted) {
+      return;
+    }
+    booted = true;
+
+    whenLayoutStable(function () {
+      init(global.__DASHBOARD_CHARTS__ || []);
+    });
   }
 
   global.AdwiseriDashboardCharts = {
@@ -778,7 +916,19 @@
 
   window.addEventListener('pageshow', function (event) {
     if (event.persisted) {
-      scheduleRerender();
+      booted = false;
+      destroyDashCharts();
+
+      var mainCol = document.querySelector('.dash-main-col');
+      if (mainCol) {
+        mainCol.style.minHeight = '';
+        mainCol.style.height = '';
+      }
+
+      whenLayoutStable(function () {
+        booted = true;
+        scheduleRerender();
+      });
     }
     equalizeDashboardColumns();
   });
@@ -787,7 +937,7 @@
     if (document.visibilityState !== 'visible') {
       return;
     }
-    scheduleRerender();
+    resizeDashCharts();
     equalizeDashboardColumns();
   });
 

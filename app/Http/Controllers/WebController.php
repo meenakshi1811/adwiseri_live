@@ -9219,6 +9219,20 @@ class WebController extends Controller
                 ], 422);
             }
 
+            $timezone = config('app.timezone');
+            $scheduledAt = Appointment::scheduledAtFromInput(
+                $request->appointment_date,
+                $request->appointment_time,
+                $timezone
+            );
+
+            if (!$scheduledAt || $scheduledAt->lte(now($timezone))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Appointment must be scheduled for a future date and time.',
+                ], 422);
+            }
+
             $appointment = new Appointment();
             $appointment->client_id = $client->id;
             $appointment->subscriber_id = $subscriberId;
@@ -9447,6 +9461,15 @@ class WebController extends Controller
             ]);
         }
 
+        if ($appointment->status === 'pending' && $appointment->isPast()) {
+            return view('web.appointment_response', [
+                'title' => 'Response Window Closed',
+                'subtitle' => 'This appointment time has already passed. Please contact your consultant to schedule a new appointment.',
+                'status' => 'neutral',
+                'calendlyUrl' => null,
+            ]);
+        }
+
         if ($appointment->status === 'pending'
             && $this->isAppointmentResponseCutoffReached($appointment)
             && !in_array($choice, ['dont_notify', 'seek_next'], true)) {
@@ -9517,7 +9540,7 @@ class WebController extends Controller
     {
         $scheduledAt = $appointment->scheduledAt(config('app.timezone'));
 
-        if (!$scheduledAt) {
+        if (!$scheduledAt || $appointment->isPast()) {
             return false;
         }
 

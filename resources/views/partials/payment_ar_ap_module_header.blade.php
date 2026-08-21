@@ -12,6 +12,13 @@
         <p class="d-flex gap-2 mb-0 module-header-actions">
             <a href="{{ route('add_ar_payments') }}" class="m-0">Add Payments (AR) Record</a>
             <a href="{{ route('add_ap_payments') }}" class="m-0">Add Payments (AP) Record</a>
+            <button type="button"
+                class="m-0 tax-data-header-btn"
+                data-bs-toggle="modal"
+                data-bs-target="#taxDataModal"
+                onclick="if(typeof initTaxDataModal === 'function'){ initTaxDataModal(); }">
+                Tax Data
+            </button>
         </p>
         @endif
     </form>
@@ -26,3 +33,7 @@
         {{ $apTabLabel }}
     </div>
 </div>
+
+@include('partials.tax_data_modal', [
+    'taxDataUrl' => route('payments_tax_data'),
+])

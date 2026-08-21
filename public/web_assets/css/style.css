@@ -2486,8 +2486,10 @@ span {
     text-align: left;
     font-weight: 600 !important;
     font-size: 11px !important;
-    line-height: 1.15;
+    line-height: 1.25;
     color: #fff !important;
+    white-space: normal;
+    word-break: break-word;
 }
 
 .data-box {
@@ -3103,6 +3105,31 @@ td {
 .column-client a:not(.comm-view-btn):not(.comm-action-btn):not(.btn) .fa,
 .column-client a:not(.comm-view-btn):not(.comm-action-btn):not(.btn) .fas,
 .column-client a:not(.comm-view-btn):not(.comm-action-btn):not(.btn) .fa-solid {
+    color: #fff !important;
+}
+
+.column-client .module-header-actions button.tax-data-header-btn {
+    background: #695EEE;
+    border: 1px solid #695EEE;
+    border-radius: var(--adwiseri-btn-radius);
+    color: #fff !important;
+    padding: var(--adwiseri-btn-padding-y) var(--adwiseri-btn-padding-x);
+    min-height: var(--adwiseri-btn-min-height);
+    margin: 0 7px;
+    font-size: var(--adwiseri-btn-font-size);
+    font-weight: var(--adwiseri-btn-font-weight);
+    text-align: center;
+    font-family: var(--adwiseri-font-family);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.column-client .module-header-actions button.tax-data-header-btn:hover {
+    background: #564BB0;
+    border-color: #564BB0;
     color: #fff !important;
 }
 

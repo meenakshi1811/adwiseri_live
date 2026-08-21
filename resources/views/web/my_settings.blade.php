@@ -2368,8 +2368,27 @@
 
 
         const appointmentDateField = $('#appointment-form input[name="appointment_date"]');
+        const appointmentTimeField = $('#appointment-form input[name="appointment_time"]');
         const todayIso = new Date().toISOString().split('T')[0];
         appointmentDateField.attr('min', todayIso);
+
+        function syncAppointmentTimeMin() {
+            if (!appointmentDateField.length || !appointmentTimeField.length) {
+                return;
+            }
+
+            if (appointmentDateField.val() === todayIso) {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                appointmentTimeField.attr('min', `${hours}:${minutes}`);
+            } else {
+                appointmentTimeField.removeAttr('min');
+            }
+        }
+
+        appointmentDateField.on('change input', syncAppointmentTimeMin);
+        syncAppointmentTimeMin();
 
         let appointmentRecordsPollTimer = null;
 
@@ -2542,6 +2561,13 @@
 
             if (!appointmentTime) {
                 Swal.fire({ icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' }, title: 'Oops!', text: 'Please select an appointment time.' });
+                return;
+            }
+
+            const scheduledAt = new Date(`${appointmentDate}T${appointmentTime}:00`);
+            const now = new Date();
+            if (scheduledAt <= now) {
+                Swal.fire({ icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' }, title: 'Oops!', text: 'Appointment must be scheduled for a future date and time.' });
                 return;
             }
 

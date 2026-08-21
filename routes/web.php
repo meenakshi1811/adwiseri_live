@@ -233,6 +233,7 @@ Route::get('/payment_made', [App\Http\Controllers\PaymentController::class, 'pay
 
 
 Route::get('/my_payments', [App\Http\Controllers\PaymentController::class, 'my_payments'])->name('my_payments')->middleware(['auth','check.device']);
+Route::get('/payments-tax-data', [App\Http\Controllers\PaymentController::class, 'taxSummaryData'])->name('payments_tax_data')->middleware(['auth','check.device']);
 Route::get('/add_ar_payments', [App\Http\Controllers\PaymentController::class, 'add_ar_payments'])->name('add_ar_payments')->middleware(['auth','check.device']);
 // routes/api.php
 Route::get('/invoices/{id}', [App\Http\Controllers\PaymentController::class, 'getInvoiceDetails'])->name('getInvoiceDetails')->middleware(['auth','check.device']);
