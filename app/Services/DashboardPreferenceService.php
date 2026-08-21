@@ -50,6 +50,7 @@ class DashboardPreferenceService
         'users' => ['label' => 'Users'],
         'invoices' => ['label' => 'Invoices'],
         'payments' => ['label' => 'Payments'],
+        'tax_collected' => ['label' => 'Tax Collected'],
         'referrals' => ['label' => 'Referrals'],
         'wallet' => ['label' => 'Wallet (USD)'],
         'meeting_notes' => ['label' => 'Meeting Notes'],
@@ -511,11 +512,9 @@ class DashboardPreferenceService
                 $invoices = Internal_Invoices::where('subscriber_id', $subscriber->id)->get();
                 $ar = $invoices->filter(fn ($i) => strtolower((string) $i->type) === 'ar')->count();
                 $ap = $invoices->filter(fn ($i) => strtolower((string) $i->type) === 'ap')->count();
-                $taxCollected = $this->taxSummaryService->totalCollectedTax($subscriber);
 
                 return 'AR: ' . $ar
-                    . ' &nbsp; AP: ' . $ap
-                    . ' &nbsp; Tax Collected: ' . number_format($taxCollected, 2, '.', '');
+                    . '<br>AP: ' . $ap;
 
             case 'payments':
                 $ap = round((float) PaymentARs::whereRaw('LOWER(type) = ?', ['ap'])
@@ -527,6 +526,14 @@ class DashboardPreferenceService
 
                 return 'AR: ' . number_format($ar, 2, '.', '')
                     . '<br>AP: ' . number_format($ap, 2, '.', '');
+
+            case 'tax_collected':
+                return number_format(
+                    $this->taxSummaryService->totalCollectedTax($subscriber),
+                    2,
+                    '.',
+                    ''
+                );
 
             case 'referrals':
                 return (string) $this->referralsQuery($subscriber)

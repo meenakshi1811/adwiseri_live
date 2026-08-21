@@ -2438,11 +2438,14 @@ span {
 .data-box .client-box.dash-stat-card {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    gap: 1px;
-    padding: 4px 8px;
+    justify-content: flex-start;
+    gap: 2px;
+    padding: 6px 8px;
     margin: 0;
-    min-height: 48px;
+    min-height: 78px;
+    height: 100%;
+    width: 100%;
+    box-sizing: border-box;
     background: var(--adwiseri-primary, #695EEE) !important;
     border: 1px solid var(--adwiseri-primary-hover, #564BB0) !important;
     border-radius: 8px !important;
@@ -2490,12 +2493,43 @@ span {
     color: #fff !important;
     white-space: normal;
     word-break: break-word;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .data-box {
     display: block;
     width: 100%;
     margin-bottom: 12px;
+}
+
+.data-box > .dash-stat-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+    gap: 6px;
+    width: 100%;
+    margin: 0;
+    align-items: stretch;
+}
+
+.data-box > .dash-stat-row > [class*="col-"] {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 100%;
+    padding: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    flex: none !important;
+}
+
+@media (max-width: 767.98px) {
+    .data-box > .dash-stat-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 .data-box > .row > [class*="col-"] {
@@ -2996,9 +3030,10 @@ span {
         display: block;
     }
 
+    .data-box .client-box.dash-stat-card,
     .data-box .client-box {
-        min-height: 44px;
-        padding: 4px 6px;
+        min-height: 72px;
+        padding: 5px 6px;
     }
 
     .data-box .client-box .dash-stat-label,
@@ -5303,8 +5338,9 @@ button.app-doc-action-icon:focus-visible {
         font-size: 16px !important;
     }
 
+    .data-box .client-box.dash-stat-card,
     .data-box .client-box {
-        min-height: 56px;
+        min-height: 72px;
     }
 
     .item-font-fix {

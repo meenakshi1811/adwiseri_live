@@ -18,6 +18,7 @@ use App\Models\AssociateInvoice;
 use App\Models\AssociatePayment;
 use App\Models\Invoice_settings;
 use App\Services\InvoiceItemService;
+use App\Services\ApplicationVisibilityService;
 use App\Services\OfferBenefitService;
 use App\Services\TableFilterCountService;
 use App\Support\BrandedMail;
@@ -112,7 +113,10 @@ class AssociateController extends Controller
      */
     private function subscriberApplications(User $subscriber)
     {
-        return Applications::where('subscriber_id', $subscriber->id)
+        $user = Auth::user();
+
+        return app(ApplicationVisibilityService::class)
+            ->queryForUser($user, $subscriber)
             ->orderBy('created_at', 'desc')
             ->get();
     }
@@ -721,7 +725,10 @@ class AssociateController extends Controller
             return collect();
         }
 
-        return Applications::where('subscriber_id', $subscriber->id)
+        $user = Auth::user();
+        $visibility = app(ApplicationVisibilityService::class);
+
+        return $visibility->queryForUser($user, $subscriber)
             ->whereIn('id', $ids)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -786,7 +793,13 @@ class AssociateController extends Controller
         $applicationName = null;
 
         if ($request->application_id) {
+            $user = Auth::user();
+            $visibility = app(ApplicationVisibilityService::class);
             $application = Applications::where('subscriber_id', $subscriber->id)->find($request->application_id);
+            if ($application && !$visibility->canViewApplication($user, $application)) {
+                $application = null;
+            }
+
             if ($application) {
                 $applicationId = $application->id;
                 $applicationName = trim($application->application_name . ' (' . $application->application_id . ')');

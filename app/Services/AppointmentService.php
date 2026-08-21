@@ -35,6 +35,7 @@ class AppointmentService
             $table->enum('status', [
                 'pending',
                 'accepted',
+                'denied',
                 'canceled',
                 'completed',
             ])->default('pending');

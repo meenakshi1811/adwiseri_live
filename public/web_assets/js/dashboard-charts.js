@@ -606,7 +606,33 @@
     return true;
   }
 
+  function equalizeDashStatCards() {
+    var cards = document.querySelectorAll('.dash-stat-row .dash-stat-card');
+    if (!cards.length) {
+      return;
+    }
+
+    cards.forEach(function (card) {
+      card.style.minHeight = '';
+    });
+
+    var maxHeight = 0;
+    cards.forEach(function (card) {
+      maxHeight = Math.max(maxHeight, card.offsetHeight);
+    });
+
+    if (maxHeight < 1) {
+      return;
+    }
+
+    cards.forEach(function (card) {
+      card.style.minHeight = maxHeight + 'px';
+    });
+  }
+
   function equalizeDashboardColumns() {
+    equalizeDashStatCards();
+
     var row = document.querySelector('.client-row.dashboard-equal-cols');
     if (!row) {
       return;
@@ -650,6 +676,7 @@
     }
 
     requestAnimationFrame(resizeDashCharts);
+    equalizeDashStatCards();
   }
 
   function resizeDashCharts() {
@@ -899,6 +926,7 @@
 
     whenLayoutStable(function () {
       init(global.__DASHBOARD_CHARTS__ || []);
+      equalizeDashStatCards();
     });
   }
 
@@ -946,6 +974,7 @@
     resizeTimer = setTimeout(function () {
       resizeDashCharts();
       equalizeDashboardColumns();
+      equalizeDashStatCards();
     }, 150);
   });
 

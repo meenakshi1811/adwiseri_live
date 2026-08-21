@@ -4,7 +4,7 @@
     <div class="col-lg-7 dash-main-col">
         @if(count($headerCards ?? []) > 0)
         <div class="data-box">
-            <div class="row m-0" style="width:100%;">
+            <div class="row m-0 dash-stat-row" style="width:100%;">
                 @foreach($headerCards as $card)
                 <div class="col-6 col-md-3 m-0 p-1">
                     <div class="client-box dash-stat-card col-12 m-0">
@@ -80,5 +80,5 @@
     <script>
         window.__DASHBOARD_CHARTS__ = @json($charts ?? []);
     </script>
-    <script src="{{ asset('web_assets/js/dashboard-charts.js') }}?v=20260821a"></script>
+    <script src="{{ asset('web_assets/js/dashboard-charts.js') }}?v=20260821b"></script>
 @endpush

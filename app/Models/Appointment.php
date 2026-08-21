@@ -7,6 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class Appointment extends Model
 {
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_ACCEPTED = 'accepted';
+    public const STATUS_DENIED = 'denied';
+    public const STATUS_CANCELED = 'canceled';
+    public const STATUS_COMPLETED = 'completed';
+
     protected $casts = [
         'appointment_date' => 'date',
     ];

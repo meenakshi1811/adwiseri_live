@@ -11,6 +11,7 @@ class ModuleIcons
         'applications' => 'fa-solid fa-window-restore',
         'invoices' => 'fas fa-file',
         'payments' => 'fas fa-dollar',
+        'tax_collected' => 'fa-solid fa-percent',
         'users' => 'fas fa-user',
         'communications' => 'fa-solid fa-comment',
         'meeting_notes' => 'fa-solid fa-comment',

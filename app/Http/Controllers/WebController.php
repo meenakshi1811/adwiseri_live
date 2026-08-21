@@ -107,6 +107,7 @@ use App\Services\CountryCategorySettingsService;
 use App\Services\DashboardPreferenceService;
 use App\Services\EnquiryFormSettingsService;
 use App\Services\AppointmentService;
+use App\Services\ApplicationVisibilityService;
 use App\Services\MySettingsPageService;
 use App\Services\LeadEnquiryService;
 use App\Services\UserAccessRightsService;
@@ -1322,11 +1323,14 @@ class WebController extends Controller
 
         $subscriber = User::find($client->subscriber_id);
         $ccService = app(CountryCategorySettingsService::class);
+        $visibility = app(ApplicationVisibilityService::class);
+        $user = Auth::user();
         $comm = strtolower(trim((string) ($request->comm ?? '')));
 
         // Meeting notes / communications — simple application list
         if ($comm === 'communication') {
-            $applications = Applications::where('client_id', $id)
+            $applications = $visibility->queryForUser($user, $subscriber)
+                ->where('client_id', $id)
                 ->orderBy('application_name')
                 ->get();
 
@@ -1350,7 +1354,8 @@ class WebController extends Controller
 
         // Invoice form — applications as "Country - Type" + standalone services, with fees
         if ($comm === 'invoice' && $subscriber) {
-            $applications = Applications::where('client_id', $id)
+            $applications = $visibility->queryForUser($user, $subscriber)
+                ->where('client_id', $id)
                 ->orderBy('visa_country')
                 ->orderBy('application_name')
                 ->get();
@@ -2525,7 +2530,11 @@ class WebController extends Controller
             $page = "clients";
             $roles = UserRoles::where('user_id', '=', $user->id)->first();
             $documents = Client_Docs::where('client_id', '=', $id)->get();
-            $applications = Applications::where('client_id', '=', $client->id)->get();
+            $visibility = app(ApplicationVisibilityService::class);
+            $applications = $visibility->queryForUser($user, User::find($client->subscriber_id))
+                ->where('client_id', '=', $client->id)
+                ->orderBy('created_at', 'desc')
+                ->get();
             $messages = Messages::where('client_id', '=', $client->id)->orderBy('created_at', 'desc')->get();
             $activities = Activities::where('client_id', '=', $client->id)->orderBy('created_at', 'desc')->get();
             return view('web.client_profile', compact('client', 'user', 'countries', 'states', 'page', 'documents', 'activities', 'messages', 'applications', 'roles'));
@@ -2827,16 +2836,19 @@ class WebController extends Controller
         $this->set_timezone();
         if ($user) {
             $roles = UserRoles::where('user_id', '=', $user->id)->first();
+            $visibility = app(ApplicationVisibilityService::class);
+
             if ($user->user_type == "Subscriber") {
                 $subscriber = $user;
-                $applications = Applications::where('subscriber_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->get();
             } elseif ($user->user_type == "admin") {
                 $subscriber = $user;
-                $applications = Applications::orderBy('created_at', 'desc')->get();
             } else {
                 $subscriber = User::find($user->added_by);
-                $applications = Applications::where('assign_to', '=', $user->id)->orwhere('assign_to', '=', null)->where('subscriber_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->get();
             }
+
+            $applications = $visibility->queryForUser($user, $subscriber)
+                ->orderBy('created_at', 'desc')
+                ->get();
             $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
             $page = "applications";
 
@@ -2915,13 +2927,15 @@ class WebController extends Controller
         $clients = Clients::where('subscriber_id', '=', $user->id)->get();
         // $subscribers = User::where('user_type', '=', 'Subscriber')->get();
         if ($user) {
+            $visibility = app(ApplicationVisibilityService::class);
+
             if ($user->user_type == "Subscriber" || $user->user_type == "admin") {
                 $subscriber = $user;
             } else {
                 $subscriber = User::find($user->added_by);
             }
             $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
-            $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();
+            $applications = $visibility->queryForUser($user, $subscriber)->get();
         } else {
             $applications = collect();
         }
@@ -2947,15 +2961,26 @@ class WebController extends Controller
 
     public function getApplicationsByClient($clientId)
     {
-        $applications = Applications::where('client_id', $clientId)->get(['id', 'application_name']);
+        $user = Auth::user();
+        $client = Clients::find($clientId);
+        if (!$client) {
+            return response()->json([]);
+        }
+
+        $visibility = app(ApplicationVisibilityService::class);
+        $applications = $visibility->queryForUser($user, User::find($client->subscriber_id))
+            ->where('client_id', $clientId)
+            ->get(['id', 'application_name']);
+
         return response()->json($applications);
     }
 
     public function getApplicationData($id)
     {
+        $user = Auth::user();
         $application = Applications::with('client.user')->find($id);
 
-        if (!$application) {
+        if (!$application || !app(ApplicationVisibilityService::class)->canViewApplication($user, $application)) {
             return response()->json([]);
         }
 
@@ -3021,6 +3046,12 @@ class WebController extends Controller
         ]);
 
         $application = Applications::findOrFail($request->application_id);
+
+        $user = Auth::user();
+        if (!app(ApplicationVisibilityService::class)->canViewApplication($user, $application)) {
+            return response()->json(['message' => 'You do not have access to this application.'], 403);
+        }
+
         $currentStatus = $application->application_status ?: 'Client Registered';
         if ($currentStatus === 'Apointment Booked') {
             $currentStatus = 'Appointment Booked';
@@ -3053,7 +3084,6 @@ class WebController extends Controller
         $application->application_status = $newStatus;
         $application->save();
 
-        $user = Auth::user();
         ApplicationStatusTrack::create([
             'application_id' => $application->id,
             'status' => $newStatus,
@@ -3097,6 +3127,10 @@ class WebController extends Controller
             return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $application = Applications::find($id);
+        if (!$application || !app(ApplicationVisibilityService::class)->canViewApplication($user, $application)) {
+            return redirect()->route('applications');
+        }
+
         $client = Clients::find($application->client_id);
         $subscriber = User::find($client->subscriber_id);
         $ccService = app(CountryCategorySettingsService::class);
@@ -3297,11 +3331,8 @@ class WebController extends Controller
             return redirect()->route('applications');
         }
 
-        if ($user->user_type !== 'admin') {
-            $subscriberId = $user->user_type === 'Subscriber' ? $user->id : $user->added_by;
-            if ((int) $application->subscriber_id !== (int) $subscriberId) {
-                return redirect()->route('applications');
-            }
+        if (!app(ApplicationVisibilityService::class)->canViewApplication($user, $application)) {
+            return redirect()->route('applications');
         }
 
         $documentsQuery = Client_Docs::where('application_id', $application->application_id)
@@ -3340,11 +3371,8 @@ class WebController extends Controller
             return redirect()->route('applications');
         }
 
-        if ($user->user_type !== 'admin') {
-            $subscriberId = $user->user_type === 'Subscriber' ? $user->id : $user->added_by;
-            if ((int) $application->subscriber_id !== (int) $subscriberId) {
-                return redirect()->route('applications');
-            }
+        if (!app(ApplicationVisibilityService::class)->canViewApplication($user, $application)) {
+            return redirect()->route('applications');
         }
 
         $documentListService = app(\App\Services\ApplicationDocumentListService::class);
@@ -3370,11 +3398,8 @@ class WebController extends Controller
             return redirect()->route('applications');
         }
 
-        if ($user->user_type !== 'admin') {
-            $subscriberId = $user->user_type === 'Subscriber' ? $user->id : $user->added_by;
-            if ((int) $application->subscriber_id !== (int) $subscriberId) {
-                return redirect()->route('applications');
-            }
+        if (!app(ApplicationVisibilityService::class)->canViewApplication($user, $application)) {
+            return redirect()->route('applications');
         }
 
         $documentListService = app(\App\Services\ApplicationDocumentListService::class);
@@ -3405,11 +3430,8 @@ class WebController extends Controller
             return redirect()->route('applications');
         }
 
-        if ($user->user_type !== 'admin') {
-            $subscriberId = $user->user_type === 'Subscriber' ? $user->id : $user->added_by;
-            if ((int) $application->subscriber_id !== (int) $subscriberId) {
-                return redirect()->route('applications');
-            }
+        if (!app(ApplicationVisibilityService::class)->canViewApplication($user, $application)) {
+            return redirect()->route('applications');
         }
 
         $documentListService = app(\App\Services\ApplicationDocumentListService::class);
@@ -3844,6 +3866,11 @@ class WebController extends Controller
 
         if (!$subscriber) {
             return back()->with('download_error', 'Unable to identify subscriber for export.');
+        }
+
+        $visibility = app(ApplicationVisibilityService::class);
+        if ($user->user_type === 'User' && !$visibility->hasSubscriberLevelApplicationsAccess($user)) {
+            return back()->with('download_error', 'You do not have permission to export all consultancy data.');
         }
 
         $timestamp = now()->format('Ymd_His');
@@ -6698,7 +6725,8 @@ class WebController extends Controller
                     ->get();
             }
             $roles = UserRoles::where('user_id', '=', $user->id)->first();
-            $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();
+            $visibility = app(ApplicationVisibilityService::class);
+            $applications = $visibility->queryForUser($user, $subscriber)->get();
             $page = "communications";
             $meetingModeFilters = TableFilterCountService::countBy(
                 $discussions,
@@ -6794,10 +6822,15 @@ class WebController extends Controller
                 ->where('added_by', '=', $subscriber->id)
                 ->orderBy('name')
                 ->get();
-            $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();
-            $unassignedApplicationsCount = Applications::where('subscriber_id', '=', $subscriber->id)
-                ->whereNull('assign_to')
-                ->count();
+            $visibility = app(ApplicationVisibilityService::class);
+            $applications = $visibility->queryForUser($user, $subscriber)->get();
+            $unassignedApplicationsCount = $visibility->hasSubscriberLevelApplicationsAccess($user)
+                ? Applications::where('subscriber_id', '=', $subscriber->id)
+                    ->where(function ($query) {
+                        $query->whereNull('assign_to')->orWhere('assign_to', '');
+                    })
+                    ->count()
+                : 0;
             $page = "applications";
             return view('web.user_applications', compact('roles', 'assignments', 'user', 'page', 'clients', 'siteusers', 'applications', 'unassignedApplicationsCount', 'userApplicationFilters'));
         } else {
@@ -6976,15 +7009,26 @@ class WebController extends Controller
                 $applications = Applications::get();
                 $clients = Clients::get();
             } else {
-                $applications = Applications::where('subscriber_id', '=', $subscriber->id)->get();
+                $visibility = app(ApplicationVisibilityService::class);
+                $applications = $visibility->queryForUser($user, $subscriber)->get();
                 $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
             }
             $page = "applications";
             if ($user->user_type == "admin") {
                 $client_docs = Client_Docs::whereNotNull('application_id')->orderBy('created_at', 'desc')->get();
             } else {
+                $visibility = app(ApplicationVisibilityService::class);
+                $visibleApplicationIds = $visibility->visibleApplicationReferenceIds($user, $subscriber);
 
-                $client_docs = Client_Docs::whereNotNull('application_id')->whereHas('application')->where('user_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->get();
+                $client_docs = Client_Docs::whereNotNull('application_id')
+                    ->whereHas('application')
+                    ->where('user_id', '=', $subscriber->id)
+                    ->when(
+                        $user->user_type === 'User' && !$visibility->hasSubscriberLevelApplicationsAccess($user),
+                        fn ($query) => $query->whereIn('application_id', $visibleApplicationIds)
+                    )
+                    ->orderBy('created_at', 'desc')
+                    ->get();
             }
 
             if (request()->ajax()) {
@@ -7029,8 +7073,16 @@ class WebController extends Controller
                 $subscriber = User::find($user->added_by);
             }
             $document = Client_docs::find($id);
+            if (!$document) {
+                return redirect()->route('client_documents');
+            }
+
+            $application = Applications::where('application_id', $document->application_id)->first();
+            if ($application && !app(ApplicationVisibilityService::class)->canViewApplication($user, $application)) {
+                return redirect()->route('client_documents');
+            }
+
             $clients = Clients::get();
-            $application  = Applications::where('application_id', $document->application_id)->first();
             $page = "applications";
             return view('web.client_document_update', compact('document', 'user', 'page', 'clients', 'application'));
         } else {
@@ -9075,12 +9127,7 @@ class WebController extends Controller
                 ->editColumn('remarks', fn (Appointment $row) => $row->remarks ?? 'N/A')
                 ->addColumn('status', function (Appointment $row) {
                     $status = strtolower((string) ($row->status ?: 'pending'));
-                    $statusClass = match ($status) {
-                        'accepted' => 'success',
-                        'canceled' => 'danger',
-                        'completed' => 'info',
-                        default => 'warning',
-                    };
+                    $statusClass = $this->appointmentStatusClass($status);
                     $statusLabel = $this->formatAppointmentStatusLabel($status);
 
                     return '<span class="badge bg-' . $statusClass . '">' . e($statusLabel) . '</span>';
@@ -9152,21 +9199,26 @@ class WebController extends Controller
     {
         return match ($status) {
             'accepted' => 'Confirmed',
-            'canceled' => 'Declined',
+            'denied' => 'Denied',
+            'canceled' => 'Cancelled',
             'completed' => 'Completed',
             default => 'Pending',
+        };
+    }
+
+    private function appointmentStatusClass(string $status): string
+    {
+        return match ($status) {
+            'accepted' => 'success',
+            'denied', 'canceled' => 'danger',
+            'completed' => 'info',
+            default => 'warning',
         };
     }
 
     private function formatAppointmentRecord(Appointment $appointment): array
     {
         $status = strtolower((string) ($appointment->status ?: 'pending'));
-        $statusClass = match ($status) {
-            'accepted' => 'success',
-            'canceled' => 'danger',
-            'completed' => 'info',
-            default => 'warning',
-        };
 
         return [
             'id' => $appointment->id,
@@ -9175,7 +9227,7 @@ class WebController extends Controller
             'appointment_time' => $appointment->formattedTime(),
             'remarks' => $appointment->remarks ?? 'N/A',
             'status' => $this->formatAppointmentStatusLabel($status),
-            'status_class' => $statusClass,
+            'status_class' => $this->appointmentStatusClass($status),
             'sent_by' => optional($appointment->user)->name ?? 'N/A',
             'sent_on' => $appointment->created_at
                 ? Carbon::parse($appointment->created_at)->format('d-m-Y H:i:s')
@@ -9440,7 +9492,9 @@ class WebController extends Controller
         $client = Clients::find($appointment->client_id);
         $sender = User::find($appointment->user_id);
         $inviteEmail = trim((string) $request->query('email', $client?->email ?? ''));
-        $targetStatus = $action === 'accept' ? 'accepted' : 'canceled';
+        $targetStatus = $action === 'accept'
+            ? Appointment::STATUS_ACCEPTED
+            : Appointment::STATUS_DENIED;
         $choice = trim((string) $request->query('choice', ''));
 
         if ($appointment->status === $targetStatus) {
@@ -9452,7 +9506,7 @@ class WebController extends Controller
             ]);
         }
 
-        if (in_array($appointment->status, ['accepted', 'canceled'], true)) {
+        if (in_array($appointment->status, [Appointment::STATUS_ACCEPTED, Appointment::STATUS_DENIED, Appointment::STATUS_CANCELED], true)) {
             return view('web.appointment_response', [
                 'title' => 'Response Already Recorded',
                 'subtitle' => 'This appointment invitation has already been answered.',
@@ -9489,7 +9543,7 @@ class WebController extends Controller
         $notifyConsultant = $choice !== 'dont_notify';
 
         if ($action === 'accept') {
-            $appointment->status = 'accepted';
+            $appointment->status = Appointment::STATUS_ACCEPTED;
             $appointment->save();
 
             $calendlyUrl = null;
@@ -9518,7 +9572,7 @@ class WebController extends Controller
             ]);
         }
 
-        $appointment->status = 'canceled';
+        $appointment->status = Appointment::STATUS_DENIED;
         $appointment->save();
 
         $this->recordAppointmentClientResponse($appointment, $client, $sender, 'declined');
@@ -9579,7 +9633,7 @@ class WebController extends Controller
         string $inviteEmail,
         string $originalAction
     ) {
-        $appointment->status = 'canceled';
+        $appointment->status = Appointment::STATUS_CANCELED;
         $appointment->save();
 
         $this->recordAppointmentClientResponse($appointment, $client, $sender, 'declined', true);

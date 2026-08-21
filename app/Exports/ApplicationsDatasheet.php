@@ -3,25 +3,32 @@
 namespace App\Exports;
 
 use App\Models\User;
-use App\Models\Clients;
 use App\Models\Applications;
+use App\Services\ApplicationVisibilityService;
 use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class ApplicationsDatasheet implements FromCollection, WithTitle, WithHeadings
 {
-    private $data;
+    private int $data;
 
-    public function __construct(int $data)
+    private ?User $viewer;
+
+    public function __construct(int $data, ?User $viewer = null)
     {
         $this->data = $data;
+        $this->viewer = $viewer;
     }
     
     public function collection()
     {
-        $apps = Applications::where('subscriber_id','=',$this->data)->get();
+        $subscriber = User::find($this->data);
+        $query = $this->viewer && $subscriber
+            ? app(ApplicationVisibilityService::class)->queryForUser($this->viewer, $subscriber)
+            : Applications::where('subscriber_id', '=', $this->data);
+
+        $apps = $query->get();
         $i = 1; $apps_data_array = array();
         foreach($apps as $data){
 

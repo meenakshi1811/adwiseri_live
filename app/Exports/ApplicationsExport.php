@@ -32,7 +32,7 @@ class ApplicationsExport implements WithMultipleSheets
         else{
             $subscriber = User::find($user->added_by);
         }
-        $sheets[] = new ApplicationsDatasheet($subscriber->id);
+        $sheets[] = new ApplicationsDatasheet($subscriber->id, $user);
 
         // foreach ($users as $u) {
         //     if($u->user_type == "Subscriber"){
