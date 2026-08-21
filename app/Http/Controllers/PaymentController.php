@@ -799,7 +799,7 @@ class PaymentController extends Controller
             report($exception);
 
             return response()->json([
-                'message' => 'Unable to load tax data.',
+                'message' => 'Unable to load tax summary.',
                 'total_collected_tax_formatted' => '0.00',
                 'by_timeline' => [],
                 'by_year' => [],

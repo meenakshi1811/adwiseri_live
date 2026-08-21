@@ -1,20 +1,20 @@
-<!-- Tax Data Modal -->
+<!-- Tax Summary Modal -->
 <div class="modal fade" id="taxDataModal" tabindex="-1" aria-labelledby="taxDataModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header py-2" style="background:#695EEE;color:#fff;">
-                <h5 class="modal-title fs-6" id="taxDataModalLabel">Tax Data</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header py-2 position-relative" style="background:#695EEE;color:#fff;">
+                <h5 class="modal-title fs-6 w-100 text-center mb-0" id="taxDataModalLabel">Tax Summary</h5>
+                <button type="button" class="btn-close btn-close-white position-absolute end-0 me-2" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-3">
                 <div id="taxDataError" class="alert alert-warning py-2 px-3 small d-none mb-2"></div>
 
-                <div class="mb-2 small text-muted">
+                <div class="mb-2 small text-muted text-center">
                     Total Tax Collected (Since Inception):
                     <strong id="taxDataTotalCollected" class="text-dark">0.00</strong>
                 </div>
 
-                <h6 class="fw-bold text-primary mb-2 mt-3">Tax Summary (By Timeline)</h6>
+                <h6 class="fw-bold text-primary mb-2 mt-3 text-center">Tax Summary (By Timeline)</h6>
                 <div class="table-wrapper mb-4">
                     <table class="table table-sm table-hover table-bordered mb-0" id="taxTimelineTable" width="100%">
                         <thead class="table-light">
@@ -28,7 +28,7 @@
                     </table>
                 </div>
 
-                <h6 class="fw-bold text-primary mb-2">Tax Summary (By Year)</h6>
+                <h6 class="fw-bold text-primary mb-2 text-center">Tax Summary (By Year)</h6>
                 <div class="table-wrapper">
                     <table class="table table-sm table-hover table-bordered mb-0" id="taxYearTable" width="100%">
                         <thead class="table-light">
@@ -101,7 +101,7 @@
             autoWidth: false,
             data: [],
             language: {
-                emptyTable: 'No tax data found.'
+                emptyTable: 'No tax summary found.'
             },
             columns: [
                 serialColumn('#taxTimelineTable'),
@@ -133,8 +133,8 @@
             autoWidth: false,
             data: [],
             language: {
-                emptyTable: 'No yearly tax data found.',
-                zeroRecords: 'No yearly tax data found.'
+                emptyTable: 'No yearly tax summary found.',
+                zeroRecords: 'No yearly tax summary found.'
             },
             columns: [
                 serialColumn('#taxYearTable'),
@@ -182,11 +182,11 @@
                 year.order([[1, 'desc']]).draw();
 
                 if (timelineRows.length === 0 && yearRows.length === 0) {
-                    showTaxDataError('No tax data found for your account.');
+                    showTaxDataError('No tax summary found for your account.');
                 }
             },
             error: function (xhr) {
-                var message = 'Could not load tax data.';
+                var message = 'Could not load tax summary.';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     message = xhr.responseJSON.message;
                 }

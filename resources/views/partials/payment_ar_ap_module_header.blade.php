@@ -17,7 +17,7 @@
                 data-bs-toggle="modal"
                 data-bs-target="#taxDataModal"
                 onclick="if(typeof initTaxDataModal === 'function'){ initTaxDataModal(); }">
-                Tax Data
+                Tax Summary
             </button>
         </p>
         @endif
