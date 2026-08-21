@@ -23,19 +23,17 @@ class InvoiceMailAttachment
             'mime' => 'application/pdf',
         ]);
 
+        self::registerTempCleanup($tempPath);
         self::ensureAttachmentDisposition($mail, $fileName);
 
-        if (method_exists($mail, 'withSwiftMessage')) {
-            $mail->withSwiftMessage(static function ($message) use ($tempPath) {
-                register_shutdown_function(static function () use ($tempPath) {
-                    if (is_string($tempPath) && is_file($tempPath)) {
-                        @unlink($tempPath);
-                    }
-                });
-            });
-        }
-
         return $mail;
+    }
+
+    public static function fileName(object $data): string
+    {
+        $invoiceNo = preg_replace('/[^a-zA-Z0-9._-]+/', '-', (string) ($data->invoice_no ?? 'document'));
+
+        return 'Invoice-' . trim($invoiceNo, '-') . '.pdf';
     }
 
     private static function writeTempPdf(string $bytes): string
@@ -53,11 +51,30 @@ class InvoiceMailAttachment
         return $tempPath;
     }
 
-    public static function fileName(object $data): string
+    private static function registerTempCleanup(string $tempPath): void
     {
-        $invoiceNo = preg_replace('/[^a-zA-Z0-9._-]+/', '-', (string) ($data->invoice_no ?? 'document'));
+        register_shutdown_function(static function () use ($tempPath) {
+            if (is_string($tempPath) && is_file($tempPath)) {
+                @unlink($tempPath);
+            }
+        });
+    }
 
-        return 'Invoice-' . trim($invoiceNo, '-') . '.pdf';
+    private static function ensureAttachmentDisposition(Mailable $mail, string $fileName): void
+    {
+        if (method_exists($mail, 'withSwiftMessage')) {
+            $mail->withSwiftMessage(static function ($message) use ($fileName) {
+                BrandedMail::ensureAttachmentDispositionOnMessage($message, $fileName);
+            });
+
+            return;
+        }
+
+        if (method_exists($mail, 'withSymfonyMessage')) {
+            $mail->withSymfonyMessage(static function ($message) use ($fileName) {
+                BrandedMail::ensureAttachmentDispositionOnMessage($message, $fileName);
+            });
+        }
     }
 
     private static function pdfBytes(object $data): string
@@ -81,22 +98,5 @@ class InvoiceMailAttachment
         }
 
         return $bytes;
-    }
-
-    private static function ensureAttachmentDisposition(Mailable $mail, string $fileName): void
-    {
-        if (method_exists($mail, 'withSwiftMessage')) {
-            $mail->withSwiftMessage(static function ($message) use ($fileName) {
-                BrandedMail::ensureAttachmentDispositionOnMessage($message, $fileName);
-            });
-
-            return;
-        }
-
-        if (method_exists($mail, 'withSymfonyMessage')) {
-            $mail->withSymfonyMessage(static function ($message) use ($fileName) {
-                BrandedMail::ensureAttachmentDispositionOnMessage($message, $fileName);
-            });
-        }
     }
 }

@@ -29,19 +29,19 @@ class ReportMailAttachment
             'mime' => 'application/pdf',
         ]);
 
+        self::registerTempCleanup($tempPath);
         self::ensureAttachmentDisposition($mail, $fileName);
 
-        if (method_exists($mail, 'withSwiftMessage')) {
-            $mail->withSwiftMessage(static function () use ($tempPath) {
-                register_shutdown_function(static function () use ($tempPath) {
-                    if (is_string($tempPath) && is_file($tempPath)) {
-                        @unlink($tempPath);
-                    }
-                });
-            });
-        }
-
         return $mail;
+    }
+
+    private static function registerTempCleanup(string $tempPath): void
+    {
+        register_shutdown_function(static function () use ($tempPath) {
+            if (is_string($tempPath) && is_file($tempPath)) {
+                @unlink($tempPath);
+            }
+        });
     }
 
     private static function writeTempPdf(string $bytes): string

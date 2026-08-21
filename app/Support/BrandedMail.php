@@ -633,34 +633,7 @@ class BrandedMail
         }
 
         self::walkMessageParts($message, static function ($part) use ($fileName) {
-            if (!is_object($part) || !method_exists($part, 'setDisposition')) {
-                return;
-            }
-
-            $isPdfPart = false;
-
-            if (method_exists($part, 'getContentType')) {
-                $contentType = (string) $part->getContentType();
-                if (stripos($contentType, 'pdf') !== false) {
-                    $isPdfPart = true;
-                }
-            }
-
-            if (!$isPdfPart && method_exists($part, 'getFilename')) {
-                $name = (string) $part->getFilename();
-                if ($name !== '' && preg_match('/\.pdf$/i', $name)) {
-                    $isPdfPart = true;
-                }
-            }
-
-            if (!$isPdfPart) {
-                return;
-            }
-
-            $part->setDisposition('attachment');
-            if ($fileName !== null && method_exists($part, 'setFilename')) {
-                $part->setFilename($fileName);
-            }
+            self::markPdfPartAsAttachment($part, $fileName);
         });
 
         if (method_exists($message, 'getAttachments')) {
@@ -668,7 +641,101 @@ class BrandedMail
                 if (method_exists($attachment, 'asAttachment')) {
                     $attachment->asAttachment();
                 }
+
+                if ($fileName !== null && method_exists($attachment, 'filename')) {
+                    $attachment->filename($fileName);
+                }
             }
+        }
+    }
+
+    private static function markPdfPartAsAttachment($part, ?string $fileName): void
+    {
+        if (!is_object($part) || !self::isPdfMimePart($part)) {
+            return;
+        }
+
+        $resolvedName = $fileName;
+        if (($resolvedName === null || $resolvedName === '') && method_exists($part, 'getFilename')) {
+            $resolvedName = trim((string) $part->getFilename());
+        }
+
+        if (class_exists(\Swift_Mime_Attachment::class) && $part instanceof \Swift_Mime_Attachment) {
+            $part->setDisposition('attachment');
+            if ($resolvedName !== null && $resolvedName !== '') {
+                $part->setFilename($resolvedName);
+                self::setSwiftAttachmentHeaders($part, $resolvedName);
+            }
+
+            return;
+        }
+
+        if (method_exists($part, 'setDisposition')) {
+            $part->setDisposition('attachment');
+        }
+
+        if ($resolvedName !== null && $resolvedName !== '' && method_exists($part, 'setFilename')) {
+            $part->setFilename($resolvedName);
+        }
+    }
+
+    private static function isPdfMimePart($part): bool
+    {
+        if (class_exists(\Swift_Mime_Attachment::class) && $part instanceof \Swift_Mime_Attachment) {
+            return true;
+        }
+
+        if (method_exists($part, 'getContentType')) {
+            $contentType = (string) $part->getContentType();
+            if (stripos($contentType, 'pdf') !== false) {
+                return true;
+            }
+        }
+
+        if (method_exists($part, 'getFilename')) {
+            $name = (string) $part->getFilename();
+
+            return $name !== '' && preg_match('/\.pdf$/i', $name);
+        }
+
+        if (method_exists($part, 'getName')) {
+            $name = (string) $part->getName();
+
+            return $name !== '' && preg_match('/\.pdf$/i', $name);
+        }
+
+        return false;
+    }
+
+    private static function setSwiftAttachmentHeaders(\Swift_Mime_Attachment $part, string $fileName): void
+    {
+        if (!method_exists($part, 'getHeaders')) {
+            return;
+        }
+
+        $headers = $part->getHeaders();
+        if ($headers === null) {
+            return;
+        }
+
+        if (method_exists($headers, 'removeAll')) {
+            $headers->removeAll('Content-Disposition');
+        }
+
+        if (method_exists($headers, 'addParameterizedHeader')) {
+            $headers->addParameterizedHeader('Content-Disposition', 'attachment', [
+                'filename' => $fileName,
+            ]);
+        }
+
+        if (method_exists($headers, 'removeAll')) {
+            $headers->removeAll('Content-Type');
+        }
+
+        if (method_exists($headers, 'addParameterizedHeader')) {
+            $headers->addParameterizedHeader('Content-Type', 'application/pdf', [
+                'name' => $fileName,
+            ]);
         }
     }
 
