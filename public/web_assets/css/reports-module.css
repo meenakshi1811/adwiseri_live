@@ -108,6 +108,14 @@
     margin: 0 !important;
 }
 
+.reports-module .dt-buttons .btn.disabled,
+.reports-module .dt-buttons .btn.disabled:hover,
+.reports-module .dt-buttons button.dt-button.disabled {
+    opacity: 0.45;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
 @media (max-width: 767px) {
     .reports-module .reports-dt-toolbar {
         grid-template-columns: 1fr;

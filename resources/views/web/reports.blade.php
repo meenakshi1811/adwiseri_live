@@ -1458,7 +1458,41 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         }).on('mouseleave', '#paymentsAPTable1 .message-tooltip', function() {
             $(this).find('.tooltip-content').remove();
         });
+
+        $(document).on('draw.dt', '.reports-module table.dataTable', function () {
+            var api = $(this).DataTable();
+            var json = null;
+            if (api.ajax && typeof api.ajax.json === 'function') {
+                json = api.ajax.json();
+            }
+            syncReportExportButtons(api, json);
+        });
     });
+
+    function syncReportExportButtons(api, json) {
+        if (!api || typeof api.buttons !== 'function') {
+            return;
+        }
+
+        var buttons = api.buttons();
+        var recordCount = 0;
+
+        if (json && json.recordsFiltered !== undefined && json.recordsFiltered !== null) {
+            recordCount = parseInt(json.recordsFiltered, 10) || 0;
+        } else if (json && json.recordsTotal !== undefined && json.recordsTotal !== null) {
+            recordCount = parseInt(json.recordsTotal, 10) || 0;
+        } else if (json && Array.isArray(json.data)) {
+            recordCount = json.data.length;
+        } else {
+            recordCount = api.rows({ filter: 'applied' }).count();
+        }
+
+        if (recordCount === 0) {
+            buttons.disable();
+        } else {
+            buttons.enable();
+        }
+    }
 
     var dataTable1 = false;
     var clientTable1 = false;
@@ -1666,14 +1700,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Clients (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var rowCount = dataTable.data().count(); // Get total number of rows
-                var buttons = dataTable.buttons();
-
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             columns: [{
                     data: 'DT_RowIndex', // Use DT_RowIndex to display the index column
@@ -1961,14 +1988,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Clients (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var rowCount = dataTable.data().count(); // Get total number of rows
-                var buttons = dataTable.buttons();
-
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             columns: [{
                     data: 'DT_RowIndex', // Use DT_RowIndex to display the index column
@@ -2163,16 +2183,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Clients (' + text + '  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             dataSrc: function(json) {
                 console.log("AJAX Response:", json); // ✅ Debug the response
@@ -2546,16 +2557,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Applications  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             columns: [{
                     data: 'DT_RowIndex',
@@ -2943,16 +2945,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Applications  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             columns: columns,
             order: orders,
@@ -3081,16 +3074,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Users  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             columns: [{
                     data: 'DT_RowIndex',
@@ -3265,16 +3249,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart :  Users  ' + selectedText + '  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             order: orders, //
             // order: [
@@ -3598,16 +3573,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Documents   (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             columns: [{
                     data: 'DT_RowIndex',
@@ -3940,16 +3906,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Documents  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             columns: columns,
             order: orders
@@ -4078,16 +4035,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Communications   (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             columns: [{
                     data: 'DT_RowIndex',
@@ -4250,16 +4198,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Communications  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
 
             order: [
@@ -4526,16 +4465,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Invoices  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             columns: [{
                     data: 'DT_RowIndex',
@@ -4721,16 +4651,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             emptyTable: 'No Data found for Chart : Invoices  (' + currentDate + ')',
         },
         initComplete: function(settings, json) {
-            var api = this.api();
-            var rowCount = api.rows().count(); // Get total number of rows
-            var buttons = api.buttons();
-
-            // Disable buttons if no records
-            if (rowCount === 0) {
-                buttons.disable(); // Disable all buttons if no records
-            } else {
-                buttons.enable(); // Enable buttons if records exist
-            }
+            syncReportExportButtons(this.api(), json);
         },
         columns: [{
                 data: 'DT_RowIndex',
@@ -4917,16 +4838,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Invoices  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
 
 
@@ -5196,16 +5108,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Invoices  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
 
 
@@ -5482,16 +5385,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Payments (AR) (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             columns: [
                 // { data: 'DT_RowIndex', name: 'DT_RowIndex', title: '#', orderable: false, searchable: false },
@@ -5687,16 +5581,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Payments (AR)  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             columns: columns,
             order: [
@@ -6068,16 +5953,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Payments (AP)   (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             columns: [
                 // { data: 'DT_RowIndex', name: 'DT_RowIndex', title: '#', orderable: false, searchable: false },
@@ -6273,16 +6149,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Payments (AP)  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             columns: columns,
             order: [
@@ -6642,16 +6509,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Referrals  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             columns: [{
                     data: 'id',
@@ -6938,16 +6796,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Referrals  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             columns: columns,
             order: order
@@ -7085,16 +6934,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Wallet  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             columns: [{
                     data: 'DT_RowIndex',
@@ -7269,16 +7109,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart :  Wallet ' + selectedText + ' (' + currentDate + ')'
             },
             initComplete: function(settings, json) {
-                var api = this.api();
-                var rowCount = api.rows().count(); // Get total number of rows
-                var buttons = api.buttons();
-
-                // Disable buttons if no records
-                if (rowCount === 0) {
-                    buttons.disable(); // Disable all buttons if no records
-                } else {
-                    buttons.enable(); // Enable buttons if records exist
-                }
+                syncReportExportButtons(this.api(), json);
             },
             order: order
         };
