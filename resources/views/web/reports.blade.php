@@ -1459,17 +1459,23 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             $(this).find('.tooltip-content').remove();
         });
 
-        $(document).on('draw.dt', '.reports-module table.dataTable', function () {
+        $(document).on('preXhr.dt', '.reports-module table.dataTable', function () {
             var api = $(this).DataTable();
-            var json = null;
-            if (api.ajax && typeof api.ajax.json === 'function') {
-                json = api.ajax.json();
+            if (api && typeof api.buttons === 'function') {
+                api.buttons().disable();
             }
-            syncReportExportButtons(api, json);
+        });
+
+        $(document).on('xhr.dt', '.reports-module table.dataTable', function (e, settings) {
+            syncReportExportButtons(new $.fn.dataTable.Api(settings));
+        });
+
+        $(document).on('draw.dt', '.reports-module table.dataTable', function () {
+            syncReportExportButtons($(this).DataTable());
         });
     });
 
-    function syncReportExportButtons(api, json) {
+    function syncReportExportButtons(api) {
         if (!api || typeof api.buttons !== 'function') {
             return;
         }
@@ -1477,14 +1483,15 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         var buttons = api.buttons();
         var recordCount = 0;
 
-        if (json && json.recordsFiltered !== undefined && json.recordsFiltered !== null) {
-            recordCount = parseInt(json.recordsFiltered, 10) || 0;
-        } else if (json && json.recordsTotal !== undefined && json.recordsTotal !== null) {
-            recordCount = parseInt(json.recordsTotal, 10) || 0;
-        } else if (json && Array.isArray(json.data)) {
-            recordCount = json.data.length;
-        } else {
-            recordCount = api.rows({ filter: 'applied' }).count();
+        if (typeof api.page === 'function') {
+            var pageInfo = api.page.info();
+            if (pageInfo && pageInfo.recordsDisplay !== undefined && pageInfo.recordsDisplay !== null) {
+                recordCount = parseInt(pageInfo.recordsDisplay, 10) || 0;
+            }
+        }
+
+        if (recordCount === 0 && typeof api.rows === 'function') {
+            recordCount = api.rows({ filter: 'applied', page: 'all' }).count();
         }
 
         if (recordCount === 0) {
@@ -1700,7 +1707,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Clients (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             columns: [{
                     data: 'DT_RowIndex', // Use DT_RowIndex to display the index column
@@ -1988,7 +1995,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Clients (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             columns: [{
                     data: 'DT_RowIndex', // Use DT_RowIndex to display the index column
@@ -2183,7 +2190,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Clients (' + text + '  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             dataSrc: function(json) {
                 console.log("AJAX Response:", json); // ✅ Debug the response
@@ -2557,7 +2564,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Applications  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             columns: [{
                     data: 'DT_RowIndex',
@@ -2945,7 +2952,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Applications  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             columns: columns,
             order: orders,
@@ -3074,7 +3081,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Users  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             columns: [{
                     data: 'DT_RowIndex',
@@ -3249,7 +3256,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart :  Users  ' + selectedText + '  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             order: orders, //
             // order: [
@@ -3573,7 +3580,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Documents   (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             columns: [{
                     data: 'DT_RowIndex',
@@ -3906,7 +3913,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Documents  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             columns: columns,
             order: orders
@@ -4035,7 +4042,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Communications   (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             columns: [{
                     data: 'DT_RowIndex',
@@ -4198,7 +4205,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Communications  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
 
             order: [
@@ -4465,7 +4472,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Invoices  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             columns: [{
                     data: 'DT_RowIndex',
@@ -4651,7 +4658,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             emptyTable: 'No Data found for Chart : Invoices  (' + currentDate + ')',
         },
         initComplete: function(settings, json) {
-            syncReportExportButtons(this.api(), json);
+            syncReportExportButtons(this.api());
         },
         columns: [{
                 data: 'DT_RowIndex',
@@ -4838,7 +4845,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Invoices  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
 
 
@@ -5108,7 +5115,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Invoices  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
 
 
@@ -5385,7 +5392,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Payments (AR) (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             columns: [
                 // { data: 'DT_RowIndex', name: 'DT_RowIndex', title: '#', orderable: false, searchable: false },
@@ -5581,7 +5588,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Payments (AR)  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             columns: columns,
             order: [
@@ -5953,7 +5960,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Payments (AP)   (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             columns: [
                 // { data: 'DT_RowIndex', name: 'DT_RowIndex', title: '#', orderable: false, searchable: false },
@@ -6149,7 +6156,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Payments (AP)  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             columns: columns,
             order: [
@@ -6509,7 +6516,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Referrals  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             columns: [{
                     data: 'id',
@@ -6796,7 +6803,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Referrals  ' + selectedText + ' (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             columns: columns,
             order: order
@@ -6934,7 +6941,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart : Wallet  (' + currentDate + ')',
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             columns: [{
                     data: 'DT_RowIndex',
@@ -7109,7 +7116,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 emptyTable: 'No Data found for Chart :  Wallet ' + selectedText + ' (' + currentDate + ')'
             },
             initComplete: function(settings, json) {
-                syncReportExportButtons(this.api(), json);
+                syncReportExportButtons(this.api());
             },
             order: order
         };
