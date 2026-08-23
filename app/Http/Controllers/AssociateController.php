@@ -902,12 +902,13 @@ class AssociateController extends Controller
         $statusOptions = self::STATUS_OPTIONS;
         [, , $invoiceableAssociateIds] = $this->buildInvoiceableLinkMaps($subscriber);
         $canCreateInvoice = count($invoiceableAssociateIds) > 0;
+        $hasClients = \App\Models\Clients::where('subscriber_id', $subscriber->id)->exists();
         $invoiceStatusFilters = TableFilterCountService::countBy(
             $invoices,
             fn ($invoice) => TableFilterCountService::invoiceStatusLabel($invoice->status)
         );
 
-        return view('web.associates.invoices', compact('user', 'invoices', 'associates', 'statusOptions', 'page', 'canCreateInvoice', 'invoiceStatusFilters'));
+        return view('web.associates.invoices', compact('user', 'invoices', 'associates', 'statusOptions', 'page', 'canCreateInvoice', 'hasClients', 'invoiceStatusFilters'));
     }
 
     public function create_invoice()
@@ -934,6 +935,9 @@ class AssociateController extends Controller
             $associateApplicationMap
         );
         $clients = $this->clientsForIds($subscriber, $invoiceableClientIds);
+        if ($clients->isEmpty()) {
+            return redirect()->route('associate_invoices')->with('noclient', true);
+        }
         $applications = $this->applicationsForIds($subscriber, $invoiceableApplicationIds);
         $invoicedApplicationCombinations = $this->invoicedClientApplicationCombinations($subscriber);
         $businessInvoiceDataMap = $this->businessInvoiceDataMap($subscriber);

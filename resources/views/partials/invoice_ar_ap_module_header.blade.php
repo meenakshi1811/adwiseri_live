@@ -3,14 +3,20 @@
     $arTabLabel = 'Invoices (AR)';
     $apTabLabel = 'Invoices (AP)';
     $pageTitle = $activeTab === 'ap' ? 'Invoices (AP)' : 'Invoices (AR)';
+    $hasClients = $hasClients ?? (count($clients ?? []) > 0);
+    $canWriteInvoices = ($invoice_roles->write_only ?? 0) == 1 || ($invoice_roles->read_write_only ?? 0) == 1;
 @endphp
 
 <div class="client-btn d-flex justify-content-between align-items-center mt-3 mb-3">
     <form class="form-inline d-flex justify-content-between align-items-center w-100">
         <h3 class="text-primary text-center flex-grow-1 text-center m-0">{{ $pageTitle }}</h3>
         <p class="d-flex gap-2 mb-0 module-header-actions">
-            <a @if($invoice_roles->write_only == 1 or $invoice_roles->read_write_only == 1) href="{{ route('new_invoice') }}" @else href="#" @endif class="m-0">Add Invoices (AR) Record</a>
-            <a @if($invoice_roles->write_only == 1 or $invoice_roles->read_write_only == 1) href="{{ route('new_invoice_ap') }}" @else href="#" @endif class="m-0">Add Invoices (AP) Record</a>
+            @if($hasClients)
+                <a @if($canWriteInvoices) href="{{ route('new_invoice') }}" @else href="#" @endif class="m-0">Add Invoices (AR) Record</a>
+            @else
+                <a @if($canWriteInvoices) href="javascript:void(0)" onclick="showNoClientAlert(); return false;" @else href="#" @endif class="m-0">Add Invoices (AR) Record</a>
+            @endif
+            <a @if($canWriteInvoices) href="{{ route('new_invoice_ap') }}" @else href="#" @endif class="m-0">Add Invoices (AP) Record</a>
         </p>
     </form>
 </div>

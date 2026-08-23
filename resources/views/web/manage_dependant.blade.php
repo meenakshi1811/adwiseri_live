@@ -483,7 +483,10 @@ function validateInput(input) {
     //     };
     // }
     btnDependent.onclick = function () {
-        console.log("Button Clicked!"); // Debugging
+        @if(count($clients) === 0)
+        showNoClientAlert();
+        return;
+        @endif
         modalAddDependent.style.display = "block";
         fetchClients();
     };

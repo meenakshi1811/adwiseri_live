@@ -8,7 +8,11 @@
                 <h3 class="text-primary text-center flex-grow-1 m-0">Associate Invoices</h3>
                 <p class="m-0">
                     @if($canCreateInvoice ?? true)
+                        @if(($hasClients ?? true))
                         <a href="{{ route('create_associate_invoice') }}">Create Invoice</a>
+                        @else
+                        <a href="javascript:void(0)" onclick="showNoClientAlert(); return false;">Create Invoice</a>
+                        @endif
                     @else
                         <a href="#"
                            class="text-muted"

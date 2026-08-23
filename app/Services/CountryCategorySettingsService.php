@@ -14,6 +14,17 @@ use Illuminate\Support\Facades\Schema;
 
 class CountryCategorySettingsService
 {
+    public const DEFAULT_VISA_CATEGORIES = [
+        'Visit',
+        'Training',
+        'Study',
+        'Work',
+        'Dependent',
+        'PR',
+        'Business',
+        'Investor',
+    ];
+
     public const DOCUMENT_TYPES = [
         'Photo',
         'Passport',
@@ -413,7 +424,13 @@ class CountryCategorySettingsService
             return collect($setting->visa_categories)->filter()->unique()->values();
         }
 
-        return $this->getDefaultVisaCategoryNames($subscriber);
+        $defaults = $this->getDefaultVisaCategoryNames($subscriber);
+
+        if ($defaults->isNotEmpty()) {
+            return $defaults;
+        }
+
+        return collect(self::DEFAULT_VISA_CATEGORIES);
     }
 
     public function hasSavedCcSelection(User $subscriber): bool

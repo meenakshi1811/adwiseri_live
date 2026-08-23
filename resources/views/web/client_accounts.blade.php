@@ -38,7 +38,11 @@ $canAddEntry = $client_roles && ($client_roles->write_only == 1 || $client_roles
                 <a href="javascript:void(0)" id="downloadClientAccountsPdf" class="m-0 client-accounts-pdf-link disabled" aria-disabled="true">Download PDF</a>
                 @endif
                 @if($canAddEntry)
-                <a href="{{ route('add_client_account') }}" class="m-0">Add Client Account Record</a>
+                    @if(($clientCount ?? 0) > 0)
+                    <a href="{{ route('add_client_account') }}" class="m-0">Add Client Account Record</a>
+                    @else
+                    <a href="javascript:void(0)" onclick="showNoClientAlert(); return false;" class="m-0">Add Client Account Record</a>
+                    @endif
                 @endif
             </div>
         </div>

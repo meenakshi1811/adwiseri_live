@@ -3113,6 +3113,9 @@ class WebController extends Controller
         $ccService = app(CountryCategorySettingsService::class);
         $client_jobs = $ccService->getClientJobsForSubscriber($subscriber);
         $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
+        if ($redirect = \App\Support\NoClientGuard::redirectIfNoClients($user)) {
+            return $redirect;
+        }
         $countries = $ccService->resolveCountriesForDropdown($subscriber);
         $visaCategories = $ccService->resolveVisaCategoryNames($subscriber);
         $page = "applications";
@@ -4987,7 +4990,7 @@ class WebController extends Controller
         }
         $clients = Clients::where('subscriber_id', '=', $subscriber->id)->orderBy('name')->get();
         if (count($clients) < 1) {
-            return back()->with('noclient', 'No client found.');
+            return back()->with('noclient', true);
         }
         $ccService = app(CountryCategorySettingsService::class);
         $countries = $ccService->resolveCountriesForDropdown($subscriber);
@@ -5603,7 +5606,7 @@ class WebController extends Controller
         $clients = Clients::where('subscriber_id', $subscriber->id)->orderBy('name')->get();
 
         if (count($clients) < 1) {
-            return back()->with('noclient', 'No client found.');
+            return back()->with('noclient', true);
         }
 
         $selectedClientId = $this->resolveInvoiceClientId($invoice, $subscriber);

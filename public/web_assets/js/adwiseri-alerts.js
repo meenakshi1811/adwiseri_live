@@ -75,6 +75,22 @@
                 text: text || '',
                 customClass: OOPS_CLASS
             }, extra || {}));
+        },
+
+        noClient: function () {
+            return fire({
+                icon: 'warning',
+                title: 'Oops!',
+                text: 'There is no client added yet. Please add client to use this feature.',
+                customClass: OOPS_CLASS,
+                confirmButtonText: 'Ok',
+                showCancelButton: true,
+                cancelButtonText: 'Close'
+            });
         }
+    };
+
+    window.showNoClientAlert = function () {
+        return window.AdwiseriAlert.noClient();
     };
 })(window);

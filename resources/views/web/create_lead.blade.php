@@ -203,7 +203,7 @@ $selectedLeadStatus = old('lead_status', $enquiry->lead_status ?? 'Open');
     $visaCategoryOptions = collect($visaCategories ?? [])->filter()->values();
     $selectedVisaCategory = old('visa_category', $enquiry->visa_category ?? '');
     if ($visaCategoryOptions->isEmpty()) {
-        $visaCategoryOptions = collect(['Visit', 'Training', 'Study', 'Work', 'Dependent', 'PR', 'Business', 'Investor']);
+        $visaCategoryOptions = collect(\App\Services\CountryCategorySettingsService::DEFAULT_VISA_CATEGORIES);
     }
     if ($selectedVisaCategory !== '' && !$visaCategoryOptions->contains($selectedVisaCategory)) {
         $visaCategoryOptions->push($selectedVisaCategory);

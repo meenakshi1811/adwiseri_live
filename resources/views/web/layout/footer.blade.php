@@ -334,6 +334,14 @@ $('#star-rating .star').on('click', function() {
     });
 });
 
+  @if (session()->has('noclient'))
+  document.addEventListener('DOMContentLoaded', function () {
+    if (typeof showNoClientAlert === 'function') {
+      showNoClientAlert();
+    }
+  });
+  @endif
+
   </script>
 
 

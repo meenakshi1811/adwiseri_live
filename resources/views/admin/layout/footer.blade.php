@@ -132,6 +132,15 @@
   });
   </script>
 
+  @if (session()->has('noclient'))
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (typeof showNoClientAlert === 'function') {
+      showNoClientAlert();
+    }
+  });
+  </script>
+  @endif
 
 @stack('scripts')
 

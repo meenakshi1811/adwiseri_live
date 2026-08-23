@@ -16,7 +16,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 @endphp
     <div class="col-lg-10 column-client">
         <div class="client-dashboard">
-            @include('partials.invoice_ar_ap_module_header', ['activeTab' => 'ar', 'invoice_roles' => $invoice_roles])
+            @include('partials.invoice_ar_ap_module_header', ['activeTab' => 'ar', 'invoice_roles' => $invoice_roles, 'clients' => $clients])
             @include('partials.table_filter_toolbar', [
                 'filterItems' => $invoiceStatusFilters ?? [],
                 'tableId' => 'clientTable',
@@ -187,15 +187,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 icon: 'success',
                 title: 'Success',
                 text: 'Invoice deleted successfully.'
-            })
-        </script>
-    @endif
-    @if (session()->has('noclient'))
-        <script>
-            Swal.fire({
-                icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
-                title: 'Oops!',
-                text: 'No clients found.'
             })
         </script>
     @endif

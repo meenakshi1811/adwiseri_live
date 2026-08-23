@@ -17,7 +17,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
         <div class="col-lg-10 column-client">
             <div class="client-dashboard">
-                @include('partials.payment_ar_ap_module_header', ['activeTab' => 'ap'])
+                @include('partials.payment_ar_ap_module_header', ['activeTab' => 'ap', 'clients' => $clients])
 
                 @if(count($paymentAP) != 0)
                 @include('partials.table_filter_toolbar', [

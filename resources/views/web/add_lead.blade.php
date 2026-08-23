@@ -135,7 +135,13 @@
                 <div class="col-md-8 p-1">
                     <select name="visa_category" class="form-control form-select @error('visa_category') is-invalid @enderror" required>
                         <option value="">Select Visa Category</option>
-                        @foreach($visaCategories as $category)
+                        @php
+                            $visaCategoryOptions = collect($visaCategories ?? [])->filter()->values();
+                            if ($visaCategoryOptions->isEmpty()) {
+                                $visaCategoryOptions = collect(\App\Services\CountryCategorySettingsService::DEFAULT_VISA_CATEGORIES);
+                            }
+                        @endphp
+                        @foreach($visaCategoryOptions as $category)
                             <option value="{{ $category }}" {{ old('visa_category') === $category ? 'selected' : '' }}>{{ $category }}</option>
                         @endforeach
                     </select>

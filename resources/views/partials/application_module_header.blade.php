@@ -20,17 +20,23 @@
         @if($hasClients)
             <a @if($canWrite) href="{{ route('add_application') }}" @else href="#" @endif class="m-0">Add Application</a>
         @else
-            <a @if($canWrite) href="{{ route('add_client') }}" @else href="#" @endif class="m-0">Add Application</a>
+            <a @if($canWrite) href="javascript:void(0)" onclick="showNoClientAlert(); return false;" @else href="#" @endif class="m-0">Add Application</a>
         @endif
 
         @if($activeTab === 'documents')
-            @if($hasApplications)
+            @if(!$hasClients)
+                <a href="javascript:void(0)" @if($canWrite) onclick="showNoClientAlert(); return false;" @endif class="m-0">Add Document</a>
+            @elseif($hasApplications)
                 <a href="javascript:void(0)" @if($canWrite) id="add_new" @endif class="m-0">Add Document</a>
             @else
                 <a href="javascript:void(0)" @if($canWrite) id="add_new_zero" @endif class="m-0">Add Document</a>
             @endif
         @else
-            <a href="{{ route('client_documents') }}" class="m-0">Add Document</a>
+            @if($hasClients)
+                <a href="{{ route('client_documents') }}" class="m-0">Add Document</a>
+            @else
+                <a href="javascript:void(0)" onclick="showNoClientAlert(); return false;" class="m-0">Add Document</a>
+            @endif
         @endif
 
         @if($activeTab === 'management')

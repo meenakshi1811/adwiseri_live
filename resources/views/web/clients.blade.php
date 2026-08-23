@@ -93,8 +93,13 @@
 
                     {{-- <a href="{{ route('clients_export') }}" class="m-0">Export</a> --}}
                     <a href="{{ route('new_client') }}" class="m-0">Add Client</a>
+                    @if(count($clients ?? []) > 0)
                     <a href="javascript:void(0)" id="AddApplication" class="btn btn-primary">Add Application</a>
                     <a href="javascript:void(0)" id="AddDependent" class="m-0">Add Dependent</a>
+                    @else
+                    <a href="javascript:void(0)" onclick="showNoClientAlert(); return false;" class="btn btn-primary">Add Application</a>
+                    <a href="javascript:void(0)" onclick="showNoClientAlert(); return false;" class="m-0">Add Dependent</a>
+                    @endif
                 </p>
 
 

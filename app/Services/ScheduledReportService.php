@@ -326,7 +326,7 @@ class ScheduledReportService
         $timezone = $this->resolveTimezone($setting);
         $now = now($timezone);
 
-        if ((int) $now->format('G') !== 8 || (int) $now->format('i') !== 0) {
+        if ((int) $now->format('G') !== 8) {
             return false;
         }
 

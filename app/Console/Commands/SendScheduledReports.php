@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\ReportSetting;
 use App\Services\ScheduledReportService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class SendScheduledReports extends Command
 {
@@ -22,7 +23,9 @@ class SendScheduledReports extends Command
             }
 
             $result = $scheduledReportService->dispatchForSetting($setting, 'scheduled');
-            $this->info('user_id ' . $setting->user_id . ': ' . $result['message']);
+            $message = 'user_id ' . $setting->user_id . ': ' . $result['message'];
+            $this->info($message);
+            Log::info('[scheduled-reports] ' . $message);
         }
 
         return Command::SUCCESS;

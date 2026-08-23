@@ -99,12 +99,15 @@ class PaymentController extends Controller
         $paymentAR = $paymentAR->sortByDesc('created_at')->values();
 
         $page = "payments";
+        $clients = $user->user_type === 'Subscriber'
+            ? Clients::where('subscriber_id', $subscriber->id)->get()
+            : Clients::where('user_id', $user->id)->get();
         $paymentModeFilters = TableFilterCountService::countBy(
             $paymentAR,
             fn ($payment) => $payment->payment_mode
         );
 
-        return view('web.payments', compact('user', 'page', 'paymentAR', 'paymentModeFilters'));
+        return view('web.payments', compact('user', 'page', 'paymentAR', 'paymentModeFilters', 'clients'));
     }
 
 
@@ -130,12 +133,15 @@ class PaymentController extends Controller
         $paymentAP = $paymentAP->sortByDesc('created_at')->values();
 
         $page = "payments";
+        $clients = $user->user_type === 'Subscriber'
+            ? Clients::where('subscriber_id', $subscriber->id)->get()
+            : Clients::where('user_id', $user->id)->get();
         $paymentModeFilters = TableFilterCountService::countBy(
             $paymentAP,
             fn ($payment) => $payment->payment_mode
         );
 
-        return view('web.payments_made', compact('user', 'page', 'paymentAP', 'paymentModeFilters'));
+        return view('web.payments_made', compact('user', 'page', 'paymentAP', 'paymentModeFilters', 'clients'));
     }
 
     /**
@@ -205,6 +211,10 @@ class PaymentController extends Controller
         $user = auth()->user();
 
         if ($user) {
+            if ($redirect = \App\Support\NoClientGuard::redirectIfNoClients($user)) {
+                return $redirect;
+            }
+
             if ($user->user_type == "Subscriber") {
                 $subscriber = $user;
             } else {
@@ -335,6 +345,10 @@ class PaymentController extends Controller
     public function add_ap_payments(){
         $user = Auth::user();
         if ($user) {
+            if ($redirect = \App\Support\NoClientGuard::redirectIfNoClients($user)) {
+                return $redirect;
+            }
+
             if ($user->user_type == "Subscriber") {
                 $subscriber = $user;
                 $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();

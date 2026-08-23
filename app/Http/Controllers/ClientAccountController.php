@@ -281,6 +281,9 @@ class ClientAccountController extends Controller
         $filterData = $this->buildAccountFilterData($subscriberId);
         $clientsWithAccounts = $filterData['clients'];
         $applicationsByClient = $filterData['applicationsByClient'];
+        $clientCount = $user->user_type === 'Subscriber'
+            ? Clients::where('subscriber_id', $subscriberId)->count()
+            : Clients::where('user_id', $user->id)->count();
         $clientRoles = UserRoles::where('user_id', $user->id)->where('module', 'Clients')->first();
         $page = 'clients';
 
@@ -290,7 +293,8 @@ class ClientAccountController extends Controller
             'clientsWithAccounts',
             'applicationsByClient',
             'page',
-            'clientRoles'
+            'clientRoles',
+            'clientCount'
         ));
     }
 
@@ -374,6 +378,9 @@ class ClientAccountController extends Controller
         }
 
         $clients = $this->resolveClients($user);
+        if ($redirect = \App\Support\NoClientGuard::redirectIfNoClients($user)) {
+            return $redirect;
+        }
         $creditDescriptionTypes = ClientAccount::CREDIT_DESCRIPTION_TYPES;
         $debitDescriptionTypes = ClientAccount::debitDescriptionTypes();
         $page = 'clients';

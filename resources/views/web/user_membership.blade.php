@@ -52,7 +52,13 @@ $effectiveLimits = $effectiveLimits ?? app(\App\Services\OfferBenefitService::cl
             <div class="client-dashboard subscription-module">
                 <div class="client-btn subscription-module-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3 px-2">
                     <div class="subscription-module-title-wrap">
-                        <h3 class="text-primary m-0">Subscription :: {{ $myplan->plan_name }} Plan</h3>
+                        <h3 class="text-primary m-0">
+                            <span class="subscription-detail-row subscription-module-title-row">
+                                <span class="subscription-detail-label">Subscription</span>
+                                <span class="subscription-detail-separator">::</span>
+                                <span class="subscription-detail-value">{{ $myplan->plan_name }} Plan</span>
+                            </span>
+                        </h3>
                         <span class="subscription-expiry-line p-0 m-0">@if((new DateTime("now")) > (new DateTime($subscriber->membership_expiry_date))) Plan Expired @else Expires @endif on : {{ $formattedHeaderExpiry }}</span>
                     </div>
                     <div class="subscription-header-actions d-flex flex-wrap align-items-center justify-content-end gap-2">
@@ -127,42 +133,50 @@ $effectiveLimits = $effectiveLimits ?? app(\App\Services\OfferBenefitService::cl
                                 <div class="subscription-detail-list">
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">Plan Name</span>
+                                        <span class="subscription-detail-separator">:</span>
                                         <span class="subscription-detail-value">{{ $myplan->plan_name }}</span>
                                     </div>
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">Client Limit</span>
+                                        <span class="subscription-detail-separator">:</span>
                                         <span class="subscription-detail-value">
                                             @include('partials.subscription_limit_display', ['display' => $effectiveLimits['client_limit_display']])
                                         </span>
                                     </div>
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">User License</span>
+                                        <span class="subscription-detail-separator">:</span>
                                         <span class="subscription-detail-value">
                                             @include('partials.subscription_limit_display', ['display' => $effectiveLimits['user_limit_display']])
                                         </span>
                                     </div>
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">Associates Limit</span>
+                                        <span class="subscription-detail-separator">:</span>
                                         <span class="subscription-detail-value">
                                             @include('partials.subscription_limit_display', ['display' => $effectiveLimits['associate_limit_display']])
                                         </span>
                                     </div>
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">Messages</span>
+                                        <span class="subscription-detail-separator">:</span>
                                         <span class="subscription-detail-value">
                                             @include('partials.subscription_limit_display', ['display' => $effectiveLimits['message_limit_display']])
                                         </span>
                                     </div>
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">Invoicing</span>
+                                        <span class="subscription-detail-separator">:</span>
                                         <span class="subscription-detail-value">{{ $myplan->invoicing }}</span>
                                     </div>
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">Reports</span>
+                                        <span class="subscription-detail-separator">:</span>
                                         <span class="subscription-detail-value">{{ $myplan->reports }}</span>
                                     </div>
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">Analytics</span>
+                                        <span class="subscription-detail-separator">:</span>
                                         <span class="subscription-detail-value">
                                             @include('partials.subscription_limit_display', ['display' => $effectiveLimits['analytics_display']])
                                         </span>
@@ -170,37 +184,45 @@ $effectiveLimits = $effectiveLimits ?? app(\App\Services\OfferBenefitService::cl
                                     @if(!empty($effectiveLimits['active_offer_labels']) && !empty($effectiveLimits['subscription_active']))
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">Active Offers</span>
+                                        <span class="subscription-detail-separator">:</span>
                                         <span class="subscription-detail-value">{{ implode(', ', $effectiveLimits['active_offer_labels']) }}</span>
                                     </div>
                                     @endif
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">Price (USD)</span>
+                                        <span class="subscription-detail-separator">:</span>
                                         <span class="subscription-detail-value">{{ $plan_amount }}</span>
                                     </div>
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">Validity</span>
+                                        <span class="subscription-detail-separator">:</span>
                                         <span class="subscription-detail-value">
                                             @include('partials.subscription_limit_display', ['display' => $subscriptionTerm['validity_display']])
                                         </span>
                                     </div>
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">Multi-Device Support</span>
+                                        <span class="subscription-detail-separator">:</span>
                                         <span class="subscription-detail-value">{{ $myplan->multi_device_support }}</span>
                                     </div>
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">Secure Environment</span>
+                                        <span class="subscription-detail-separator">:</span>
                                         <span class="subscription-detail-value">{{ $myplan->secure_environment }}</span>
                                     </div>
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">Multi-Currency Support</span>
+                                        <span class="subscription-detail-separator">:</span>
                                         <span class="subscription-detail-value">{{ $myplan->multi_currency_support }}</span>
                                     </div>
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">Subscription Start Date</span>
+                                        <span class="subscription-detail-separator">:</span>
                                         <span class="subscription-detail-value">{{ $formattedSubscriptionStart }}</span>
                                     </div>
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">Subscription End Date</span>
+                                        <span class="subscription-detail-separator">:</span>
                                         <span class="subscription-detail-value">
                                             @include('partials.subscription_limit_display', ['display' => $subscriptionTerm['end_display']])
                                         </span>

@@ -3,6 +3,7 @@
     $arTabLabel = 'Payments (AR - Accounts Receivable)';
     $apTabLabel = 'Payments (AP - Accounts Payable)';
     $pageTitle = $activeTab === 'ap' ? 'Payments (AP)' : 'Payments (AR)';
+    $hasClients = $hasClients ?? (count($clients ?? []) > 0);
 @endphp
 
 <div class="client-btn d-flex justify-content-between align-items-center mt-3 mb-3">
@@ -10,8 +11,13 @@
         <h3 class="text-primary text-center flex-grow-1 text-center m-0">{{ $pageTitle }}</h3>
         @if(!$user->is_support)
         <p class="d-flex gap-2 mb-0 module-header-actions">
-            <a href="{{ route('add_ar_payments') }}" class="m-0">Add Payments (AR) Record</a>
-            <a href="{{ route('add_ap_payments') }}" class="m-0">Add Payments (AP) Record</a>
+            @if($hasClients)
+                <a href="{{ route('add_ar_payments') }}" class="m-0">Add Payments (AR) Record</a>
+                <a href="{{ route('add_ap_payments') }}" class="m-0">Add Payments (AP) Record</a>
+            @else
+                <a href="javascript:void(0)" onclick="showNoClientAlert(); return false;" class="m-0">Add Payments (AR) Record</a>
+                <a href="javascript:void(0)" onclick="showNoClientAlert(); return false;" class="m-0">Add Payments (AP) Record</a>
+            @endif
             <button type="button"
                 class="m-0 tax-data-header-btn"
                 data-bs-toggle="modal"
