@@ -88,7 +88,7 @@ class MySettingsPageService
             'emailTemplateAudience' => strtolower($user->user_type) === 'admin' ? 'admin' : 'subscriber',
             'subscriber' => $subscriber,
             'allCountries' => $this->safe(fn () => Countries::orderBy('country_name', 'asc')->get(), collect()),
-            'allVisaCategories' => $this->safe(fn () => $ccService->getAllAvailableVisaCategoryNames($subscriber), collect()),
+            'allVisaCategories' => $this->safe(fn () => $ccService->getSelectableVisaCategoryNames($subscriber), collect()),
             'defaultCountries' => $this->safe(fn () => $ccService->getDefaultCountryNames($subscriber), collect()),
             'defaultVisaCategories' => $this->safe(fn () => $ccService->getDefaultVisaCategoryNames($subscriber), collect()),
             'selectedCountries' => $this->safe(fn () => $ccService->resolveCountryNames($subscriber), collect()),

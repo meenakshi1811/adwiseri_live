@@ -378,6 +378,43 @@ class CountryCategorySettingsService
         return $this->queryClientJobs($subscriber)->pluck('job')->filter()->unique()->values();
     }
 
+    /**
+     * Visa categories shown in Settings → Countries & Categories picker.
+     * New subscribers may have no client_jobs rows yet; include standard defaults
+     * plus any categories already saved in their settings.
+     */
+    public function getSelectableVisaCategoryNames(User $subscriber): Collection
+    {
+        if ($this->isTravelAgentSubscriber($subscriber)) {
+            return collect(self::TRAVEL_AGENT_APPLICATION_TYPES);
+        }
+
+        $fromJobs = $this->getAllAvailableVisaCategoryNames($subscriber);
+        $candidates = $fromJobs->isNotEmpty()
+            ? $fromJobs
+            : collect(self::DEFAULT_VISA_CATEGORIES);
+
+        if (strcasecmp((string) $subscriber->sub_category, 'Other') === 0) {
+            $other = trim((string) ($subscriber->other_subcategory ?? ''));
+
+            if ($other !== '') {
+                $candidates = $candidates->prepend($other);
+            }
+        }
+
+        $setting = $this->getSetting($subscriber);
+        $saved = ($setting && is_array($setting->visa_categories))
+            ? collect($setting->visa_categories)
+            : collect();
+
+        return $candidates
+            ->merge($saved)
+            ->map(fn ($value) => trim((string) $value))
+            ->filter()
+            ->unique()
+            ->values();
+    }
+
     public function getClientJobsForSubscriber(User $subscriber)
     {
         return $this->queryClientJobs($subscriber);
@@ -385,13 +422,27 @@ class CountryCategorySettingsService
 
     public function getDefaultVisaCategoryNames(User $subscriber): Collection
     {
+        if ($this->isTravelAgentSubscriber($subscriber)) {
+            return collect(self::TRAVEL_AGENT_APPLICATION_TYPES);
+        }
+
         if (strcasecmp((string) $subscriber->sub_category, 'Other') === 0) {
             $other = trim((string) ($subscriber->other_subcategory ?? ''));
 
-            return $other !== '' ? collect([$other]) : collect();
+            if ($other !== '') {
+                return collect([$other]);
+            }
+
+            return collect(self::DEFAULT_VISA_CATEGORIES);
         }
 
-        return $this->getAllAvailableVisaCategoryNames($subscriber);
+        $fromJobs = $this->getAllAvailableVisaCategoryNames($subscriber);
+
+        if ($fromJobs->isNotEmpty()) {
+            return $fromJobs;
+        }
+
+        return collect(self::DEFAULT_VISA_CATEGORIES);
     }
 
     public function resolveCountryNames(User $subscriber, array $extraSelected = []): Collection
@@ -1098,8 +1149,18 @@ class CountryCategorySettingsService
                 return $allowedCategories->contains($job->job);
             });
 
-        if ($clientJobs->isEmpty() && $allClientJobs->isNotEmpty()) {
-            $clientJobs = $allClientJobs;
+        if ($clientJobs->isEmpty()) {
+            if ($allClientJobs->isNotEmpty()) {
+                $clientJobs = $allClientJobs;
+            } elseif ($allowedCategories->isNotEmpty()) {
+                $clientJobs = $allowedCategories
+                    ->map(fn ($name) => (object) ['job' => (string) $name])
+                    ->values();
+            } else {
+                $clientJobs = collect(self::DEFAULT_VISA_CATEGORIES)
+                    ->map(fn ($name) => (object) ['job' => $name])
+                    ->values();
+            }
         }
 
         if ($selected !== '' && !$clientJobs->contains(fn ($job) => (string) $job->job === $selected) && $allowedCategories->contains($selected)) {
@@ -1304,9 +1365,15 @@ class CountryCategorySettingsService
             return Client_jobs::where('category', '=', $resolvedCategory)->get();
         }
 
-        return Client_jobs::where('category', '=', $resolvedCategory)
+        $jobs = Client_jobs::where('category', '=', $resolvedCategory)
             ->where('sub_category', '=', $subscriber->sub_category)
             ->get();
+
+        if ($jobs->isEmpty()) {
+            $jobs = Client_jobs::where('category', '=', $resolvedCategory)->get();
+        }
+
+        return $jobs;
     }
 
     private function resolveTravelAgentClientJobs()

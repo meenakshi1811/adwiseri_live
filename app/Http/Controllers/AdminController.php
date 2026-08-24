@@ -4174,6 +4174,11 @@ class AdminController extends Controller
             $subscriber = User::find($client->subscriber_id);
         }
 
+        if (!$subscriber) {
+            echo '<option value="">Select Application Type</option>';
+            return;
+        }
+
         $selected = trim((string) ($request->selected ?? ''));
 
         echo app(\App\Services\CountryCategorySettingsService::class)->buildJobRoleOptions($subscriber, $selected !== '' ? $selected : null);

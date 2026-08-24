@@ -241,11 +241,8 @@
                         <label>Application Type<span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>
                     <div class="col-md-8 p-1">
-                                <select name="job_role" id="job_role" class="form-control form-select @error('job_role') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
-                                    <option value="">Select Application Type</option>
-                                    @if(old('job_role'))
-                                    <option value="{{old('job_role')}}" selected>{{old('job_role')}}</option>
-                                    @endif
+                                <select name="job_role" id="job_role" class="form-control form-select @error('job_role') is-invalid @enderror" aria-describedby="emailHelp" required>
+                                    {!! app(\App\Services\CountryCategorySettingsService::class)->buildJobRoleOptions($subscriber, old('job_role')) !!}
                                 </select>
                                 @error('job_role')
                                     <span class="invalid-feedback" role="alert">
@@ -449,6 +446,11 @@
                     if (typeof window.syncApplicationVisaDetailFields === 'function') {
                         window.syncApplicationVisaDetailFields();
                     }
+                },
+                error: function () {
+                    if (!$("#job_role option[value]:not([value=''])").length) {
+                        $("#job_role").html('<option value="">Unable to load application types</option>');
+                    }
                 }
             });
         }
@@ -475,10 +477,11 @@
             var id = $(this).val();
 
             if (!id) {
-                $("#job_role").html('<option value="">Select Application Type</option>');
                 @if(isset($subscriber))
+                loadFilteredApplicationTypes({{ $subscriber->id }}, '', true);
                 loadFilteredVisaCountries('');
                 @else
+                $("#job_role").html('<option value="">Select Application Type</option>');
                 $("#visa_country").html('<option value="">Select Visa Country</option>');
                 @endif
                 return;
@@ -495,6 +498,15 @@
 
             loadFilteredApplicationTypes(id);
           });
+
+        $("#visa_country").change(function () {
+            var clientId = $("#client").val();
+            if (!clientId) {
+                return;
+            }
+
+            loadFilteredApplicationTypes(clientId, $("#job_role").val());
+        });
 
         $(document).on("change", ".js-app-status", syncEndDateEditability);
         syncEndDateEditability();
