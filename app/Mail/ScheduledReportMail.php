@@ -65,9 +65,13 @@ class ScheduledReportMail extends Mailable
             return $content;
         }
 
-        return $content . BrandedMail::renderBody('emails.partials.report_download', [
+        $downloadSection = BrandedMail::renderBody('emails.partials.report_download', [
             'downloadLink' => $downloadLink,
             'fileName' => $this->fileName,
         ]);
+
+        return $content . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;"><tr><td width="100%" style="padding:0;width:100%;max-width:100%;word-wrap:break-word;overflow-wrap:break-word;word-break:break-word;">'
+            . $downloadSection
+            . '</td></tr></table>';
     }
 }

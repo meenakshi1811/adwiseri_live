@@ -99,19 +99,37 @@ class BrandedMail
             return '<p style="' . $responsiveParagraphStyle . '"' . $attributes . '>';
         }, $html);
 
-        return preg_replace_callback('/<a\b([^>]*)>/i', function (array $matches) {
+        $html = preg_replace_callback('/<table\b([^>]*)>/i', function (array $matches) {
             $attributes = $matches[1];
 
-            if (preg_match('/class\s*=\s*"([^"]*)"/i', $attributes, $classMatch) && stripos($classMatch[1], 'email-cta') !== false) {
+            if (stripos($attributes, 'width=') !== false && stripos($attributes, 'table-layout') !== false) {
                 return $matches[0];
             }
 
-            $linkStyle = 'word-wrap:break-word;overflow-wrap:anywhere;word-break:break-all;white-space:normal;max-width:100%;';
+            $tableStyle = 'width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;';
+
+            if (preg_match('/style\s*=\s*"([^"]*)"/i', $attributes, $styleMatch)) {
+                $style = rtrim($styleMatch[1], '; ') . ';' . $tableStyle;
+
+                return preg_replace('/style\s*=\s*"([^"]*)"/i', 'style="' . $style . '"', $matches[0], 1);
+            }
+
+            return '<table style="' . $tableStyle . '"' . $attributes . '>';
+        }, $html);
+
+        return preg_replace_callback('/<a\b([^>]*)>/i', function (array $matches) {
+            $attributes = $matches[1];
+            $isCta = preg_match('/class\s*=\s*"([^"]*)"/i', $attributes, $classMatch)
+                && stripos($classMatch[1], 'email-cta') !== false;
+
+            $linkStyle = $isCta
+                ? 'display:block;width:100%;max-width:100%;box-sizing:border-box;word-wrap:break-word;overflow-wrap:break-word;word-break:normal;'
+                : 'word-wrap:break-word;overflow-wrap:anywhere;word-break:break-all;white-space:normal;max-width:100%;';
 
             if (preg_match('/style\s*=\s*"([^"]*)"/i', $attributes, $styleMatch)) {
                 $style = rtrim($styleMatch[1], '; ') . ';' . $linkStyle;
 
-                if (stripos($styleMatch[1], 'display:inline-block') !== false || stripos($styleMatch[1], 'display: inline-block') !== false) {
+                if (!$isCta && (stripos($styleMatch[1], 'display:inline-block') !== false || stripos($styleMatch[1], 'display: inline-block') !== false)) {
                     $style .= 'display:block;width:100%;box-sizing:border-box;';
                 }
 
