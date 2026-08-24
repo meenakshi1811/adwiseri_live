@@ -157,6 +157,14 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             });
         });
 
+        $("#new_assign_zero").click(function(){
+            Swal.fire({
+            icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
+            title: 'Oops!',
+            text: 'No applications have been created yet.'
+            });
+        });
+
         $("#app_tracking_zero").click(function(){
             Swal.fire({
             icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },

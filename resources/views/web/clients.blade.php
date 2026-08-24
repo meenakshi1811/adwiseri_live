@@ -93,7 +93,7 @@
 
                     {{-- <a href="{{ route('clients_export') }}" class="m-0">Export</a> --}}
                     <a href="{{ route('new_client') }}" class="m-0">Add Client</a>
-                    @if(count($clients ?? []) > 0)
+                    @if(\App\Support\ModuleAvailability::hasClients($user))
                     <a href="javascript:void(0)" id="AddApplication" class="btn btn-primary">Add Application</a>
                     <a href="javascript:void(0)" id="AddDependent" class="m-0">Add Dependent</a>
                     @else

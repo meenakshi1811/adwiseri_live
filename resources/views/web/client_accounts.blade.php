@@ -3,6 +3,7 @@
 @section('main-section')
 @php
 use App\Models\UserRoles;
+use App\Support\ModuleAvailability;
 $client_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Clients')->first();
 $canDownloadPdf = $client_roles && (
     $client_roles->read_only == 1 ||
@@ -38,7 +39,7 @@ $canAddEntry = $client_roles && ($client_roles->write_only == 1 || $client_roles
                 <a href="javascript:void(0)" id="downloadClientAccountsPdf" class="m-0 client-accounts-pdf-link disabled" aria-disabled="true">Download PDF</a>
                 @endif
                 @if($canAddEntry)
-                    @if(($clientCount ?? 0) > 0)
+                    @if(ModuleAvailability::hasClients($user))
                     <a href="{{ route('add_client_account') }}" class="m-0">Add Client Account Record</a>
                     @else
                     <a href="javascript:void(0)" onclick="showNoClientAlert(); return false;" class="m-0">Add Client Account Record</a>

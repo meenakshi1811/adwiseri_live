@@ -69,7 +69,11 @@
                 {{-- <a href="{{ route('clients_export') }}" class="m-0">Export</a> --}}
                 <!-- <a href="{{ route('new_client') }}" class="m-0">Add New</a>
                     <a href="javascript:void(0)" id="AddApplication" class="btn btn-primary">Add Application</a> -->
+                @if(\App\Support\ModuleAvailability::hasClients($user))
                 <a href="javascript:void(0)" id="AddDependent" class="m-0">Add Spouse/Dependant</a>
+                @else
+                <a href="javascript:void(0)" onclick="showNoClientAlert(); return false;" class="m-0">Add Spouse/Dependant</a>
+                @endif
             </p>
 
             {{-- <div class="d-flex ">
@@ -482,14 +486,16 @@ function validateInput(input) {
     //         fetchClients();
     //     };
     // }
-    btnDependent.onclick = function () {
-        @if(count($clients) === 0)
-        showNoClientAlert();
-        return;
-        @endif
-        modalAddDependent.style.display = "block";
-        fetchClients();
-    };
+    if (btnDependent) {
+        btnDependent.onclick = function () {
+            @if(!\App\Support\ModuleAvailability::hasClients($user))
+            showNoClientAlert();
+            return;
+            @endif
+            modalAddDependent.style.display = "block";
+            fetchClients();
+        };
+    }
     closeButtons.forEach(function (closeButton) {
         closeButton.addEventListener("click", function () {
             if (modalDependent) modalDependent.style.display = "none";

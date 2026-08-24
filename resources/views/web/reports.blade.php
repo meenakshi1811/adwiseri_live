@@ -81,100 +81,25 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
                 <ul class="nav nav-tabs border" id="myTab" role="tablist">
                     @if ($user->user_type == 'admin')
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" onclick="onClickSubscribers()" id="subscribers-tab"
-                            data-bs-toggle="tab" data-bs-target="#subscribers" type="button" role="tab"
-                            aria-controls="subscribers" aria-selected="true">Subscribers</button>
-                    </li>
+                        @include('partials.report_tab_button', ['module' => 'subscribers', 'id' => 'subscribers-tab', 'label' => 'Subscribers', 'active' => true, 'onclick' => 'onClickSubscribers()', 'target' => '#subscribers'])
                     @endif
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link {{ $user->user_type == 'admin' ? '' : 'active' }} "
-                            onclick="onClickClients()" id="client-tab" data-bs-toggle="tab" data-bs-target="#client"
-                            type="button" role="tab" aria-controls="client" aria-selected="true">Clients</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" onclick="onClickApplication()" id="application-tab"
-                            data-bs-toggle="tab" data-bs-target="#application" type="button" role="tab"
-                            aria-controls="application" aria-selected="false">Applications</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" onclick="onClickUsers()" id="users-tab" data-bs-toggle="tab"
-                            data-bs-target="#users" type="button" role="tab" aria-controls="users"
-                            aria-selected="false">Users</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" onclick="onClickDocuments()" id="documents-tab" data-bs-toggle="tab"
-                            data-bs-target="#documents" type="button" role="tab" aria-controls="documents"
-                            aria-selected="false">Documents</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" onclick="onClickCommunications()" id="communication-tab"
-                            data-bs-toggle="tab" data-bs-target="#communication" type="button" role="tab"
-                            aria-controls="communication" aria-selected="false">Communications</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" onclick="onClickAssociates()" id="associates-report-tab" data-bs-toggle="tab"
-                            data-bs-target="#associatesReport" type="button" role="tab" aria-controls="associatesReport"
-                            aria-selected="false">Associates</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" onclick="onClickInvoices()" id="invocies-tab" data-bs-toggle="tab"
-                            data-bs-target="#invocies" type="button" role="tab" aria-controls="invocies"
-                            aria-selected="false">Invoices (AR)</button>
-                    </li>
-
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" onclick="onClickInvoicesAP()" id="invocies-ap-tab" data-bs-toggle="tab"
-                            data-bs-target="#invocies_ap" type="button" role="tab" aria-controls="invocies_ap"
-                            aria-selected="false">Invoices (AP)</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" onclick="onClickPayments()" id="payments-tab" data-bs-toggle="tab"
-                            data-bs-target="#payments" type="button" role="tab" aria-controls="payments"
-                            aria-selected="false">Payments (AR)</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" onclick="onClickPaymentsAP()" id="paymentsap-tab" data-bs-toggle="tab"
-                            data-bs-target="#paymentsap" type="button" role="tab" aria-controls="paymentsap"
-                            aria-selected="false">Payments (AP)</button>
-                    </li>
-
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" onclick="onClickReferrals()" id="refferals-tab" data-bs-toggle="tab"
-                            data-bs-target="#refferals" type="button" role="tab" aria-controls="refferals"
-                            aria-selected="false">Referrals</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" onclick="onClickWallets()" id="wallet-tab" data-bs-toggle="tab"
-                            data-bs-target="#wallet" type="button" role="tab" aria-controls="wallet"
-                            aria-selected="false">Wallet</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" onclick="onClickSupportTickets()" id="SupportTickets-tab"
-                            data-bs-toggle="tab" data-bs-target="#SupportTickets" type="button" role="tab"
-                            aria-controls="SupportTickets" aria-selected="false">Support Tickets</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" onclick="onClickActivityLogs()" id="ActivityLog-tab"
-                            data-bs-toggle="tab" data-bs-target="#ActivityLog" type="button" role="tab"
-                            aria-controls="ActivityLog" aria-selected="false">Activity Log</button>
-                    </li>
+                    @include('partials.report_tab_button', ['module' => 'clients', 'id' => 'client-tab', 'label' => 'Clients', 'active' => $user->user_type != 'admin', 'onclick' => 'onClickClients()', 'target' => '#client'])
+                    @include('partials.report_tab_button', ['module' => 'applications', 'id' => 'application-tab', 'label' => 'Applications', 'active' => false, 'onclick' => 'onClickApplication()', 'target' => '#application'])
+                    @include('partials.report_tab_button', ['module' => 'users', 'id' => 'users-tab', 'label' => 'Users', 'active' => false, 'onclick' => 'onClickUsers()', 'target' => '#users'])
+                    @include('partials.report_tab_button', ['module' => 'documents', 'id' => 'documents-tab', 'label' => 'Documents', 'active' => false, 'onclick' => 'onClickDocuments()', 'target' => '#documents'])
+                    @include('partials.report_tab_button', ['module' => 'communications', 'id' => 'communication-tab', 'label' => 'Communications', 'active' => false, 'onclick' => 'onClickCommunications()', 'target' => '#communication'])
+                    @include('partials.report_tab_button', ['module' => 'associates', 'id' => 'associates-report-tab', 'label' => 'Associates', 'active' => false, 'onclick' => 'onClickAssociates()', 'target' => '#associatesReport'])
+                    @include('partials.report_tab_button', ['module' => 'invoices_ar', 'id' => 'invocies-tab', 'label' => 'Invoices (AR)', 'active' => false, 'onclick' => 'onClickInvoices()', 'target' => '#invocies'])
+                    @include('partials.report_tab_button', ['module' => 'invoices_ap', 'id' => 'invocies-ap-tab', 'label' => 'Invoices (AP)', 'active' => false, 'onclick' => 'onClickInvoicesAP()', 'target' => '#invocies_ap'])
+                    @include('partials.report_tab_button', ['module' => 'payments_ar', 'id' => 'payments-tab', 'label' => 'Payments (AR)', 'active' => false, 'onclick' => 'onClickPayments()', 'target' => '#payments'])
+                    @include('partials.report_tab_button', ['module' => 'payments_ap', 'id' => 'paymentsap-tab', 'label' => 'Payments (AP)', 'active' => false, 'onclick' => 'onClickPaymentsAP()', 'target' => '#paymentsap'])
+                    @include('partials.report_tab_button', ['module' => 'referrals', 'id' => 'refferals-tab', 'label' => 'Referrals', 'active' => false, 'onclick' => 'onClickReferrals()', 'target' => '#refferals'])
+                    @include('partials.report_tab_button', ['module' => 'wallet', 'id' => 'wallet-tab', 'label' => 'Wallet', 'active' => false, 'onclick' => 'onClickWallets()', 'target' => '#wallet'])
+                    @include('partials.report_tab_button', ['module' => 'support_tickets', 'id' => 'SupportTickets-tab', 'label' => 'Support Tickets', 'active' => false, 'onclick' => 'onClickSupportTickets()', 'target' => '#SupportTickets'])
+                    @include('partials.report_tab_button', ['module' => 'activity_log', 'id' => 'ActivityLog-tab', 'label' => 'Activity Log', 'active' => false, 'onclick' => 'onClickActivityLogs()', 'target' => '#ActivityLog'])
                     @if ($user->user_type == 'admin')
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" onclick="onClickAffiliates()" id="Affiliates-tab"
-                            data-bs-toggle="tab" data-bs-target="#Affiliates" type="button" role="tab"
-                            aria-controls="Affiliates" aria-selected="false">Affiliates</button>
-                    </li>
-                    
-
-
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link {{ $user->user_type == 'admin' ? '' : 'active' }}"
-                            onclick="onClickDemoRequest()" id="demo-request-tab" data-bs-toggle="tab"
-                            data-bs-target="#demo-request" type="button" role="tab"
-                            aria-controls="demo-request" aria-selected="true">Demo Request</button>
-                    </li>
-                    
+                        @include('partials.report_tab_button', ['module' => 'affiliates', 'id' => 'Affiliates-tab', 'label' => 'Affiliates', 'active' => false, 'onclick' => 'onClickAffiliates()', 'target' => '#Affiliates'])
+                        @include('partials.report_tab_button', ['module' => 'demo_request', 'id' => 'demo-request-tab', 'label' => 'Demo Request', 'active' => false, 'onclick' => 'onClickDemoRequest()', 'target' => '#demo-request'])
                     @endif
                 </ul>
                 <div class="tab-content pt-2 px-2"
@@ -8641,4 +8566,5 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         });
     }
 </script>
+@include('partials.report_tabs_init')
 @endsection()

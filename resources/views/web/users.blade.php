@@ -1,6 +1,7 @@
 ﻿@extends('web.layout.main')
 
 @section('main-section')
+@php use App\Support\ModuleAvailability; @endphp
 
         <div class="col-lg-10 column-client">
             <div class="client-dashboard users-module">
@@ -18,7 +19,12 @@
                 <div class="col-6 border p-1 text-center tab-anchor bg-info text-white">
                   Users
                 </div>
-                <div class="col-6 border p-1 text-center tab-anchor top_modules" onclick="window.location.href = '{{ route('user_role') }}';">
+                <div class="col-6 border p-1 text-center tab-anchor top_modules {{ ModuleAvailability::hasStaffUsers($user) ? '' : '' }}"
+                  @if(ModuleAvailability::hasStaffUsers($user))
+                    onclick="window.location.href = '{{ route('user_role') }}';"
+                  @else
+                    id="uar_zero" style="cursor:pointer;opacity:0.45;"
+                  @endif>
                   User Access Rights
                 </div>
               </div>
@@ -78,6 +84,25 @@
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+
+    var uarZero = document.getElementById('uar_zero');
+    if (uarZero) {
+        uarZero.addEventListener('click', function () {
+            if (window.AdwiseriAlert && typeof window.AdwiseriAlert.oops === 'function') {
+                window.AdwiseriAlert.oops('No users have been created yet. Please add a user before managing access rights.');
+                return;
+            }
+
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    customClass: { icon: 'adwiseri-oops-icon' },
+                    title: 'Oops!',
+                    text: 'No users have been created yet. Please add a user before managing access rights.'
+                });
+            }
+        });
+    }
 });
   function deleteuser(id){
       var localtime = new Date();

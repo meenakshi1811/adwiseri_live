@@ -85,8 +85,8 @@
 
 @section('main-section')
 @php
-
 use App\Models\UserRoles;
+use App\Support\ModuleAvailability;
 $client_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Clients')->first();
 $application_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Applications')->first();
 $communication_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Communication')->first();
@@ -119,13 +119,15 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                       >
                         Add Client
                       </a>
-                      @if(count($clients) != 0)
                       @if($user->user_type == "Subscriber")
-                        {{-- <a href="{{ route('export_clients') }}" class="btn btn-secondary btn-sm">Export</a> --}}
+                        @if(ModuleAvailability::hasClients($user))
                         <a href="javascript:void(0)" id="AddApplication" class="btn btn-primary">Add Application</a>
                         <a href="javascript:void(0)" id="AddDependent" class="m-0">Add Spouse/Dependant</a>
+                        @else
+                        <a href="javascript:void(0)" onclick="showNoClientAlert(); return false;" class="btn btn-primary">Add Application</a>
+                        <a href="javascript:void(0)" onclick="showNoClientAlert(); return false;" class="m-0">Add Spouse/Dependant</a>
+                        @endif
                       @endif
-                    @endif
                     </div>
                   </div>
                   <div class="client-btn d-flex justify-content-between mb-4">
@@ -545,12 +547,14 @@ var modalDependent = document.getElementById("myDependent"); // Only if exists
 var closeButtons = document.querySelectorAll(".btn-close, .close");
 
 // Open modal on button click
-btn.onclick = function () {
-    modal.style.display = "block";
-    if (typeof window.initApplicationModalDatePickers === 'function') {
-        window.initApplicationModalDatePickers();
-    }
-};
+if (btn) {
+    btn.onclick = function () {
+        modal.style.display = "block";
+        if (typeof window.initApplicationModalDatePickers === 'function') {
+            window.initApplicationModalDatePickers();
+        }
+    };
+}
 
 // (Optional) Open affiliate modal on button click
 if (btnDependent && modalDependent) {

@@ -6201,9 +6201,10 @@ class WebController extends Controller
         $page = "reports";
 
         $price_plans = Membership::orderBy('created_at', 'asc')->get();
+        $reportModuleAvailability = \App\Support\ModuleAvailability::reportModules($user);
 
 
-        return view('web.reports', compact('user', 'total_apps', 'page', 'applications', 'total_invoices', 'total_paid', 'total_unpaid', 'total_amt', 'paid_total', 'unpaid_total', 'price_plans'));
+        return view('web.reports', compact('user', 'total_apps', 'page', 'applications', 'total_invoices', 'total_paid', 'total_unpaid', 'total_amt', 'paid_total', 'unpaid_total', 'price_plans', 'reportModuleAvailability'));
     }
 
     public function sub_reports_support_tickets()
@@ -7329,6 +7330,10 @@ class WebController extends Controller
         if ($user->user_type == "Subscriber") {
             $accessRightsService = app(UserAccessRightsService::class);
             $siteUsers = User::where('added_by', '=', $user->id)->orderBy('name')->get();
+            if (!\App\Support\ModuleAvailability::hasStaffUsers($user)) {
+                return redirect()->route('users')->with('no_user', 'No user found..');
+            }
+
             $roles = $siteUsers->map(function ($staff) use ($accessRightsService) {
                 $userRoles = UserRoles::where('user_id', '=', $staff->id)->get();
                 $accessType = $accessRightsService->resolveAccessTypeForUser($staff, $userRoles);

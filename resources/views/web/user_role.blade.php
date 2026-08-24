@@ -1,13 +1,18 @@
 ﻿@extends('web.layout.main')
 
 @section('main-section')
+@php use App\Support\ModuleAvailability; @endphp
 
         <div class="col-lg-10 column-client">
             <div class="client-dashboard">
                 <div class="col-12 d-flex justify-content-between align-items-center mb-3">
                     <h3 class="text-primary text-center flex-grow-1 text-center m-0">User Access Rights</h3>
                     <p>
+                        @if(ModuleAvailability::hasStaffUsers($user))
                         <a href="{{ route('add_user_role') }}">Edit UAR (User Access Rights)</a>
+                        @else
+                        <span class="text-muted">Edit UAR (User Access Rights)</span>
+                        @endif
                     </p>
                 </div>
 

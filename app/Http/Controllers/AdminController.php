@@ -2846,13 +2846,14 @@ class AdminController extends Controller
         $paid_total = $total_amt - $unpaid_total;
         $page = "reports";
         $support = User::where('designation', 'Support Team Member')->get();
+        $reportModuleAvailability = \App\Support\ModuleAvailability::reportModules($user);
 
         if ($user->user_type == "admin") {
 
-            return view('admin.reportsForAdmin', compact('support', 'countries', 'user', 'total_apps', 'page', 'applications', 'total_invoices', 'total_paid', 'total_unpaid', 'total_amt', 'paid_total', 'unpaid_total'));
+            return view('admin.reportsForAdmin', compact('support', 'countries', 'user', 'total_apps', 'page', 'applications', 'total_invoices', 'total_paid', 'total_unpaid', 'total_amt', 'paid_total', 'unpaid_total', 'reportModuleAvailability'));
         } elseif ($user->membership == "Advisory+" || $user->membership == "Adwiseri+" || $user->membership == "Enterprise") {
 
-            return view('admin.reportsForUsers', compact('support', 'countries', 'user', 'total_apps', 'page', 'applications', 'total_invoices', 'total_paid', 'total_unpaid', 'total_amt', 'paid_total', 'unpaid_total'));
+            return view('admin.reportsForUsers', compact('support', 'countries', 'user', 'total_apps', 'page', 'applications', 'total_invoices', 'total_paid', 'total_unpaid', 'total_amt', 'paid_total', 'unpaid_total', 'reportModuleAvailability'));
         }
     }
 

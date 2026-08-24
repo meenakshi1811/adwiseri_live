@@ -87,10 +87,23 @@
                 showCancelButton: true,
                 cancelButtonText: 'Close'
             });
+        },
+
+        noUser: function () {
+            return fire({
+                icon: 'warning',
+                title: 'Oops!',
+                text: 'No users have been created yet. Please add a user before using this feature.',
+                customClass: OOPS_CLASS
+            });
         }
     };
 
     window.showNoClientAlert = function () {
         return window.AdwiseriAlert.noClient();
+    };
+
+    window.showNoUserAlert = function () {
+        return window.AdwiseriAlert.noUser();
     };
 })(window);
