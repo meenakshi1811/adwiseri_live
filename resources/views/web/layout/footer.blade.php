@@ -349,6 +349,8 @@ $('#star-rating .star').on('click', function() {
 
 @stack('scripts')
 
+@include('partials.cookie_notice')
+
 </body>
 
 </html>

@@ -1139,43 +1139,7 @@ class CountryCategorySettingsService
                 . '<option value="' . e($other) . '"' . $selectedAttr . '>' . e($other) . '</option>';
         }
 
-        $allClientJobs = $this->queryClientJobs($subscriber);
-        $clientJobs = $allClientJobs
-            ->filter(function ($job) use ($allowedCategories) {
-                if ($allowedCategories->isEmpty()) {
-                    return true;
-                }
-
-                return $allowedCategories->contains($job->job);
-            });
-
-        if ($clientJobs->isEmpty()) {
-            if ($allClientJobs->isNotEmpty()) {
-                $clientJobs = $allClientJobs;
-            } elseif ($allowedCategories->isNotEmpty()) {
-                $clientJobs = $allowedCategories
-                    ->map(fn ($name) => (object) ['job' => (string) $name])
-                    ->values();
-            } else {
-                $clientJobs = collect(self::DEFAULT_VISA_CATEGORIES)
-                    ->map(fn ($name) => (object) ['job' => $name])
-                    ->values();
-            }
-        }
-
-        if ($selected !== '' && !$clientJobs->contains(fn ($job) => (string) $job->job === $selected) && $allowedCategories->contains($selected)) {
-            $clientJobs = $clientJobs->push((object) ['job' => $selected]);
-        }
-
-        $html = '<option value="">Select Application Type</option>';
-
-        foreach ($clientJobs as $job) {
-            $jobName = (string) $job->job;
-            $selectedAttr = $selected === $jobName ? ' selected' : '';
-            $html .= '<option value="' . e($jobName) . '"' . $selectedAttr . '>' . e($jobName) . '</option>';
-        }
-
-        return $html;
+        return $this->buildVisaCategoryOptions($subscriber, $selected !== '' ? $selected : null, 'Select Application Type');
     }
 
     public function buildInvoiceServiceTypeOptions(User $subscriber, $applications, array $excludeApplicationIds = [], ?string $selected = null): string
@@ -1219,22 +1183,10 @@ class CountryCategorySettingsService
                 $listedNames[] = strtolower($other);
             }
         } else {
-            $allClientJobs = $this->queryClientJobs($subscriber);
             $allowedCategories = $this->resolveVisaCategoryNames($subscriber);
-            $clientJobs = $allClientJobs->filter(function ($job) use ($allowedCategories) {
-                if ($allowedCategories->isEmpty()) {
-                    return true;
-                }
 
-                return $allowedCategories->contains($job->job);
-            });
-
-            if ($clientJobs->isEmpty() && $allClientJobs->isNotEmpty()) {
-                $clientJobs = $allClientJobs;
-            }
-
-            foreach ($clientJobs as $job) {
-                $jobName = trim((string) $job->job);
+            foreach ($allowedCategories as $category) {
+                $jobName = trim((string) $category);
 
                 // Standalone services (Consultation, Admin Fees, etc.) — no country prefix
                 if ($jobName === '' || in_array(strtolower($jobName), $listedNames, true)) {
