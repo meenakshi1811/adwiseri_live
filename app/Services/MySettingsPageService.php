@@ -33,10 +33,16 @@ class MySettingsPageService
             optional($paymentReminderSetting)->reminders_to,
             optional($paymentReminderSetting)->email_to
         );
-        $selectedEmailTo = PaymentReminderSetting::normalizeEmailTo(optional($paymentReminderSetting)->email_to);
-        if (!in_array($selectedEmailTo, PaymentReminderSetting::allowedEmailToValuesForRemindersTo($selectedRemindersTo), true)) {
-            $selectedEmailTo = PaymentReminderSetting::defaultEmailToForRemindersTo($selectedRemindersTo);
-        }
+        $audienceFlags = PaymentReminderSetting::audienceFlagsFromRemindersTo($selectedRemindersTo);
+        $remindClients = $audienceFlags['remind_clients'];
+        $remindAssociates = $audienceFlags['remind_associates'];
+
+        $selectedEmailTo = $paymentReminderSetting
+            ? $paymentReminderSetting->emailToForClients()
+            : PaymentReminderSetting::EMAIL_TO_CLIENT_ONLY;
+        $selectedEmailToAssociates = $paymentReminderSetting
+            ? $paymentReminderSetting->emailToForAssociates()
+            : PaymentReminderSetting::EMAIL_TO_ASSOCIATE_ONLY;
 
         $selectedDocumentsEmailTo = PaymentReminderSetting::normalizeEmailTo(optional($documentsReminderSetting)->email_to);
         if (!in_array(
@@ -77,7 +83,10 @@ class MySettingsPageService
             'paymentReminderSetting' => $paymentReminderSetting,
             'documentsReminderSetting' => $documentsReminderSetting,
             'selectedRemindersTo' => $selectedRemindersTo,
+            'remindClients' => $remindClients,
+            'remindAssociates' => $remindAssociates,
             'selectedEmailTo' => $selectedEmailTo,
+            'selectedEmailToAssociates' => $selectedEmailToAssociates,
             'selectedDocumentsEmailTo' => $selectedDocumentsEmailTo,
             'applicationReminders' => $this->loadApplicationReminders((int) $user->id),
             'reportModules' => $this->reportModulesFor($user),

@@ -9960,30 +9960,69 @@ class WebController extends Controller
             ]);
         }
 
-        $validated = $request->validate([
-            'reminders_to' => 'required|in:' . implode(',', PaymentReminderSetting::allowedRemindersToValues()),
-            'client_group' => 'required|in:' . implode(',', PaymentReminderSetting::allowedClientGroups()),
-            'email_frequency' => 'required|in:daily,weekly,monthly,quarterly',
-            'email_to' => 'required|in:' . implode(',', PaymentReminderSetting::allowedEmailToValues()),
-        ]);
+        $remindClients = $request->boolean('remind_clients');
+        $remindAssociates = $request->boolean('remind_associates');
 
-        $allowedEmailTo = PaymentReminderSetting::allowedEmailToValuesForRemindersTo($validated['reminders_to']);
-        if (!in_array($validated['email_to'], $allowedEmailTo, true)) {
+        if (!$remindClients && !$remindAssociates) {
             return response()->json([
                 'success' => false,
-                'message' => 'The selected Email To option does not match Reminders To.',
+                'message' => 'Select at least one reminder audience (Clients or Associates).',
             ], 422);
+        }
+
+        if ($remindClients && $remindAssociates && !PaymentReminderSetting::hasEmailToAssociatesColumn()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Selecting both Clients and Associates requires the latest database update. Please run migrations.',
+            ], 503);
+        }
+
+        $rules = [
+            'remind_clients' => 'nullable|boolean',
+            'remind_associates' => 'nullable|boolean',
+            'client_group' => 'required|in:' . implode(',', PaymentReminderSetting::allowedClientGroups()),
+            'email_frequency' => 'required|in:daily,weekly,monthly,quarterly',
+        ];
+
+        if ($remindClients) {
+            $rules['email_to'] = 'required|in:' . implode(',', PaymentReminderSetting::allowedEmailToValuesForRemindersTo(PaymentReminderSetting::REMINDERS_TO_CLIENTS));
+        }
+
+        if ($remindAssociates) {
+            $rules['email_to_associates'] = 'required|in:' . implode(',', PaymentReminderSetting::allowedEmailToValuesForRemindersTo(PaymentReminderSetting::REMINDERS_TO_ASSOCIATES));
+        }
+
+        $validated = $request->validate($rules);
+
+        $remindersTo = PaymentReminderSetting::remindersToFromAudienceFlags([
+            'remind_clients' => $remindClients,
+            'remind_associates' => $remindAssociates,
+        ]);
+
+        $emailTo = $remindClients
+            ? $validated['email_to']
+            : PaymentReminderSetting::defaultEmailToForRemindersTo(PaymentReminderSetting::REMINDERS_TO_CLIENTS);
+        $emailToAssociates = $remindAssociates
+            ? $validated['email_to_associates']
+            : null;
+
+        if ($remindersTo === PaymentReminderSetting::REMINDERS_TO_ASSOCIATES) {
+            $emailTo = $emailToAssociates;
+            $emailToAssociates = null;
+        } elseif ($remindersTo === PaymentReminderSetting::REMINDERS_TO_CLIENTS) {
+            $emailToAssociates = null;
         }
 
         PaymentReminderSetting::saveForType(
             $subscriberId,
             PaymentReminderSetting::TYPE_PAYMENTS,
-            [
-                'reminders_to' => $validated['reminders_to'],
+            array_filter([
+                'reminders_to' => $remindersTo,
                 'client_group' => $validated['client_group'],
                 'email_frequency' => $validated['email_frequency'],
-                'email_to' => $validated['email_to'],
-            ]
+                'email_to' => $emailTo,
+                'email_to_associates' => $emailToAssociates,
+            ], fn ($value, $key) => $key !== 'email_to_associates' || PaymentReminderSetting::hasEmailToAssociatesColumn(), ARRAY_FILTER_USE_BOTH)
         );
 
         return response()->json([

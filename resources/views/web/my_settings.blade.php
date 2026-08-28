@@ -1532,8 +1532,10 @@
                         <input type="hidden" name="reminder_type" value="payments">
                         @csrf
                         @php
-                            $selectedRemindersTo = $selectedRemindersTo ?? \App\Models\PaymentReminderSetting::REMINDERS_TO_CLIENTS;
+                            $remindClients = $remindClients ?? true;
+                            $remindAssociates = $remindAssociates ?? false;
                             $selectedEmailTo = $selectedEmailTo ?? \App\Models\PaymentReminderSetting::EMAIL_TO_CLIENT_ONLY;
+                            $selectedEmailToAssociates = $selectedEmailToAssociates ?? \App\Models\PaymentReminderSetting::EMAIL_TO_ASSOCIATE_ONLY;
                         @endphp
                         <div class="row p-1 mb-3 align-items-start">
                             <div class="col-6">
@@ -1541,22 +1543,20 @@
                             </div>
                             <div class="col-6">
                                 <div class="form-check mb-2">
-                                    <input class="form-check-input" type="radio" name="reminders_to" id="reminders-to-clients"
-                                        value="{{ \App\Models\PaymentReminderSetting::REMINDERS_TO_CLIENTS }}"
-                                        {{ $selectedRemindersTo === \App\Models\PaymentReminderSetting::REMINDERS_TO_CLIENTS ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="reminders-to-clients">Clients</label>
+                                    <input class="form-check-input payment-reminder-audience" type="checkbox" name="remind_clients" id="remind-clients" value="1"
+                                        {{ $remindClients ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="remind-clients">Clients</label>
                                 </div>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="reminders_to" id="reminders-to-associates"
-                                        value="{{ \App\Models\PaymentReminderSetting::REMINDERS_TO_ASSOCIATES }}"
-                                        {{ $selectedRemindersTo === \App\Models\PaymentReminderSetting::REMINDERS_TO_ASSOCIATES ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="reminders-to-associates">Associates</label>
+                                    <input class="form-check-input payment-reminder-audience" type="checkbox" name="remind_associates" id="remind-associates" value="1"
+                                        {{ $remindAssociates ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="remind-associates">Associates</label>
                                 </div>
                             </div>
                         </div>
                         <div class="row p-1 mb-3 align-items-center">
                             <div class="col-6">
-                                <label id="reminder-group-label">{{ \App\Models\PaymentReminderSetting::groupFieldLabel($selectedRemindersTo) }}</label>
+                                <label id="reminder-group-label">{{ \App\Models\PaymentReminderSetting::groupFieldLabelForAudiences($remindClients, $remindAssociates) }}</label>
                             </div>
                             <div class="col-6">
                                 <select id="reminder-client-group" name="client_group" class="form-control form-select">
@@ -1586,31 +1586,33 @@
                                 <label>Email To</label>
                             </div>
                             <div class="col-6">
-                                <div id="reminder-email-to-clients" class="{{ ($selectedRemindersTo ?? \App\Models\PaymentReminderSetting::REMINDERS_TO_CLIENTS) === \App\Models\PaymentReminderSetting::REMINDERS_TO_ASSOCIATES ? 'd-none' : '' }}">
+                                <div id="reminder-email-to-clients" class="{{ $remindClients ? '' : 'd-none' }}">
+                                    <p class="small text-muted mb-2 reminder-email-audience-label {{ ($remindClients && $remindAssociates) ? '' : 'd-none' }}">Clients</p>
                                     <div class="form-check mb-2">
-                                        <input class="form-check-input reminder-email-to-option" type="radio" name="email_to" id="email-to-client-only"
+                                        <input class="form-check-input reminder-email-to-client-option" type="radio" name="email_to" id="email-to-client-only"
                                             value="{{ \App\Models\PaymentReminderSetting::EMAIL_TO_CLIENT_ONLY }}"
-                                            {{ ($selectedEmailTo ?? \App\Models\PaymentReminderSetting::EMAIL_TO_CLIENT_ONLY) === \App\Models\PaymentReminderSetting::EMAIL_TO_CLIENT_ONLY ? 'checked' : '' }}>
+                                            {{ $selectedEmailTo === \App\Models\PaymentReminderSetting::EMAIL_TO_CLIENT_ONLY ? 'checked' : '' }}>
                                         <label class="form-check-label" for="email-to-client-only">Client(s) Only</label>
                                     </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input reminder-email-to-option" type="radio" name="email_to" id="email-to-client-bcc-subscriber"
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input reminder-email-to-client-option" type="radio" name="email_to" id="email-to-client-bcc-subscriber"
                                             value="{{ \App\Models\PaymentReminderSetting::EMAIL_TO_CLIENT_BCC_SUBSCRIBER }}"
                                             {{ $selectedEmailTo === \App\Models\PaymentReminderSetting::EMAIL_TO_CLIENT_BCC_SUBSCRIBER ? 'checked' : '' }}>
                                         <label class="form-check-label" for="email-to-client-bcc-subscriber">Client(s) + Bcc (Subscriber)</label>
                                     </div>
                                 </div>
-                                <div id="reminder-email-to-associates" class="{{ $selectedRemindersTo === \App\Models\PaymentReminderSetting::REMINDERS_TO_ASSOCIATES ? '' : 'd-none' }}">
+                                <div id="reminder-email-to-associates" class="{{ $remindAssociates ? '' : 'd-none' }}">
+                                    <p class="small text-muted mb-2 reminder-email-audience-label {{ ($remindClients && $remindAssociates) ? '' : 'd-none' }}">Associates</p>
                                     <div class="form-check mb-2">
-                                        <input class="form-check-input reminder-email-to-option" type="radio" name="email_to" id="email-to-associate-only"
+                                        <input class="form-check-input reminder-email-to-associate-option" type="radio" name="email_to_associates" id="email-to-associate-only"
                                             value="{{ \App\Models\PaymentReminderSetting::EMAIL_TO_ASSOCIATE_ONLY }}"
-                                            {{ $selectedEmailTo === \App\Models\PaymentReminderSetting::EMAIL_TO_ASSOCIATE_ONLY ? 'checked' : '' }}>
+                                            {{ $selectedEmailToAssociates === \App\Models\PaymentReminderSetting::EMAIL_TO_ASSOCIATE_ONLY ? 'checked' : '' }}>
                                         <label class="form-check-label" for="email-to-associate-only">Associate(s) Only</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input reminder-email-to-option" type="radio" name="email_to" id="email-to-associate-bcc-subscriber"
+                                        <input class="form-check-input reminder-email-to-associate-option" type="radio" name="email_to_associates" id="email-to-associate-bcc-subscriber"
                                             value="{{ \App\Models\PaymentReminderSetting::EMAIL_TO_ASSOCIATE_BCC_SUBSCRIBER }}"
-                                            {{ $selectedEmailTo === \App\Models\PaymentReminderSetting::EMAIL_TO_ASSOCIATE_BCC_SUBSCRIBER ? 'checked' : '' }}>
+                                            {{ $selectedEmailToAssociates === \App\Models\PaymentReminderSetting::EMAIL_TO_ASSOCIATE_BCC_SUBSCRIBER ? 'checked' : '' }}>
                                         <label class="form-check-label" for="email-to-associate-bcc-subscriber">Associate(s) + Bcc (Subscriber)</label>
                                     </div>
                                 </div>
@@ -2212,44 +2214,63 @@
 
 
         const paymentReminderDefaults = {
-            reminders_to: @json($selectedRemindersTo),
+            remind_clients: @json($remindClients),
+            remind_associates: @json($remindAssociates),
             client_group: @json(optional($paymentReminderSetting)->client_group ?? 'all'),
             email_frequency: @json(optional($paymentReminderSetting)->email_frequency ?? 'weekly'),
-            email_to: @json($selectedEmailTo)
+            email_to: @json($selectedEmailTo),
+            email_to_associates: @json($selectedEmailToAssociates)
         };
 
-        function syncPaymentReminderAudience(preserveEmailTo) {
-            const remindersTo = $('input[name="reminders_to"]:checked').val() || 'clients';
-            const isAssociates = remindersTo === 'associates';
+        function syncPaymentReminderAudience() {
+            const remindClients = $('#remind-clients').is(':checked');
+            const remindAssociates = $('#remind-associates').is(':checked');
 
-            $('#reminder-group-label').text(isAssociates ? 'Select Associate Group(s)' : 'Select Client Group(s)');
-            $('#reminder-email-to-clients').toggleClass('d-none', isAssociates);
-            $('#reminder-email-to-associates').toggleClass('d-none', !isAssociates);
+            if (!remindClients && !remindAssociates) {
+                $('#remind-clients').prop('checked', true);
+                return syncPaymentReminderAudience();
+            }
 
-            $('#reminder-email-to-clients .reminder-email-to-option').prop('disabled', isAssociates);
-            $('#reminder-email-to-associates .reminder-email-to-option').prop('disabled', !isAssociates);
+            $('#reminder-group-label').text(
+                remindClients && remindAssociates
+                    ? 'Select Group(s)'
+                    : (remindAssociates ? 'Select Associate Group(s)' : 'Select Client Group(s)')
+            );
 
-            const $visibleOptions = isAssociates
-                ? $('#reminder-email-to-associates .reminder-email-to-option')
-                : $('#reminder-email-to-clients .reminder-email-to-option');
+            $('#reminder-email-to-clients').toggleClass('d-none', !remindClients);
+            $('#reminder-email-to-associates').toggleClass('d-none', !remindAssociates);
+            $('.reminder-email-audience-label').toggleClass('d-none', !(remindClients && remindAssociates));
 
-            if (!preserveEmailTo || !$visibleOptions.filter(':checked').length) {
-                $visibleOptions.first().prop('checked', true);
+            $('#reminder-email-to-clients .reminder-email-to-client-option').prop('disabled', !remindClients);
+            $('#reminder-email-to-associates .reminder-email-to-associate-option').prop('disabled', !remindAssociates);
+
+            if (remindClients && !$('#reminder-email-to-clients .reminder-email-to-client-option:checked').length) {
+                $('#reminder-email-to-clients .reminder-email-to-client-option').first().prop('checked', true);
+            }
+
+            if (remindAssociates && !$('#reminder-email-to-associates .reminder-email-to-associate-option:checked').length) {
+                $('#reminder-email-to-associates .reminder-email-to-associate-option').first().prop('checked', true);
             }
         }
 
-        syncPaymentReminderAudience(true);
-        $('input[name="reminders_to"]').on('change', function () {
-            syncPaymentReminderAudience(false);
+        syncPaymentReminderAudience();
+        $('.payment-reminder-audience').on('change', function () {
+            syncPaymentReminderAudience();
         });
 
         $('#save-payment-reminder').click(function () {
-            let formData = $('#payment-reminder-form').serialize();
+            let formData = $('#payment-reminder-form').serializeArray().filter(function (item) {
+                if (item.name === 'remind_clients' || item.name === 'remind_associates') {
+                    return $('#' + (item.name === 'remind_clients' ? 'remind-clients' : 'remind-associates')).is(':checked');
+                }
+
+                return true;
+            });
 
             $.ajax({
                 url: "{{ route('save_payment_reminder_settings') }}",
                 method: 'POST',
-                data: formData,
+                data: $.param(formData),
                 success: function (response) {
                     Swal.fire({
                         icon: 'success',
@@ -2257,10 +2278,12 @@
                         text: response.message
                     });
 
-                    paymentReminderDefaults.reminders_to = $('input[name="reminders_to"]:checked').val();
+                    paymentReminderDefaults.remind_clients = $('#remind-clients').is(':checked');
+                    paymentReminderDefaults.remind_associates = $('#remind-associates').is(':checked');
                     paymentReminderDefaults.client_group = $('#reminder-client-group').val();
                     paymentReminderDefaults.email_frequency = $('#reminder-frequency').val();
                     paymentReminderDefaults.email_to = $('input[name="email_to"]:checked').val();
+                    paymentReminderDefaults.email_to_associates = $('input[name="email_to_associates"]:checked').val();
                 },
                 error: function (xhr) {
                     let message = 'Failed to save payment reminder settings.';
@@ -2277,11 +2300,13 @@
         });
 
         $('#cancel-payment-reminder').click(function () {
-            $('input[name="reminders_to"][value="' + paymentReminderDefaults.reminders_to + '"]').prop('checked', true);
-            syncPaymentReminderAudience(true);
+            $('#remind-clients').prop('checked', paymentReminderDefaults.remind_clients);
+            $('#remind-associates').prop('checked', paymentReminderDefaults.remind_associates);
+            syncPaymentReminderAudience();
             $('#reminder-client-group').val(paymentReminderDefaults.client_group);
             $('#reminder-frequency').val(paymentReminderDefaults.email_frequency);
             $('input[name="email_to"][value="' + paymentReminderDefaults.email_to + '"]').prop('checked', true);
+            $('input[name="email_to_associates"][value="' + paymentReminderDefaults.email_to_associates + '"]').prop('checked', true);
         });
 
         function switchReminderPanel(type) {

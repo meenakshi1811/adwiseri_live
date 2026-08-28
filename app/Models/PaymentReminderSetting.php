@@ -15,6 +15,8 @@ class PaymentReminderSetting extends Model
 
     public const REMINDERS_TO_ASSOCIATES = 'associates';
 
+    public const REMINDERS_TO_BOTH = 'both';
+
     public const TYPE_PAYMENTS = 'payments';
 
     public const TYPE_DOCUMENTS = 'documents';
@@ -53,6 +55,7 @@ class PaymentReminderSetting extends Model
         'client_group',
         'email_frequency',
         'email_to',
+        'email_to_associates',
         'last_sent_at',
     ];
 
@@ -67,6 +70,18 @@ class PaymentReminderSetting extends Model
         if ($hasColumn === null) {
             $hasColumn = Schema::hasTable('payment_reminder_settings')
                 && Schema::hasColumn('payment_reminder_settings', 'reminder_type');
+        }
+
+        return $hasColumn;
+    }
+
+    public static function hasEmailToAssociatesColumn(): bool
+    {
+        static $hasColumn = null;
+
+        if ($hasColumn === null) {
+            $hasColumn = Schema::hasTable('payment_reminder_settings')
+                && Schema::hasColumn('payment_reminder_settings', 'email_to_associates');
         }
 
         return $hasColumn;
@@ -160,7 +175,40 @@ class PaymentReminderSetting extends Model
         return [
             self::REMINDERS_TO_CLIENTS,
             self::REMINDERS_TO_ASSOCIATES,
+            self::REMINDERS_TO_BOTH,
         ];
+    }
+
+    /**
+     * @return array{remind_clients: bool, remind_associates: bool}
+     */
+    public static function audienceFlagsFromRemindersTo(string $remindersTo): array
+    {
+        $remindersTo = self::normalizeRemindersTo($remindersTo);
+
+        return [
+            'remind_clients' => in_array($remindersTo, [self::REMINDERS_TO_CLIENTS, self::REMINDERS_TO_BOTH], true),
+            'remind_associates' => in_array($remindersTo, [self::REMINDERS_TO_ASSOCIATES, self::REMINDERS_TO_BOTH], true),
+        ];
+    }
+
+    /**
+     * @param  array{remind_clients?: bool, remind_associates?: bool}  $flags
+     */
+    public static function remindersToFromAudienceFlags(array $flags): string
+    {
+        $remindClients = !empty($flags['remind_clients']);
+        $remindAssociates = !empty($flags['remind_associates']);
+
+        if ($remindClients && $remindAssociates) {
+            return self::REMINDERS_TO_BOTH;
+        }
+
+        if ($remindAssociates) {
+            return self::REMINDERS_TO_ASSOCIATES;
+        }
+
+        return self::REMINDERS_TO_CLIENTS;
     }
 
     public static function allowedEmailToValuesForRemindersTo(string $remindersTo): array
@@ -206,6 +254,15 @@ class PaymentReminderSetting extends Model
         return self::REMINDERS_TO_CLIENTS;
     }
 
+    public static function groupFieldLabelForAudiences(bool $remindClients, bool $remindAssociates): string
+    {
+        if ($remindClients && $remindAssociates) {
+            return 'Select Group(s)';
+        }
+
+        return self::groupFieldLabel($remindAssociates ? self::REMINDERS_TO_ASSOCIATES : self::REMINDERS_TO_CLIENTS);
+    }
+
     public static function defaultEmailToForRemindersTo(string $remindersTo): string
     {
         $options = self::allowedEmailToValuesForRemindersTo($remindersTo);
@@ -244,13 +301,61 @@ class PaymentReminderSetting extends Model
 
     public function sendsToAssociates(): bool
     {
-        return self::normalizeRemindersTo($this->reminders_to, $this->email_to) === self::REMINDERS_TO_ASSOCIATES;
+        return $this->remindsAssociates() && !$this->remindsClients();
+    }
+
+    public function remindsClients(): bool
+    {
+        return self::audienceFlagsFromRemindersTo(
+            self::normalizeRemindersTo($this->reminders_to, $this->email_to)
+        )['remind_clients'];
+    }
+
+    public function remindsAssociates(): bool
+    {
+        return self::audienceFlagsFromRemindersTo(
+            self::normalizeRemindersTo($this->reminders_to, $this->email_to)
+        )['remind_associates'];
+    }
+
+    public function emailToForClients(): string
+    {
+        $emailTo = self::normalizeEmailTo($this->email_to);
+        $allowed = self::allowedEmailToValuesForRemindersTo(self::REMINDERS_TO_CLIENTS);
+
+        return in_array($emailTo, $allowed, true)
+            ? $emailTo
+            : self::defaultEmailToForRemindersTo(self::REMINDERS_TO_CLIENTS);
+    }
+
+    public function emailToForAssociates(): string
+    {
+        if (self::normalizeRemindersTo($this->reminders_to, $this->email_to) === self::REMINDERS_TO_BOTH && self::hasEmailToAssociatesColumn()) {
+            $emailTo = self::normalizeEmailTo($this->email_to_associates);
+        } else {
+            $emailTo = self::normalizeEmailTo($this->email_to);
+        }
+
+        $allowed = self::allowedEmailToValuesForRemindersTo(self::REMINDERS_TO_ASSOCIATES);
+
+        return in_array($emailTo, $allowed, true)
+            ? $emailTo
+            : self::defaultEmailToForRemindersTo(self::REMINDERS_TO_ASSOCIATES);
     }
 
     public function bccSubscriber(): bool
     {
-        return in_array($this->email_to, [
-            self::EMAIL_TO_CLIENT_BCC_SUBSCRIBER,
+        return $this->bccSubscriberForClients() || $this->bccSubscriberForAssociates();
+    }
+
+    public function bccSubscriberForClients(): bool
+    {
+        return $this->emailToForClients() === self::EMAIL_TO_CLIENT_BCC_SUBSCRIBER;
+    }
+
+    public function bccSubscriberForAssociates(): bool
+    {
+        return in_array($this->emailToForAssociates(), [
             self::EMAIL_TO_ASSOCIATE_BCC_SUBSCRIBER,
             self::EMAIL_TO_ASSOCIATE_BCC_SUBSCRIBER_ALERTS,
         ], true);

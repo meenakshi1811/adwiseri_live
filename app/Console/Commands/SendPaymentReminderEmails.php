@@ -58,62 +58,26 @@ class SendPaymentReminderEmails extends Command
                 continue;
             }
 
-            $rows = $setting->sendsToAssociates()
-                ? $this->outstandingAssociateRowsForSubscriber($subscriber->id, $setting->client_group)
-                : $this->outstandingRowsForSubscriber($subscriber->id, $setting->client_group);
-
-            $invoiceSetting = Invoice_settings::where('user_id', $subscriber->id)->first();
-            $paymentLink = trim((string) ($invoiceSetting?->payment_link ?? ''));
-
             $sentCount = 0;
 
-            foreach ($rows as $row) {
-                $recipientEmail = $setting->sendsToAssociates()
-                    ? trim((string) ($row->associate_email ?? ''))
-                    : trim((string) ($row->client_email ?? ''));
-
-                if ($recipientEmail === '' || (float) $row->outstanding_amount <= 0) {
-                    continue;
-                }
-
-                $dueDateObject = $row->due_date ? Carbon::parse($row->due_date) : null;
-                if ($dueDateObject && $dueDateObject->isFuture()) {
-                    continue;
-                }
-
-                $outstandingAmount = number_format((float) $row->outstanding_amount, 2, '.', '');
-                $serviceDescription = (string) ($row->service_description ?: '-');
-                $dueDate = $dueDateObject ? $dueDateObject->format('d-m-Y') : '-';
-                $clientName = (string) ($row->client_name ?? '-');
-
-                $payload = [
-                    'subscriber_name' => (string) $subscriber->name,
-                    'client_first_name' => $this->scheduleService->firstName($clientName),
-                    'client_name' => $clientName,
-                    'name' => $clientName,
-                    'currency_symbol' => $this->currencySymbol((string) $subscriber->currency),
-                    'amount' => $outstandingAmount,
-                    'outstanding_amount' => $outstandingAmount,
-                    'invoice_no' => (string) $row->invoice_no,
-                    'invoice_id' => (string) $row->invoice_no,
-                    'service_description' => $serviceDescription,
-                    'application_service' => $serviceDescription,
-                    'payment_due_date' => $dueDate,
-                    'due_date' => $dueDate,
-                    'payment_link' => $paymentLink,
-                ];
-
-                $payload['recipient_email'] = $recipientEmail;
-                BrandedMail::sendWithAlertsArchive(
-                    $recipientEmail,
-                    fn () => new PaymentReminderMail($subscriber, $payload),
-                    function ($mail) use ($setting, $subscriber) {
-                        if ($setting->bccSubscriber() && !empty($subscriber->email)) {
-                            $mail->bcc($subscriber->email);
-                        }
-                    }
+            if ($setting->remindsClients()) {
+                $sentCount += $this->sendPaymentReminderRows(
+                    $setting,
+                    $subscriber,
+                    $this->outstandingRowsForSubscriber($subscriber->id, $setting->client_group),
+                    fn ($row) => trim((string) ($row->client_email ?? '')),
+                    $setting->bccSubscriberForClients()
                 );
-                $sentCount++;
+            }
+
+            if ($setting->remindsAssociates()) {
+                $sentCount += $this->sendPaymentReminderRows(
+                    $setting,
+                    $subscriber,
+                    $this->outstandingAssociateRowsForSubscriber($subscriber->id, $setting->client_group),
+                    fn ($row) => trim((string) ($row->associate_email ?? '')),
+                    $setting->bccSubscriberForAssociates()
+                );
             }
 
             $setting->last_sent_at = now();
@@ -121,6 +85,70 @@ class SendPaymentReminderEmails extends Command
 
             $this->info('Processed payment reminders for subscriber_id ' . $subscriber->id . ' (' . $sentCount . ' sent).');
         }
+    }
+
+    /**
+     * @param  iterable<int, object>  $rows
+     */
+    private function sendPaymentReminderRows(
+        PaymentReminderSetting $setting,
+        User $subscriber,
+        iterable $rows,
+        callable $resolveRecipientEmail,
+        bool $bccSubscriber
+    ): int {
+        $invoiceSetting = Invoice_settings::where('user_id', $subscriber->id)->first();
+        $paymentLink = trim((string) ($invoiceSetting?->payment_link ?? ''));
+        $sentCount = 0;
+
+        foreach ($rows as $row) {
+            $recipientEmail = $resolveRecipientEmail($row);
+
+            if ($recipientEmail === '' || (float) $row->outstanding_amount <= 0) {
+                continue;
+            }
+
+            $dueDateObject = $row->due_date ? Carbon::parse($row->due_date) : null;
+            if ($dueDateObject && $dueDateObject->isFuture()) {
+                continue;
+            }
+
+            $outstandingAmount = number_format((float) $row->outstanding_amount, 2, '.', '');
+            $serviceDescription = (string) ($row->service_description ?: '-');
+            $dueDate = $dueDateObject ? $dueDateObject->format('d-m-Y') : '-';
+            $clientName = (string) ($row->client_name ?? '-');
+
+            $payload = [
+                'subscriber_name' => (string) $subscriber->name,
+                'client_first_name' => $this->scheduleService->firstName($clientName),
+                'client_name' => $clientName,
+                'name' => $clientName,
+                'currency_symbol' => $this->currencySymbol((string) $subscriber->currency),
+                'amount' => $outstandingAmount,
+                'outstanding_amount' => $outstandingAmount,
+                'invoice_no' => (string) $row->invoice_no,
+                'invoice_id' => (string) $row->invoice_no,
+                'service_description' => $serviceDescription,
+                'application_service' => $serviceDescription,
+                'payment_due_date' => $dueDate,
+                'due_date' => $dueDate,
+                'payment_link' => $paymentLink,
+                'recipient_email' => $recipientEmail,
+            ];
+
+            BrandedMail::sendWithAlertsArchive(
+                $recipientEmail,
+                fn () => new PaymentReminderMail($subscriber, $payload),
+                function ($mail) use ($bccSubscriber, $subscriber) {
+                    if ($bccSubscriber && !empty($subscriber->email)) {
+                        $mail->bcc($subscriber->email);
+                    }
+                }
+            );
+            $sentCount++;
+        }
+
+        return $sentCount;
     }
 
     private function sendDocumentReminders(): void
