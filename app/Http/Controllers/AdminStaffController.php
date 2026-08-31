@@ -93,8 +93,8 @@ class AdminStaffController extends Controller
             }
         }
 
-        // Admin Staff modules: Subscribers, Activity Logs, Demo Requests
-        foreach (['Subscribers', 'Activity Logs', 'Demo Requests'] as $moduleName) {
+        // Admin Staff modules: Subscribers, Activity Logs, Demo Requests, Support
+        foreach (['Subscribers', 'Activity Logs', 'Demo Requests', 'Support'] as $moduleName) {
             $moduleRole = new UserRoles();
             $moduleRole->user_id = $data->id;
             $moduleRole->subscriber_id = $data->added_by;

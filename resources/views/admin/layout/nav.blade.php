@@ -91,7 +91,7 @@
                 @php
                     $isAdminStaff = (int) ($user->is_support ?? 0) === 1;
                 @endphp
-                {{-- Admin Staff modules: Subscribers, Activity Logs, Demo Requests only --}}
+                {{-- Admin Staff modules: Subscribers, Activity Logs, Demo Requests, Support --}}
                 @if(!$isAdminStaff)
                 <a href="{{ route('admin_dashboard') }}" @if($page == "dashboard") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
@@ -198,6 +198,12 @@
                                     <i class="fas fa-video"></i>
                                 </span>
                                 Demo Requests
+                            </a>
+                <a href="{{ route('manage_support') }}" @if($page == "support") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
+                                <span class="sidebar-menu-icon">
+                                <i class="fa-solid fa-circle-info"></i>
+                                </span>
+                                Support
                             </a>
                 @endif
 

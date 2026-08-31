@@ -13,6 +13,7 @@ class RoleModuleAccessService
         'Subscribers',
         'Activity Logs',
         'Demo Requests',
+        'Support',
     ];
 
     /**
@@ -48,6 +49,15 @@ class RoleModuleAccessService
         'demo_status',
         'demoReport',
         'demoRequestReport',
+
+        // Support / Tickets
+        'manage_support',
+        'view_query',
+        'query_response',
+        'send_query_response',
+        'update_query_status',
+        'admin_ticket_activity_log_data',
+        'manage_faq',
     ];
 
     /**
