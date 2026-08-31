@@ -33,6 +33,7 @@ use App\Mail\ClientCareLetterMail;
 use App\Mail\DocumentListMail;
 use App\Support\BrandedMail;
 use App\Support\PhoneNumber;
+use App\Support\UserModuleAccess;
 use App\Services\SubscriptionTermPricing;
 use App\Services\TableFilterCountService;
 
@@ -4819,6 +4820,12 @@ class WebController extends Controller
         if ($user->user_type != "admin" && membership_access_blocked($user)) {
             return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
+        if ($user->user_type === 'User') {
+            $invoiceRoles = UserRoles::where('user_id', $user->id)->where('module', 'Invoices')->first();
+            if (!UserModuleAccess::canRead($invoiceRoles, $user)) {
+                return redirect()->route('dashboard')->withErrors(['message' => 'You do not have access to the Invoices module.']);
+            }
+        }
         $this->set_timezone();
         if ($user->user_type == "Subscriber") {
             $subscriber = $user;
@@ -4872,7 +4879,7 @@ class WebController extends Controller
                 ->addColumn('action', function ($row) use ($invoice_roles, $user) {
                     $html = '<a style="background:none; border:none;"';
 
-                    if ($user->user_type == "admin" || $invoice_roles->read_only == 1 || $invoice_roles->read_write_only == 1) {
+                    if ($user->user_type == "admin" || UserModuleAccess::canRead($invoice_roles, $user)) {
                         $html .= ' href="' . route('view_invoice', $row->id) . '"';
                     } else {
                         $html .= ' href="#"';
@@ -4880,7 +4887,7 @@ class WebController extends Controller
 
                     $html .= ' class="m-0 p-0"><i class="fa-solid fa-eye p-1 text-info" style="font-size:14px;"></i></a>';
 
-                    if ($user->user_type == "admin" || $invoice_roles->write_only == 1 || $invoice_roles->read_write_only == 1) {
+                    if ($user->user_type == "admin" || UserModuleAccess::canWrite($invoice_roles, $user)) {
                         $html .= ' <a style="background:none; border:none;" href="' . route('edit_invoice', $row->id) . '" class="m-0 p-0" title="Edit Invoice"><i class="fa-solid fa-pen-to-square p-1 text-primary" style="font-size:14px;"></i></a>';
                     }
 
@@ -4899,6 +4906,12 @@ class WebController extends Controller
         $user = $this->check_login();
         if ($user->user_type != "admin" && membership_access_blocked($user)) {
             return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
+        }
+        if ($user->user_type === 'User') {
+            $invoiceRoles = UserRoles::where('user_id', $user->id)->where('module', 'Invoices')->first();
+            if (!UserModuleAccess::canRead($invoiceRoles, $user)) {
+                return redirect()->route('dashboard')->withErrors(['message' => 'You do not have access to the Invoices (Vendor/AP) module.']);
+            }
         }
         $this->set_timezone();
         if ($user->user_type == "Subscriber") {
@@ -4953,7 +4966,7 @@ class WebController extends Controller
                 ->addColumn('action', function ($row) use ($invoice_roles, $user) {
                     $html = '<a style="background:none; border:none;"';
 
-                    if ($user->user_type == "admin" || $invoice_roles->read_only == 1 || $invoice_roles->read_write_only == 1) {
+                    if ($user->user_type == "admin" || UserModuleAccess::canRead($invoice_roles, $user)) {
                         $html .= ' href="' . route('view_invoice', $row->id) . '"';
                     } else {
                         $html .= ' href="#"';
@@ -4961,7 +4974,7 @@ class WebController extends Controller
 
                     $html .= ' class="m-0 p-0"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>';
 
-                    if ($user->user_type == "admin" || $invoice_roles->write_only == 1 || $invoice_roles->read_write_only == 1) {
+                    if ($user->user_type == "admin" || UserModuleAccess::canWrite($invoice_roles, $user)) {
                         $html .= ' <a style="background:none; border:none;" href="' . route('edit_invoice_ap', $row->id) . '" class="m-0 p-0" title="Edit Invoice"><i class="fa-solid fa-pen-to-square p-1 text-primary" style="font-size:14px;"></i></a>';
                     }
 

@@ -40,4 +40,22 @@ trait ScopesConsultancyReports
 
         return $query;
     }
+
+    /**
+     * Scope internal_invoices to the logged-in consultancy.
+     * Always use subscriber_id — user_id stores the creator, not the tenant.
+     */
+    protected function scopeInternalInvoicesToConsultancy($query, User $user)
+    {
+        if (!$this->hasConsultancyReportAccess($user)) {
+            return $query;
+        }
+
+        $subscriberId = $this->consultancySubscriberId($user);
+        if ($subscriberId) {
+            return $query->where('subscriber_id', $subscriberId);
+        }
+
+        return $query;
+    }
 }

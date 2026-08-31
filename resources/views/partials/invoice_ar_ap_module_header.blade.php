@@ -4,7 +4,7 @@
     $apTabLabel = 'Invoices (AP)';
     $pageTitle = $activeTab === 'ap' ? 'Invoices (AP)' : 'Invoices (AR)';
     $hasClients = $hasClients ?? (count($clients ?? []) > 0);
-    $canWriteInvoices = ($invoice_roles->write_only ?? 0) == 1 || ($invoice_roles->read_write_only ?? 0) == 1;
+    $canWriteInvoices = \App\Support\UserModuleAccess::canWrite($invoice_roles ?? null, $user);
 @endphp
 
 <div class="client-btn d-flex justify-content-between align-items-center mt-3 mb-3">
