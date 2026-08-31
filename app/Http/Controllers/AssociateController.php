@@ -137,6 +137,34 @@ class AssociateController extends Controller
     }
 
     /**
+     * Validate and normalize the custom Other service name when "Other" is selected.
+     */
+    private function resolveOtherService(Request $request, string $servicesNormalized): ?string
+    {
+        $serviceParts = array_map('trim', explode(',', $servicesNormalized));
+        $hasOther = in_array('Other', $serviceParts, true);
+
+        if (!$hasOther) {
+            return null;
+        }
+
+        $otherService = trim((string) $request->input('other_service', ''));
+        if ($otherService === '') {
+            throw ValidationException::withMessages([
+                'other_service' => 'Please enter the name of the other service provided.',
+            ]);
+        }
+
+        if (strlen($otherService) > 255) {
+            throw ValidationException::withMessages([
+                'other_service' => 'Other service name may not exceed 255 characters.',
+            ]);
+        }
+
+        return $otherService;
+    }
+
+    /**
      * Associate invoice description shown in PDF/email Description column.
      */
     private function formatAssociateInvoiceDetail(AssociateInvoice $invoice): string
@@ -401,6 +429,7 @@ class AssociateController extends Controller
 
         [$clientId, $clientName, $applicationId, $applicationName] = $this->resolveClientAndApplication($subscriber, $request);
         $services = $this->normalizeServices($request->services);
+        $otherService = $this->resolveOtherService($request, $services);
 
         $this->assertApplicationNotAssignedToAnyAssociate(
             $subscriber,
@@ -420,6 +449,7 @@ class AssociateController extends Controller
         $business->application_id = $applicationId;
         $business->application_name = $applicationName;
         $business->services = $services;
+        $business->other_service = $otherService;
         $business->service_provided = $services; // keep legacy display column in sync
         $business->fees = $request->fees;
         $business->application_status = $application
@@ -494,6 +524,7 @@ class AssociateController extends Controller
 
         [$clientId, $clientName, $applicationId, $applicationName] = $this->resolveClientAndApplication($subscriber, $request);
         $services = $this->normalizeServices($request->services);
+        $otherService = $this->resolveOtherService($request, $services);
 
         $this->assertApplicationNotAssignedToAnyAssociate(
             $subscriber,
@@ -510,6 +541,7 @@ class AssociateController extends Controller
         $business->application_id = $applicationId;
         $business->application_name = $applicationName;
         $business->services = $services;
+        $business->other_service = $otherService;
         $business->service_provided = $services;
         $business->fees = $request->fees;
         $business->application_status = $application

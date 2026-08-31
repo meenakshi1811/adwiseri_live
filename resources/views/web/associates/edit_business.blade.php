@@ -47,7 +47,11 @@
                         @php
                             $selectedServices = old('services', array_filter(array_map('trim', explode(',', (string) ($business->services ?: $business->service_provided)))));
                         @endphp
-                        @include('web.associates._service_checkboxes', ['services' => $services, 'selectedServices' => $selectedServices])
+                        @include('web.associates._service_checkboxes', [
+                            'services' => $services,
+                            'selectedServices' => $selectedServices,
+                            'otherService' => old('other_service', $business->other_service),
+                        ])
                     </div>
 
                     <div class="col-md-4 p-1"><label>Fees<span class="text-danger" style="font-size:18px;">*</span></label></div>

@@ -21,6 +21,7 @@ class AssociateBusiness extends Model
         'application_name',
         'service_provided',
         'services',
+        'other_service',
         'fees',
         'application_status',
         'home_country',
@@ -41,5 +42,29 @@ class AssociateBusiness extends Model
     public function client()
     {
         return $this->belongsTo(Clients::class, 'client_id');
+    }
+
+    /**
+     * Services label for list/detail views, including the custom Other service name.
+     */
+    public function formattedServices(): string
+    {
+        $servicesRaw = trim((string) ($this->services ?: $this->service_provided ?: ''));
+        if ($servicesRaw === '') {
+            return '-';
+        }
+
+        $parts = array_values(array_filter(array_map('trim', explode(',', $servicesRaw))));
+        $otherName = trim((string) ($this->other_service ?? ''));
+
+        $formatted = array_map(function (string $part) use ($otherName) {
+            if ($part === 'Other' && $otherName !== '') {
+                return 'Other (' . $otherName . ')';
+            }
+
+            return $part;
+        }, $parts);
+
+        return implode(', ', $formatted);
     }
 }

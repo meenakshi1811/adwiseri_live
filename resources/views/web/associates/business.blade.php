@@ -54,7 +54,7 @@
                         <td class="p-1 text-center">{{ $associateDisplay }}</td>
                         <td class="p-1 text-center">{{ $business->client_name ?: '-' }}@if($business->client_id) ({{ $business->client_id }})@endif</td>
                         <td class="p-1 text-center">{{ $business->application_name ?: '-' }}</td>
-                        <td class="p-1 text-center">{{ $business->services ?: $business->service_provided }}</td>
+                        <td class="p-1 text-center">{{ $business->formattedServices() }}</td>
                         <td class="p-1 text-center">{{ number_format((float) $business->fees, 2) }}</td>
                         <td class="p-1 text-center">{{ $business->home_country ?: '-' }}</td>
                         <td class="p-1 text-center">{{ $business->visa_country ?: '-' }}</td>

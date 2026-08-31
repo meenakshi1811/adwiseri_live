@@ -16,7 +16,7 @@
                 <tr><th style="width:35%;">Associate</th><td>{{ $associate ? trim($associate->name . ' (' . $associate->id . ')') : '-' }}</td></tr>
                 <tr><th>Client Name (ID)</th><td>{{ $business->client_name ?: '-' }}@if($business->client_id) ({{ $business->client_id }})@endif</td></tr>
                 <tr><th>Application</th><td>{{ $business->application_name ?: '-' }}</td></tr>
-                <tr><th>Services</th><td>{{ $business->services ?: $business->service_provided ?: '-' }}</td></tr>
+                <tr><th>Services</th><td>{{ $business->formattedServices() }}</td></tr>
                 <tr><th>Fees</th><td>{{ number_format((float) $business->fees, 2) }}</td></tr>
                 <tr><th>Application Status</th><td>{{ $business->application_status ?: '-' }}</td></tr>
                 <tr><th>Home Country</th><td>{{ $business->home_country ?: '-' }}</td></tr>
