@@ -32,7 +32,9 @@ class Applications extends Model
         'end_date',
         'application_status',
         'subscriber_id',
-        'visa_country'
+        'visa_country',
+        'document_checklist_sent_at',
+        'document_checklist_sent_to',
     ];
     public function client(){
         return $this->belongsTo(Clients::class,'client_id');

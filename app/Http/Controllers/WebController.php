@@ -30,7 +30,6 @@ use App\Mail\PlanSubscriptionMail;
 use App\Mail\AppointmentSchedulerMail;
 use App\Mail\AppointmentResponseMail;
 use App\Mail\ClientCareLetterMail;
-use App\Mail\DocumentListMail;
 use App\Support\BrandedMail;
 use App\Support\PhoneNumber;
 use App\Services\SubscriptionTermPricing;
@@ -3312,7 +3311,21 @@ class WebController extends Controller
                     $activity->activity_icon = "user.png";
                     $activity->local_time = $request->local_time;
                     $activity->save();
-                    return redirect()->route('applications')->with('application_added', "Application added successfully.");
+
+                    $mailResult = app(\App\Services\DocumentChecklistMailService::class)
+                        ->sendOnApplicationCreated($application, $user, $subscriber);
+                    $addedMessage = 'Application added successfully.';
+                    if ($mailResult['success']) {
+                        $addedMessage .= ' Documents checklist emailed to ' . $mailResult['recipient'] . '.';
+                    } elseif (!$mailResult['skipped']) {
+                        \Log::warning('Application created but documents checklist email not sent', [
+                            'application_id' => $application->id,
+                            'message' => $mailResult['message'],
+                        ]);
+                        $addedMessage .= ' However, the documents checklist email was not sent: ' . $mailResult['message'];
+                    }
+
+                    return redirect()->route('applications')->with('application_added', $addedMessage);
                 } else {
                     return back();
                 }
@@ -3445,42 +3458,19 @@ class WebController extends Controller
             return back()->with('document_list_error', 'This client has no email address on record. Add one to the client profile, or enter an address to send to.');
         }
 
-        try {
-            $payload = $documentListService->buildPdfPayload($user, $application);
-        } catch (\RuntimeException $e) {
-            return back()->with('document_list_error', $e->getMessage());
+        $mailResult = app(\App\Services\DocumentChecklistMailService::class)->send(
+            $application,
+            $user,
+            null,
+            $recipient,
+            trim((string) $request->input('custom_message'))
+        );
+
+        if (!$mailResult['success']) {
+            return back()->with('document_list_error', $mailResult['message']);
         }
 
-        $subscriber = $documentListService->resolveSubscriberForApplication($user, $application);
-        $payload['application_id'] = $application->application_id;
-        $payload['subscriber_name'] = $subscriber->name ?? '';
-        $payload['subscriber_email'] = $subscriber->email ?? '';
-        $payload['custom_message'] = trim((string) $request->input('custom_message'));
-
-        $fileName = $documentListService->buildPdfFileName($payload['country'], $payload['category']);
-
-        try {
-            $pdfContents = $documentListService->renderPdfOutput($payload);
-            Mail::to($recipient)->send(new DocumentListMail($payload, $pdfContents, $fileName));
-        } catch (\Exception $exception) {
-            Log::error('Document list email sending failed.', [
-                'application_id' => $application->id,
-                'recipient' => $recipient,
-                'message' => $exception->getMessage(),
-            ]);
-
-            return back()->with('document_list_error', 'The documents list could not be emailed right now. Please try again, or download the PDF and send it manually.');
-        }
-
-        $activity = new Activities();
-        $activity->subscriber_id = $application->subscriber_id;
-        $activity->user_id = $user->id;
-        $activity->client_id = $application->client_id;
-        $activity->activity_name = "Sent Documents List";
-        $activity->activity_detail = "Emailed the " . $payload['country'] . " / " . $payload['category'] . " documents list to " . $recipient . ".";
-        $activity->save();
-
-        return back()->with('document_list_sent', 'Documents list emailed to ' . $recipient . '.');
+        return back()->with('document_list_sent', $mailResult['message']);
     }
 
     public function send_message(Request $request)

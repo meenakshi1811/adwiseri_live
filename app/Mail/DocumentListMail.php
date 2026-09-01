@@ -23,7 +23,9 @@ class DocumentListMail extends Mailable
         $subscriberName = trim((string) ($this->data['subscriber_name'] ?? '')) ?: 'Subscriber';
         $subscriberEmail = trim((string) ($this->data['subscriber_email'] ?? ''));
         $headerTitle = 'Documents Checklist';
-        $subject = 'Documents Checklist — ' . trim(($this->data['country'] ?? '') . ' ' . ($this->data['category'] ?? ''));
+        $country = trim((string) ($this->data['country'] ?? ''));
+        $category = trim((string) ($this->data['category'] ?? ''));
+        $subject = 'Documents Checklist - ' . $country . ' - ' . $category;
         $content = BrandedMail::renderBody('emails.bodies.document_list', ['data' => $this->data]);
 
         $mail = $this->subject($subject)

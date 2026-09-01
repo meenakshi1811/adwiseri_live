@@ -190,7 +190,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     Swal.fire({
       icon: 'success',
       title: 'Success',
-      text: 'Application added successfully.'
+      text: @json(session('application_added'))
     })
   </script>
 

@@ -10,6 +10,7 @@ use Auth;
 use App\Models\Clients;
 use App\Models\Dependants;
 use Carbon\Carbon;
+use App\Services\DocumentChecklistMailService;
 
 
 class ApplicationController extends Controller
@@ -45,7 +46,26 @@ class ApplicationController extends Controller
         $activity->activity_detail = "New Application of " . $request->job_role . " added by " . $user->name . " at " . date('d M, Y H:i:s');
         $activity->activity_icon = "user.png";
         $activity->save();
-        return response()->json(['success' => true, 'message' => 'Application added successfully.']);
+
+        $mailResult = app(DocumentChecklistMailService::class)
+            ->sendOnApplicationCreated($application, $user, $subscriber);
+
+        $message = 'Application added successfully.';
+        if ($mailResult['success']) {
+            $message .= ' Documents checklist emailed to ' . $mailResult['recipient'] . '.';
+        } elseif (!$mailResult['skipped']) {
+            \Log::warning('Application created but documents checklist email not sent', [
+                'application_id' => $application->id,
+                'message' => $mailResult['message'],
+            ]);
+            $message .= ' However, the documents checklist email was not sent: ' . $mailResult['message'];
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'checklist_email_sent' => $mailResult['success'],
+        ]);
     }
     public function job_id()
     {

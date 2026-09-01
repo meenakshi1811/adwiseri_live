@@ -137,7 +137,7 @@
       Swal.fire({
         icon: 'success',
         title: 'Success',
-        text: 'Application added successfully.'
+        text: @json(session('application_added'))
       })
     </script>
 

@@ -1759,7 +1759,21 @@ class AdminController extends Controller
                     $activity->activity_detail = "New Application of " . $request->job_role . " added by " . $user->name . " at " . date('d M, Y H:i:s');
                     $activity->activity_icon = "user.png";
                     $activity->save();
-                    return redirect()->route('manage_applications')->with('application_added', "Application added successfully.");
+
+                    $mailResult = app(\App\Services\DocumentChecklistMailService::class)
+                        ->sendOnApplicationCreated($application, $user, $subscriber);
+                    $addedMessage = 'Application added successfully.';
+                    if ($mailResult['success']) {
+                        $addedMessage .= ' Documents checklist emailed to ' . $mailResult['recipient'] . '.';
+                    } elseif (!$mailResult['skipped']) {
+                        \Log::warning('Application created but documents checklist email not sent', [
+                            'application_id' => $application->id,
+                            'message' => $mailResult['message'],
+                        ]);
+                        $addedMessage .= ' However, the documents checklist email was not sent: ' . $mailResult['message'];
+                    }
+
+                    return redirect()->route('manage_applications')->with('application_added', $addedMessage);
                 } else {
                     return back();
                 }
