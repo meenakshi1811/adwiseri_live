@@ -4,7 +4,6 @@
 @php
 
 use App\Models\UserRoles;
-use App\Support\UserModuleAccess;
 $client_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Clients')->first();
 $application_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Applications')->first();
 $communication_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Communication')->first();
@@ -84,10 +83,10 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                     @endif
                                 </td>
                                 <td class="p-1 text-center">{{ $invoice->formatted_due_date }} </td>
-                                <td class="p-1 text-center"><a style="background:none; border:none;" @if(UserModuleAccess::canRead($invoice_roles, $user))
+                                <td class="p-1 text-center"><a style="background:none; border:none;" @if($invoice_roles->read_only == 1 or $invoice_roles->read_write_only == 1)
                                         href="{{ route('view_invoice', $invoice->id) }}" @else href="#" @endif class="m-0 p-0"><i
                                             class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>
-                                    @if(UserModuleAccess::canWrite($invoice_roles, $user))
+                                    @if($invoice_roles->write_only == 1 or $invoice_roles->read_write_only == 1)
                                         <a style="background:none; border:none;" href="{{ route('edit_invoice_ap', $invoice->id) }}" class="m-0 p-0" title="Edit Invoice"><i class="fa-solid fa-pen-to-square p-1 text-primary" style="font-size:14px;"></i></a>
                                     @endif
                                 </td>

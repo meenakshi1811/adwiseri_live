@@ -1519,7 +1519,7 @@ class ReportFilterController extends Controller
 
         // Check if user is a Subscriber with a specific membership
         if ($this->hasConsultancyReportAccess($user)) {
-            $query = $this->scopeInternalInvoicesToConsultancy($query, $user);
+            $query = $query->where('user_id', $this->consultancySubscriberId($user));
         }
 
         // Select the amount range and count the number of invoices
@@ -1550,7 +1550,7 @@ class ReportFilterController extends Controller
         } elseif (request()->type == "byType") {
             $query = new Internal_Invoices();
             if ($this->hasConsultancyReportAccess($user)) {
-                $query  = $this->scopeInternalInvoicesToConsultancy($query, $user)->where('type', 'ar');
+                $query  = $query->where('subscriber_id', $this->consultancySubscriberId($user))->where('type', 'ar');
             }
 
             $invoice_interval =  $query->whereBetween('created_at', [$startDate, $endDate])
@@ -1564,7 +1564,7 @@ class ReportFilterController extends Controller
         } elseif (request()->type == "byClient") {
             $query = new Internal_Invoices();
             if ($this->hasConsultancyReportAccess($user)) {
-                $query = $this->scopeInternalInvoicesToConsultancy($query, $user)->where('type', 'ar');
+                $query =  $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ar');
             }
             $invoice_interval = $query->whereBetween('created_at', [$startDate, $endDate])
                 ->select('country')
@@ -1578,7 +1578,7 @@ class ReportFilterController extends Controller
             $query = new Internal_Invoices();
             if ($this->hasConsultancyReportAccess($user)) {
 
-                $query = $this->scopeInternalInvoicesToConsultancy($query, $user)->where('type', 'ar');
+                $query =  $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ar');
             }
             $invoice_interval =  $query->whereBetween('created_at', [$startDate, $endDate])
                 ->select('to_country')
@@ -1612,8 +1612,8 @@ class ReportFilterController extends Controller
 
             // Filter for specific user types
             if ($this->hasConsultancyReportAccess($user)) {
-               $query = $this->scopeInternalInvoicesToConsultancy($query, $user)->where('type', 'ar');
-               $query1 = $this->scopeInternalInvoicesToConsultancy($query1, $user)->where('type', 'ar');
+               $query = $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ar');
+               $query1 = $query1->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ar');
             }
 
             if($user->user_type == 'admin') {
@@ -1780,7 +1780,7 @@ class ReportFilterController extends Controller
 
         // Check if user is a Subscriber with a specific membership
         if ($this->hasConsultancyReportAccess($user)) {
-            $query = $this->scopeInternalInvoicesToConsultancy($query, $user);
+            $query = $query->where('user_id', $this->consultancySubscriberId($user));
         }
 
         // Select the amount range and count the number of invoices
@@ -1811,7 +1811,7 @@ class ReportFilterController extends Controller
         } elseif (request()->type == "byType") {
             $query = new Internal_Invoices();
             if ($this->hasConsultancyReportAccess($user)) {
-                $query  = $this->scopeInternalInvoicesToConsultancy($query, $user)->where('type', 'ap');
+                $query  = $query->where('subscriber_id', $this->consultancySubscriberId($user))->where('type', 'ap');
             }
 
             $invoice_interval =  $query->whereBetween('created_at', [$startDate, $endDate])
@@ -1825,7 +1825,7 @@ class ReportFilterController extends Controller
         } elseif (request()->type == "byClient") {
             $query = new Internal_Invoices();
             if ($this->hasConsultancyReportAccess($user)) {
-                $query = $this->scopeInternalInvoicesToConsultancy($query, $user)->where('type', 'ap');
+                $query =  $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ap');
             }
             $invoice_interval = $query->whereBetween('created_at', [$startDate, $endDate])
                 ->select('country')
@@ -1839,7 +1839,7 @@ class ReportFilterController extends Controller
             $query = new Internal_Invoices();
             if ($this->hasConsultancyReportAccess($user)) {
 
-                $query = $this->scopeInternalInvoicesToConsultancy($query, $user)->where('type', 'ap');
+                $query =  $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ap');
             }
             $invoice_interval =  $query->whereBetween('created_at', [$startDate, $endDate])
                 ->select('to_country')
@@ -1873,8 +1873,8 @@ class ReportFilterController extends Controller
 
             // Filter for specific user types
             if ($this->hasConsultancyReportAccess($user)) {
-               $query = $this->scopeInternalInvoicesToConsultancy($query, $user)->where('type', 'ap');
-               $query1 = $this->scopeInternalInvoicesToConsultancy($query1, $user)->where('type', 'ap');
+               $query = $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ap');
+               $query1 = $query1->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ap');
             }
 
             if($user->user_type == 'admin') {

@@ -3,7 +3,6 @@
 
 use App\Models\UserRoles;
 use App\Services\OfferBenefitService;
-use App\Support\UserModuleAccess;
 $client_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Clients')->first();
 $dashboard_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Dashboard')->first();
 $application_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Applications')->first();
@@ -171,7 +170,7 @@ $hasAnalyticsAccess = $offerBenefitService->hasAnalyticsAccess($user);
                     Applications
                 </a>
                 @endif
-                @if($user->user_type == "admin" || UserModuleAccess::canRead($invoice_roles, $user))
+                @if($user->user_type == "admin" || ($invoice_roles->read_only == 1 or $invoice_roles->read_write_only == 1))
                 <a href="{{ route('invoices') }}" @if($page == "invoices") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
                         @include('partials.module_icon', ['module' => 'invoices'])
@@ -179,7 +178,7 @@ $hasAnalyticsAccess = $offerBenefitService->hasAnalyticsAccess($user);
                     Invoices
                 </a>
                 @endif
-                @if($user->user_type == "admin" || UserModuleAccess::canRead($payment_roles, $user))
+                @if($user->user_type == "admin" || ($payment_roles->read_only == 1 or $payment_roles->read_write_only == 1))
                 <a href="{{ route('my_payments') }}" @if($page == "payments") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
                         @include('partials.module_icon', ['module' => 'payments'])
