@@ -18,6 +18,9 @@ use Throwable;
 
 class Handler extends ExceptionHandler
 {
+    /** @var int Laravel CSRF/session expiry status (419); not in older Symfony Response builds. */
+    private const STATUS_PAGE_EXPIRED = 419;
+
     /**
      * A list of the exception types that are not reported.
      *
@@ -68,10 +71,10 @@ class Handler extends ExceptionHandler
                 return response()->json([
                     'message' => 'Your session has expired. Please refresh the page and try again.',
                     'error' => [
-                        'code' => SymfonyResponse::HTTP_PAGE_EXPIRED,
+                        'code' => self::STATUS_PAGE_EXPIRED,
                         'message' => 'Your session has expired. Please refresh the page and try again.',
                     ],
-                ], SymfonyResponse::HTTP_PAGE_EXPIRED);
+                ], self::STATUS_PAGE_EXPIRED);
             }
 
             return redirect()
@@ -140,7 +143,7 @@ class Handler extends ExceptionHandler
         }
 
         if ($e instanceof TokenMismatchException) {
-            return SymfonyResponse::HTTP_PAGE_EXPIRED;
+            return self::STATUS_PAGE_EXPIRED;
         }
 
         if ($e instanceof ValidationException) {
@@ -199,7 +202,7 @@ class Handler extends ExceptionHandler
             SymfonyResponse::HTTP_FORBIDDEN => 'You do not have permission to perform this action.',
             SymfonyResponse::HTTP_NOT_FOUND => 'The page you are looking for could not be found.',
             SymfonyResponse::HTTP_METHOD_NOT_ALLOWED => 'This action is not allowed.',
-            SymfonyResponse::HTTP_PAGE_EXPIRED => 'Your session has expired. Please refresh the page and try again.',
+            self::STATUS_PAGE_EXPIRED => 'Your session has expired. Please refresh the page and try again.',
             SymfonyResponse::HTTP_TOO_MANY_REQUESTS => 'Too many requests. Please wait a moment and try again.',
             SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR => 'Something went wrong. Please try again later.',
             SymfonyResponse::HTTP_SERVICE_UNAVAILABLE => 'The service is temporarily unavailable. Please try again later.',
