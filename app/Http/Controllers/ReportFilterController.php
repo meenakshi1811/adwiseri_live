@@ -3842,13 +3842,9 @@ class ReportFilterController extends Controller
         $ordered = collect();
 
         foreach (ApplicationStatuses::FLOW as $status) {
-            if (!array_key_exists($status, $indexed)) {
-                continue;
-            }
-
             $ordered->push((object) [
                 'status' => $status,
-                'application_count' => $indexed[$status],
+                'application_count' => (int) ($indexed[$status] ?? 0),
             ]);
             unset($indexed[$status]);
         }

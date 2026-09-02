@@ -1120,12 +1120,8 @@ class DashboardPreferenceService
         $seen = [];
 
         foreach ($sequence as $status) {
-            if (!array_key_exists($status, $indexed)) {
-                continue;
-            }
-
             $orderedLabels[] = $status;
-            $orderedValues[] = (int) $indexed[$status];
+            $orderedValues[] = (int) ($indexed[$status] ?? 0);
             $seen[$status] = true;
         }
 
