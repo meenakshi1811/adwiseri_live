@@ -95,6 +95,12 @@ class LoginController extends Controller
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
+
+            app(\App\Services\CookieConsentService::class)->linkAnonymousConsentToUser(
+                $request,
+                auth()->user()
+            );
+
             return redirect()->route('userprofile'); // Ensure the route exists
         }
 

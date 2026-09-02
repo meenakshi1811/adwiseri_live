@@ -138,8 +138,6 @@ s0.parentNode.insertBefore(s1,s0);
 
 @stack('other-scripts')
 
-@include('partials.cookie_notice')
-
 @include('partials.intl_phone_scripts')
 
 

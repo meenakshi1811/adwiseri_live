@@ -105,28 +105,21 @@
                     </div>
                     <div class="col-md-8 p-1">
                         @php
-                            $currentApplicationStatus = old('job_status', $application->application_status ?? '');
-                            if ($currentApplicationStatus === 'Apointment Booked') {
-                                $currentApplicationStatus = 'Appointment Booked';
-                            }
-                            $isTerminalApplicationStatus = in_array($currentApplicationStatus, ['Withdrawn', 'Cancelled'], true);
-                            $endDateEditableStatuses = ['Decision', 'Appeal Decision', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
+                            use App\Support\ApplicationStatuses;
+                            $currentApplicationStatus = ApplicationStatuses::normalize(old('job_status', $application->application_status ?? ''));
+                            $isTerminalApplicationStatus = ApplicationStatuses::isTerminal($currentApplicationStatus);
+                            $endDateEditableStatuses = ApplicationStatuses::END_DATE_REQUIRED;
                             $isEndDateEditable = in_array($currentApplicationStatus, $endDateEditableStatuses, true);
                         @endphp
                         <select name="job_status" class="form-control form-select js-app-status @error('job_status') is-invalid @enderror" id="exampleInputEmail1" style="background-color: #fff; color:#000 !important;" aria-describedby="emailHelp" required>
                             <option value="">Select Application Status</option>
-                            <option {{ ($currentApplicationStatus == "Client Registered") ? 'selected' : '' }} value="Client Registered" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Client Registered") disabled @endif>Client Registered</option>
-                            <option {{ ($currentApplicationStatus == "Client Counselled") ? 'selected' : '' }} value="Client Counselled" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Client Counselled") disabled @endif>Client Counselled</option>
-                            <option {{ ($currentApplicationStatus == "Preparation") ? 'selected' : '' }} value="Preparation" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Preparation") disabled @endif>Preparation</option>
-                            <option {{ ($currentApplicationStatus == "Appointment Booked") ? 'selected' : '' }} value="Appointment Booked" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Appointment Booked") disabled @endif>Appointment Booked</option>
-                            <option {{ ($currentApplicationStatus == "Applied") ? 'selected' : '' }} value="Applied" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Applied") disabled @endif>Applied</option>
-                            <option {{ ($currentApplicationStatus == "Decision") ? 'selected' : '' }} value="Decision" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Decision") disabled @endif>Decision</option>
-                            <option {{ ($currentApplicationStatus == "Appeal Lodged") ? 'selected' : '' }} value="Appeal Lodged" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Appeal Lodged") disabled @endif>Appeal Lodged</option>
-                            <option {{ ($currentApplicationStatus == "Appeal Decision") ? 'selected' : '' }} value="Appeal Decision" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Appeal Decision") disabled @endif>Appeal Decision</option>
-                            <option {{ ($currentApplicationStatus == "AR / JR Lodged") ? 'selected' : '' }} value="AR / JR Lodged" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "AR / JR Lodged") disabled @endif>AR / JR Lodged</option>
-                            <option {{ ($currentApplicationStatus == "AR / JR Decision") ? 'selected' : '' }} value="AR / JR Decision" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "AR / JR Decision") disabled @endif>AR / JR Decision</option>
-                            <option {{ ($currentApplicationStatus == "Withdrawn") ? 'selected' : '' }} value="Withdrawn" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Withdrawn") disabled @endif>Withdrawn</option>
-                            <option {{ ($currentApplicationStatus == "Cancelled") ? 'selected' : '' }} value="Cancelled" @if($isTerminalApplicationStatus && $currentApplicationStatus !== "Cancelled") disabled @endif>Cancelled</option>
+                            @foreach(ApplicationStatuses::FLOW as $statusOption)
+                                <option value="{{ $statusOption }}"
+                                    @if($currentApplicationStatus === $statusOption) selected @endif
+                                    @if($isTerminalApplicationStatus && $currentApplicationStatus !== $statusOption) disabled @endif>
+                                    {{ $statusOption }}
+                                </option>
+                            @endforeach
                         </select>
                     @error('job_status')
                         <span class="invalid-feedback" role="alert">
@@ -299,18 +292,9 @@
                     <div class="col-md-8 p-1">
                         <select name="job_status" class="form-control form-select js-app-status @error('job_status') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('job_status') }}" required>
                             <option value="">Select Application Status</option>
-                            <option {{ (old('job_status') == "Client Registered") ? 'selected':'' }} value="Client Registered">Client Registered</option>
-                            <option {{ (old('job_status') == "Client Counselled") ? 'selected':'' }} value="Client Counselled">Client Counselled</option>
-                            <option {{ (old('job_status') == "Preparation") ? 'selected':'' }} value="Preparation">Preparation</option>
-                            <option {{ (old('job_status') == "Appointment Booked") ? 'selected':'' }} value="Appointment Booked">Appointment Booked</option>
-                            <option {{ (old('job_status') == "Applied") ? 'selected':'' }} value="Applied">Applied</option>
-                            <option {{ (old('job_status') == "Decision") ? 'selected':'' }} value="Decision">Decision</option>
-                            <option {{ (old('job_status') == "Appeal Lodged") ? 'selected':'' }} value="Appeal Lodged">Appeal Lodged</option>
-                            <option {{ (old('job_status') == "Appeal Decision") ? 'selected':'' }} value="Appeal Decision">Appeal Decision</option>
-                            <option {{ (old('job_status') == "AR / JR Lodged") ? 'selected':'' }} value="AR / JR Lodged">AR / JR Lodged</option>
-                            <option {{ (old('job_status') == "AR / JR Decision") ? 'selected':'' }} value="AR / JR Decision">AR / JR Decision</option>
-                            <option {{ (old('job_status') == "Withdrawn") ? 'selected' : '' }} value="Withdrawn">Withdrawn</option>
-                            <option {{ (old('job_status') == "Cancelled") ? 'selected':'' }} value="Cancelled">Cancelled</option>
+                            @foreach(\App\Support\ApplicationStatuses::FLOW as $statusOption)
+                                <option {{ (old('job_status') == $statusOption) ? 'selected':'' }} value="{{ $statusOption }}">{{ $statusOption }}</option>
+                            @endforeach
                         </select>
                     @error('job_status')
                         <span class="invalid-feedback" role="alert">
@@ -324,7 +308,7 @@
                     <div class="col-md-8 p-1">
                         @php
                             $selectedApplicationStatus = old('job_status', '');
-                            $endDateEditableStatuses = ['Decision', 'Appeal Decision', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
+                            $endDateEditableStatuses = \App\Support\ApplicationStatuses::END_DATE_REQUIRED;
                             $isEndDateEditable = in_array($selectedApplicationStatus, $endDateEditableStatuses, true);
                         @endphp
                         <input name="job_completion_date" type="date"
@@ -373,9 +357,11 @@
   </div>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
   </script>
+  @include('partials.application_closed_confirm_script')
   <script>
       $(document).ready(() => {
-        const endDateEditableStatuses = ["Decision", "Appeal Decision", "AR / JR Decision", "Withdrawn", "Cancelled"];
+        const endDateEditableStatuses = @json(\App\Support\ApplicationStatuses::END_DATE_REQUIRED);
+        window.adwiseriBindClosedStatusFormConfirm('#registration_form', '.js-app-status');
 
         const syncEndDateEditability = () => {
             const statusField = document.querySelector(".js-app-status");

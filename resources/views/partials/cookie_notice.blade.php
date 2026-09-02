@@ -1,4 +1,10 @@
-<div id="adwiseri-cookie-notice" class="adwiseri-cookie-notice" role="dialog" aria-live="polite" aria-labelledby="adwiseri-cookie-title" aria-hidden="true">
+<div id="adwiseri-cookie-notice"
+     class="adwiseri-cookie-notice"
+     role="dialog"
+     aria-live="polite"
+     aria-labelledby="adwiseri-cookie-title"
+     aria-hidden="true"
+     data-consent-url="{{ route('cookie_consent.store') }}">
     <div class="adwiseri-cookie-panel">
         <div class="adwiseri-cookie-copy">
             <h2 id="adwiseri-cookie-title" class="adwiseri-cookie-title">We use cookies</h2>

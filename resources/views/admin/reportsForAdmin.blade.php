@@ -316,6 +316,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                     onchange="onChangeApplicationReport(this.value,this.options[this.selectedIndex].text)">
                                     <option value="" selected>Select Attribute</option>
                                     <option value="visaCountry">By Visa Country</option>
+                                    <option value="applicationStatus">By Application Status</option>
                                     <option value="applicationCountry">By Application Country</option>
                                     <option value="applicationType">By Application Type</option>
                                     <option value="noOfApplicaitonsPerApplication">By No. of Applications per
@@ -3552,6 +3553,19 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     title: "No of Applicants",
+                    data: 'application_count',
+                    name: 'application_count'
+                }
+            ];
+        } else if (type == 'applicationStatus') {
+            reportTitle = 'Applications By Status';
+            columns = [{
+                    title: "Application Status",
+                    data: 'status',
+                    name: 'status'
+                },
+                {
+                    title: "No of Applications",
                     data: 'application_count',
                     name: 'application_count'
                 }

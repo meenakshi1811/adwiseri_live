@@ -16,7 +16,8 @@ $setting_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Support')->first();
 @endphp
 @php
-    $statusFlow = ['Client Registered', 'Client Counselled', 'Preparation', 'Appointment Booked', 'Applied', 'Decision', 'Appeal Lodged', 'Appeal Decision', 'AR / JR Lodged', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
+    use App\Support\ApplicationStatuses;
+    $statusFlow = ApplicationStatuses::FLOW;
 @endphp
 
 
@@ -73,7 +74,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 $currentStatus = $app->application_status ?: 'Client Registered';
                                 $currentIndex = array_search($currentStatus, $statusFlow, true);
                                 $currentIndex = $currentIndex === false ? 0 : $currentIndex;
-                                $isTerminalStatus = in_array($currentStatus, ['Withdrawn', 'Cancelled'], true);
+                                $isTerminalStatus = ApplicationStatuses::isTerminal($currentStatus);
                             @endphp
                             <td class="p-1 text-center">
                                 <select class="form-control form-select application-status-select"
@@ -122,31 +123,54 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         }
     }
   </script>
+  @include('partials.application_closed_confirm_script')
   <script>
       $(document).ready(() => {
         $('.application-status-select').on('change', function () {
             const selectEl = $(this);
             const applicationId = selectEl.data('application-id');
             const selectedStatus = selectEl.val();
+            const previousStatus = selectEl.data('previous-status') || selectEl.find('option:selected').data('previous') || selectEl.data('initial-status');
 
-            $.ajax({
-                url: "{{ route('applications.update_status') }}",
-                method: "POST",
-                data: {
-                    _token: "{{ csrf_token() }}",
-                    application_id: applicationId,
-                    status: selectedStatus
-                },
-                success: function(response) {
-                    Swal.fire({ icon: 'success', title: 'Success', text: response.message || 'Status updated successfully.' })
-                        .then(() => window.location.reload());
-                },
-                error: function(xhr) {
-                    const message = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Unable to update status.';
-                    Swal.fire({ icon: 'error', title: 'Oops!', text: message });
-                    window.location.reload();
-                }
-            });
+            const submitStatusChange = function (closedConfirmed) {
+                $.ajax({
+                    url: "{{ route('applications.update_status') }}",
+                    method: "POST",
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        application_id: applicationId,
+                        status: selectedStatus,
+                        closed_confirmed: closedConfirmed ? 1 : 0
+                    },
+                    success: function(response) {
+                        Swal.fire({ icon: 'success', title: 'Success', text: response.message || 'Status updated successfully.' })
+                            .then(() => window.location.reload());
+                    },
+                    error: function(xhr) {
+                        const message = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Unable to update status.';
+                        Swal.fire({ icon: 'error', title: 'Oops!', text: message });
+                        window.location.reload();
+                    }
+                });
+            };
+
+            if (selectedStatus === 'Closed') {
+                window.adwiseriConfirmApplicationClosed().then(function (confirmed) {
+                    if (!confirmed) {
+                        selectEl.val(selectEl.data('initial-status'));
+                        return;
+                    }
+
+                    submitStatusChange(true);
+                });
+                return;
+            }
+
+            submitStatusChange(false);
+        });
+
+        $('.application-status-select').each(function () {
+            $(this).data('initial-status', this.value);
         });
 
         $("#add_new_zero").click(function(){

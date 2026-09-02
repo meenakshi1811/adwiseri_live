@@ -31,6 +31,32 @@
         document.cookie = COOKIE_NAME + '=accepted; path=/; max-age=' + maxAge + '; SameSite=Lax';
     }
 
+    function getCsrfToken() {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    }
+
+    function recordConsentOnServer(notice) {
+        var consentUrl = notice.getAttribute('data-consent-url');
+        if (!consentUrl || !window.fetch) {
+            return;
+        }
+
+        fetch(consentUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ consent_action: 'accepted' })
+        }).catch(function () {
+            // Consent is still stored locally even if the audit log request fails.
+        });
+    }
+
     function hideNotice(notice) {
         notice.classList.remove('is-visible');
         notice.setAttribute('aria-hidden', 'true');
@@ -58,6 +84,7 @@
         if (acceptButton) {
             acceptButton.addEventListener('click', function () {
                 persistConsent();
+                recordConsentOnServer(notice);
                 hideNotice(notice);
             });
         }

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Applications;
 use App\Models\User;
+use App\Support\ApplicationStatuses;
 use Illuminate\Support\Collection;
 
 class DocumentReminderService
@@ -21,7 +22,7 @@ class DocumentReminderService
     {
         $applications = Applications::query()
             ->where('subscriber_id', $subscriber->id)
-            ->whereNotIn('application_status', ['Withdrawn', 'Cancelled'])
+            ->whereNotIn('application_status', ApplicationStatuses::INACTIVE)
             ->with('client')
             ->orderByDesc('updated_at')
             ->get();

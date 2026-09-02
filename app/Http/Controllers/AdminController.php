@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
+use App\Support\ApplicationStatuses;
 use DateTime;
 use DateTimeZone;
 use App\Models\ReportSetting;
@@ -1650,7 +1651,7 @@ class AdminController extends Controller
             'job_completion_date' => [
                 'nullable',
                 'date',
-                Rule::requiredIf(fn () => in_array($request->input('job_status'), ['Decision', 'Appeal Decision', 'AR / JR Decision', 'Withdrawn', 'Cancelled'], true)),
+                Rule::requiredIf(fn () => in_array($request->input('job_status'), ApplicationStatuses::END_DATE_REQUIRED, true)),
                 'after_or_equal:job_open_date',
                 'before_or_equal:today',
             ],
@@ -1660,6 +1661,12 @@ class AdminController extends Controller
             'job_completion_date.after_or_equal' => 'Application End Date must be on or after Application Start Date',
             'job_completion_date.before_or_equal' => 'Application End Date cannot be in the future',
         ]);
+
+        if ($request->input('job_status') === ApplicationStatuses::CLOSED && !$request->boolean('closed_confirmed')) {
+            return back()->withInput()->withErrors([
+                'job_status' => 'Please confirm closing this application.',
+            ]);
+        }
 
         $normalizeDate = function ($value) {
             if (!$value) {

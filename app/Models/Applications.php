@@ -5,6 +5,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Support\ApplicationStatuses;
 
 class Applications extends Model
 {
@@ -44,6 +45,11 @@ class Applications extends Model
     }
     public function docs(){
         return $this->hasMany(Client_Docs::class,'application_id','application_id');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->whereNotIn('application_status', ApplicationStatuses::INACTIVE);
     }
 
 

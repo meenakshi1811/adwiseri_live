@@ -111,12 +111,9 @@ use App\Services\MySettingsPageService;
 use App\Services\LeadEnquiryService;
 use App\Services\UserAccessRightsService;
 use App\Services\NotificationService;
+use App\Support\ApplicationStatuses;
 class WebController extends Controller
 {
-    private const APPLICATION_STATUS_FLOW = ['Client Registered', 'Client Counselled', 'Preparation', 'Appointment Booked', 'Applied', 'Decision', 'Appeal Lodged', 'Appeal Decision', 'AR / JR Lodged', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
-
-    private const APPLICATION_END_DATE_REQUIRED_STATUSES = ['Decision', 'Appeal Decision', 'AR / JR Decision', 'Withdrawn', 'Cancelled'];
-
     private function normalizeDateValue($value): ?string
     {
         if ($value === null) {
@@ -3019,16 +3016,10 @@ class WebController extends Controller
         ]);
 
         $application = Applications::findOrFail($request->application_id);
-        $currentStatus = $application->application_status ?: 'Client Registered';
-        if ($currentStatus === 'Apointment Booked') {
-            $currentStatus = 'Appointment Booked';
-        }
-        $newStatus = $request->status;
-        if ($newStatus === 'Apointment Booked') {
-            $newStatus = 'Appointment Booked';
-        }
+        $currentStatus = ApplicationStatuses::normalize($application->application_status);
+        $newStatus = ApplicationStatuses::normalize($request->status);
 
-        $statusFlow = self::APPLICATION_STATUS_FLOW;
+        $statusFlow = ApplicationStatuses::FLOW;
         $currentIndex = array_search($currentStatus, $statusFlow, true);
         $newIndex = array_search($newStatus, $statusFlow, true);
 
@@ -3046,6 +3037,14 @@ class WebController extends Controller
 
         if ($newStatus === $currentStatus) {
             return response()->json(['message' => 'Status already set.']);
+        }
+
+        if ($newStatus === ApplicationStatuses::CLOSED && !$request->boolean('closed_confirmed')) {
+            return response()->json(['message' => 'Please confirm closing this application.'], 422);
+        }
+
+        if (ApplicationStatuses::isTerminal($currentStatus) && $newStatus !== $currentStatus) {
+            return response()->json(['message' => 'This application status can no longer be changed.'], 422);
         }
 
         $application->application_status = $newStatus;
@@ -3120,7 +3119,7 @@ class WebController extends Controller
             'job_completion_date' => [
                 'nullable',
                 'date',
-                Rule::requiredIf(fn () => in_array($request->input('job_status'), self::APPLICATION_END_DATE_REQUIRED_STATUSES, true)),
+                Rule::requiredIf(fn () => in_array($request->input('job_status'), ApplicationStatuses::END_DATE_REQUIRED, true)),
                 'after_or_equal:job_open_date',
                 'before_or_equal:today',
             ],
@@ -3130,6 +3129,12 @@ class WebController extends Controller
             'job_completion_date.after_or_equal' => 'Application End Date must be on or after Application Start Date',
             'job_completion_date.before_or_equal' => 'Application End Date cannot be in the future',
         ]);
+
+        if ($request->input('job_status') === ApplicationStatuses::CLOSED && !$request->boolean('closed_confirmed')) {
+            return back()->withInput()->withErrors([
+                'job_status' => 'Please confirm closing this application.',
+            ]);
+        }
 
         $normalizeDate = function ($value) {
             if (!$value) {
@@ -3145,7 +3150,7 @@ class WebController extends Controller
                 }
             }
         };
-        $endDateEditableStatuses = self::APPLICATION_END_DATE_REQUIRED_STATUSES;
+        $endDateEditableStatuses = ApplicationStatuses::END_DATE_REQUIRED;
         $resolveApplicationEndDate = function ($status, $endDate) use ($endDateEditableStatuses, $normalizeDate) {
             if (!in_array($status, $endDateEditableStatuses, true)) {
                 return null;

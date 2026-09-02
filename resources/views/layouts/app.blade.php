@@ -96,6 +96,5 @@
         </main>
     </div>
 
-    @include('partials.cookie_notice')
 </body>
 </html>

@@ -209,6 +209,7 @@ Route::get('/delete_associate_payment/{id}', [App\Http\Controllers\AssociateCont
 
 Route::get('/contactus', [App\Http\Controllers\WebController::class, 'contactus'])->name('contactus');
 Route::get('/cookie_notice', [App\Http\Controllers\WebController::class, 'refund_policy'])->name('refund_policy');
+Route::post('/cookie-consent', [App\Http\Controllers\WebController::class, 'storeCookieConsent'])->name('cookie_consent.store');
 Route::get('/gdpr', [App\Http\Controllers\WebController::class, 'terms_conditions'])->name('terms_conditions');
 Route::get('/terms_of_use', [App\Http\Controllers\WebController::class, 'terms_use'])->name('terms_use');
 Route::get('/privacy_policy', [App\Http\Controllers\WebController::class, 'privacy_policy'])->name('privacy_policy');

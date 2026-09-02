@@ -19,6 +19,7 @@ class OperationalNotificationService
         'AR / JR Decision',
         'Withdrawn',
         'Cancelled',
+        'Closed',
     ];
 
     public function __construct(private NotificationService $notifications)

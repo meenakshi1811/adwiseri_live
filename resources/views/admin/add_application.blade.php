@@ -87,10 +87,9 @@
                             <div class="col-md-8 p-1">
                                 <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="edit_job_status" style="background-color: #fff; color:#000 !important;" aria-describedby="emailHelp" required>
                                     <option value="">Select Application Status</option>
-                                    <option {{ ($application->application_status == "Client Registered") ? 'selected' : '' }} value="Client Registered">Client Registered</option>
-                                    <option {{ ($application->application_status == "Applied") ? 'selected' : '' }} value="Applied">Applied</option>
-                                    <option {{ ($application->application_status == "Cancelled") ? 'selected' : '' }} value="Cancelled">Cancelled (Application/Appeal Cancelled by Consultancy/Authorities)</option>
-                                    <option {{ ($application->application_status == "Withdrawn") ? 'selected' : '' }} value="Withdrawn">Withdrawn (Application/Appeal Withdrawn by Client)</option>
+                                    @foreach(\App\Support\ApplicationStatuses::FLOW as $statusOption)
+                                        <option {{ ($application->application_status == $statusOption) ? 'selected' : '' }} value="{{ $statusOption }}">{{ $statusOption }}</option>
+                                    @endforeach
                                 </select>
                             @error('job_status')
                                 <span class="invalid-feedback" role="alert">
@@ -231,10 +230,9 @@
                             <div class="col-md-8 p-1">
                                 <select name="job_status" class="form-control form-select @error('job_status') is-invalid @enderror" id="add_job_status" aria-describedby="emailHelp" value="{{ old('job_status') }}" required>
                                     <option value="">Select Application Status</option>
-                                    <option {{ (old('job_status', 'Client Registered') == "Client Registered") ? 'selected':'' }} value="Client Registered">Client Registered</option>
-                                    <option {{ (old('job_status') == "Applied") ? 'selected':'' }} value="Applied">Applied</option>
-                                    <option {{ (old('job_status') == "Cancelled") ? 'selected':'' }} value="Cancelled">Cancelled (Application/Appeal Cancelled by Consultancy/Authorities)</option>
-                                    <option {{ (old('job_status') == "Withdrawn") ? 'selected' : '' }} value="Withdrawn">Withdrawn (Application/Appeal Withdrawn by Client)</option>
+                                    @foreach(\App\Support\ApplicationStatuses::FLOW as $statusOption)
+                                        <option {{ (old('job_status', 'Client Registered') == $statusOption) ? 'selected':'' }} value="{{ $statusOption }}">{{ $statusOption }}</option>
+                                    @endforeach
                                 </select>
                             @error('job_status')
                                 <span class="invalid-feedback" role="alert">
@@ -288,6 +286,7 @@
   </div>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
   </script>
+  @include('partials.application_closed_confirm_script')
   <script>
       $(document).ready(() => {
         var id = document.getElementById('client').value;
@@ -386,7 +385,8 @@
             });
           }
 
-          const endDateEditableStatuses = ["Decision", "Withdrawn", "Cancelled"];
+          const endDateEditableStatuses = @json(\App\Support\ApplicationStatuses::END_DATE_REQUIRED);
+          window.adwiseriBindClosedStatusFormConfirm('#registration_form', '[name="job_status"]');
 
           function toggleEndDateField(statusSelector, endDateSelector) {
             const statusValue = $(statusSelector).val();

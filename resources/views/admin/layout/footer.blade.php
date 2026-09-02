@@ -144,8 +144,6 @@
 
 @stack('scripts')
 
-@include('partials.cookie_notice')
-
 @include('partials.intl_phone_scripts')
 
 

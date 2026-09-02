@@ -22,6 +22,7 @@ use App\Services\ApplicationVisibilityService;
 use App\Services\OfferBenefitService;
 use App\Services\TableFilterCountService;
 use App\Support\BrandedMail;
+use App\Support\ApplicationStatuses;
 use App\Mail\Invoicemail;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
@@ -32,20 +33,7 @@ class AssociateController extends Controller
     public const SERVICE_OPTIONS = ['Student Admission', 'Job Recruitment', 'Visa Processing', 'Finance', 'Other'];
 
     /** Application status values (mirrors the Applications module status dropdown). */
-    public const APPLICATION_STATUS_OPTIONS = [
-        'Client Registered',
-        'Client Counselled',
-        'Preparation',
-        'Appointment Booked',
-        'Applied',
-        'Decision',
-        'Appeal Lodged',
-        'Appeal Decision',
-        'AR / JR Lodged',
-        'AR / JR Decision',
-        'Withdrawn',
-        'Cancelled',
-    ];
+    public const APPLICATION_STATUS_OPTIONS = ApplicationStatuses::FLOW;
 
     /** Invoice status values (stored value => label). Mirrors internal_invoices. */
     public const STATUS_OPTIONS = [

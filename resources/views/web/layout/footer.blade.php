@@ -349,7 +349,9 @@ $('#star-rating .star').on('click', function() {
 
 @stack('scripts')
 
+@guest
 @include('partials.cookie_notice')
+@endguest
 
 </body>
 

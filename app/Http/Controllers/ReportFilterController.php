@@ -58,6 +58,7 @@ use Carbon\CarbonInterface;
 use DataTables;
 
 use App\Http\Controllers\Concerns\ScopesConsultancyReports;
+use App\Support\ApplicationStatuses;
 
 class ReportFilterController extends Controller
 {
@@ -655,6 +656,12 @@ class ReportFilterController extends Controller
                     ->groupBy('country')->get();
             }
             return  DataTables::of($applicationsByApplicationCountry)
+                ->addIndexColumn()
+                ->make(true);
+        } elseif (request()->type == "applicationStatus") {
+            $applicationsByStatus = $this->buildApplicationsByStatusReport($user, $startDate, $endDate);
+
+            return DataTables::of($applicationsByStatus)
                 ->addIndexColumn()
                 ->make(true);
         } elseif (request()->type == "applicationType") {
@@ -3809,5 +3816,50 @@ class ReportFilterController extends Controller
                 })
                 ->make(true);;
         }
+    }
+
+    private function buildApplicationsByStatusReport(User $user, Carbon $startDate, Carbon $endDate)
+    {
+        $query = Applications::query()
+            ->select(
+                DB::raw("COALESCE(NULLIF(application_status, ''), 'Client Registered') as status"),
+                DB::raw('COUNT(*) as application_count')
+            )
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
+        if ($this->hasConsultancyReportAccess($user)) {
+            $query->where('subscriber_id', $this->consultancySubscriberId($user));
+        }
+
+        $rows = $query->groupBy('status')->get();
+        $indexed = [];
+
+        foreach ($rows as $row) {
+            $status = ApplicationStatuses::normalize($row->status);
+            $indexed[$status] = ($indexed[$status] ?? 0) + (int) $row->application_count;
+        }
+
+        $ordered = collect();
+
+        foreach (ApplicationStatuses::FLOW as $status) {
+            if (!array_key_exists($status, $indexed)) {
+                continue;
+            }
+
+            $ordered->push((object) [
+                'status' => $status,
+                'application_count' => $indexed[$status],
+            ]);
+            unset($indexed[$status]);
+        }
+
+        foreach ($indexed as $status => $count) {
+            $ordered->push((object) [
+                'status' => $status,
+                'application_count' => $count,
+            ]);
+        }
+
+        return $ordered;
     }
 }
