@@ -257,6 +257,7 @@ Route::get('/invoice_payment_made', [App\Http\Controllers\WebController::class, 
 Route::get('/new_invoice', [App\Http\Controllers\WebController::class, 'new_invoice'])->name('new_invoice')->middleware(['auth','check.device']);
 Route::get('/new_invoice_ap', [App\Http\Controllers\WebController::class, 'new_invoice_ap'])->name('new_invoice_ap')->middleware(['auth','check.device']);
 Route::post('/check_duplicate_invoice', [App\Http\Controllers\WebController::class, 'check_duplicate_invoice'])->name('check_duplicate_invoice')->middleware(['auth','check.device']);
+Route::post('/check_duplicate_application', [App\Http\Controllers\WebController::class, 'check_duplicate_application'])->name('check_duplicate_application')->middleware(['auth','check.device']);
 Route::post('/create_new_invoice', [App\Http\Controllers\WebController::class, 'create_new_invoice'])->name('create_new_invoice')->middleware(['auth','check.device']);
 Route::post('/create_new_invoice_ap', [App\Http\Controllers\WebController::class, 'create_new_invoice_ap'])->name('create_new_invoice_ap')->middleware(['auth','check.device']);
 Route::get('/edit_invoice/{id}', [App\Http\Controllers\WebController::class, 'edit_invoice'])->name('edit_invoice')->middleware(['auth','check.device']);

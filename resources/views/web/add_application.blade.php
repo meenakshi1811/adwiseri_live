@@ -358,10 +358,17 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
   </script>
   @include('partials.application_closed_confirm_script')
+  @include('partials.application_duplicate_confirm_script')
   <script>
       $(document).ready(() => {
         const endDateEditableStatuses = @json(\App\Support\ApplicationStatuses::END_DATE_REQUIRED);
         window.adwiseriBindClosedStatusFormConfirm('#registration_form', '.js-app-status');
+        @if(!isset($application))
+        window.bindApplicationDuplicateConfirm('#registration_form', {
+            clientField: '#client',
+            applicationField: '#job_role'
+        });
+        @endif
 
         const syncEndDateEditability = () => {
             const statusField = document.querySelector(".js-app-status");

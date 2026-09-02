@@ -287,6 +287,7 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
   </script>
   @include('partials.application_closed_confirm_script')
+  @include('partials.application_duplicate_confirm_script')
   <script>
       $(document).ready(() => {
         var id = document.getElementById('client').value;
@@ -387,6 +388,12 @@
 
           const endDateEditableStatuses = @json(\App\Support\ApplicationStatuses::END_DATE_REQUIRED);
           window.adwiseriBindClosedStatusFormConfirm('#registration_form', '[name="job_status"]');
+          @if(!isset($application))
+          window.bindApplicationDuplicateConfirm('#registration_form', {
+              clientField: '#client',
+              applicationField: '#job_role, #add_job_status'
+          });
+          @endif
 
           function toggleEndDateField(statusSelector, endDateSelector) {
             const statusValue = $(statusSelector).val();

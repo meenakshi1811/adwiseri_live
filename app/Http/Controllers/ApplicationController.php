@@ -11,6 +11,7 @@ use App\Models\Clients;
 use App\Models\Dependants;
 use Carbon\Carbon;
 use App\Services\DocumentChecklistMailService;
+use App\Services\ApplicationDuplicateService;
 
 
 class ApplicationController extends Controller
@@ -22,7 +23,30 @@ class ApplicationController extends Controller
 
         $user = Auth::user();
         $client = Clients::find($request->client_id);
+        if (!$client) {
+            return response()->json(['success' => false, 'message' => 'Client not found.'], 404);
+        }
+
         $subscriber = User::find($client->subscriber_id);
+        if (!$subscriber) {
+            return response()->json(['success' => false, 'message' => 'Subscriber not found.'], 404);
+        }
+
+        $duplicateService = app(ApplicationDuplicateService::class);
+        $duplicateError = $duplicateService->validationError(
+            $request,
+            (int) $client->id,
+            (string) $request->job_role,
+            (int) $subscriber->id
+        );
+        if ($duplicateError) {
+            return response()->json([
+                'success' => false,
+                'duplicate' => true,
+                'message' => $duplicateError,
+            ], 422);
+        }
+
         $application = new Applications();
         $application->client_id = $request->client_id;
         $application->subscriber_id =  $subscriber->id;

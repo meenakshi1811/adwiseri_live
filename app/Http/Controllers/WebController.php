@@ -3291,6 +3291,18 @@ class WebController extends Controller
                     if (!empty($ccErrors)) {
                         return back()->withInput()->withErrors($ccErrors);
                     }
+
+                    $duplicateService = app(\App\Services\ApplicationDuplicateService::class);
+                    $duplicateError = $duplicateService->validationError(
+                        $request,
+                        (int) $client->id,
+                        (string) $request->job_role,
+                        (int) $subscriber->id
+                    );
+                    if ($duplicateError) {
+                        return back()->withInput()->withErrors(['job_role' => $duplicateError]);
+                    }
+
                     $application = new Applications();
                     $application->client_id = $client->id;
                     $application->subscriber_id = $subscriber->id;
@@ -5189,6 +5201,44 @@ class WebController extends Controller
         }
 
         return response()->json(['duplicate' => $duplicate]);
+    }
+
+    public function check_duplicate_application(Request $request)
+    {
+        $request->validate([
+            'client_id' => 'required|integer|exists:clients,id',
+            'application_name' => 'required|string|max:255',
+        ]);
+
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['duplicate' => false], 401);
+        }
+
+        $subscriberId = null;
+        if ($user->user_type !== 'admin') {
+            $subscriber = $user->user_type === 'Subscriber'
+                ? $user
+                : User::find($user->added_by);
+
+            if (!$subscriber) {
+                return response()->json(['duplicate' => false], 403);
+            }
+
+            $subscriberId = (int) $subscriber->id;
+        }
+
+        $duplicateService = app(\App\Services\ApplicationDuplicateService::class);
+        $duplicate = $duplicateService->findDuplicate(
+            (int) $request->client_id,
+            $request->application_name,
+            $subscriberId
+        );
+
+        return response()->json([
+            'duplicate' => (bool) $duplicate,
+            'message' => $duplicate ? $duplicateService->duplicateMessage($duplicate) : null,
+        ]);
     }
 
     public function create_new_invoice(Request $request)

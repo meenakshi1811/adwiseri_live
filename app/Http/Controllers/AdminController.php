@@ -1742,6 +1742,17 @@ class AdminController extends Controller
                         return back()->withErrors(['subscriber' => 'Subscriber for the selected client was not found.']);
                     }
 
+                    $duplicateService = app(\App\Services\ApplicationDuplicateService::class);
+                    $duplicateError = $duplicateService->validationError(
+                        $request,
+                        (int) $client->id,
+                        (string) $request->job_role,
+                        (int) $subscriber->id
+                    );
+                    if ($duplicateError) {
+                        return back()->withInput()->withErrors(['job_role' => $duplicateError]);
+                    }
+
                     $application = new Applications();
                     $application->client_id = $client->id;
                     $application->subscriber_id = $subscriber->id;

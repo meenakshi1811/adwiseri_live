@@ -3490,6 +3490,70 @@
                 $('#ccHeroDocCombosCount').text(ccDocumentListsState.items.length);
             }
 
+            function openCcDocListEditor(index) {
+                const entry = ccDocumentListsState.items[index];
+                if (!entry) {
+                    return;
+                }
+
+                const tab = document.querySelector('#cc-tab');
+                if (tab) {
+                    bootstrap.Tab.getOrCreateInstance(tab).show();
+                }
+
+                ccDocumentListsState.editingKey = comboKey(entry.country, entry.visa_category);
+                setCcDocBuilder(entry);
+                document.querySelector('.cc-documents-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            function findCcDocListIndex(country, visaCategory) {
+                const key = comboKey(country, visaCategory);
+                return ccDocumentListsState.items.findIndex(function (item) {
+                    return comboKey(item.country, item.visa_category) === key;
+                });
+            }
+
+            function openCcDocListEditorByKey(country, visaCategory) {
+                const index = findCcDocListIndex(country, visaCategory);
+                if (index >= 0) {
+                    openCcDocListEditor(index);
+                }
+            }
+
+            function openCcDocListViewer(index) {
+                const entry = ccDocumentListsState.items[index];
+                if (!entry) {
+                    return;
+                }
+
+                $('#cc-doc-list-view-country').text(entry.country || '—');
+                $('#cc-doc-list-view-category').text(entry.visa_category || '—');
+
+                let html = '';
+                if (Array.isArray(entry.sections) && entry.sections.length) {
+                    entry.sections.forEach(function (section) {
+                        html += `<div class="mb-3"><h6 class="mb-2">${escapeHtml(section.title || 'Section')}</h6><ul class="mb-0">`;
+                        (section.documents || []).forEach(function (doc) {
+                            html += `<li>${escapeHtml(doc)}</li>`;
+                        });
+                        html += '</ul></div>';
+                    });
+                } else {
+                    html = '<ul class="mb-0">';
+                    (entry.documents || []).forEach(function (doc) {
+                        html += `<li>${escapeHtml(doc)}</li>`;
+                    });
+                    html += '</ul>';
+                }
+
+                if (!html || html === '<ul class="mb-0"></ul>') {
+                    html = '<p class="text-muted mb-0">No documents configured for this list.</p>';
+                }
+
+                $('#cc-doc-list-view-content').html(html);
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('ccDocumentListViewModal')).show();
+            }
+
             function refreshCcDocCombinationSelectors() {
                 const countries = getCcSelectedCountries();
                 const categories = getCcSelectedCategories();
@@ -4111,14 +4175,18 @@
             $('#clear-cc-doc-builder').on('click', clearCcDocBuilder);
 
             $(document).on('click', '.cc-edit-doc-combo', function () {
-                const index = Number($(this).data('index'));
-                const entry = ccDocumentListsState.items[index];
-                if (!entry) {
-                    return;
+                openCcDocListEditor(Number($(this).data('index')));
+            });
+
+            $(document).on('click', '.cc-doc-list-view', function () {
+                const index = findCcDocListIndex($(this).data('country'), $(this).data('visa-category'));
+                if (index >= 0) {
+                    openCcDocListViewer(index);
                 }
-                ccDocumentListsState.editingKey = comboKey(entry.country, entry.visa_category);
-                setCcDocBuilder(entry);
-                $('html, body').animate({ scrollTop: $('.cc-doc-builder').offset().top - 120 }, 250);
+            });
+
+            $(document).on('click', '.cc-doc-list-edit', function () {
+                openCcDocListEditorByKey($(this).data('country'), $(this).data('visa-category'));
             });
 
             $(document).on('click', '.cc-delete-doc-combo', function () {

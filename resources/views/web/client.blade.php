@@ -144,6 +144,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 <div class="modal-body">
                                     <form id="add-client-application">
                                         @csrf
+                                        <input type="hidden" name="confirm_duplicate" value="0">
 
                                         <!-- Subscriber Selection -->
 
@@ -824,32 +825,45 @@ window.onclick = function (event) {
                 });
             });
             $('#add-client-application').on('submit', function(e) {
-                e.preventDefault(); // Prevent default form submission
+                e.preventDefault();
 
-                // Proceed with AJAX call if validation passes
-                const formData = $(this).serialize();
-                $.ajax({
-                    url: "{{ url('addClientApplication') }}",
-                    method: 'POST',
-                    data: formData,
-                    success: function(response) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success',
-                            text: response.message,
-                        });
-                        setTimeout(function () {
-                        location.reload();
-                    }, 5000); // 5000 milliseconds = 5 seconds
+                const $form = $(this);
+                const $confirmField = $form.find('input[name="confirm_duplicate"]');
 
-                    },
-                    error: function(xhr) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Oops!',
-                            text: 'Failed to save application details.',
-                        });
-                    },
+                function postApplication() {
+                    $.ajax({
+                        url: "{{ url('addClientApplication') }}",
+                        method: 'POST',
+                        data: $form.serialize(),
+                        success: function(response) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: response.message,
+                            });
+                            setTimeout(function () {
+                                location.reload();
+                            }, 5000);
+                        },
+                        error: function(xhr) {
+                            const response = xhr.responseJSON || {};
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Oops!',
+                                text: response.message || 'Failed to save application details.',
+                            });
+                        },
+                    });
+                }
+
+                $confirmField.val('0');
+                window.submitApplicationWithDuplicateCheck({
+                    clientId: $form.find('[name="client_id"]').val(),
+                    applicationName: $form.find('[name="job_role"]').val(),
+                    confirmField: $confirmField,
+                    onSubmit: function () {
+                        postApplication();
+                    }
                 });
             });
 
@@ -891,5 +905,6 @@ window.onclick = function (event) {
   </script>
 
 @endif
+@include('partials.application_duplicate_confirm_script')
 @include('web.partials.application_visa_detail_fields_script')
 @endsection()
