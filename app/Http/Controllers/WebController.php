@@ -3112,6 +3112,9 @@ class WebController extends Controller
     public function add_application()
     {
         $user = $this->check_login();
+        if ($user instanceof \Illuminate\Http\RedirectResponse) {
+            return $user;
+        }
         if (membership_access_blocked($user)) {
             return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
@@ -3125,8 +3128,20 @@ class WebController extends Controller
         }
         $countries = $ccService->resolveCountriesForDropdown($subscriber);
         $visaCategories = $ccService->resolveVisaCategoryNames($subscriber);
+        $applicationStatusFlow = ApplicationStatuses::FLOW;
+        $endDateRequiredStatuses = ApplicationStatuses::END_DATE_REQUIRED;
         $page = "applications";
-        return view('web.add_application', compact('clients', 'user', 'page', 'countries', 'client_jobs', 'subscriber', 'visaCategories'));
+        return view('web.add_application', compact(
+            'clients',
+            'user',
+            'page',
+            'countries',
+            'client_jobs',
+            'subscriber',
+            'visaCategories',
+            'applicationStatusFlow',
+            'endDateRequiredStatuses'
+        ));
     }
 
     public function update_application($id)
@@ -3153,8 +3168,20 @@ class WebController extends Controller
         );
         $visaCategories = $ccService->resolveVisaCategoryNames($subscriber);
         $job_roles = $ccService->getClientJobsForSubscriber($subscriber);
+        $applicationStatusFlow = ApplicationStatuses::FLOW;
+        $endDateRequiredStatuses = ApplicationStatuses::END_DATE_REQUIRED;
         $page = "applications";
-        return view('web.add_application', compact('application', 'job_roles', 'user', 'page', 'countries', 'subscriber', 'visaCategories'));
+        return view('web.add_application', compact(
+            'application',
+            'job_roles',
+            'user',
+            'page',
+            'countries',
+            'subscriber',
+            'visaCategories',
+            'applicationStatusFlow',
+            'endDateRequiredStatuses'
+        ));
     }
 
     public function add_new_application(Request $request)

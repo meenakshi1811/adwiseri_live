@@ -105,15 +105,15 @@
                     </div>
                     <div class="col-md-8 p-1">
                         @php
-                            use App\Support\ApplicationStatuses;
-                            $currentApplicationStatus = ApplicationStatuses::normalize(old('job_status', $application->application_status ?? ''));
-                            $isTerminalApplicationStatus = ApplicationStatuses::isTerminal($currentApplicationStatus);
-                            $endDateEditableStatuses = ApplicationStatuses::END_DATE_REQUIRED;
-                            $isEndDateEditable = in_array($currentApplicationStatus, $endDateEditableStatuses, true);
+                            $statusFlow = $applicationStatusFlow ?? \App\Support\ApplicationStatuses::FLOW;
+                            $endDateRequiredStatuses = $endDateRequiredStatuses ?? \App\Support\ApplicationStatuses::END_DATE_REQUIRED;
+                            $currentApplicationStatus = \App\Support\ApplicationStatuses::normalize(old('job_status', $application->application_status ?? ''));
+                            $isTerminalApplicationStatus = \App\Support\ApplicationStatuses::isTerminal($currentApplicationStatus);
+                            $isEndDateEditable = in_array($currentApplicationStatus, $endDateRequiredStatuses, true);
                         @endphp
                         <select name="job_status" class="form-control form-select js-app-status @error('job_status') is-invalid @enderror" id="exampleInputEmail1" style="background-color: #fff; color:#000 !important;" aria-describedby="emailHelp" required>
                             <option value="">Select Application Status</option>
-                            @foreach(ApplicationStatuses::FLOW as $statusOption)
+                            @foreach($statusFlow as $statusOption)
                                 <option value="{{ $statusOption }}"
                                     @if($currentApplicationStatus === $statusOption) selected @endif
                                     @if($isTerminalApplicationStatus && $currentApplicationStatus !== $statusOption) disabled @endif>
@@ -292,7 +292,7 @@
                     <div class="col-md-8 p-1">
                         <select name="job_status" class="form-control form-select js-app-status @error('job_status') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('job_status') }}" required>
                             <option value="">Select Application Status</option>
-                            @foreach(\App\Support\ApplicationStatuses::FLOW as $statusOption)
+                            @foreach(($applicationStatusFlow ?? \App\Support\ApplicationStatuses::FLOW) as $statusOption)
                                 <option {{ (old('job_status') == $statusOption) ? 'selected':'' }} value="{{ $statusOption }}">{{ $statusOption }}</option>
                             @endforeach
                         </select>
@@ -308,8 +308,8 @@
                     <div class="col-md-8 p-1">
                         @php
                             $selectedApplicationStatus = old('job_status', '');
-                            $endDateEditableStatuses = \App\Support\ApplicationStatuses::END_DATE_REQUIRED;
-                            $isEndDateEditable = in_array($selectedApplicationStatus, $endDateEditableStatuses, true);
+                            $endDateRequiredStatuses = $endDateRequiredStatuses ?? \App\Support\ApplicationStatuses::END_DATE_REQUIRED;
+                            $isEndDateEditable = in_array($selectedApplicationStatus, $endDateRequiredStatuses, true);
                         @endphp
                         <input name="job_completion_date" type="date"
                         class="form-control date js-app-end-date @error('job_completion_date') is-invalid @enderror"
@@ -358,18 +358,18 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
   </script>
   @include('partials.application_closed_confirm_script')
-  @if (\Illuminate\Support\Facades\Route::has('check_duplicate_application'))
   @include('partials.application_duplicate_confirm_script')
-  @endif
   <script>
       $(document).ready(() => {
-        const endDateEditableStatuses = @json(\App\Support\ApplicationStatuses::END_DATE_REQUIRED);
+        const endDateEditableStatuses = @json($endDateRequiredStatuses ?? \App\Support\ApplicationStatuses::END_DATE_REQUIRED);
         window.adwiseriBindClosedStatusFormConfirm('#registration_form', '.js-app-status');
-        @if(!isset($application) && \Illuminate\Support\Facades\Route::has('check_duplicate_application'))
-        window.bindApplicationDuplicateConfirm('#registration_form', {
-            clientField: '#client',
-            applicationField: '#job_role'
-        });
+        @if(!isset($application))
+        if (typeof window.bindApplicationDuplicateConfirm === 'function') {
+            window.bindApplicationDuplicateConfirm('#registration_form', {
+                clientField: '#client',
+                applicationField: '#job_role'
+            });
+        }
         @endif
 
         const syncEndDateEditability = () => {
