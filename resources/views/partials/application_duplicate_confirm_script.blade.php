@@ -33,7 +33,7 @@
         }
 
         $.ajax({
-            url: "{{ route('check_duplicate_application') }}",
+            url: "{{ url('/check_duplicate_application') }}",
             method: 'POST',
             data: {
                 _token: "{{ csrf_token() }}",

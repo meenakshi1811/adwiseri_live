@@ -3116,12 +3116,8 @@ class WebController extends Controller
             return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
         $this->set_timezone();
-        if ($user->user_type == "Subscriber") {
-            $subscriber = $user;
-        } else {
-            $subscriber = User::find($user->added_by);
-        }
         $ccService = app(CountryCategorySettingsService::class);
+        $subscriber = $ccService->resolveSubscriber($user);
         $client_jobs = $ccService->getClientJobsForSubscriber($subscriber);
         $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
         if ($redirect = \App\Support\NoClientGuard::redirectIfNoClients($user)) {
