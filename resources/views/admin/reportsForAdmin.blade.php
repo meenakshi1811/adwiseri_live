@@ -3674,6 +3674,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
         $('#applicationReportTitle').html(reportTitle);
 
+        var applicationReportPageLength = (type === 'applicationStatus') ? -1 : 10;
+
         if ($.fn.DataTable.isDataTable('#reportApplicationTable')) {
             $('#reportApplicationTable').DataTable().clear().destroy();
             $('#reportApplicationTable').empty(); // Remove existing columns and rows
@@ -3687,7 +3689,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 [10, 20, 50, -1],
                 [10, 20, 50, "All"]
             ],
-            "pageLength": 10,
+            "pageLength": applicationReportPageLength,
             destroy: true,
             dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
             buttons: [{

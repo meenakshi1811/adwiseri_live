@@ -2787,6 +2787,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         $('#custom_date_picker3').prop('disabled', type == 'noOfApplicaitonsBy' || type == 'yearly');
         $('#applicationReportTitle').html(reportTitle);
 
+        var applicationReportPageLength = (type === 'applicationStatus') ? -1 : 10;
+
         if ($.fn.DataTable.isDataTable('#reportApplicationTable')) {
             $('#reportApplicationTable').DataTable().clear().destroy();
             $('#reportApplicationTable').empty(); // Remove existing columns and rows
@@ -2800,7 +2802,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 [10, 20, 50, -1],
                 [10, 20, 50, "All"]
             ],
-            "pageLength": 10,
+            "pageLength": applicationReportPageLength,
             destroy: true,
             dom: '<"reports-dt-toolbar reports-dt-toolbar--bold d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             buttons: [{
