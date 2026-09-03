@@ -373,7 +373,7 @@ class BrandedMail
     /**
      * Build footer context for subscriber-originated broadcast emails.
      *
-     * @return array{organization: string, address: string, website: string, website_url: string, email: string, copyright: string}
+     * @return array{organization: string, address: string, website: string, website_url: string, email: string, logo_url: ?string}
      */
     public static function subscriberFooterContext($subscriber): array
     {
@@ -403,8 +403,20 @@ class BrandedMail
             'website' => $website,
             'website_url' => $websiteUrl,
             'email' => $email,
-            'copyright' => self::copyrightNotice($organization),
+            'logo_url' => self::subscriberLogoUrl($subscriber),
         ];
+    }
+
+    public static function subscriberLogoUrl($subscriber): ?string
+    {
+        $filename = trim((string) ($subscriber->organization_logo ?? ''));
+        if ($filename === '') {
+            return null;
+        }
+
+        $resolved = InvoiceIssuerLogo::resolveForSubscriber($subscriber, $filename);
+
+        return $resolved['url'] ?? null;
     }
 
     public static function normalizeWebsiteUrl(?string $website): string

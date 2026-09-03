@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>{{ $headerTitle ?? 'Adwiseri' }}</title>
+    <title>{{ $pageTitle ?? $headerTitle ?? 'Adwiseri' }}</title>
     <style type="text/css">
         body, table, td, p, a, h1 {
             -webkit-text-size-adjust: 100%;
@@ -263,8 +263,12 @@
                 <![endif]-->
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-container" style="width:100%;max-width:640px;background:#ffffff;border-radius:10px;border:1px solid #e5e7eb;table-layout:fixed;">
                     <tr>
-                        <td class="email-header" style="background:#695EEE;color:#ffffff;padding:18px 24px;text-align:center;">
-                            @if(!empty($headerTitle))
+                        <td class="email-header" style="@if(!empty($headerLogoUrl) || (($footerMode ?? 'platform') === 'subscriber' && !empty($headerLogoAlt))) background:#ffffff;padding:24px 24px 20px;text-align:center;border-bottom:1px solid #e5e7eb; @else background:#695EEE;color:#ffffff;padding:18px 24px;text-align:center; @endif">
+                            @if(!empty($headerLogoUrl))
+                                <img width="170" src="{{ $headerLogoUrl }}" alt="{{ $headerLogoAlt ?? 'Logo' }}" style="max-width:170px;height:auto;border:0;display:inline-block;">
+                            @elseif(($footerMode ?? 'platform') === 'subscriber' && !empty($headerLogoAlt))
+                                <p style="margin:0;font-size:20px;font-weight:700;color:#111827;line-height:1.35;word-wrap:break-word;overflow-wrap:break-word;">{{ $headerLogoAlt }}</p>
+                            @elseif(!empty($headerTitle))
                                 <h1 class="email-header-title" style="margin:0;font-size:22px;font-weight:700;color:#ffffff;line-height:1.35;word-wrap:break-word;overflow-wrap:break-word;">{{ $headerTitle }}</h1>
                             @else
                                 <a href="https://adwiseri.com/" style="display:inline-block;">
@@ -290,7 +294,6 @@
                     <tr>
                         <td class="email-footer" style="text-align:center;background:#695EEE;padding:20px 24px;color:#ffffff;">
                             @if(($footerMode ?? 'platform') === 'subscriber' && !empty($subscriberFooter))
-                                <p style="margin:0 0 8px;color:#ffffff;font-size:13px;word-wrap:break-word;overflow-wrap:break-word;">{{ $subscriberFooter['copyright'] ?? '' }}</p>
                                 @if(!empty($subscriberFooter['address']))
                                     <p style="margin:0 0 8px;color:#ffffff;font-size:13px;line-height:1.6;word-wrap:break-word;overflow-wrap:break-word;">{{ $subscriberFooter['address'] }}</p>
                                 @endif

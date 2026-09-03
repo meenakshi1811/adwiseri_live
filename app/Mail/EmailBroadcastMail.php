@@ -22,14 +22,30 @@ class EmailBroadcastMail extends Mailable
 
     public function build()
     {
-        $headerTitle = $this->emailSubject;
-        $content = $this->content;
         $footerMode = $this->subscriberFooter ? 'subscriber' : 'platform';
         $subscriberFooter = $this->subscriberFooter;
+        $content = $this->content;
+        $pageTitle = $this->emailSubject;
+        $headerTitle = null;
+        $headerLogoUrl = null;
+        $headerLogoAlt = null;
+
+        if ($this->subscriberFooter) {
+            $headerLogoUrl = $this->subscriberFooter['logo_url'] ?? null;
+            $headerLogoAlt = $this->subscriberFooter['organization'] ?? 'Logo';
+        }
 
         $mail = $this->subject($this->emailSubject)
             ->from($this->senderEmail, $this->senderName)
-            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle', 'footerMode', 'subscriberFooter'));
+            ->view(BrandedMail::LAYOUT, compact(
+                'content',
+                'headerTitle',
+                'headerLogoUrl',
+                'headerLogoAlt',
+                'pageTitle',
+                'footerMode',
+                'subscriberFooter'
+            ));
 
         return BrandedMail::applySubscriberReplyTo($mail, $this->senderEmail, $this->senderName);
     }
