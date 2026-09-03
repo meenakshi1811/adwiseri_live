@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use App\Models\Applications;
 use App\Models\User;
 use App\Models\Activities;
@@ -12,6 +13,7 @@ use App\Models\Dependants;
 use Carbon\Carbon;
 use App\Services\DocumentChecklistMailService;
 use App\Services\ApplicationDuplicateService;
+use App\Support\ApplicationStatuses;
 
 
 class ApplicationController extends Controller
@@ -30,6 +32,22 @@ class ApplicationController extends Controller
         $subscriber = User::find($client->subscriber_id);
         if (!$subscriber) {
             return response()->json(['success' => false, 'message' => 'Subscriber not found.'], 404);
+        }
+
+        $request->validate([
+            'job_status' => ['required', 'string', Rule::in(ApplicationStatuses::FLOW)],
+            'job_completion_date' => [
+                'nullable',
+                'date',
+                Rule::requiredIf(fn () => in_array($request->input('job_status'), ApplicationStatuses::END_DATE_REQUIRED, true)),
+            ],
+        ]);
+
+        if ($request->input('job_status') === ApplicationStatuses::CLOSED && !$request->boolean('closed_confirmed')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please confirm closing this application.',
+            ], 422);
         }
 
         $duplicateService = app(ApplicationDuplicateService::class);

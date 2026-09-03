@@ -238,12 +238,11 @@
                                         <div class="mb-3">
                                             <label for="job_status" class="form-label">Application Status <span class="text-danger" style="font-size: 18px;">*</span></label>
                                             <select name="job_status" id="job_status" required
-                                                class="form-control form-select @error('job_status') is-invalid @enderror">
+                                                class="form-control form-select js-app-status @error('job_status') is-invalid @enderror">
                                                 <option value="">Select Application Status</option>
-                                                <option {{ (old('job_status', 'Client Registered') == "Client Registered") ? 'selected':'' }} value="Client Registered">Client Registered</option>
-                                                <option {{ (old('job_status') == "Applied") ? 'selected':'' }} value="Applied">Applied</option>
-                                                <option {{ (old('job_status') == "Cancelled") ? 'selected':'' }} value="Cancelled">Cancelled (Application/Appeal Cancelled by Consultancy/Authorities)</option>
-                                                <option {{ (old('job_status') == "Withdrawn") ? 'selected' : '' }} value="Withdrawn">Withdrawn (Application/Appeal Withdrawn by Client)</option>
+                                                @foreach(\App\Support\ApplicationStatuses::FLOW as $statusOption)
+                                                    <option {{ (old('job_status', 'Client Registered') == $statusOption) ? 'selected' : '' }} value="{{ $statusOption }}">{{ $statusOption }}</option>
+                                                @endforeach
                                             </select>
                                             @error('job_status')
                                             <span class="invalid-feedback">
@@ -843,11 +842,19 @@ window.onclick = function (event) {
                 const $form = $(this);
                 const $confirmField = $form.find('input[name="confirm_duplicate"]');
 
-                function postApplication() {
+                function postApplication(closedConfirmed) {
+                    const payload = $form.serializeArray().filter(function (item) {
+                        return item.name !== 'closed_confirmed';
+                    });
+
+                    if (closedConfirmed) {
+                        payload.push({ name: 'closed_confirmed', value: '1' });
+                    }
+
                     $.ajax({
                         url: "{{ url('addClientApplication') }}",
                         method: 'POST',
-                        data: $form.serialize(),
+                        data: $.param(payload),
                         success: function(response) {
                             Swal.fire({
                                 icon: 'success',
@@ -869,19 +876,33 @@ window.onclick = function (event) {
                     });
                 }
 
-                $confirmField.val('0');
-                window.submitApplicationWithDuplicateCheck({
-                    clientId: $form.find('[name="client_id"]').val(),
-                    applicationName: $form.find('[name="job_role"]').val(),
-                    confirmField: $confirmField,
-                    onSubmit: function () {
-                        postApplication();
-                    }
-                });
+                function submitApplication(closedConfirmed) {
+                    $confirmField.val('0');
+                    window.submitApplicationWithDuplicateCheck({
+                        clientId: $form.find('[name="client_id"]').val(),
+                        applicationName: $form.find('[name="job_role"]').val(),
+                        confirmField: $confirmField,
+                        onSubmit: function () {
+                            postApplication(closedConfirmed);
+                        }
+                    });
+                }
+
+                if ($form.find('[name="job_status"]').val() === 'Closed') {
+                    window.adwiseriConfirmApplicationClosed().then(function (confirmed) {
+                        if (confirmed) {
+                            submitApplication(true);
+                        }
+                    });
+                    return;
+                }
+
+                submitApplication(false);
             });
 
         });
     </script>
+    @include('partials.application_closed_confirm_script')
     @include('partials.application_duplicate_confirm_script')
     @include('web.partials.application_visa_detail_fields_script')
 @endpush

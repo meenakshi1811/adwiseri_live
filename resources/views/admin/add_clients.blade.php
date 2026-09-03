@@ -534,19 +534,13 @@
                                     <label>Application Status<span class="text-danger"
                                             style="font-size: 18px;">*</span></label>
                                     <select name="job_status"
-                                        class="form-control form-select @error('job_status') is-invalid @enderror"
-                                        id="exampleInputEmail1" aria-describedby="emailHelp"
+                                        class="form-control form-select js-app-status @error('job_status') is-invalid @enderror"
+                                        id="add_client_job_status" aria-describedby="emailHelp"
                                         value="{{ old('job_status') }}" required>
-                                        <option value="">Select Application Status
-                                        </option>
-                                        <option {{ old('job_status', 'Client Registered') == 'Client Registered' ? 'selected' : '' }} value="Client Registered">
-                                            Client Registered</option>
-                                        <option {{ old('job_status') == 'Applied' ? 'selected' : '' }} value="Applied">
-                                            Applied</option>
-                                        <option {{ old('job_status') == 'Cancelled' ? 'selected' : '' }}
-                                            value="Cancelled">Cancelled</option>
-                                        <option {{ old('job_status') == 'Withdrawn' ? 'selected' : '' }}
-                                            value="Withdrawn">Withdrawn</option>
+                                        <option value="">Select Application Status</option>
+                                        @foreach(\App\Support\ApplicationStatuses::FLOW as $statusOption)
+                                            <option {{ old('job_status', 'Client Registered') == $statusOption ? 'selected' : '' }} value="{{ $statusOption }}">{{ $statusOption }}</option>
+                                        @endforeach
                                     </select>
                                     @error('job_status')
                                         <span class="invalid-feedback" role="alert">
@@ -598,6 +592,35 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <script>
         $(document).ready(() => {
+            function submitRegistrationForm() {
+                $('#registration_form')[0].submit();
+            }
+
+            function confirmAndSubmitRegistrationForm() {
+                const status = $('[name="job_status"]').val();
+                if (status === 'Closed') {
+                    window.adwiseriConfirmApplicationClosed().then(function (confirmed) {
+                        if (!confirmed) {
+                            return;
+                        }
+
+                        let confirmedInput = document.querySelector('#registration_form input[name="closed_confirmed"]');
+                        if (!confirmedInput) {
+                            confirmedInput = document.createElement('input');
+                            confirmedInput.type = 'hidden';
+                            confirmedInput.name = 'closed_confirmed';
+                            document.getElementById('registration_form').appendChild(confirmedInput);
+                        }
+
+                        confirmedInput.value = '1';
+                        submitRegistrationForm();
+                    });
+                    return;
+                }
+
+                submitRegistrationForm();
+            }
+
             $('#registration_form').on('submit', function(e) {
                 // Prevent form submission until validation is complete
                 e.preventDefault();
@@ -633,7 +656,7 @@
                         if (result.isConfirmed) {
                             // User clicked "Yes, proceed"
                             console.log('Proceeding...');
-                            $('#registration_form')[0].submit(); // Submit the form programmatically
+                            confirmAndSubmitRegistrationForm();
                         } else {
                             // User clicked "No, cancel"
                             console.log('Cancelled.');
@@ -642,7 +665,7 @@
                     });
                 } else {
                     // If the user is 18 or older, allow the form submission
-                    $('#registration_form')[0].submit();
+                    confirmAndSubmitRegistrationForm();
                 }
             });
             $("#subscriber").change(function() {
@@ -708,6 +731,7 @@
             });
         });
     </script>
+    @include('partials.application_closed_confirm_script')
     <script>
         function deleteuser(id) {
             var conf = confirm('Are you sure you want to delete this client?');
