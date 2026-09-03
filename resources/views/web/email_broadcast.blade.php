@@ -154,7 +154,7 @@ if (in_array($oldCommunicateType, ['internal', 'external'], true)) {
 
                             <div class="eb-form-group mb-0">
                                 <label class="eb-form-label" for="broadcast_body">Email Body <span class="required">*</span></label>
-                                <textarea id="broadcast_body" class="eb-textarea" name="body" minlength="3" placeholder="Write your message here. Use headings, colours, fonts, links, and banner images." required @if(!$canSend) disabled @endif>{{ old('body') }}</textarea>
+                                <textarea id="broadcast_body" class="eb-textarea" name="body" placeholder="Write your message here. Use headings, colours, fonts, links, and banner images." @if(!$canSend) disabled @endif>{{ old('body') }}</textarea>
                                 <div class="eb-form-hint">Rich HTML is supported: font styles, colours, headings, links, tables, and banner images (upload or paste a public image URL).</div>
                                 <div class="eb-char-count"><span id="body_char_count">0</span> / 50000 characters</div>
                                 @error('body')
@@ -200,6 +200,7 @@ window.emailBroadcastEditorOptions = {
 @include('partials.email_broadcast_editor', [
     'uploadUrl' => route('upload_email_broadcast_image'),
     'disabled' => !$canSend,
+    'bodyMaxLength' => 50000,
 ])
 
 <script>

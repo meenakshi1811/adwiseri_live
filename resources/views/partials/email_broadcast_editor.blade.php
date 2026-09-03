@@ -1,6 +1,7 @@
 @php
     $editorUploadUrl = $uploadUrl ?? '';
     $editorDisabled = (bool) ($disabled ?? false);
+    $editorBodyMaxLength = (int) ($bodyMaxLength ?? 50000);
 @endphp
 
 <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
@@ -10,7 +11,7 @@
     const uploadUrl = @json($editorUploadUrl ?: null) || options.uploadUrl || '';
     const disabled = @json($editorDisabled) || !!options.disabled;
     const csrfToken = @json(csrf_token());
-    const bodyMaxLength = 50000;
+    const bodyMaxLength = options.bodyMaxLength || @json($editorBodyMaxLength);
 
     class BroadcastUploadAdapter {
         constructor(loader) {
@@ -67,15 +68,34 @@
         };
     }
 
+    function isBroadcastBodyEmpty(html) {
+        if (!html) {
+            return true;
+        }
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        return container.textContent.replace(/\u00a0/g, ' ').trim().length === 0;
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         const bodyField = document.getElementById('broadcast_body');
         const bodyCount = document.getElementById('body_char_count');
         const form = document.getElementById('email_broadcast_form');
         let broadcastEditor = null;
 
+        function currentBodyHtml() {
+            return broadcastEditor ? broadcastEditor.getData() : (bodyField ? bodyField.value : '');
+        }
+
         function currentBodyLength() {
-            const value = broadcastEditor ? broadcastEditor.getData() : (bodyField ? bodyField.value : '');
-            return value.length;
+            return currentBodyHtml().length;
+        }
+
+        function syncBodyField() {
+            if (!bodyField) {
+                return;
+            }
+            bodyField.value = currentBodyHtml();
         }
 
         function updateBodyCount() {
@@ -85,7 +105,61 @@
             bodyCount.textContent = currentBodyLength();
         }
 
+        function showBodyValidationError(message) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    customClass: { icon: 'adwiseri-oops-icon' },
+                    title: 'Oops!',
+                    text: message
+                });
+                return;
+            }
+            window.alert(message);
+        }
+
+        function validateBodyField(event) {
+            syncBodyField();
+
+            const bodyHtml = currentBodyHtml();
+            const bodyLength = bodyHtml.length;
+
+            if (isBroadcastBodyEmpty(bodyHtml)) {
+                event.preventDefault();
+                showBodyValidationError('Please enter an email body before sending.');
+                return false;
+            }
+
+            if (bodyLength < 3) {
+                event.preventDefault();
+                showBodyValidationError('Email body must be at least 3 characters.');
+                return false;
+            }
+
+            if (bodyLength > bodyMaxLength) {
+                event.preventDefault();
+                showBodyValidationError('Email body must be ' + bodyMaxLength.toLocaleString() + ' characters or fewer.');
+                return false;
+            }
+
+            return true;
+        }
+
+        if (bodyField) {
+            // CKEditor hides this textarea; native HTML5 validation cannot focus it.
+            bodyField.removeAttribute('required');
+            bodyField.removeAttribute('minlength');
+            bodyField.removeAttribute('maxlength');
+        }
+
+        if (form) {
+            form.addEventListener('submit', validateBodyField);
+        }
+
         if (!bodyField || !window.ClassicEditor) {
+            if (bodyField) {
+                bodyField.addEventListener('input', updateBodyCount);
+            }
             updateBodyCount();
             return;
         }
@@ -113,29 +187,20 @@
                 editor.enableReadOnlyMode('broadcast-disabled');
             }
 
-            editor.model.document.on('change:data', updateBodyCount);
+            editor.model.document.on('change:data', function () {
+                syncBodyField();
+                updateBodyCount();
+            });
+            syncBodyField();
             updateBodyCount();
         }).catch(function () {
             broadcastEditor = null;
             if (bodyField) {
+                bodyField.style.display = '';
                 bodyField.addEventListener('input', updateBodyCount);
             }
             updateBodyCount();
         });
-
-        if (form) {
-            form.addEventListener('submit', function () {
-                if (broadcastEditor && bodyField) {
-                    bodyField.value = broadcastEditor.getData();
-                }
-
-                if (bodyField && bodyField.value.length > bodyMaxLength) {
-                    bodyField.setCustomValidity('Email body must be ' + bodyMaxLength.toLocaleString() + ' characters or fewer.');
-                } else if (bodyField) {
-                    bodyField.setCustomValidity('');
-                }
-            });
-        }
     });
 })();
 </script>

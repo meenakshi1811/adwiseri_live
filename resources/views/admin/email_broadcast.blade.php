@@ -69,7 +69,7 @@
 
                             <div class="eb-form-group mb-0">
                                 <label class="eb-form-label" for="broadcast_body">Email Body <span class="required">*</span></label>
-                                <textarea id="broadcast_body" class="eb-textarea" name="body" minlength="3" maxlength="5000" placeholder="Write your message here. You can format text, add colours, and insert banner images via public URLs." required>{{ old('body') }}</textarea>
+                                <textarea id="broadcast_body" class="eb-textarea" name="body" placeholder="Write your message here. You can format text, add colours, and insert banner images via public URLs.">{{ old('body') }}</textarea>
                                 <div class="eb-form-hint">Rich formatting is supported: headings, colours, bold/italic, links, and promo images (use publicly accessible image URLs).</div>
                                 <div class="eb-char-count"><span id="body_char_count">0</span> / 5000 characters</div>
                                 @error('body')
@@ -135,13 +135,20 @@
     </div>
 </div>
 
-<script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+<script>
+window.emailBroadcastEditorOptions = {
+    uploadUrl: @json(route('admin_upload_email_broadcast_image')),
+    disabled: false
+};
+</script>
+@include('partials.email_broadcast_editor', [
+    'uploadUrl' => route('admin_upload_email_broadcast_image'),
+    'disabled' => false,
+    'bodyMaxLength' => 5000,
+])
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const bodyField = document.getElementById('broadcast_body');
-    const bodyCount = document.getElementById('body_char_count');
-    let broadcastEditor = null;
-
     function updateRecipientTrigger() {
         const wrap = document.getElementById('subscriber_recipients_dropdown');
         const trigger = wrap.querySelector('.eb-recipient-trigger');
@@ -208,34 +215,6 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.subscriber-recipient').forEach(function (checkbox) {
         checkbox.addEventListener('change', updateRecipientTrigger);
     });
-
-    if (bodyField && bodyCount) {
-        const updateCount = function () {
-            const value = broadcastEditor ? broadcastEditor.getData() : bodyField.value;
-            bodyCount.textContent = value.length;
-        };
-        bodyField.addEventListener('input', updateCount);
-        updateCount();
-
-        if (window.ClassicEditor) {
-            window.ClassicEditor.create(bodyField).then(function (editor) {
-                broadcastEditor = editor;
-                editor.model.document.on('change:data', updateCount);
-                updateCount();
-            }).catch(function () {
-                broadcastEditor = null;
-            });
-        }
-    }
-
-    const form = document.getElementById('email_broadcast_form');
-    if (form) {
-        form.addEventListener('submit', function () {
-            if (broadcastEditor) {
-                bodyField.value = broadcastEditor.getData();
-            }
-        });
-    }
 });
 </script>
 
