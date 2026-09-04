@@ -67,7 +67,7 @@ class ProcessEmailBroadcastJob implements ShouldQueue
         $sent = 0;
         $failed = 0;
 
-        foreach ($chunk as $recipient) {
+        foreach ($chunk as $index => $recipient) {
             $email = trim((string) ($recipient['email'] ?? ''));
 
             if ($email === '') {
@@ -78,9 +78,10 @@ class ProcessEmailBroadcastJob implements ShouldQueue
                 Mail::to($email)->send(new EmailBroadcastMail(
                     $broadcast->subject,
                     $content,
+                    $subscriberFooter,
+                    $this->offset === 0 && $index === 0,
                     $broadcast->sender_email,
-                    $broadcast->sender_name,
-                    $subscriberFooter
+                    $broadcast->sender_name
                 ));
                 $sent++;
             } catch (\Throwable $exception) {

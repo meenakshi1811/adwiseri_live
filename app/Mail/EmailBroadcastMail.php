@@ -14,9 +14,10 @@ class EmailBroadcastMail extends Mailable
     public function __construct(
         protected string $emailSubject,
         protected string $content,
-        protected string $senderEmail,
-        protected string $senderName,
-        protected ?array $subscriberFooter = null
+        protected ?array $subscriberFooter = null,
+        protected bool $bccSubscriber = false,
+        protected ?string $fallbackSenderEmail = null,
+        protected ?string $fallbackSenderName = null
     ) {
     }
 
@@ -35,8 +36,36 @@ class EmailBroadcastMail extends Mailable
             $headerLogoAlt = $this->subscriberFooter['organization'] ?? 'Logo';
         }
 
+        if ($this->subscriberFooter) {
+            $organization = trim((string) ($this->subscriberFooter['organization'] ?? 'Subscriber'));
+            $replyEmail = trim((string) ($this->subscriberFooter['email'] ?? ''));
+
+            $mail = $this->subject($this->emailSubject)
+                ->from(BrandedMail::alertsFromAddress(), $organization)
+                ->view(BrandedMail::LAYOUT, compact(
+                    'content',
+                    'headerTitle',
+                    'headerLogoUrl',
+                    'headerLogoAlt',
+                    'pageTitle',
+                    'footerMode',
+                    'subscriberFooter'
+                ));
+
+            BrandedMail::applyReplyToEmailOnly($mail, $replyEmail);
+
+            if ($this->bccSubscriber && $replyEmail !== '') {
+                $mail->bcc($replyEmail);
+            }
+
+            return $mail;
+        }
+
         $mail = $this->subject($this->emailSubject)
-            ->from($this->senderEmail, $this->senderName)
+            ->from(
+                $this->fallbackSenderEmail ?: BrandedMail::alertsFromAddress(),
+                $this->fallbackSenderName ?: 'Adwiseri'
+            )
             ->view(BrandedMail::LAYOUT, compact(
                 'content',
                 'headerTitle',
@@ -47,6 +76,10 @@ class EmailBroadcastMail extends Mailable
                 'subscriberFooter'
             ));
 
-        return BrandedMail::applySubscriberReplyTo($mail, $this->senderEmail, $this->senderName);
+        return BrandedMail::applySubscriberReplyTo(
+            $mail,
+            $this->fallbackSenderEmail,
+            $this->fallbackSenderName
+        );
     }
 }

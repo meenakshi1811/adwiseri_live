@@ -343,6 +343,26 @@ class BrandedMail
     }
 
     /**
+     * Reply-To with email address only (no display name).
+     */
+    public static function applyReplyToEmailOnly(Mailable $mail, ?string $email): Mailable
+    {
+        $email = trim((string) $email);
+        if ($email === '') {
+            return self::applyDefaultReplyTo($mail);
+        }
+
+        $mail->replyTo = [];
+        $mail->replyTo($email);
+
+        $mail->withSwiftMessage(function ($message) use ($email) {
+            $message->setReplyTo([$email]);
+        });
+
+        return $mail;
+    }
+
+    /**
      * Force Reply-To to a subscriber / sender address (consultancy emails).
      */
     public static function applySubscriberReplyTo(Mailable $mail, ?string $email, ?string $name = null): Mailable
@@ -415,8 +435,22 @@ class BrandedMail
         }
 
         $resolved = InvoiceIssuerLogo::resolveForSubscriber($subscriber, $filename);
+        $url = $resolved['url'] ?? null;
 
-        return $resolved['url'] ?? null;
+        if ($url === null || $url === '') {
+            return null;
+        }
+
+        if (!preg_match('#^https?://#i', $url)) {
+            $relative = $resolved['relative_path'] ?? null;
+            if ($relative) {
+                return url($relative);
+            }
+
+            return url(ltrim($url, '/'));
+        }
+
+        return $url;
     }
 
     public static function normalizeWebsiteUrl(?string $website): string
@@ -466,6 +500,25 @@ class BrandedMail
                 }
 
                 return '<img' . $matches[1] . ' src="' . $src . '"';
+            },
+            $html
+        );
+
+        $html = preg_replace_callback(
+            '/<a\b([^>]*)\shref=(["\'])([^"\']*)\2/i',
+            static function (array $matches): string {
+                $href = trim($matches[3]);
+                if ($href === '' || preg_match('#^(https?://|mailto:|tel:|#)#i', $href)) {
+                    return $matches[0];
+                }
+
+                if (str_starts_with($href, '/')) {
+                    $href = url(ltrim($href, '/'));
+                } else {
+                    $href = 'https://' . ltrim($href, '/');
+                }
+
+                return '<a' . $matches[1] . ' href="' . $href . '"';
             },
             $html
         );

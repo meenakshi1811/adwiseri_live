@@ -243,13 +243,19 @@
                 display: block !important;
             }
 
-            .email-footer span {
+            .email-footer .footer-platform-links a {
+                display: block !important;
+                margin: 4px 0 !important;
+            }
+
+            .email-footer .footer-platform-links span {
                 display: none !important;
             }
 
-            .email-footer a {
-                display: block !important;
-                margin: 4px 0 !important;
+            .email-footer .footer-contact-item,
+            .email-footer .footer-contact-item a {
+                display: inline !important;
+                margin: 0 !important;
             }
         }
     </style>
@@ -299,18 +305,18 @@
                                 @endif
                                 <p style="margin:0;font-size:13px;line-height:1.6;word-wrap:break-word;overflow-wrap:break-word;">
                                     @if(!empty($subscriberFooter['website']) && !empty($subscriberFooter['website_url']))
-                                        Web: <a href="{{ $subscriberFooter['website_url'] }}" style="color:#ffffff;text-decoration:underline;word-break:break-all;">{{ $subscriberFooter['website'] }}</a>
+                                        <span class="footer-contact-item">Web: <a href="{{ $subscriberFooter['website_url'] }}" style="color:#ffffff;text-decoration:underline;">{{ $subscriberFooter['website'] }}</a></span>
                                     @endif
                                     @if(!empty($subscriberFooter['website']) && !empty($subscriberFooter['email']))
-                                        <span style="color:#ffffff;"> | </span>
+                                        <span class="footer-contact-item" style="color:#ffffff;"> &nbsp;|&nbsp; </span>
                                     @endif
                                     @if(!empty($subscriberFooter['email']))
-                                        Email: <a href="mailto:{{ $subscriberFooter['email'] }}" style="color:#ffffff;text-decoration:underline;word-break:break-all;">{{ $subscriberFooter['email'] }}</a>
+                                        <span class="footer-contact-item">Email: <a href="mailto:{{ $subscriberFooter['email'] }}" style="color:#ffffff;text-decoration:underline;">{{ $subscriberFooter['email'] }}</a></span>
                                     @endif
                                 </p>
                             @else
                                 <p style="margin:0 0 8px;color:#ffffff;font-size:13px;word-wrap:break-word;overflow-wrap:break-word;">&copy; {{ $copyrightYears ?? \App\Support\BrandedMail::copyrightYears() }} Adwiseri. All rights reserved.</p>
-                                <p style="margin:0;font-size:13px;word-wrap:break-word;overflow-wrap:break-word;line-height:1.6;">
+                                <p class="footer-platform-links" style="margin:0;font-size:13px;word-wrap:break-word;overflow-wrap:break-word;line-height:1.6;">
                                     <a style="color:#ffffff;text-decoration:none;" href="https://adwiseri.com/terms_of_use">Terms of Use</a>
                                     <span style="color:#ffffff;"> | </span>
                                     <a style="color:#ffffff;text-decoration:none;" href="https://adwiseri.com/privacy_policy">Privacy Policy</a>

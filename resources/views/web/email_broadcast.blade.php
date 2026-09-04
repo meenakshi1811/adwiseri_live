@@ -196,6 +196,11 @@ window.emailBroadcastEditorOptions = {
     uploadUrl: @json(route('upload_email_broadcast_image')),
     disabled: @json(!$canSend)
 };
+window.emailBroadcastLimits = {
+    chunkSize: {{ (int) ($broadcastLimits['chunk_size'] ?? config('mail.broadcast_chunk_size', 25)) }},
+    chunkDelaySeconds: {{ (int) ($broadcastLimits['chunk_delay_seconds'] ?? config('mail.broadcast_chunk_delay_seconds', 2)) }},
+    maxRecipients: {{ (int) ($broadcastLimits['max_recipients'] ?? config('mail.broadcast_max_recipients', 0)) }}
+};
 </script>
 @include('partials.email_broadcast_editor', [
     'uploadUrl' => route('upload_email_broadcast_image'),
@@ -361,14 +366,80 @@ document.addEventListener('DOMContentLoaded', function () {
         bodyCount.textContent = bodyField.value.length;
     }
 
+    function countSelectedRecipients() {
+        const type = typeInput.value;
+        const selector = type === 'internal' ? '.staff-recipient' : '.client-recipient';
+        return document.querySelectorAll(selector + ':checked:not(:disabled)').length;
+    }
+
+    function showBatchConfirmAlert(recipientCount, onConfirm) {
+        const limits = window.emailBroadcastLimits || {};
+        const chunkSize = Math.max(1, limits.chunkSize || 25);
+        const chunkDelay = limits.chunkDelaySeconds || 2;
+        const batchCount = Math.ceil(recipientCount / chunkSize);
+        let message = 'You selected ' + recipientCount.toLocaleString() + ' recipient(s).';
+
+        if (batchCount > 1) {
+            message += ' They will be sent in ' + batchCount.toLocaleString()
+                + ' batches of ' + chunkSize + ', with a ' + chunkDelay + 's pause between batches.';
+        }
+
+        message += ' Continue?';
+
+        Swal.fire({
+            icon: 'question',
+            title: 'Send Broadcast?',
+            text: message,
+            showCancelButton: true,
+            confirmButtonText: 'Send Broadcast',
+            cancelButtonText: 'Cancel'
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                onConfirm();
+            }
+        });
+    }
+
     const form = document.getElementById('email_broadcast_form');
     if (form) {
         form.addEventListener('submit', function (e) {
+            if (e.defaultPrevented) {
+                return;
+            }
+
             const type = typeInput.value;
             if (!hasRecipientsForType(type)) {
                 e.preventDefault();
                 showNoRecipientsAlert();
+                return;
             }
+
+            const recipientCount = countSelectedRecipients();
+            const limits = window.emailBroadcastLimits || {};
+            const maxRecipients = limits.maxRecipients || 0;
+
+            if (maxRecipients > 0 && recipientCount > maxRecipients) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'warning',
+                    customClass: { icon: 'adwiseri-oops-icon' },
+                    title: 'Recipient Limit Exceeded',
+                    text: 'This broadcast allows up to ' + maxRecipients.toLocaleString()
+                        + ' recipients. Please reduce your selection or split it into smaller broadcasts.'
+                });
+                return;
+            }
+
+            if (form.dataset.batchConfirmed === '1') {
+                form.dataset.batchConfirmed = '0';
+                return;
+            }
+
+            e.preventDefault();
+            showBatchConfirmAlert(recipientCount, function () {
+                form.dataset.batchConfirmed = '1';
+                form.requestSubmit();
+            });
         });
     }
 

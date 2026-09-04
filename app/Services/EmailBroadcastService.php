@@ -143,7 +143,16 @@ class EmailBroadcastService
         $senderEmail = trim((string) ($sender->email ?? ''));
         $senderName = trim((string) ($sender->name ?? ''));
 
-        if ($senderEmail === '') {
+        if ($subscriberId) {
+            $subscriber = User::find($subscriberId);
+            $subscriberEmail = trim((string) ($subscriber->email ?? ''));
+            if ($subscriberEmail === '') {
+                return [
+                    'queued' => false,
+                    'error' => 'The subscriber account does not have an email address configured in Profile.',
+                ];
+            }
+        } elseif ($senderEmail === '') {
             return [
                 'queued' => false,
                 'error' => 'Your account does not have an email address configured.',
@@ -154,6 +163,16 @@ class EmailBroadcastService
             return [
                 'queued' => false,
                 'error' => 'No valid recipients with email addresses were found.',
+            ];
+        }
+
+        $maxRecipients = max(0, (int) config('mail.broadcast_max_recipients', 0));
+        if ($maxRecipients > 0 && count($recipients) > $maxRecipients) {
+            return [
+                'queued' => false,
+                'error' => 'This broadcast exceeds the maximum of '
+                    . number_format($maxRecipients)
+                    . ' recipients. Please reduce your selection or split it into smaller broadcasts.',
             ];
         }
 

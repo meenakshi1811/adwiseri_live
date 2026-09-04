@@ -3,37 +3,38 @@
     $chunkDelay = (int) ($broadcastLimits['chunk_delay_seconds'] ?? config('mail.broadcast_chunk_delay_seconds', 2));
     $subjectMax = (int) ($broadcastLimits['subject_max'] ?? 200);
     $bodyMax = (int) ($broadcastLimits['body_max'] ?? 50000);
+    $maxRecipients = (int) ($broadcastLimits['max_recipients'] ?? config('mail.broadcast_max_recipients', 0));
     $orgName = trim((string) ($subscriberFooter['organization'] ?? ''));
+    $subscriberEmail = trim((string) ($subscriberFooter['email'] ?? ''));
+    $alertsFrom = \App\Support\BrandedMail::alertsFromAddress();
 @endphp
 
 <div class="eb-info-item">
     <div class="eb-info-icon"><i class="fa-solid fa-at"></i></div>
     <div>
-        <div class="eb-info-label">Sender</div>
-        <div class="eb-info-value">{{ $user->email ?: 'Not configured' }}</div>
+        <div class="eb-info-label">Sender (From)</div>
+        <div class="eb-info-value">{{ $orgName !== '' ? $orgName : 'Organisation name not set' }} &lt;{{ $alertsFrom }}&gt;</div>
     </div>
 </div>
 <div class="eb-info-item">
     <div class="eb-info-icon"><i class="fa-solid fa-reply"></i></div>
     <div>
         <div class="eb-info-label">Reply To</div>
-        <div class="eb-info-value">{{ $user->email ?: 'Not configured' }}</div>
+        <div class="eb-info-value">{{ $subscriberEmail ?: 'Add your email in Profile' }}</div>
     </div>
 </div>
-@if($orgName !== '')
 <div class="eb-info-item">
-    <div class="eb-info-icon"><i class="fa-solid fa-building"></i></div>
+    <div class="eb-info-icon"><i class="fa-solid fa-copy"></i></div>
     <div>
-        <div class="eb-info-label">Organisation</div>
-        <div class="eb-info-value">{{ $orgName }}</div>
+        <div class="eb-info-label">Monitoring Copy (Bcc)</div>
+        <div class="eb-info-value">{{ $subscriberEmail ? 'One copy sent to ' . $subscriberEmail : 'Not configured' }}</div>
     </div>
 </div>
-@endif
 <div class="eb-info-item">
     <div class="eb-info-icon"><i class="fa-solid fa-file-lines"></i></div>
     <div>
         <div class="eb-info-label">Email Format</div>
-        <div class="eb-info-value">Rich HTML body with your branded footer</div>
+        <div class="eb-info-value">Your logo, rich HTML body, and branded footer</div>
     </div>
 </div>
 <div class="eb-info-item">
@@ -54,7 +55,7 @@
     <div class="eb-info-icon"><i class="fa-solid fa-envelope"></i></div>
     <div>
         <div class="eb-info-label">Footer Email</div>
-        <div class="eb-info-value" id="eb_footer_email">{{ $subscriberFooter['email'] ?: 'Not configured' }}</div>
+        <div class="eb-info-value" id="eb_footer_email">{{ $subscriberEmail ?: 'Not configured' }}</div>
     </div>
 </div>
 
@@ -64,7 +65,13 @@
     <div class="eb-info-icon"><i class="fa-solid fa-gauge-high"></i></div>
     <div>
         <div class="eb-info-label">Recipients per Broadcast</div>
-        <div class="eb-info-value">No fixed maximum — all selected staff or clients with a valid email</div>
+        <div class="eb-info-value">
+            @if($maxRecipients > 0)
+                Up to {{ number_format($maxRecipients) }} recipients per broadcast
+            @else
+                No fixed maximum — all selected staff or clients with a valid email
+            @endif
+        </div>
     </div>
 </div>
 <div class="eb-info-item">
@@ -81,7 +88,14 @@
         <div class="eb-info-value">Subject up to {{ number_format($subjectMax) }} chars · Body up to {{ number_format($bodyMax) }} chars</div>
     </div>
 </div>
+<div class="eb-info-item">
+    <div class="eb-info-icon"><i class="fa-solid fa-tags"></i></div>
+    <div>
+        <div class="eb-info-label">Plan Limit</div>
+        <div class="eb-info-value">No separate email-broadcast cap by subscription plan (active subscription required)</div>
+    </div>
+</div>
 
 <div class="eb-tip-box">
-    <p><i class="fa-solid fa-lightbulb"></i><strong>Delivery details:</strong> Footer address, website, and email are loaded from this subscriber's Profile. Refresh this page after profile changes. Broadcasts queue in the background — you do not need to stay on this page.</p>
+    <p><i class="fa-solid fa-lightbulb"></i><strong>Delivery details:</strong> From shows your organisation name via {{ $alertsFrom }}. Replies go to your profile email. One Bcc copy is sent to you with the first batch so you can review the format. Large selections are queued in batches automatically.</p>
 </div>

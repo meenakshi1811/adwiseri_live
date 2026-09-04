@@ -6530,6 +6530,7 @@ class WebController extends Controller
         $broadcastLimits = [
             'chunk_size' => (int) config('mail.broadcast_chunk_size', 25),
             'chunk_delay_seconds' => (int) config('mail.broadcast_chunk_delay_seconds', 2),
+            'max_recipients' => (int) config('mail.broadcast_max_recipients', 0),
             'subject_max' => 200,
             'body_max' => 50000,
         ];
