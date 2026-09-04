@@ -6527,6 +6527,8 @@ class WebController extends Controller
 
         $page = "email_broadcast";
         $subscriberFooter = \App\Support\BrandedMail::subscriberFooterContext($subscriber);
+        $offerBenefitService = app(\App\Services\OfferBenefitService::class);
+        $broadcastUsage = $offerBenefitService->emailBroadcastUsageSummary($user);
         $broadcastLimits = [
             'chunk_size' => (int) config('mail.broadcast_chunk_size', 25),
             'chunk_delay_seconds' => (int) config('mail.broadcast_chunk_delay_seconds', 2),
@@ -6535,7 +6537,7 @@ class WebController extends Controller
             'body_max' => 50000,
         ];
 
-        return view('web.email_broadcast', compact('user', 'page', 'staffMembers', 'clients', 'subscriber', 'subscriberFooter', 'broadcastLimits'));
+        return view('web.email_broadcast', compact('user', 'page', 'staffMembers', 'clients', 'subscriber', 'subscriberFooter', 'broadcastLimits', 'broadcastUsage'));
     }
 
     public function send_email_broadcast(Request $request, EmailBroadcastService $emailBroadcastService)

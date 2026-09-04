@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Log;
 
 class EmailBroadcastService
 {
+    public function __construct(
+        private readonly OfferBenefitService $offerBenefitService
+    ) {
+    }
     private const STAFF_GROUP_DESIGNATIONS = [
         'branch_manager' => ['Branch Manager'],
         'advisors' => ['Consultant/Advisor'],
@@ -174,6 +178,15 @@ class EmailBroadcastService
                     . number_format($maxRecipients)
                     . ' recipients. Please reduce your selection or split it into smaller broadcasts.',
             ];
+        }
+
+        if ($subscriberId) {
+            if (!$this->offerBenefitService->canSendEmailBroadcast($sender, count($recipients))) {
+                return [
+                    'queued' => false,
+                    'error' => $this->offerBenefitService->emailBroadcastLimitExceededMessage($sender, count($recipients)),
+                ];
+            }
         }
 
         if (config('queue.default') === 'sync') {

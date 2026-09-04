@@ -21,6 +21,7 @@ class Membership extends Model
         'no_of_branches',
         'price_per_year',
         'messaging',
+        'email_broadcast_limit',
         'invoicing',
         'multi_device_support',
         'secure_environment',

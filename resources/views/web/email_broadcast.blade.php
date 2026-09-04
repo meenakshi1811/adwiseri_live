@@ -201,6 +201,7 @@ window.emailBroadcastLimits = {
     chunkDelaySeconds: {{ (int) ($broadcastLimits['chunk_delay_seconds'] ?? config('mail.broadcast_chunk_delay_seconds', 2)) }},
     maxRecipients: {{ (int) ($broadcastLimits['max_recipients'] ?? config('mail.broadcast_max_recipients', 0)) }}
 };
+window.emailBroadcastUsage = @json($broadcastUsage ?? ['limit' => 0, 'used' => 0, 'remaining' => 0, 'per_year' => 0, 'plan_name' => '']);
 </script>
 @include('partials.email_broadcast_editor', [
     'uploadUrl' => route('upload_email_broadcast_image'),
@@ -366,6 +367,32 @@ document.addEventListener('DOMContentLoaded', function () {
         bodyCount.textContent = bodyField.value.length;
     }
 
+    function showPlanLimitAlert(message) {
+        Swal.fire({
+            icon: 'warning',
+            customClass: { icon: 'adwiseri-oops-icon' },
+            title: 'Email Limit Reached',
+            text: message
+        });
+    }
+
+    function planLimitMessage(recipientCount) {
+        const usage = window.emailBroadcastUsage || {};
+        const limit = usage.limit || 0;
+        const used = usage.used || 0;
+        const remaining = usage.remaining || 0;
+        const planName = usage.plan_name || 'your plan';
+
+        if (limit <= 0) {
+            return 'Email broadcasts are not included on ' + planName + '. Please upgrade your subscription plan to send bulk emails.';
+        }
+
+        return 'You have used ' + used.toLocaleString() + ' of ' + limit.toLocaleString()
+            + ' email broadcasts allowed on your ' + planName + ' plan for the current subscription term. '
+            + 'This broadcast would send to ' + recipientCount.toLocaleString() + ' recipient(s), '
+            + 'but only ' + remaining.toLocaleString() + ' remain. Please upgrade your plan or reduce the number of recipients.';
+    }
+
     function countSelectedRecipients() {
         const type = typeInput.value;
         const selector = type === 'internal' ? '.staff-recipient' : '.client-recipient';
@@ -417,6 +444,19 @@ document.addEventListener('DOMContentLoaded', function () {
             const recipientCount = countSelectedRecipients();
             const limits = window.emailBroadcastLimits || {};
             const maxRecipients = limits.maxRecipients || 0;
+            const usage = window.emailBroadcastUsage || {};
+
+            if ((usage.limit || 0) <= 0) {
+                e.preventDefault();
+                showPlanLimitAlert(planLimitMessage(recipientCount));
+                return;
+            }
+
+            if (recipientCount > (usage.remaining || 0)) {
+                e.preventDefault();
+                showPlanLimitAlert(planLimitMessage(recipientCount));
+                return;
+            }
 
             if (maxRecipients > 0 && recipientCount > maxRecipients) {
                 e.preventDefault();
@@ -450,6 +490,16 @@ document.addEventListener('DOMContentLoaded', function () {
         staffSection.style.display = 'none';
         clientSection.style.display = 'none';
     } else {
+        const usage = window.emailBroadcastUsage || {};
+        if ((usage.limit || 0) <= 0 || (usage.remaining || 0) <= 0) {
+            showPlanLimitAlert(
+                (usage.limit || 0) <= 0
+                    ? planLimitMessage(0)
+                    : 'You have used all ' + (usage.limit || 0).toLocaleString() + ' email broadcasts allowed on your '
+                        + (usage.plan_name || 'plan') + ' plan for the current subscription term. Please upgrade your plan to send more.'
+            );
+        }
+
         const initialType = typeInput.value;
         if (initialType && hasRecipientsForType(initialType)) {
             setCommunicateType(initialType);

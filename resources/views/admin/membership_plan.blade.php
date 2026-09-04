@@ -75,6 +75,12 @@
                                     {{ $plan->messaging }}
                                 </div>
                                 <div class="col-6 border p-2">
+                                    <label style="font-weight:550;">Email Broadcasts / Year</label>
+                                </div>
+                                <div class="col-6 border p-2">
+                                    {{ number_format((int) ($plan->email_broadcast_limit ?? 0)) }}
+                                </div>
+                                <div class="col-6 border p-2">
                                     <label style="font-weight:550;">Invoicing</label>
                                 </div>
                                 <div class="col-6 border p-2">
@@ -172,6 +178,9 @@
                     </div>
                     <div class="mb-4">
                         <input name="messaging" minlength="2" maxlength="150" value="{{ $plan->messaging }}" required type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Messages">           
+                    </div>
+                    <div class="mb-4">
+                        <input name="email_broadcast_limit" min="0" max="10000000" value="{{ (int) ($plan->email_broadcast_limit ?? 0) }}" required type="number" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Email Broadcasts / Year">           
                     </div>
                     <div class="mb-4">
                         <select name="invoicing" required class="form-control form-select" id="exampleInputEmail1" aria-describedby="emailHelp">

@@ -3228,6 +3228,7 @@ class AdminController extends Controller
             $data->price_per_year = $request['price_per_year'];
             $data->validity = $request['validity'];
             $data->messaging = $request['messaging'];
+            $data->email_broadcast_limit = (int) ($request['email_broadcast_limit'] ?? 0);
             $data->invoicing = $request['invoicing'];
             $data->multi_device_support = $request['multi_device_support'];
             $data->secure_environment = $request['secure_environment'];
@@ -3258,6 +3259,7 @@ class AdminController extends Controller
                     'price_per_year' => 'required|numeric',
                     'validity' => 'required|numeric',
                     'messaging' => 'required|string|max:255',
+                    'email_broadcast_limit' => 'required|integer|min:0',
                     'invoicing' => 'required|string|max:255',
                     'multi_device_support' => 'required|string|max:255',
                     'secure_environment' => 'required|string|max:255',
@@ -3274,6 +3276,7 @@ class AdminController extends Controller
             $data->price_per_year = $request['price_per_year'];
             $data->validity = $request['validity'];
             $data->messaging = $request['messaging'];
+            $data->email_broadcast_limit = (int) ($request['email_broadcast_limit'] ?? 0);
             $data->invoicing = $request['invoicing'];
             $data->multi_device_support = $request['multi_device_support'];
             $data->secure_environment = $request['secure_environment'];

@@ -171,7 +171,7 @@ return [
     |
     */
 
-    'broadcast_chunk_size' => env('MAIL_BROADCAST_CHUNK_SIZE', 25),
+    'broadcast_chunk_size' => env('MAIL_BROADCAST_CHUNK_SIZE', 300),
     'broadcast_chunk_delay_seconds' => env('MAIL_BROADCAST_CHUNK_DELAY', 2),
     'broadcast_max_recipients' => env('MAIL_BROADCAST_MAX_RECIPIENTS', 0),
 

@@ -5,15 +5,24 @@
     $bodyMax = (int) ($broadcastLimits['body_max'] ?? 50000);
     $maxRecipients = (int) ($broadcastLimits['max_recipients'] ?? config('mail.broadcast_max_recipients', 0));
     $orgName = trim((string) ($subscriberFooter['organization'] ?? ''));
+    $subscriberName = trim((string) ($subscriberFooter['name'] ?? ''));
+    $senderDisplayName = $subscriberName !== ''
+        ? \App\Support\BrandedMail::alertsFromName($subscriberName)
+        : ($orgName !== '' ? \App\Support\BrandedMail::sentOnBehalfOf($orgName) : 'Sent on behalf of Subscriber');
     $subscriberEmail = trim((string) ($subscriberFooter['email'] ?? ''));
     $alertsFrom = \App\Support\BrandedMail::alertsFromAddress();
+    $usageLimit = (int) ($broadcastUsage['limit'] ?? 0);
+    $usageUsed = (int) ($broadcastUsage['used'] ?? 0);
+    $usageRemaining = (int) ($broadcastUsage['remaining'] ?? 0);
+    $usagePerYear = (int) ($broadcastUsage['per_year'] ?? 0);
+    $usagePlanName = trim((string) ($broadcastUsage['plan_name'] ?? ''));
 @endphp
 
 <div class="eb-info-item">
     <div class="eb-info-icon"><i class="fa-solid fa-at"></i></div>
     <div>
         <div class="eb-info-label">Sender (From)</div>
-        <div class="eb-info-value">{{ $orgName !== '' ? $orgName : 'Organisation name not set' }} &lt;{{ $alertsFrom }}&gt;</div>
+        <div class="eb-info-value">{{ $senderDisplayName }} &lt;{{ $alertsFrom }}&gt;</div>
     </div>
 </div>
 <div class="eb-info-item">
@@ -91,11 +100,33 @@
 <div class="eb-info-item">
     <div class="eb-info-icon"><i class="fa-solid fa-tags"></i></div>
     <div>
-        <div class="eb-info-label">Plan Limit</div>
-        <div class="eb-info-value">No separate email-broadcast cap by subscription plan (active subscription required)</div>
+        <div class="eb-info-label">Plan Email Allowance</div>
+        <div class="eb-info-value" id="eb_plan_email_allowance">
+            @if($usagePerYear > 0)
+                {{ number_format($usagePerYear) }}/year on {{ $usagePlanName !== '' ? $usagePlanName : 'your plan' }}
+                @if($usageLimit > $usagePerYear)
+                    ({{ number_format($usageLimit) }} total this subscription term)
+                @endif
+            @else
+                Not included on {{ $usagePlanName !== '' ? $usagePlanName : 'your current plan' }}
+            @endif
+        </div>
+    </div>
+</div>
+<div class="eb-info-item">
+    <div class="eb-info-icon"><i class="fa-solid fa-chart-pie"></i></div>
+    <div>
+        <div class="eb-info-label">Email Usage (This Term)</div>
+        <div class="eb-info-value" id="eb_email_usage">
+            @if($usageLimit > 0)
+                {{ number_format($usageUsed) }} used · {{ number_format($usageRemaining) }} remaining of {{ number_format($usageLimit) }}
+            @else
+                Upgrade your plan to send email broadcasts
+            @endif
+        </div>
     </div>
 </div>
 
 <div class="eb-tip-box">
-    <p><i class="fa-solid fa-lightbulb"></i><strong>Delivery details:</strong> From shows your organisation name via {{ $alertsFrom }}. Replies go to your profile email. One Bcc copy is sent to you with the first batch so you can review the format. Large selections are queued in batches automatically.</p>
+    <p><i class="fa-solid fa-lightbulb"></i><strong>Delivery details:</strong> From shows as Sent on behalf of your subscriber name via {{ $alertsFrom }}. Replies go to your profile email. One Bcc copy is sent to you with the first batch so you can review the format. Large selections are queued in batches automatically.</p>
 </div>

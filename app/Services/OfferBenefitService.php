@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Mail\OfferRewardMail;
 use App\Models\Associate;
 use App\Models\Clients;
+use App\Models\Email_broadcasts;
 use App\Models\Internal_communications;
 use App\Models\Membership;
 use App\Models\Offers;
@@ -923,6 +924,107 @@ class OfferBenefitService
         }
 
         return $this->currentMessageCount($subscriber) < (int) $messageLimit;
+    }
+
+    public function baseEmailBroadcastLimit(User $user): int
+    {
+        $subscriber = $this->resolveSubscriber($user);
+        $plan = $this->membershipPlan($subscriber);
+
+        if (!$plan) {
+            return 0;
+        }
+
+        return max(0, (int) ($plan->email_broadcast_limit ?? 0));
+    }
+
+    public function effectiveEmailBroadcastLimit(User $user): int
+    {
+        $perYear = $this->baseEmailBroadcastLimit($user);
+
+        if ($perYear <= 0) {
+            return 0;
+        }
+
+        $years = $this->subscriptionDurationYears($user);
+
+        return (int) round($perYear * $years);
+    }
+
+    public function currentEmailBroadcastUsage(User $user): int
+    {
+        $subscriber = $this->resolveSubscriber($user);
+        $query = Email_broadcasts::query()
+            ->where('subscriber_id', $subscriber->id)
+            ->whereNotIn('status', ['failed', 'cancelled']);
+
+        if (!empty($subscriber->membership_start_date)) {
+            $query->where(
+                'created_at',
+                '>=',
+                Carbon::parse($subscriber->membership_start_date)->startOfDay()
+            );
+        }
+
+        return (int) $query->sum('total_recipients');
+    }
+
+    public function remainingEmailBroadcastAllowance(User $user): int
+    {
+        $limit = $this->effectiveEmailBroadcastLimit($user);
+
+        return max(0, $limit - $this->currentEmailBroadcastUsage($user));
+    }
+
+    public function canSendEmailBroadcast(User $user, int $recipientCount): bool
+    {
+        if ($recipientCount <= 0) {
+            return false;
+        }
+
+        $limit = $this->effectiveEmailBroadcastLimit($user);
+
+        if ($limit <= 0) {
+            return false;
+        }
+
+        return ($this->currentEmailBroadcastUsage($user) + $recipientCount) <= $limit;
+    }
+
+    public function emailBroadcastLimitExceededMessage(User $user, int $recipientCount): string
+    {
+        $subscriber = $this->resolveSubscriber($user);
+        $planName = trim((string) ($subscriber->membership ?? 'your plan'));
+        $limit = $this->effectiveEmailBroadcastLimit($user);
+        $used = $this->currentEmailBroadcastUsage($user);
+        $remaining = max(0, $limit - $used);
+
+        if ($limit <= 0) {
+            return 'Email broadcasts are not included on ' . $planName . '. Please upgrade your subscription plan to send bulk emails.';
+        }
+
+        return 'You have used ' . number_format($used) . ' of ' . number_format($limit)
+            . ' email broadcasts allowed on your ' . $planName . ' plan for the current subscription term. '
+            . 'This broadcast would send to ' . number_format($recipientCount) . ' recipient(s), '
+            . 'but only ' . number_format($remaining) . ' remain. Please upgrade your plan or reduce the number of recipients.';
+    }
+
+    /**
+     * @return array{limit: int, used: int, remaining: int, per_year: int, plan_name: string}
+     */
+    public function emailBroadcastUsageSummary(User $user): array
+    {
+        $subscriber = $this->resolveSubscriber($user);
+        $limit = $this->effectiveEmailBroadcastLimit($user);
+        $used = $this->currentEmailBroadcastUsage($user);
+
+        return [
+            'limit' => $limit,
+            'used' => $used,
+            'remaining' => max(0, $limit - $used),
+            'per_year' => $this->baseEmailBroadcastLimit($user),
+            'plan_name' => trim((string) ($subscriber->membership ?? '')),
+        ];
     }
 
     /**
