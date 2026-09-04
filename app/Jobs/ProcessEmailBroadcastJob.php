@@ -45,7 +45,7 @@ class ProcessEmailBroadcastJob implements ShouldQueue
         }
 
         $recipients = $broadcast->recipient_payload ?? [];
-        $chunkSize = max(1, (int) config('mail.broadcast_chunk_size', 25));
+        $chunkSize = max(1, (int) config('mail.broadcast_chunk_size', 300));
         $chunk = array_slice($recipients, $this->offset, $chunkSize);
 
         if ($chunk === []) {

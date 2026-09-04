@@ -1,5 +1,5 @@
 @php
-    $chunkSize = (int) ($broadcastLimits['chunk_size'] ?? config('mail.broadcast_chunk_size', 25));
+    $chunkSize = (int) ($broadcastLimits['chunk_size'] ?? config('mail.broadcast_chunk_size', 300));
     $chunkDelay = (int) ($broadcastLimits['chunk_delay_seconds'] ?? config('mail.broadcast_chunk_delay_seconds', 2));
     $subjectMax = (int) ($broadcastLimits['subject_max'] ?? 200);
     $bodyMax = (int) ($broadcastLimits['body_max'] ?? 50000);

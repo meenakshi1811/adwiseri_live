@@ -197,7 +197,7 @@ window.emailBroadcastEditorOptions = {
     disabled: @json(!$canSend)
 };
 window.emailBroadcastLimits = {
-    chunkSize: {{ (int) ($broadcastLimits['chunk_size'] ?? config('mail.broadcast_chunk_size', 25)) }},
+    chunkSize: {{ (int) ($broadcastLimits['chunk_size'] ?? config('mail.broadcast_chunk_size', 300)) }},
     chunkDelaySeconds: {{ (int) ($broadcastLimits['chunk_delay_seconds'] ?? config('mail.broadcast_chunk_delay_seconds', 2)) }},
     maxRecipients: {{ (int) ($broadcastLimits['max_recipients'] ?? config('mail.broadcast_max_recipients', 0)) }}
 };
@@ -401,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function showBatchConfirmAlert(recipientCount, onConfirm) {
         const limits = window.emailBroadcastLimits || {};
-        const chunkSize = Math.max(1, limits.chunkSize || 25);
+        const chunkSize = Math.max(1, limits.chunkSize || 300);
         const chunkDelay = limits.chunkDelaySeconds || 2;
         const batchCount = Math.ceil(recipientCount / chunkSize);
         let message = 'You selected ' + recipientCount.toLocaleString() + ' recipient(s).';
