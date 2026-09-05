@@ -191,6 +191,15 @@ if (in_array($oldCommunicateType, ['internal', 'external'], true)) {
     </div>
 </div>
 
+@php
+    $emailBroadcastUsage = $broadcastUsage ?? [
+        'limit' => 0,
+        'used' => 0,
+        'remaining' => 0,
+        'per_year' => 0,
+        'plan_name' => '',
+    ];
+@endphp
 <script>
 window.emailBroadcastEditorOptions = {
     uploadUrl: @json(route('upload_email_broadcast_image')),
@@ -201,7 +210,7 @@ window.emailBroadcastLimits = {
     chunkDelaySeconds: {{ (int) ($broadcastLimits['chunk_delay_seconds'] ?? config('mail.broadcast_chunk_delay_seconds', 2)) }},
     maxRecipients: {{ (int) ($broadcastLimits['max_recipients'] ?? config('mail.broadcast_max_recipients', 0)) }}
 };
-window.emailBroadcastUsage = @json($broadcastUsage ?? ['limit' => 0, 'used' => 0, 'remaining' => 0, 'per_year' => 0, 'plan_name' => '']);
+window.emailBroadcastUsage = @json($emailBroadcastUsage);
 </script>
 @include('partials.email_broadcast_editor', [
     'uploadUrl' => route('upload_email_broadcast_image'),
