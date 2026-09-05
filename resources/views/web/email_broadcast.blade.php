@@ -16,6 +16,34 @@ if (in_array($oldCommunicateType, ['internal', 'external'], true)) {
 } elseif ($clientCount > 0) {
     $defaultType = 'external';
 }
+
+$emailBroadcastUsage = $broadcastUsage ?? [
+    'limit' => 0,
+    'used' => 0,
+    'remaining' => 0,
+    'per_year' => 0,
+    'plan_name' => '',
+];
+
+$emailBroadcastChunkSize = (int) data_get($broadcastLimits, 'chunk_size', config('mail.broadcast_chunk_size', 300));
+$emailBroadcastChunkDelay = (int) data_get($broadcastLimits, 'chunk_delay_seconds', config('mail.broadcast_chunk_delay_seconds', 2));
+$emailBroadcastMaxRecipients = (int) data_get($broadcastLimits, 'max_recipients', config('mail.broadcast_max_recipients', 0));
+
+$emailBroadcastEditorOptionsJson = json_encode([
+    'uploadUrl' => route('upload_email_broadcast_image'),
+    'disabled' => !$canSend,
+], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+
+$emailBroadcastLimitsJson = json_encode([
+    'chunkSize' => $emailBroadcastChunkSize,
+    'chunkDelaySeconds' => $emailBroadcastChunkDelay,
+    'maxRecipients' => $emailBroadcastMaxRecipients,
+], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+
+$emailBroadcastUsageJson = json_encode($emailBroadcastUsage, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+
+$broadcastSentMessage = session('broadcast_sent');
+$broadcastErrorMessage = session('broadcast_error');
 @endphp
 
 @include('partials.email_broadcast_styles')
@@ -191,26 +219,10 @@ if (in_array($oldCommunicateType, ['internal', 'external'], true)) {
     </div>
 </div>
 
-@php
-    $emailBroadcastUsage = $broadcastUsage ?? [
-        'limit' => 0,
-        'used' => 0,
-        'remaining' => 0,
-        'per_year' => 0,
-        'plan_name' => '',
-    ];
-@endphp
 <script>
-window.emailBroadcastEditorOptions = {
-    uploadUrl: @json(route('upload_email_broadcast_image')),
-    disabled: @json(!$canSend)
-};
-window.emailBroadcastLimits = {
-    chunkSize: {{ (int) ($broadcastLimits['chunk_size'] ?? config('mail.broadcast_chunk_size', 300)) }},
-    chunkDelaySeconds: {{ (int) ($broadcastLimits['chunk_delay_seconds'] ?? config('mail.broadcast_chunk_delay_seconds', 2)) }},
-    maxRecipients: {{ (int) ($broadcastLimits['max_recipients'] ?? config('mail.broadcast_max_recipients', 0)) }}
-};
-window.emailBroadcastUsage = @json($emailBroadcastUsage);
+window.emailBroadcastEditorOptions = {!! $emailBroadcastEditorOptionsJson !!};
+window.emailBroadcastLimits = {!! $emailBroadcastLimitsJson !!};
+window.emailBroadcastUsage = {!! $emailBroadcastUsageJson !!};
 </script>
 @include('partials.email_broadcast_editor', [
     'uploadUrl' => route('upload_email_broadcast_image'),
@@ -522,14 +534,14 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-@if(session()->has('broadcast_sent'))
+@if(!empty($broadcastSentMessage))
 <script>
-Swal.fire({ icon: 'success', title: 'Broadcast Queued', text: @json(session('broadcast_sent')) });
+Swal.fire({ icon: 'success', title: 'Broadcast Queued', text: {!! json_encode($broadcastSentMessage, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!} });
 </script>
 @endif
-@if(session()->has('broadcast_error'))
+@if(!empty($broadcastErrorMessage))
 <script>
-Swal.fire({ icon: 'error', title: 'Unable to Send', text: @json(session('broadcast_error')) });
+Swal.fire({ icon: 'error', title: 'Unable to Send', text: {!! json_encode($broadcastErrorMessage, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!} });
 </script>
 @endif
 @if(session()->has('no_broadcast_recipients'))

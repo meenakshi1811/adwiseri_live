@@ -1,21 +1,23 @@
 @php
-    $chunkSize = (int) ($broadcastLimits['chunk_size'] ?? config('mail.broadcast_chunk_size', 300));
-    $chunkDelay = (int) ($broadcastLimits['chunk_delay_seconds'] ?? config('mail.broadcast_chunk_delay_seconds', 2));
-    $subjectMax = (int) ($broadcastLimits['subject_max'] ?? 200);
-    $bodyMax = (int) ($broadcastLimits['body_max'] ?? 50000);
-    $maxRecipients = (int) ($broadcastLimits['max_recipients'] ?? config('mail.broadcast_max_recipients', 0));
-    $orgName = trim((string) ($subscriberFooter['organization'] ?? ''));
-    $subscriberName = trim((string) ($subscriberFooter['name'] ?? ''));
+    $chunkSize = (int) data_get($broadcastLimits, 'chunk_size', config('mail.broadcast_chunk_size', 300));
+    $chunkDelay = (int) data_get($broadcastLimits, 'chunk_delay_seconds', config('mail.broadcast_chunk_delay_seconds', 2));
+    $subjectMax = (int) data_get($broadcastLimits, 'subject_max', 200);
+    $bodyMax = (int) data_get($broadcastLimits, 'body_max', 50000);
+    $maxRecipients = (int) data_get($broadcastLimits, 'max_recipients', config('mail.broadcast_max_recipients', 0));
+    $orgName = trim((string) data_get($subscriberFooter, 'organization', ''));
+    $subscriberName = trim((string) data_get($subscriberFooter, 'name', ''));
     $senderDisplayName = $subscriberName !== ''
         ? \App\Support\BrandedMail::alertsFromName($subscriberName)
         : ($orgName !== '' ? \App\Support\BrandedMail::sentOnBehalfOf($orgName) : 'Sent on behalf of Subscriber');
-    $subscriberEmail = trim((string) ($subscriberFooter['email'] ?? ''));
+    $subscriberEmail = trim((string) data_get($subscriberFooter, 'email', ''));
     $alertsFrom = \App\Support\BrandedMail::alertsFromAddress();
-    $usageLimit = (int) ($broadcastUsage['limit'] ?? 0);
-    $usageUsed = (int) ($broadcastUsage['used'] ?? 0);
-    $usageRemaining = (int) ($broadcastUsage['remaining'] ?? 0);
-    $usagePerYear = (int) ($broadcastUsage['per_year'] ?? 0);
-    $usagePlanName = trim((string) ($broadcastUsage['plan_name'] ?? ''));
+    $usageLimit = (int) data_get($broadcastUsage, 'limit', 0);
+    $usageUsed = (int) data_get($broadcastUsage, 'used', 0);
+    $usageRemaining = (int) data_get($broadcastUsage, 'remaining', 0);
+    $usagePerYear = (int) data_get($broadcastUsage, 'per_year', 0);
+    $usagePlanName = trim((string) data_get($broadcastUsage, 'plan_name', ''));
+    $footerAddress = trim((string) data_get($subscriberFooter, 'address', ''));
+    $footerWebsite = trim((string) data_get($subscriberFooter, 'website', ''));
 @endphp
 
 <div class="eb-info-item">
@@ -50,14 +52,14 @@
     <div class="eb-info-icon"><i class="fa-solid fa-location-dot"></i></div>
     <div>
         <div class="eb-info-label">Footer Address</div>
-        <div class="eb-info-value" id="eb_footer_address">{{ $subscriberFooter['address'] ?: 'Add your address in Profile' }}</div>
+        <div class="eb-info-value" id="eb_footer_address">{{ $footerAddress !== '' ? $footerAddress : 'Add your address in Profile' }}</div>
     </div>
 </div>
 <div class="eb-info-item">
     <div class="eb-info-icon"><i class="fa-solid fa-globe"></i></div>
     <div>
         <div class="eb-info-label">Footer Website</div>
-        <div class="eb-info-value" id="eb_footer_website">{{ $subscriberFooter['website'] ?: 'Add your website in Profile' }}</div>
+        <div class="eb-info-value" id="eb_footer_website">{{ $footerWebsite !== '' ? $footerWebsite : 'Add your website in Profile' }}</div>
     </div>
 </div>
 <div class="eb-info-item">

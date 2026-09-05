@@ -2,16 +2,20 @@
     $editorUploadUrl = $uploadUrl ?? '';
     $editorDisabled = (bool) ($disabled ?? false);
     $editorBodyMaxLength = (int) ($bodyMaxLength ?? 50000);
+    $editorUploadUrlJson = json_encode($editorUploadUrl !== '' ? $editorUploadUrl : null, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+    $editorDisabledJson = json_encode($editorDisabled, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+    $editorCsrfTokenJson = json_encode(csrf_token(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+    $editorBodyMaxLengthJson = json_encode($editorBodyMaxLength, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
 @endphp
 
 <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
 <script>
 (function () {
     const options = window.emailBroadcastEditorOptions || {};
-    const uploadUrl = @json($editorUploadUrl ?: null) || options.uploadUrl || '';
-    const disabled = @json($editorDisabled) || !!options.disabled;
-    const csrfToken = @json(csrf_token());
-    const bodyMaxLength = options.bodyMaxLength || @json($editorBodyMaxLength);
+    const uploadUrl = {!! $editorUploadUrlJson !!} || options.uploadUrl || '';
+    const disabled = {!! $editorDisabledJson !!} || !!options.disabled;
+    const csrfToken = {!! $editorCsrfTokenJson !!};
+    const bodyMaxLength = options.bodyMaxLength || {!! $editorBodyMaxLengthJson !!};
 
     class BroadcastUploadAdapter {
         constructor(loader) {
