@@ -12,6 +12,10 @@
         margin-top: 0.25rem;
     }
 
+    .eb-page-header .eb-page-actions {
+        flex-shrink: 0;
+    }
+
     .eb-card {
         background: #fff;
         border: 1px solid #e8eaf3;

@@ -50,9 +50,20 @@ $broadcastErrorMessage = session('broadcast_error');
 
 <div class="col-lg-10 column-client">
     <div class="client-dashboard">
-        <div class="mb-3">
-            <h3 class="eb-page-title m-0">Email Broadcast</h3>
-            <p class="eb-page-subtitle mb-0">Send bulk emails to your staff or clients. The footer shows your organisation address, website, and email.</p>
+        <div class="mb-3 d-flex flex-wrap justify-content-between align-items-start gap-2 eb-page-header">
+            <div>
+                <h3 class="eb-page-title m-0">Email Broadcast</h3>
+                <p class="eb-page-subtitle mb-0">Send bulk emails to your staff or clients. The footer shows your organisation address, website, and email.</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2 eb-page-actions">
+                <button type="button"
+                    class="btn btn-outline-primary btn-sm"
+                    data-bs-toggle="modal"
+                    data-bs-target="#emailBroadcastLogModal"
+                    onclick="if(typeof initEmailBroadcastLogModal === 'function'){ initEmailBroadcastLogModal(); }">
+                    EB Log
+                </button>
+            </div>
         </div>
 
         @include('partials.communication_tabs', ['activeTab' => 'email_broadcast'])
@@ -554,4 +565,9 @@ Swal.fire({
 });
 </script>
 @endif
+
+@include('partials.email_broadcast_log_modal', [
+    'showSubscriberFilter' => false,
+    'historyDataUrl' => route('email_broadcast_log_data'),
+])
 @endsection()

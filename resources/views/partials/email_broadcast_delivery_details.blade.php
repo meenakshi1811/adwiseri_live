@@ -130,5 +130,5 @@
 </div>
 
 <div class="eb-tip-box">
-    <p><i class="fa-solid fa-lightbulb"></i><strong>Delivery details:</strong> From shows as Sent on behalf of your subscriber name via {{ $alertsFrom }}. Replies go to your profile email. One Bcc copy is sent to you with the first batch so you can review the format. Large selections are queued in batches automatically.</p>
+    <p><i class="fa-solid fa-lightbulb"></i><strong>Delivery details:</strong> From shows as Sent on behalf of your Business name via {{ $alertsFrom }}. Replies go to your profile email. One Bcc copy is sent to you with the first batch so you can review the format. Large selections are queued in batches automatically.</p>
 </div>
