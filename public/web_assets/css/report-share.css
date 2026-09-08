@@ -1,0 +1,85 @@
+.report-share-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.report-share-modal__dialog {
+    width: 100%;
+    max-width: 520px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.2);
+    overflow: hidden;
+}
+
+.report-share-modal__header,
+.report-share-modal__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.report-share-modal__footer {
+    border-bottom: 0;
+    border-top: 1px solid #e5e7eb;
+    justify-content: flex-end;
+}
+
+.report-share-modal__body {
+    padding: 16px 20px;
+}
+
+.report-share-recipient-wrap {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    max-height: 280px;
+    overflow: auto;
+    background: #fafafa;
+}
+
+.report-share-recipient-list {
+    padding: 8px 0;
+}
+
+.report-share-group-title {
+    padding: 8px 14px 4px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #6b7280;
+}
+
+.report-share-recipient-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.report-share-recipient-option:hover {
+    background: #f3f4f6;
+}
+
+.report-share-recipient-option input {
+    margin: 0;
+}
+
+.buttons-share,
+button.buttons-share {
+    margin-left: 6px !important;
+}
+
+#shareReportPdf {
+    margin-left: 12px;
+}

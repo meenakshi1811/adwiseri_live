@@ -359,9 +359,15 @@
   </script>
   @include('partials.application_closed_confirm_script')
   @include('partials.application_duplicate_confirm_script')
+  @if(!empty($statusFlowsByCategory))
+      @include('partials.application_status_dynamic_script')
+  @endif
   <script>
       $(document).ready(() => {
-        const endDateEditableStatuses = @json($endDateRequiredStatuses ?? \App\Support\ApplicationStatuses::END_DATE_REQUIRED);
+        let endDateEditableStatuses = @json($endDateRequiredStatuses ?? \App\Support\ApplicationStatuses::END_DATE_REQUIRED);
+        if (typeof window.adwiseriResolveApplicationEndDateRequired === 'function') {
+            endDateEditableStatuses = window.adwiseriResolveApplicationEndDateRequired($('#job_role').val());
+        }
         window.adwiseriBindClosedStatusFormConfirm('#registration_form', '.js-app-status');
         @if(!isset($application))
         if (typeof window.bindApplicationDuplicateConfirm === 'function') {
@@ -388,6 +394,26 @@
                 endDateField.value = "";
             }
         };
+
+        const syncEndDateFromCategory = () => {
+            if (typeof window.adwiseriResolveApplicationEndDateRequired === 'function') {
+                endDateEditableStatuses = window.adwiseriResolveApplicationEndDateRequired($('#job_role').val());
+            }
+            syncEndDateEditability();
+        };
+
+        document.querySelector(".js-app-status")?.addEventListener("change", syncEndDateFromCategory);
+        $('#job_role').on('change', syncEndDateFromCategory);
+
+        if (typeof window.adwiseriRefreshApplicationStatusSelect === 'function') {
+            window.adwiseriRefreshApplicationStatusSelect({
+                categoryField: '#job_role',
+                statusField: '.js-app-status',
+                preserveValue: true,
+            });
+        }
+
+        syncEndDateFromCategory();
 
         const clientEl = document.getElementById('client');
         var id = clientEl ? clientEl.value : '';
@@ -502,9 +528,6 @@
 
             loadFilteredApplicationTypes(clientId, $("#job_role").val());
         });
-
-        $(document).on("change", ".js-app-status", syncEndDateEditability);
-        syncEndDateEditability();
 
         $("#job_open_date").on("change", function () {
                 var startDate = $(this).val(); // Get the selected start date

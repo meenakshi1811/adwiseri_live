@@ -158,8 +158,10 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <td class="text-center">{{ date("d-m-Y H:i:s",strtotime($discus->communication_date)) }}</td>
                             <td class="text-center"><div style="max-height: 100px;overflow:auto;">{{ $discus->discussion }}</div></td>
                             <td class="text-center action-icon">
-                                <button type="button" class="btn p-0 border-0 bg-transparent" title="View"
-                                    onclick="viewMeetingNote(@json($meetingNotePayload))">
+                                <button type="button"
+                                    class="btn p-0 border-0 bg-transparent js-view-meeting-note"
+                                    title="View"
+                                    data-meeting-note="{{ htmlspecialchars(json_encode($meetingNotePayload), ENT_QUOTES, 'UTF-8') }}">
                                     <i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i>
                                 </button>
                             </td>
@@ -180,27 +182,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
   </script>
+  @include('partials.meeting_note_view_script')
   <script>
-    function viewMeetingNote(note) {
-        const discussion = (note.discussion || '').replace(/\n/g, '<br>');
-        Swal.fire({
-            title: 'Meeting Note Details',
-            html: `
-                <div class="text-start">
-                    <p><strong>User:</strong> ${note.user || ''}</p>
-                    <p><strong>Client:</strong> ${note.client || ''}</p>
-                    <p><strong>Application:</strong> ${note.application || ''}</p>
-                    <p><strong>Mode:</strong> ${note.mode || ''}</p>
-                    <p><strong>Date:</strong> ${note.date || ''}</p>
-                    <p><strong>Discussion:</strong></p>
-                    <div style="max-height:300px;overflow:auto;text-align:left;white-space:normal;">${discussion}</div>
-                </div>
-            `,
-            width: '640px',
-            confirmButtonText: 'Close'
-        });
-    }
-
     function set_max(){
         var d = new Date();
         var y = d.getFullYear();

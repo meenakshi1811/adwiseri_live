@@ -55,4 +55,14 @@ class ApplicationStatuses
     {
         return in_array(self::normalize($status), self::TERMINAL, true);
     }
+
+    public static function indexInFlow(string $status, array $flow): int|false
+    {
+        return array_search(self::normalize($status), $flow, true);
+    }
+
+    public static function inactiveInFlow(array $flow): array
+    {
+        return array_values(array_intersect($flow, self::INACTIVE));
+    }
 }

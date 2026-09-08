@@ -102,6 +102,8 @@ use App\Models\ApplicationReminder;
 use App\Models\UserSession;
 use App\Services\EmailTemplateService;
 use App\Services\EmailBroadcastService;
+use App\Services\ReportShareService;
+use App\Services\ApplicationStatusSettingsService;
 use App\Services\CountryCategorySettingsService;
 use App\Services\DashboardPreferenceService;
 use App\Services\EnquiryFormSettingsService;
@@ -1534,8 +1536,9 @@ class WebController extends Controller
         $subscriber = app(CountryCategorySettingsService::class)->resolveSubscriber($user);
         $clientVisaChartFilters = app(\App\Services\AnalyticsClientChartService::class)
             ->visaDetailFilterAvailability((int) $subscriber->id);
+        $staffMembers = app(ReportShareService::class)->staffMembersForSubscriber($subscriber);
 
-        return view('web.analytics', compact('page', 'user', 'subscribers', 'countries', 'clientVisaChartFilters'));
+        return view('web.analytics', compact('page', 'user', 'subscribers', 'countries', 'clientVisaChartFilters', 'staffMembers', 'subscriber'));
     }
     public function client()
     {
@@ -1559,14 +1562,30 @@ class WebController extends Controller
             $clients = Clients::withCount('dependants')->with(['applications:id,client_id,visa_country'])->where('user_id', '=', $user->id)->orderBy('created_at', 'desc')->get();
         }
         $ccService = app(CountryCategorySettingsService::class);
+        $statusService = app(ApplicationStatusSettingsService::class);
         $subscriber = $ccService->resolveSubscriber($user);
         $countries = $ccService->resolveCountriesForDropdown($subscriber);
+        $visaCategories = $ccService->resolveVisaCategoryNames($subscriber);
+        $statusFlowsByCategory = $statusService->resolveFlowsByCategory((int) $subscriber->id, $visaCategories);
+        $endDateRequiredByCategory = $statusService->resolveEndDateRequiredByCategory((int) $subscriber->id, $visaCategories);
+        $applicationStatusFlow = $statusService->resolveFlow((int) $subscriber->id, null);
         $page = "clients";
         $clientVisaCountryFilters = TableFilterCountService::countBy(
             $clients,
             fn ($client) => TableFilterCountService::clientVisaCountry($client)
         );
-        return view('web.client', compact('user', 'clients', 'page', 'roles','countries', 'subscriber', 'clientVisaCountryFilters'));
+        return view('web.client', compact(
+            'user',
+            'clients',
+            'page',
+            'roles',
+            'countries',
+            'subscriber',
+            'clientVisaCountryFilters',
+            'statusFlowsByCategory',
+            'endDateRequiredByCategory',
+            'applicationStatusFlow'
+        ));
     }
 
     public function users()
@@ -2942,7 +2961,21 @@ class WebController extends Controller
                 $applications,
                 fn ($application) => $application->application_name
             );
-            return view('web.applications', compact('applications', 'clients', 'user', 'page', 'roles', 'applicationTypeFilters'));
+            $statusService = app(ApplicationStatusSettingsService::class);
+            $visaCategories = app(CountryCategorySettingsService::class)->resolveVisaCategoryNames($subscriber);
+            $statusFlowsByCategory = $statusService->resolveFlowsByCategory((int) $subscriber->id, $visaCategories);
+            $defaultStatusFlow = $statusService->resolveFlow((int) $subscriber->id, null);
+            return view('web.applications', compact(
+                'applications',
+                'clients',
+                'user',
+                'page',
+                'roles',
+                'applicationTypeFilters',
+                'statusFlowsByCategory',
+                'defaultStatusFlow',
+                'subscriber'
+            ));
         } else {
             return redirect()->route('login');
         }
@@ -3082,9 +3115,14 @@ class WebController extends Controller
         $currentStatus = ApplicationStatuses::normalize($application->application_status);
         $newStatus = ApplicationStatuses::normalize($request->status);
 
-        $statusFlow = ApplicationStatuses::FLOW;
-        $currentIndex = array_search($currentStatus, $statusFlow, true);
-        $newIndex = array_search($newStatus, $statusFlow, true);
+        $statusService = app(ApplicationStatusSettingsService::class);
+        $statusFlow = $statusService->flowForApplication(
+            (int) $application->subscriber_id,
+            (string) ($application->application_name ?? ''),
+            $currentStatus
+        );
+        $currentIndex = ApplicationStatuses::indexInFlow($currentStatus, $statusFlow);
+        $newIndex = ApplicationStatuses::indexInFlow($newStatus, $statusFlow);
 
         if ($newIndex === false) {
             return response()->json(['message' => 'Invalid status selected.'], 422);
@@ -3138,6 +3176,7 @@ class WebController extends Controller
         }
         $this->set_timezone();
         $ccService = app(CountryCategorySettingsService::class);
+        $statusService = app(ApplicationStatusSettingsService::class);
         $subscriber = $ccService->resolveSubscriber($user);
         $client_jobs = $ccService->getClientJobsForSubscriber($subscriber);
         $clients = Clients::where('subscriber_id', '=', $subscriber->id)->get();
@@ -3146,8 +3185,10 @@ class WebController extends Controller
         }
         $countries = $ccService->resolveCountriesForDropdown($subscriber);
         $visaCategories = $ccService->resolveVisaCategoryNames($subscriber);
-        $applicationStatusFlow = ApplicationStatuses::FLOW;
-        $endDateRequiredStatuses = ApplicationStatuses::END_DATE_REQUIRED;
+        $applicationStatusFlow = $statusService->resolveFlow((int) $subscriber->id, null);
+        $endDateRequiredStatuses = $statusService->resolveEndDateRequired((int) $subscriber->id, null);
+        $statusFlowsByCategory = $statusService->resolveFlowsByCategory((int) $subscriber->id, $visaCategories);
+        $endDateRequiredByCategory = $statusService->resolveEndDateRequiredByCategory((int) $subscriber->id, $visaCategories);
         $page = "applications";
         return view('web.add_application', compact(
             'clients',
@@ -3158,7 +3199,9 @@ class WebController extends Controller
             'subscriber',
             'visaCategories',
             'applicationStatusFlow',
-            'endDateRequiredStatuses'
+            'endDateRequiredStatuses',
+            'statusFlowsByCategory',
+            'endDateRequiredByCategory'
         ));
     }
 
@@ -3177,6 +3220,7 @@ class WebController extends Controller
         $client = Clients::find($application->client_id);
         $subscriber = User::find($client->subscriber_id);
         $ccService = app(CountryCategorySettingsService::class);
+        $statusService = app(ApplicationStatusSettingsService::class);
         $countries = $ccService->resolveCountriesForDropdown(
             $subscriber,
             array_filter([
@@ -3186,8 +3230,17 @@ class WebController extends Controller
         );
         $visaCategories = $ccService->resolveVisaCategoryNames($subscriber);
         $job_roles = $ccService->getClientJobsForSubscriber($subscriber);
-        $applicationStatusFlow = ApplicationStatuses::FLOW;
-        $endDateRequiredStatuses = ApplicationStatuses::END_DATE_REQUIRED;
+        $applicationStatusFlow = $statusService->flowForApplication(
+            (int) $subscriber->id,
+            (string) ($application->application_name ?? ''),
+            (string) ($application->application_status ?? '')
+        );
+        $endDateRequiredStatuses = $statusService->resolveEndDateRequired(
+            (int) $subscriber->id,
+            (string) ($application->application_name ?? '')
+        );
+        $statusFlowsByCategory = $statusService->resolveFlowsByCategory((int) $subscriber->id, $visaCategories);
+        $endDateRequiredByCategory = $statusService->resolveEndDateRequiredByCategory((int) $subscriber->id, $visaCategories);
         $page = "applications";
         return view('web.add_application', compact(
             'application',
@@ -3198,20 +3251,48 @@ class WebController extends Controller
             'subscriber',
             'visaCategories',
             'applicationStatusFlow',
-            'endDateRequiredStatuses'
+            'endDateRequiredStatuses',
+            'statusFlowsByCategory',
+            'endDateRequiredByCategory'
         ));
     }
 
     public function add_new_application(Request $request)
     {
         $ccService = app(CountryCategorySettingsService::class);
+        $statusService = app(ApplicationStatusSettingsService::class);
+        $user = Auth::user();
+        $subscriberId = null;
+
+        if ($request->filled('id')) {
+            $existingApplication = Applications::find($request->id);
+            if ($existingApplication) {
+                $subscriberId = (int) $existingApplication->subscriber_id;
+            }
+        } elseif ($request->filled('client_id')) {
+            $client = Clients::find($request->client_id);
+            $subscriberId = $client ? (int) $client->subscriber_id : null;
+        } elseif ($request->filled('client')) {
+            $client = Clients::find($request->client);
+            $subscriberId = $client ? (int) $client->subscriber_id : null;
+        } elseif ($user) {
+            $subscriberId = (int) app(CountryCategorySettingsService::class)->resolveSubscriber($user)->id;
+        }
+
+        $statusFlow = $subscriberId
+            ? $statusService->resolveFlow($subscriberId, $request->input('job_role'))
+            : ApplicationStatuses::FLOW;
+        $endDateRequiredStatuses = $subscriberId
+            ? $statusService->resolveEndDateRequired($subscriberId, $request->input('job_role'))
+            : ApplicationStatuses::END_DATE_REQUIRED;
+
         $request->validate(array_merge([
-            'job_status' => 'required|string|max:255',
+            'job_status' => ['required', 'string', 'max:255', Rule::in($statusFlow)],
             'job_open_date' => 'required|date|before_or_equal:today',
             'job_completion_date' => [
                 'nullable',
                 'date',
-                Rule::requiredIf(fn () => in_array($request->input('job_status'), ApplicationStatuses::END_DATE_REQUIRED, true)),
+                Rule::requiredIf(fn () => in_array($request->input('job_status'), $endDateRequiredStatuses, true)),
                 'after_or_equal:job_open_date',
                 'before_or_equal:today',
             ],
@@ -3242,9 +3323,8 @@ class WebController extends Controller
                 }
             }
         };
-        $endDateEditableStatuses = ApplicationStatuses::END_DATE_REQUIRED;
-        $resolveApplicationEndDate = function ($status, $endDate) use ($endDateEditableStatuses, $normalizeDate) {
-            if (!in_array($status, $endDateEditableStatuses, true)) {
+        $resolveApplicationEndDate = function ($status, $endDate) use ($endDateRequiredStatuses, $normalizeDate) {
+            if (!in_array($status, $endDateRequiredStatuses, true)) {
                 return null;
             }
 
@@ -6301,9 +6381,10 @@ class WebController extends Controller
 
         $price_plans = Membership::orderBy('created_at', 'asc')->get();
         $reportModuleAvailability = \App\Support\ModuleAvailability::reportModules($user);
+        $staffMembers = app(ReportShareService::class)->staffMembersForSubscriber($subscriber);
 
 
-        return view('web.reports', compact('user', 'total_apps', 'page', 'applications', 'total_invoices', 'total_paid', 'total_unpaid', 'total_amt', 'paid_total', 'unpaid_total', 'price_plans', 'reportModuleAvailability'));
+        return view('web.reports', compact('user', 'total_apps', 'page', 'applications', 'total_invoices', 'total_paid', 'total_unpaid', 'total_amt', 'paid_total', 'unpaid_total', 'price_plans', 'reportModuleAvailability', 'staffMembers', 'subscriber'));
     }
 
     public function sub_reports_support_tickets()
@@ -6520,6 +6601,63 @@ class WebController extends Controller
         } else {
             return redirect()->route('login');
         }
+    }
+
+    public function share_report_chart(Request $request, ReportShareService $reportShareService)
+    {
+        $user = $this->check_login();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $source = (string) $request->input('source', 'report');
+        if ($source === 'analytics' && !$reportShareService->canShareAnalytics($user)) {
+            return response()->json(['message' => 'You do not have permission to share analytics charts.'], 403);
+        }
+        if ($source !== 'analytics' && !$reportShareService->canShareReports($user)) {
+            return response()->json(['message' => 'You do not have permission to share reports.'], 403);
+        }
+
+        $request->validate([
+            'pdf_name' => 'required|string|max:255',
+            'pdf_data' => 'required|string',
+            'recipients' => 'required|array|min:1',
+            'recipients.*' => 'required|string|max:255',
+            'source' => 'nullable|string|in:report,analytics',
+        ]);
+
+        $subscriber = app(CountryCategorySettingsService::class)->resolveSubscriber($user);
+
+        try {
+            $pdfBinary = $reportShareService->decodePdfPayload($request->input('pdf_data'));
+            $result = $reportShareService->share(
+                $user,
+                $subscriber,
+                (string) $request->input('pdf_name'),
+                $pdfBinary,
+                $request->input('recipients', [])
+            );
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            Log::warning('Report share failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+
+            return response()->json(['message' => 'Unable to share the report. Please try again.'], 500);
+        }
+
+        if ($result['sent'] === 0) {
+            return response()->json(['message' => 'Unable to send the report to the selected recipients.'], 500);
+        }
+
+        $message = 'Report shared with ' . $result['sent'] . ' recipient(s).';
+        if (!empty($result['errors'])) {
+            $message .= ' Some recipients could not be reached.';
+        }
+
+        return response()->json([
+            'message' => $message,
+            'sent' => $result['sent'],
+        ]);
     }
 
     public function email_broadcast()
@@ -8006,6 +8144,97 @@ class WebController extends Controller
                 'message' => $exception->getMessage() ?: 'Failed to save enquiry form settings.',
             ], 500);
         }
+    }
+
+    public function save_application_status_settings(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        try {
+            $validated = $request->validate([
+                'visa_category' => 'nullable|string|max:255',
+                'statuses' => 'required|array|min:1',
+                'statuses.*' => 'required|string|max:120',
+                'end_date_required' => 'nullable|array',
+                'end_date_required.*' => 'nullable|string|max:120',
+                'reset_defaults' => 'nullable|boolean',
+            ]);
+
+            $statusService = app(ApplicationStatusSettingsService::class);
+            $subscriber = $statusService->resolveSubscriber($user);
+
+            if (!empty($validated['reset_defaults'])) {
+                $statusService->resetSettings($subscriber, $validated['visa_category'] ?? null);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Application status settings reset to defaults.',
+                    'payload' => $statusService->getSettingsPayload($subscriber),
+                ]);
+            }
+
+            $statusService->saveSettings(
+                $subscriber,
+                $validated['visa_category'] ?? null,
+                $validated['statuses'],
+                $validated['end_date_required'] ?? []
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application status settings saved.',
+                'payload' => $statusService->getSettingsPayload($subscriber),
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $validationException) {
+            throw $validationException;
+        } catch (\InvalidArgumentException $invalidArgumentException) {
+            return response()->json([
+                'success' => false,
+                'message' => $invalidArgumentException->getMessage(),
+            ], 422);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage() ?: 'Failed to save application status settings.',
+            ], 500);
+        }
+    }
+
+    public function get_application_status_flow(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        $validated = $request->validate([
+            'visa_category' => 'nullable|string|max:255',
+            'subscriber_id' => 'nullable|integer|exists:users,id',
+        ]);
+
+        $statusService = app(ApplicationStatusSettingsService::class);
+        $subscriber = $statusService->resolveSubscriber($user);
+
+        if (!empty($validated['subscriber_id']) && (int) $validated['subscriber_id'] !== (int) $subscriber->id) {
+            if (strtolower((string) $user->user_type) !== 'admin') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+            }
+
+            $subscriber = User::findOrFail((int) $validated['subscriber_id']);
+        }
+
+        $visaCategory = $validated['visa_category'] ?? null;
+
+        return response()->json([
+            'success' => true,
+            'statuses' => $statusService->resolveFlow((int) $subscriber->id, $visaCategory),
+            'end_date_required' => $statusService->resolveEndDateRequired((int) $subscriber->id, $visaCategory),
+        ]);
     }
 
     public function save_cc_settings(Request $request)

@@ -56,6 +56,7 @@ class MySettingsPageService
         $ccService = app(CountryCategorySettingsService::class);
         $dashboardService = app(DashboardPreferenceService::class);
         $enquiryFormService = app(EnquiryFormSettingsService::class);
+        $applicationStatusService = app(ApplicationStatusSettingsService::class);
 
         $ccDocumentLists = $this->safe(fn () => $ccService->getDocumentLists($subscriber), []);
 
@@ -137,6 +138,24 @@ class MySettingsPageService
                 ['countries' => collect(), 'visa_categories' => collect(), 'has_saved' => false]
             ),
             'appointments' => $this->loadAppointments($subscriberId),
+            'applicationStatusSettings' => $this->safe(
+                fn () => $applicationStatusService->getSettingsPayload($subscriber),
+                [
+                    'default' => [
+                        'statuses' => \App\Support\ApplicationStatuses::FLOW,
+                        'end_date_required' => \App\Support\ApplicationStatuses::END_DATE_REQUIRED,
+                        'has_custom' => false,
+                    ],
+                    'by_category' => [],
+                    'visa_categories' => [],
+                    'system_default_statuses' => \App\Support\ApplicationStatuses::FLOW,
+                    'system_default_end_date_required' => \App\Support\ApplicationStatuses::END_DATE_REQUIRED,
+                ]
+            ),
+            'applicationStatusUsingDefaults' => $this->safe(
+                fn () => !$applicationStatusService->hasSavedSettings($subscriber),
+                true
+            ),
         ];
     }
 

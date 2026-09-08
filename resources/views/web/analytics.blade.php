@@ -184,6 +184,7 @@
     </div>
     <div class="col-md-3 d-flex justify-content-center">
         <button class="login-btn" id="downloadPdf" style="display: none">Download Chart</button>
+        <button class="login-btn" id="shareReportPdf" style="display: none">Share</button>
     </div>
 </div>
 
@@ -22689,4 +22690,5 @@ numbers.push(currentElement.total_clients);
         });
     })(jQuery);
 </script>
+@include('partials.report_share_modal')
 @endsection

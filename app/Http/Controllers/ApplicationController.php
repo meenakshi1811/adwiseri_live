@@ -13,6 +13,7 @@ use App\Models\Dependants;
 use Carbon\Carbon;
 use App\Services\DocumentChecklistMailService;
 use App\Services\ApplicationDuplicateService;
+use App\Services\ApplicationStatusSettingsService;
 use App\Support\ApplicationStatuses;
 
 
@@ -34,12 +35,16 @@ class ApplicationController extends Controller
             return response()->json(['success' => false, 'message' => 'Subscriber not found.'], 404);
         }
 
+        $statusService = app(ApplicationStatusSettingsService::class);
+        $statusFlow = $statusService->resolveFlow((int) $subscriber->id, $request->input('job_role'));
+        $endDateRequired = $statusService->resolveEndDateRequired((int) $subscriber->id, $request->input('job_role'));
+
         $request->validate([
-            'job_status' => ['required', 'string', Rule::in(ApplicationStatuses::FLOW)],
+            'job_status' => ['required', 'string', Rule::in($statusFlow)],
             'job_completion_date' => [
                 'nullable',
                 'date',
-                Rule::requiredIf(fn () => in_array($request->input('job_status'), ApplicationStatuses::END_DATE_REQUIRED, true)),
+                Rule::requiredIf(fn () => in_array($request->input('job_status'), $endDateRequired, true)),
             ],
         ]);
 

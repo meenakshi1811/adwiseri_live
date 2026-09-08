@@ -248,7 +248,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                             <select name="job_status" id="job_status" required
                                                 class="form-control form-select js-app-status @error('job_status') is-invalid @enderror">
                                                 <option value="">Select Application Status</option>
-                                                @foreach(\App\Support\ApplicationStatuses::FLOW as $statusOption)
+                                                @foreach(($applicationStatusFlow ?? \App\Support\ApplicationStatuses::FLOW) as $statusOption)
                                                     <option {{ (old('job_status', 'Client Registered') == $statusOption) ? 'selected' : '' }} value="{{ $statusOption }}">{{ $statusOption }}</option>
                                                 @endforeach
                                             </select>
@@ -928,4 +928,18 @@ window.onclick = function (event) {
 @include('partials.application_closed_confirm_script')
 @include('partials.application_duplicate_confirm_script')
 @include('web.partials.application_visa_detail_fields_script')
+@if(!empty($statusFlowsByCategory))
+    @include('partials.application_status_dynamic_script')
+    <script>
+        $(function () {
+            if (typeof window.adwiseriRefreshApplicationStatusSelect === 'function') {
+                window.adwiseriRefreshApplicationStatusSelect({
+                    categoryField: '#job_role',
+                    statusField: '#job_status',
+                    preserveValue: false,
+                });
+            }
+        });
+    </script>
+@endif
 @endsection()

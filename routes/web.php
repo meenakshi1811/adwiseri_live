@@ -307,6 +307,7 @@ Route::get('/sub_reports', [App\Http\Controllers\WebController::class, 'sub_repo
 Route::get('/sub_reports/support_tickets', [App\Http\Controllers\WebController::class, 'sub_reports_support_tickets'])->name('sub_reports_support_tickets')->middleware(['auth','check.device']);
 Route::get('/sub_reports/activity_log', [App\Http\Controllers\WebController::class, 'sub_reports_activity_log'])->name('sub_reports_activity_log')->middleware(['auth','check.device']);
 Route::get('/sub_analytics', [App\Http\Controllers\WebController::class, 'analytics'])->name('sub_analytics')->middleware(['auth','check.device']);
+Route::post('/share_report_chart', [App\Http\Controllers\WebController::class, 'share_report_chart'])->name('share_report_chart')->middleware(['auth','check.device']);
 
 Route::get('/email_broadcast', [App\Http\Controllers\WebController::class, 'email_broadcast'])->name('email_broadcast')->middleware(['auth','check.device']);
 Route::get('/email-broadcast-log-data', [App\Http\Controllers\EmailBroadcastLogController::class, 'subscriberLogData'])->name('email_broadcast_log_data')->middleware(['auth','check.device']);
@@ -345,6 +346,8 @@ Route::post('/save_cc_settings', [App\Http\Controllers\WebController::class, 'sa
 Route::post('/save_cc_document_lists', [App\Http\Controllers\WebController::class, 'save_cc_document_lists'])->name('save_cc_document_lists')->middleware(['auth','check.device']);
 Route::post('/save_dashboard_settings', [App\Http\Controllers\WebController::class, 'save_dashboard_settings'])->name('save_dashboard_settings')->middleware(['auth','check.device']);
 Route::post('/save_enquiry_form_settings', [App\Http\Controllers\WebController::class, 'save_enquiry_form_settings'])->name('save_enquiry_form_settings')->middleware(['auth','check.device']);
+Route::post('/save_application_status_settings', [App\Http\Controllers\WebController::class, 'save_application_status_settings'])->name('save_application_status_settings')->middleware(['auth','check.device']);
+Route::post('/get_application_status_flow', [App\Http\Controllers\WebController::class, 'get_application_status_flow'])->name('get_application_status_flow')->middleware(['auth','check.device']);
 Route::post('/get_service_fee', [App\Http\Controllers\WebController::class, 'get_service_fee'])->name('get_service_fee')->middleware(['auth','check.device']);
 
 Route::get('/get_subscriber_service', [App\Http\Controllers\WebController::class, 'get_subscriber_service'])->name('get_subscriber_service')->middleware(['auth','check.device']);

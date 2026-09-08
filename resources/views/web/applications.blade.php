@@ -17,7 +17,26 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 @endphp
 @php
     use App\Support\ApplicationStatuses;
-    $statusFlow = ApplicationStatuses::FLOW;
+    $defaultStatusFlow = $defaultStatusFlow ?? ApplicationStatuses::FLOW;
+    $statusFlowsByCategory = $statusFlowsByCategory ?? [];
+    $resolveApplicationStatusFlow = function ($applicationName, $currentStatus = null) use ($statusFlowsByCategory, $defaultStatusFlow, $subscriber) {
+        $key = trim((string) $applicationName);
+        $flow = ($key !== '' && !empty($statusFlowsByCategory[$key]))
+            ? $statusFlowsByCategory[$key]
+            : $defaultStatusFlow;
+
+        if (!empty($subscriber)) {
+            return app(\App\Services\ApplicationStatusSettingsService::class)
+                ->flowForApplication((int) $subscriber->id, $key !== '' ? $key : null, $currentStatus);
+        }
+
+        $currentStatus = ApplicationStatuses::normalize($currentStatus);
+        if ($currentStatus !== '' && !in_array($currentStatus, $flow, true)) {
+            return array_merge([$currentStatus], $flow);
+        }
+
+        return $flow;
+    };
 @endphp
 
 
@@ -72,6 +91,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <td class="p-1 text-center">{{ $app->application_country }}</td>
                             @php
                                 $currentStatus = $app->application_status ?: 'Client Registered';
+                                $statusFlow = $resolveApplicationStatusFlow($app->application_name, $currentStatus);
                                 $currentIndex = array_search($currentStatus, $statusFlow, true);
                                 $currentIndex = $currentIndex === false ? 0 : $currentIndex;
                                 $isTerminalStatus = ApplicationStatuses::isTerminal($currentStatus);

@@ -1425,6 +1425,10 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         } else {
             buttons.enable();
         }
+
+        if (api.table && api.table().container) {
+            $(api.table().container()).find('.buttons-share').prop('disabled', recordCount === 0);
+        }
     }
 
     var dataTable1 = false;
@@ -8590,4 +8594,5 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
     }
 </script>
 @include('partials.report_tabs_init')
+@include('partials.report_share_modal')
 @endsection()

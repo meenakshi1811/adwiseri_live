@@ -776,6 +776,10 @@
                     <button class="nav-link" id="enquiry-form-settings-tab" data-bs-toggle="tab" href="#enquiry-form-settings" role="tab"
                         aria-controls="enquiry-form-settings" aria-selected="false">Enquiry Form</button>
                 </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="application-status-tab" data-bs-toggle="tab" href="#application-status-settings" role="tab"
+                        aria-controls="application-status-settings" aria-selected="false">Application Status</button>
+                </li>
                 @endif
                 <li class="nav-item">
                     <button class="nav-link" id="payment-reminder-tab" data-bs-toggle="tab" href="#payment-reminder" role="tab"
@@ -1511,6 +1515,8 @@
                         </div>
                     </form>
                 </div>
+
+                @include('partials.application_status_settings_tab')
                 @endif
 
                 <div class="tab-pane fade" id="payment-reminder" role="tabpanel" aria-labelledby="payment-reminder-tab">

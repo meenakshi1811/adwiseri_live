@@ -3840,8 +3840,13 @@ class ReportFilterController extends Controller
         }
 
         $ordered = collect();
+        $statusSequence = ApplicationStatuses::FLOW;
+        if ($this->hasConsultancyReportAccess($user)) {
+            $statusSequence = app(\App\Services\ApplicationStatusSettingsService::class)
+                ->mergedFlowForSubscriber($this->consultancySubscriberId($user));
+        }
 
-        foreach (ApplicationStatuses::FLOW as $status) {
+        foreach ($statusSequence as $status) {
             $ordered->push((object) [
                 'status' => $status,
                 'application_count' => (int) ($indexed[$status] ?? 0),
