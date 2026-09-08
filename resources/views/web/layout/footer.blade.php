@@ -131,7 +131,7 @@
     nav: true,
     dots: true,
     autoplay: true,
-    autoplayTimeout: 3000,
+    autoplayTimeout: 6000,
     // smartSpeed: 5000, // Smooth sliding
     responsive: {
         0: { items: 1 },
