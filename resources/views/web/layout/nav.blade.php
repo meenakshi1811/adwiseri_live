@@ -74,7 +74,7 @@
                     <li><p class="dropdown-item mb-0">Business / Work Visa Specialists</p></li>
                     <li><p class="dropdown-item mb-0">PR / Immigration Advisories</p></li>
                     <li><p class="dropdown-item mb-0">USA - Immigration Attorneys</p></li>
-                    <li><p class="dropdown-item mb-0">UK - OISC Advisors</p></li>
+                    <li><p class="dropdown-item mb-0">UK - OISC (IAA) Advisors</p></li>
                     <li><p class="dropdown-item mb-0">Australia - MARA Advisors</p></li>
                     <li><p class="dropdown-item mb-0">Canada - ICCRC Advisors</p></li>
                     <li><p class="dropdown-item mb-0">CBI - Citizenship By Investment Consultants</p></li>

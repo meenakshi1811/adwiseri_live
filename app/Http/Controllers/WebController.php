@@ -1424,8 +1424,14 @@ class WebController extends Controller
             <option value="">Select Sub-Category</option>
             <?php
             foreach ($sub_categories as $subcategory) {
+                $lockedCountryId = \App\Support\SubscriberLicensedCountry::resolveCountryId($subcategory->sub_category_name);
+                $lockedCountryName = \App\Support\SubscriberLicensedCountry::resolveCountryName($subcategory->sub_category_name);
             ?>
-                <option value="<?php echo $subcategory->sub_category_name; ?>"><?php echo $subcategory->sub_category_name; ?></option>
+                <option value="<?php echo e($subcategory->sub_category_name); ?>"
+                    data-locked-country-id="<?php echo e($lockedCountryId ?? ''); ?>"
+                    data-locked-country-name="<?php echo e($lockedCountryName ?? ''); ?>">
+                    <?php echo e($subcategory->sub_category_name); ?>
+                </option>
             <?php
             }
        
@@ -1917,7 +1923,13 @@ class WebController extends Controller
                         'pincode' => 'required|string',
                     ]
                 );
-                $country = Countries::find($request->country);
+                $country = \App\Support\SubscriberLicensedCountry::resolveCountryForRequest(
+                    $user_update->sub_category,
+                    $request->country
+                );
+                if (!$country) {
+                    return back()->withErrors(['country' => 'Please select a valid country.'])->withInput();
+                }
                 $user_update->organization = $request['organization'];
                 $user_update->designation = $request['designation'];
                 $user_update->employee_strength = $request['employee_strength'];
@@ -1951,7 +1963,13 @@ class WebController extends Controller
                 $activity->save();
                 return redirect()->route('login');
             } elseif (isset($request->profile)) {
-                $country = Countries::find($request->country);
+                $country = \App\Support\SubscriberLicensedCountry::resolveCountryForRequest(
+                    $user_update->sub_category,
+                    $request->country
+                );
+                if (!$country) {
+                    return back()->withErrors(['country' => 'Please select a valid country.'])->withInput();
+                }
                 $user_update->name = $request['name'];
                 $user_update->phone = $request['phone'];
                 $user_update->organization = $request['organization'];

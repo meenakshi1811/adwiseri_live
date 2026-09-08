@@ -624,7 +624,13 @@ class AdminController extends Controller
                 'name' => 'required|string|min:3|max:100',
             ]);
 
-            $country = Countries::find($request->country);
+            $country = \App\Support\SubscriberLicensedCountry::resolveCountryForRequest(
+                $request['subcategory'],
+                $request->country
+            );
+            if (!$country) {
+                return back()->withErrors(['country' => 'Please select a valid country.'])->withInput();
+            }
             $data = User::find($request->id);
             $data->name = $request['name'];
             $data->phone = $request['phone'];
@@ -682,7 +688,13 @@ class AdminController extends Controller
                     'password' => 'required|string|min:8',
                 ]
             );
-            $country = Countries::find($request->country);
+            $country = \App\Support\SubscriberLicensedCountry::resolveCountryForRequest(
+                $request['subcategory'],
+                $request->country
+            );
+            if (!$country) {
+                return back()->withErrors(['country' => 'Please select a valid country.'])->withInput();
+            }
             $data->user_type = "Subscriber";
             $data->name = $request['name'];
             $data->phone = $request['phone'];

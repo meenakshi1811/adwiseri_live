@@ -69,7 +69,11 @@
                                             <option value="">Select Sub-Category</option>
                                             @foreach($subscriber_subcategories as $subs_subcategory)
                                             @if($subscriber->category == $subs_subcategory->category_name)
-                                            <option {{ ($subscriber->sub_category == $subs_subcategory->sub_category_name) ? 'selected' : ''}} value="{{ $subs_subcategory->sub_category_name }}">{{ $subs_subcategory->sub_category_name }}</option>
+                                            @php
+                                                $lockedCountryId = \App\Support\SubscriberLicensedCountry::resolveCountryId($subs_subcategory->sub_category_name);
+                                                $lockedCountryName = \App\Support\SubscriberLicensedCountry::resolveCountryName($subs_subcategory->sub_category_name);
+                                            @endphp
+                                            <option {{ ($subscriber->sub_category == $subs_subcategory->sub_category_name) ? 'selected' : ''}} value="{{ $subs_subcategory->sub_category_name }}" data-locked-country-id="{{ $lockedCountryId ?? '' }}" data-locked-country-name="{{ $lockedCountryName ?? '' }}">{{ $subs_subcategory->sub_category_name }}</option>
                                             @endif
                                             @endforeach
                                         </select>
@@ -155,6 +159,7 @@
                                                 'savedIsCountryName' => true,
                                             ])
                                         </select>
+                                        <small id="subscriber-country-lock-hint" class="text-muted d-block mt-1" style="display:none;"></small>
                                         @error('country')
                                             <span class="invalid-feedback" role="alert">
                                                 <strong>{{ $message }}</strong>
@@ -435,6 +440,7 @@
                                                 'phoneForPrefill' => old('phone'),
                                             ])
                                         </select>
+                                        <small id="subscriber-country-lock-hint" class="text-muted d-block mt-1" style="display:none;"></small>
                                         @error('country')
                                             <span class="invalid-feedback" role="alert">
                                                 <strong>{{ $message }}</strong>
@@ -557,6 +563,9 @@
             success: function(data){
             //   console.log(data);
                 $("#subcategory").html(data);
+                if (window.applySubscriberCountryLock) {
+                    window.applySubscriberCountryLock();
+                }
             }
           });
         });
@@ -603,6 +612,7 @@
         });
       });
   </script>
+  @include('partials.subscriber_country_lock_script', ['hasSubcategorySelect' => true])
   <script>
       function deleteuser(id){
           var conf = confirm('Are you sure you want to delete this subscriber?');

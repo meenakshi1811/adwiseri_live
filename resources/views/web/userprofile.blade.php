@@ -254,6 +254,7 @@
                                 'savedIsCountryName' => true,
                             ])
                         </select>
+                        <small id="subscriber-country-lock-hint" class="text-muted d-block mt-1" style="display:none;"></small>
                     </div>
                     <div class="mb-4">
                         <select name="state" id="state" required class="form-select"
@@ -540,6 +541,9 @@
             });
         });
     </script>
+    @if ($user->user_type == 'Subscriber')
+        @include('partials.subscriber_country_lock_script', ['initialSubCategory' => $user->sub_category ?? null])
+    @endif
     @error('profile_img')
         <script>
             Swal.fire({
