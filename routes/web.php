@@ -268,6 +268,8 @@ Route::post('/update_invoice_ap/{id}', [App\Http\Controllers\WebController::clas
 Route::get('/view_invoice/{id?}', [App\Http\Controllers\WebController::class, 'view_invoice'])->name('view_invoice')->middleware(['auth','check.device']);
 Route::post('/invoice/{id}/resend-email', [App\Http\Controllers\WebController::class, 'resendInvoiceEmail'])->name('resend_invoice_email')->middleware(['auth','check.device']);
 Route::get('/invoice_preview/{id?}/{token?}', [App\Http\Controllers\WebController::class, 'invoice_preview'])->name('invoice_preview');
+Route::get('/document-checklist/{application}/{token}', [App\Http\Controllers\DocumentChecklistUploadController::class, 'show'])->name('document_checklist_upload');
+Route::post('/document-checklist/{application}/{token}', [App\Http\Controllers\DocumentChecklistUploadController::class, 'store'])->name('document_checklist_upload.store');
 Route::get('/print_invoice/{id?}', [App\Http\Controllers\WebController::class, 'print_invoice'])->name('print_invoice')->middleware(['auth','check.device']);
 Route::get('/delete_invoice/{id?}/{localtime?}', [App\Http\Controllers\WebController::class, 'delete_invoice'])->name('delete_invoice')->middleware(['auth','check.device']);
 Route::post('/invoice_status', [App\Http\Controllers\WebController::class, 'invoice_status'])->name('invoice_status');

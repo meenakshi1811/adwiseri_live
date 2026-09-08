@@ -14,8 +14,10 @@
         /* Adds spacing between title and chart */
     }
 
-    #downloadPdf {
+    #downloadPdf,
+    #shareReportPdf {
         margin-left: 30px;
+        font-weight: bold;
     }
 </style>
 <div class="col-lg-10 column-client">
@@ -1266,7 +1268,10 @@ window.clientVisaChartFilters = @json($clientVisaChartFilters ?? []);
 
     function checkIfDataIsEmpty(data, title) {
         if (data.length === 0 || (data && data.data && data.data.length === 0)) {
-            $('#downloadPdf').prop('disabled', true);
+            $('#downloadPdf').prop('disabled', true).hide();
+            if (window.ReportShare && typeof window.ReportShare.syncChartShareButton === 'function') {
+                window.ReportShare.syncChartShareButton();
+            }
             AdwiseriAlert.noData('No data found for chart: ' + title);
             return true;
         }
@@ -1290,6 +1295,9 @@ window.clientVisaChartFilters = @json($clientVisaChartFilters ?? []);
         let select_elem = document.getElementById('filters');
         $("#filters").empty();
         $('#downloadPdf').hide();
+        if (window.ReportShare && typeof window.ReportShare.syncChartShareButton === 'function') {
+            window.ReportShare.syncChartShareButton();
+        }
 
         resetFourthColFilter()
         if (selectValue == 'Subscribers') {

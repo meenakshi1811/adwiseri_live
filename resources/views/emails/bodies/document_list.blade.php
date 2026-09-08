@@ -3,6 +3,8 @@
 @php
     $applicationLabel = trim(($data['country'] ?? '') . ' ' . ($data['category'] ?? ''));
     $applicationRef = trim((string) ($data['application_id'] ?? ''));
+    $uploadUrl = trim((string) ($data['upload_url'] ?? ''));
+    $fileName = trim((string) ($data['attachment_name'] ?? ''));
 @endphp
 
 <p style="margin:0 0 12px 0;">
@@ -14,17 +16,17 @@
     <p style="margin:0 0 12px 0;">{!! nl2br(e($data['custom_message'])) !!}</p>
 @endif
 
-<p style="margin:0 0 12px 0;">The documents we need from you are listed below, and the same list is attached as a PDF for your records.</p>
+@if($uploadUrl !== '')
+    @include('emails.partials.document_checklist_upload', [
+        'uploadUrl' => $uploadUrl,
+        'fileName' => $fileName,
+    ])
+@else
+    <p style="margin:0 0 12px 0;">
+        The full checklist is attached as a PDF for your records. Please review it and send us the required documents at your earliest convenience.
+    </p>
+@endif
 
-@foreach(($data['sections'] ?? []) as $section)
-    <p style="margin:16px 0 6px 0;font-weight:bold;">{{ $section['title'] ?? 'Documents' }}</p>
-    <ul style="margin:0 0 12px 0;padding-left:20px;">
-        @foreach(($section['items'] ?? []) as $item)
-            <li style="margin:0 0 4px 0;">{{ $item['label'] ?? '' }}</li>
-        @endforeach
-    </ul>
-@endforeach
-
-<p style="margin:16px 0 12px 0;">Please reply to this email with the documents attached, or contact us if anything on the list is unclear.</p>
+<p style="margin:16px 0 12px 0;">If you prefer, you may also reply to this email with your documents attached, or contact us if anything on the checklist is unclear.</p>
 
 <p style="margin:0;">Regards,<br>{{ $data['given_by'] ?? '' }}@if(($data['given_by'] ?? '') !== ($data['subscriber_name'] ?? ''))<br>{{ $data['subscriber_name'] ?? '' }}@endif</p>

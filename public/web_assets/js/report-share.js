@@ -3,15 +3,7 @@
 
     var config = window.ReportShareConfig || {};
     var pendingShare = null;
-
-    function escapeHtml(value) {
-        return String(value || '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
+    var reportShareClickBound = false;
 
     function blobToBase64(blob) {
         return new Promise(function (resolve, reject) {
@@ -43,13 +35,20 @@
         var modal = document.getElementById('reportShareModal');
         var fileLabel = document.getElementById('reportShareFileName');
         if (!modal) {
-            return;
+            Swal.fire({
+                icon: 'warning',
+                customClass: { icon: 'adwiseri-oops-icon' },
+                title: 'Oops!',
+                text: 'Share dialog is unavailable on this page.',
+            });
+            return false;
         }
         if (fileLabel) {
             fileLabel.textContent = 'Attachment: ' + fileName;
         }
         modal.style.display = 'flex';
         modal.setAttribute('aria-hidden', 'false');
+        return true;
     }
 
     function closeModal() {
@@ -78,13 +77,13 @@
                 return;
             }
 
-            var config = $.extend(true, {}, $.fn.dataTable.ext.buttons.pdfHtml5, buttonConfig || {});
-            var exportData = dt.buttons.exportData(config.exportOptions || { modifier: { page: 'all' } });
-            var title = typeof config.title === 'function' ? config.title() : (config.title || 'Report');
+            var exportConfig = $.extend(true, {}, $.fn.dataTable.ext.buttons.pdfHtml5, buttonConfig || {});
+            var exportData = dt.buttons.exportData(exportConfig.exportOptions || { modifier: { page: 'all' } });
+            var title = typeof exportConfig.title === 'function' ? exportConfig.title() : (exportConfig.title || 'Report');
 
             var doc = {
-                pageSize: config.pageSize || 'A4',
-                pageOrientation: config.orientation || 'portrait',
+                pageSize: exportConfig.pageSize || 'A4',
+                pageOrientation: exportConfig.orientation || 'portrait',
                 content: [
                     {
                         text: title,
@@ -98,11 +97,11 @@
                             widths: Array(exportData.header.length).fill('*'),
                             body: [exportData.header].concat(exportData.body),
                         },
-                        layout: config.layout || 'lightHorizontalLines',
+                        layout: exportConfig.layout || 'lightHorizontalLines',
                     },
                 ],
                 defaultStyle: {
-                    fontSize: config.fontSize || 8,
+                    fontSize: exportConfig.fontSize || 8,
                     alignment: 'center',
                 },
                 styles: {
@@ -111,8 +110,8 @@
                 },
             };
 
-            if (typeof config.customize === 'function') {
-                config.customize(doc, config, dt);
+            if (typeof exportConfig.customize === 'function') {
+                exportConfig.customize(doc, exportConfig, dt);
             }
 
             pdfMake.createPdf(doc).getBlob(function (blob) {
@@ -148,6 +147,62 @@
                 resolve({ blob: pdf.output('blob'), fileName: sanitizeFileName(title + '.pdf') });
             }).catch(reject);
         });
+    }
+
+    function setShareButtonDisabled($btn, disabled) {
+        if (!$btn || !$btn.length) {
+            return;
+        }
+
+        $btn.prop('disabled', !!disabled);
+        $btn.attr('aria-disabled', disabled ? 'true' : 'false');
+        $btn.toggleClass('disabled', !!disabled);
+    }
+
+    function resolvePdfExportConfig(dt) {
+        if (!dt || typeof dt.button !== 'function') {
+            return null;
+        }
+
+        try {
+            var pdfButton = dt.button('.buttons-pdf');
+            if (pdfButton && typeof pdfButton.any === 'function' && pdfButton.any()) {
+                return pdfButton.conf();
+            }
+        } catch (error) {
+            // Fall through to the init-config lookup below.
+        }
+
+        try {
+            var configFromButtons = null;
+            dt.buttons().every(function () {
+                var node = typeof this.node === 'function' ? this.node() : this;
+                if ($(node).hasClass('buttons-pdf')) {
+                    configFromButtons = typeof this.conf === 'function' ? this.conf() : null;
+                }
+            });
+            if (configFromButtons) {
+                return configFromButtons;
+            }
+        } catch (error) {
+            // Fall through to the init-config lookup below.
+        }
+
+        var settings = dt.settings()[0];
+        var buttons = settings && settings.oInit && settings.oInit.buttons;
+        if (!Array.isArray(buttons)) {
+            return null;
+        }
+
+        for (var i = 0; i < buttons.length; i++) {
+            var button = buttons[i];
+            var extend = button && button.extend;
+            if (extend === 'pdf' || extend === 'pdfHtml5') {
+                return $.extend(true, {}, $.fn.dataTable.ext.buttons.pdfHtml5, button);
+            }
+        }
+
+        return null;
     }
 
     function sendShareRequest() {
@@ -210,54 +265,90 @@
         });
     }
 
+    function createShareButton() {
+        return $('<button type="button" class="dt-button buttons-share buttons-html5" disabled aria-disabled="true"><span>Share</span></button>');
+    }
+
     function injectReportShareButtons() {
         $('.reports-dt-btn-wrap').each(function () {
             var $wrap = $(this);
-            if ($wrap.find('.buttons-share').length) {
-                return;
-            }
-
             var $pdfBtn = $wrap.find('.buttons-pdf').first();
             if (!$pdfBtn.length) {
                 return;
             }
 
-            var $shareBtn = $('<button type="button" class="dt-button buttons-share">Share</button>');
-            $shareBtn.insertAfter($pdfBtn);
-            $shareBtn.on('click', function (event) {
-                event.preventDefault();
-                var $table = $wrap.closest('.dataTables_wrapper').find('table.dataTable');
-                if (!$table.length || !$.fn.DataTable.isDataTable($table)) {
-                    return;
-                }
-
-                var dt = $table.DataTable();
-                var pdfButton = null;
-                dt.buttons().every(function () {
-                    if ($(this.node()).hasClass('buttons-pdf')) {
-                        pdfButton = this;
-                    }
-                });
-
-                if (!pdfButton) {
-                    return;
-                }
-
-                $shareBtn.prop('disabled', true).text('Preparing...');
-                exportDataTablePdf(dt, pdfButton.conf()).then(function (result) {
-                    sharePdfBlob(result.blob, result.fileName, 'report');
-                }).catch(function (error) {
-                    Swal.fire({
-                        icon: 'warning',
-                        customClass: { icon: 'adwiseri-oops-icon' },
-                        title: 'Oops!',
-                        text: error.message || 'Unable to prepare the PDF.',
-                    });
-                }).finally(function () {
-                    $shareBtn.prop('disabled', false).text('Share');
-                });
-            });
+            var $shareBtn = $wrap.find('.buttons-share').first();
+            if (!$shareBtn.length) {
+                $shareBtn = createShareButton();
+                setShareButtonDisabled($shareBtn, true);
+                $shareBtn.insertAfter($pdfBtn);
+            } else if (!$shareBtn.find('span').length) {
+                $shareBtn.wrapInner('<span></span>');
+            }
         });
+    }
+
+    function handleReportShareClick(event) {
+        event.preventDefault();
+
+        var $shareBtn = $(event.currentTarget);
+        if ($shareBtn.prop('disabled') || $shareBtn.hasClass('disabled')) {
+            return;
+        }
+
+        var $wrapper = $shareBtn.closest('.dataTables_wrapper');
+        var $table = $wrapper.find('table.dataTable').first();
+        if (!$table.length || !$.fn.DataTable.isDataTable($table)) {
+            Swal.fire({
+                icon: 'warning',
+                customClass: { icon: 'adwiseri-oops-icon' },
+                title: 'Oops!',
+                text: 'Unable to locate the report table for sharing.',
+            });
+            return;
+        }
+
+        var dt = $table.DataTable();
+        var pdfConfig = resolvePdfExportConfig(dt);
+        if (!pdfConfig) {
+            Swal.fire({
+                icon: 'warning',
+                customClass: { icon: 'adwiseri-oops-icon' },
+                title: 'Oops!',
+                text: 'Unable to prepare the report PDF for sharing.',
+            });
+            return;
+        }
+
+        setShareButtonDisabled($shareBtn, true);
+        $shareBtn.find('span').first().text('Preparing...');
+
+        exportDataTablePdf(dt, pdfConfig).then(function (result) {
+            sharePdfBlob(result.blob, result.fileName, 'report');
+        }).catch(function (error) {
+            Swal.fire({
+                icon: 'warning',
+                customClass: { icon: 'adwiseri-oops-icon' },
+                title: 'Oops!',
+                text: error.message || 'Unable to prepare the PDF.',
+            });
+        }).finally(function () {
+            $shareBtn.find('span').first().text('Share');
+            if (typeof window.syncReportExportButtons === 'function') {
+                window.syncReportExportButtons(dt);
+            } else {
+                setShareButtonDisabled($shareBtn, false);
+            }
+        });
+    }
+
+    function bindReportShareClick() {
+        if (reportShareClickBound) {
+            return;
+        }
+
+        $(document).on('click', '.reports-module button.buttons-share', handleReportShareClick);
+        reportShareClickBound = true;
     }
 
     function syncChartShareButton() {
@@ -266,8 +357,17 @@
         if (!downloadBtn || !shareBtn) {
             return;
         }
-        shareBtn.style.display = downloadBtn.style.display;
-        shareBtn.disabled = !!downloadBtn.disabled;
+
+        var $downloadBtn = $('#downloadPdf');
+        var $shareBtn = $('#shareReportPdf');
+        if ($downloadBtn.is(':visible')) {
+            $shareBtn.show();
+        } else {
+            $shareBtn.hide();
+        }
+
+        var isDisabled = $downloadBtn.prop('disabled');
+        setShareButtonDisabled($shareBtn, isDisabled);
     }
 
     function bindModalEvents() {
@@ -300,7 +400,7 @@
 
         shareBtn.addEventListener('click', function (event) {
             event.preventDefault();
-            if (shareBtn.disabled) {
+            if (shareBtn.disabled || shareBtn.classList.contains('disabled')) {
                 return;
             }
 
@@ -317,7 +417,6 @@
                     text: error.message || 'Unable to prepare the chart PDF.',
                 });
             }).finally(function () {
-                shareBtn.disabled = false;
                 shareBtn.textContent = 'Share';
                 syncChartShareButton();
             });
@@ -331,17 +430,25 @@
         syncChartShareButton();
     }
 
+    function refreshReportShareButtons(api) {
+        injectReportShareButtons();
+        if (typeof window.syncReportExportButtons === 'function') {
+            window.syncReportExportButtons(api || null);
+        }
+    }
+
     $(document).ready(function () {
         bindModalEvents();
+        bindReportShareClick();
         bindAnalyticsShareButton();
         injectReportShareButtons();
 
-        $(document).on('xhr.dt draw.dt', '.reports-module table.dataTable', function () {
-            injectReportShareButtons();
-            if (typeof window.syncReportExportButtons === 'function') {
-                var api = $(this).DataTable();
-                window.syncReportExportButtons(api);
+        $(document).on('xhr.dt draw.dt init.dt', '.reports-module table.dataTable', function () {
+            var api = null;
+            if ($.fn.DataTable.isDataTable(this)) {
+                api = $(this).DataTable();
             }
+            refreshReportShareButtons(api);
         });
     });
 
@@ -351,5 +458,7 @@
         buildAnalyticsChartPdf: buildAnalyticsChartPdf,
         injectReportShareButtons: injectReportShareButtons,
         syncChartShareButton: syncChartShareButton,
+        setShareButtonDisabled: setShareButtonDisabled,
+        refreshReportShareButtons: refreshReportShareButtons,
     };
 })(window, jQuery);

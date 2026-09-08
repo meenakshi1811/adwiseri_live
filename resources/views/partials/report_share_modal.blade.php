@@ -52,5 +52,5 @@
     };
 </script>
 @push('scripts')
-<script src="{{ asset('web_assets/js/report-share.js') }}?v=20260908"></script>
+<script src="{{ asset('web_assets/js/report-share.js') }}?v=20260908c"></script>
 @endpush

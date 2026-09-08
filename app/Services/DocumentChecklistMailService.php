@@ -14,7 +14,8 @@ use Throwable;
 class DocumentChecklistMailService
 {
     public function __construct(
-        private ApplicationDocumentListService $documentListService
+        private ApplicationDocumentListService $documentListService,
+        private DocumentChecklistUploadService $uploadService
     ) {
     }
 
@@ -66,14 +67,16 @@ class DocumentChecklistMailService
             ];
         }
 
+        $fileName = $this->documentListService->buildPdfFileName($payload['country'], $payload['category']);
+
         $payload['application_id'] = $application->application_id;
         $payload['subscriber_name'] = $subscriber->name ?? '';
         $payload['subscriber_email'] = $subscriber->email ?? '';
+        $payload['attachment_name'] = $fileName;
+        $payload['upload_url'] = $this->uploadService->buildUploadUrl($application);
         if ($customMessage !== null) {
             $payload['custom_message'] = trim($customMessage);
         }
-
-        $fileName = $this->documentListService->buildPdfFileName($payload['country'], $payload['category']);
 
         try {
             $pdfContents = $this->documentListService->renderPdfOutput($payload);

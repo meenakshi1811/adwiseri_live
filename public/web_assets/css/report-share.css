@@ -75,11 +75,21 @@
     margin: 0;
 }
 
-.buttons-share,
-button.buttons-share {
-    margin-left: 6px !important;
+.reports-module .dt-buttons button.buttons-share,
+.reports-module .dt-buttons button.buttons-share span {
+    font-weight: bold;
+}
+
+#shareReportPdf.disabled,
+#shareReportPdf:disabled,
+.reports-module .dt-buttons button.buttons-share.disabled,
+.reports-module .dt-buttons button.buttons-share:disabled {
+    opacity: 0.45;
+    pointer-events: none;
+    cursor: not-allowed;
 }
 
 #shareReportPdf {
     margin-left: 12px;
+    font-weight: bold;
 }

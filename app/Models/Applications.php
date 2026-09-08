@@ -36,6 +36,7 @@ class Applications extends Model
         'visa_country',
         'document_checklist_sent_at',
         'document_checklist_sent_to',
+        'document_checklist_upload_token',
     ];
     public function client(){
         return $this->belongsTo(Clients::class,'client_id');

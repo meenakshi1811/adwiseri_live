@@ -15,7 +15,8 @@
 
     .buttons-csv,
     .buttons-excel,
-    .buttons-pdf {
+    .buttons-pdf,
+    .buttons-share {
         font-weight: bold;
     }
 
@@ -1390,6 +1391,14 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             if (api && typeof api.buttons === 'function') {
                 api.buttons().disable();
             }
+            if (api && api.table && api.table().container) {
+                var $shareBtn = $(api.table().container()).find('.buttons-share');
+                if ($shareBtn.length && window.ReportShare && typeof window.ReportShare.setShareButtonDisabled === 'function') {
+                    window.ReportShare.setShareButtonDisabled($shareBtn, true);
+                } else {
+                    $shareBtn.prop('disabled', true).addClass('disabled');
+                }
+            }
         });
 
         $(document).on('xhr.dt', '.reports-module table.dataTable', function (e, settings) {
@@ -1402,6 +1411,10 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
     });
 
     function syncReportExportButtons(api) {
+        if (window.ReportShare && typeof window.ReportShare.injectReportShareButtons === 'function') {
+            window.ReportShare.injectReportShareButtons();
+        }
+
         if (!api || typeof api.buttons !== 'function') {
             return;
         }
@@ -1427,9 +1440,17 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         }
 
         if (api.table && api.table().container) {
-            $(api.table().container()).find('.buttons-share').prop('disabled', recordCount === 0);
+            var $shareBtn = $(api.table().container()).find('.buttons-share');
+            if ($shareBtn.length && window.ReportShare && typeof window.ReportShare.setShareButtonDisabled === 'function') {
+                window.ReportShare.setShareButtonDisabled($shareBtn, recordCount === 0);
+            } else {
+                $shareBtn.prop('disabled', recordCount === 0);
+                $shareBtn.toggleClass('disabled', recordCount === 0);
+            }
         }
     }
+
+    window.syncReportExportButtons = syncReportExportButtons;
 
     var dataTable1 = false;
     var clientTable1 = false;

@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Support\BrandedMail;
+use App\Support\DocumentMailAttachment;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
@@ -30,10 +31,7 @@ class DocumentListMail extends Mailable
 
         $mail = $this->subject($subject)
             ->from(BrandedMail::alertsFromAddress(), BrandedMail::alertsFromName($subscriberName))
-            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle'))
-            ->attachData($this->pdfContents, $this->fileName, [
-                'mime' => 'application/pdf',
-            ]);
+            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle'));
 
         if ($subscriberEmail !== '') {
             BrandedMail::applySubscriberReplyTo($mail, $subscriberEmail, $subscriberName);
@@ -41,6 +39,7 @@ class DocumentListMail extends Mailable
             BrandedMail::applyDefaultReplyTo($mail);
         }
 
-        return $mail;
+        // Attach the PDF after envelope headers so MIME parts are not dropped by mail clients.
+        return DocumentMailAttachment::attachChecklistPdf($mail, $this->pdfContents, $this->fileName);
     }
 }

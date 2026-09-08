@@ -97,17 +97,17 @@
             <th>Client</th>
             <th>Country</th>
             <th>Category</th>
+            <th>Given By</th>
             <th>Date</th>
             <th>Time</th>
-            <th>Given By</th>
         </tr>
         <tr>
             <td>{{ $client_name }}</td>
             <td>{{ $country }}</td>
             <td>{{ $category ?? $application_name }}</td>
+            <td>{{ $given_by }}</td>
             <td>{{ $date }}</td>
             <td>{{ $time }}</td>
-            <td>{{ $given_by }}</td>
         </tr>
     </table>
 
