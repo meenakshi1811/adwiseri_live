@@ -10,7 +10,7 @@
 <div id="reportShareModal" class="report-share-modal" style="display:none;" aria-hidden="true">
     <div class="report-share-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="reportShareModalTitle">
         <div class="report-share-modal__header">
-            <h4 id="reportShareModalTitle" class="mb-0">Share Report / Chart</h4>
+            <h4 id="reportShareModalTitle" class="mb-0">Share Report</h4>
             <button type="button" class="btn-close" id="reportShareModalClose" aria-label="Close"></button>
         </div>
         <div class="report-share-modal__body">
@@ -39,8 +39,8 @@
             </div>
         </div>
         <div class="report-share-modal__footer">
+            <button type="button" class="btn btn-primary" id="reportShareSendBtn" @if($staffMembers->isEmpty()) disabled data-share-disabled="true" @endif>Send Email</button>
             <button type="button" class="btn btn-secondary" id="reportShareCancelBtn">Cancel</button>
-            <button type="button" class="btn btn-primary" id="reportShareSendBtn" @if($staffMembers->isEmpty()) disabled @endif>Send Email</button>
         </div>
     </div>
 </div>
@@ -52,5 +52,5 @@
     };
 </script>
 @push('scripts')
-<script src="{{ asset('web_assets/js/report-share.js') }}?v=20260908c"></script>
+<script src="{{ asset('web_assets/js/report-share.js') }}?v=20260909a"></script>
 @endpush

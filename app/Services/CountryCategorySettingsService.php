@@ -800,16 +800,56 @@ class CountryCategorySettingsService
         );
     }
 
-    public function resolveDocumentListEntryWithCandidates(User $subscriber, array $countries, array $categories): ?array
+    public function resolveDocumentListEntryForApplication(User $subscriber, array $countries, array $categories): ?array
     {
         $lists = $this->getAllStoredDocumentLists($subscriber);
-        $countries = collect($countries)
-            ->map(fn ($value) => trim((string) $value))
+        if ($lists === []) {
+            return null;
+        }
+
+        $countryCandidates = $this->expandDocumentListCountryCandidates($countries);
+        $categoryCandidates = $this->expandDocumentListCategoryCandidates($categories);
+
+        $entry = $this->resolveDocumentListEntryWithCandidates($subscriber, $countryCandidates, $categoryCandidates, $lists);
+        if ($entry) {
+            return $entry;
+        }
+
+        $matches = [];
+        foreach ($lists as $listEntry) {
+            $listCategory = trim((string) ($listEntry['visa_category'] ?? ''));
+            if ($listCategory === '') {
+                continue;
+            }
+
+            foreach ($categoryCandidates as $category) {
+                if ($this->documentListCategoriesMatch($listCategory, $category)) {
+                    $matches[$listCategory . '|' . ($listEntry['country'] ?? '')] = $listEntry;
+                    break;
+                }
+            }
+        }
+
+        $matches = array_values($matches);
+        if (count($matches) === 1) {
+            return $matches[0];
+        }
+
+        return null;
+    }
+
+    public function resolveDocumentListEntryWithCandidates(
+        User $subscriber,
+        array $countries,
+        array $categories,
+        ?array $lists = null
+    ): ?array {
+        $lists = $lists ?? $this->getAllStoredDocumentLists($subscriber);
+        $countries = collect($this->expandDocumentListCountryCandidates($countries))
             ->filter(fn ($value) => $value !== '' && $value !== '—')
             ->unique()
             ->values();
-        $categories = collect($categories)
-            ->map(fn ($value) => trim((string) $value))
+        $categories = collect($this->expandDocumentListCategoryCandidates($categories))
             ->filter(fn ($value) => $value !== '' && $value !== '—')
             ->unique()
             ->values();
@@ -826,6 +866,57 @@ class CountryCategorySettingsService
         return null;
     }
 
+    /**
+     * @param  array<int, string>  $countries
+     * @return array<int, string>
+     */
+    public function expandDocumentListCountryCandidates(array $countries): array
+    {
+        $expanded = [];
+
+        foreach ($countries as $country) {
+            $country = trim((string) $country);
+            if ($country === '' || $country === '—') {
+                continue;
+            }
+
+            $expanded[] = $country;
+            foreach ($this->documentListCountrySynonyms($country) as $synonym) {
+                $expanded[] = $synonym;
+            }
+        }
+
+        return array_values(array_unique($expanded));
+    }
+
+    /**
+     * @param  array<int, string>  $categories
+     * @return array<int, string>
+     */
+    public function expandDocumentListCategoryCandidates(array $categories): array
+    {
+        $expanded = [];
+
+        foreach ($categories as $category) {
+            $category = trim((string) $category);
+            if ($category === '' || $category === '—') {
+                continue;
+            }
+
+            $expanded[] = $category;
+
+            if (str_contains($category, ' - ')) {
+                $parts = explode(' - ', $category, 2);
+                $suffix = trim((string) ($parts[1] ?? ''));
+                if ($suffix !== '') {
+                    $expanded[] = $suffix;
+                }
+            }
+        }
+
+        return array_values(array_unique($expanded));
+    }
+
     public function resolveDocumentListEntryFromLists(array $lists, string $country, string $visaCategory): ?array
     {
         $country = trim($country);
@@ -835,12 +926,14 @@ class CountryCategorySettingsService
             return null;
         }
 
-        $countryKey = $this->normalizeDocumentListMatchKey($country);
-        $categoryKey = $this->normalizeDocumentListMatchKey($visaCategory);
+        $countryKey = $this->normalizeDocumentListCountryKey($country);
 
         foreach ($lists as $entry) {
-            if ($this->normalizeDocumentListMatchKey((string) ($entry['country'] ?? '')) === $countryKey
-                && $this->normalizeDocumentListMatchKey((string) ($entry['visa_category'] ?? '')) === $categoryKey) {
+            $entryCountryKey = $this->normalizeDocumentListCountryKey((string) ($entry['country'] ?? ''));
+            $entryCategory = trim((string) ($entry['visa_category'] ?? ''));
+
+            if ($entryCountryKey === $countryKey
+                && $this->documentListCategoriesMatch($entryCategory, $visaCategory)) {
                 return $entry;
             }
         }
@@ -848,9 +941,83 @@ class CountryCategorySettingsService
         return null;
     }
 
-    private function normalizeDocumentListMatchKey(string $value): string
+    public function normalizeDocumentListMatchKey(string $value): string
     {
         return strtolower(preg_replace('/\s+/', ' ', trim($value)));
+    }
+
+    private function normalizeDocumentListCountryKey(string $value): string
+    {
+        $key = $this->normalizeDocumentListMatchKey($value);
+
+        foreach ($this->documentListCountrySynonymGroups() as $group) {
+            if (in_array($key, $group, true)) {
+                return $group[0];
+            }
+        }
+
+        return $key;
+    }
+
+    private function documentListCategoriesMatch(string $left, string $right): bool
+    {
+        $left = trim($left);
+        $right = trim($right);
+
+        if ($left === '' || $right === '') {
+            return false;
+        }
+
+        if ($this->normalizeDocumentListMatchKey($left) === $this->normalizeDocumentListMatchKey($right)) {
+            return true;
+        }
+
+        foreach ([$left, $right] as $label) {
+            if (!str_contains($label, ' - ')) {
+                continue;
+            }
+
+            $suffix = trim(explode(' - ', $label, 2)[1]);
+            if ($suffix !== ''
+                && $this->normalizeDocumentListMatchKey($suffix) === $this->normalizeDocumentListMatchKey($left)) {
+                return true;
+            }
+
+            if ($suffix !== ''
+                && $this->normalizeDocumentListMatchKey($suffix) === $this->normalizeDocumentListMatchKey($right)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function documentListCountrySynonyms(string $country): array
+    {
+        $key = $this->normalizeDocumentListMatchKey($country);
+
+        foreach ($this->documentListCountrySynonymGroups() as $group) {
+            if (in_array($key, $group, true)) {
+                return array_slice($group, 1);
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * @return array<int, array<int, string>>
+     */
+    private function documentListCountrySynonymGroups(): array
+    {
+        return [
+            ['united states', 'united states of america', 'usa', 'us'],
+            ['united kingdom', 'uk', 'great britain', 'britain'],
+            ['united arab emirates', 'uae'],
+        ];
     }
 
     public function buildNumberedDocumentSections(array $entry): array

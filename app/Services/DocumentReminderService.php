@@ -57,9 +57,9 @@ class DocumentReminderService
     public function buildDocumentChecklistItems(User $user, Applications $application): array
     {
         $subscriber = $this->documentListService->resolveSubscriberForApplication($user, $application);
-        $entry = $this->ccService->resolveDocumentListEntryWithCandidates(
+        $entry = $this->ccService->resolveDocumentListEntryForApplication(
             $subscriber,
-            $this->documentListService->resolveApplicationCountryCandidates($application),
+            $this->documentListService->resolveDocumentListCountryCandidates($application),
             $this->documentListService->resolveApplicationCategoryCandidates($application)
         );
 

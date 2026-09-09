@@ -4,15 +4,8 @@
     var config = window.ReportShareConfig || {};
     var pendingShare = null;
     var reportShareClickBound = false;
-
-    function blobToBase64(blob) {
-        return new Promise(function (resolve, reject) {
-            var reader = new FileReader();
-            reader.onloadend = function () { resolve(reader.result); };
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
-    }
+    var shareRequestInFlight = false;
+    var SHARE_REQUEST_TIMEOUT_MS = 180000;
 
     function sanitizeFileName(name) {
         var value = String(name || 'Report').trim() || 'Report';
@@ -31,9 +24,24 @@
         return values;
     }
 
-    function openModal(fileName) {
+    function getShareModalTitle(source) {
+        return source === 'analytics' ? 'Share Chart' : 'Share Report';
+    }
+
+    function resetSendButton() {
+        var sendBtn = document.getElementById('reportShareSendBtn');
+        if (!sendBtn) {
+            return;
+        }
+
+        sendBtn.disabled = sendBtn.hasAttribute('data-share-disabled');
+        sendBtn.textContent = 'Send Email';
+    }
+
+    function openModal(fileName, source) {
         var modal = document.getElementById('reportShareModal');
         var fileLabel = document.getElementById('reportShareFileName');
+        var titleEl = document.getElementById('reportShareModalTitle');
         if (!modal) {
             Swal.fire({
                 icon: 'warning',
@@ -43,9 +51,13 @@
             });
             return false;
         }
+        if (titleEl) {
+            titleEl.textContent = getShareModalTitle(source || 'report');
+        }
         if (fileLabel) {
             fileLabel.textContent = 'Attachment: ' + fileName;
         }
+        resetSendButton();
         modal.style.display = 'flex';
         modal.setAttribute('aria-hidden', 'false');
         return true;
@@ -59,6 +71,8 @@
         modal.style.display = 'none';
         modal.setAttribute('aria-hidden', 'true');
         pendingShare = null;
+        shareRequestInFlight = false;
+        resetSendButton();
     }
 
     function sharePdfBlob(blob, fileName, source) {
@@ -67,7 +81,7 @@
             fileName: sanitizeFileName(fileName),
             source: source || 'report',
         };
-        openModal(pendingShare.fileName);
+        openModal(pendingShare.fileName, pendingShare.source);
     }
 
     function exportDataTablePdf(dt, buttonConfig) {
@@ -205,8 +219,42 @@
         return null;
     }
 
+    function extractShareErrorMessage(error, textStatus) {
+        if (textStatus === 'timeout') {
+            return 'The request timed out. Please try again with fewer recipients or a smaller report.';
+        }
+
+        if (error && error.responseJSON) {
+            if (error.responseJSON.message) {
+                return error.responseJSON.message;
+            }
+            if (error.responseJSON.errors) {
+                var firstKey = Object.keys(error.responseJSON.errors)[0];
+                if (firstKey && error.responseJSON.errors[firstKey][0]) {
+                    return error.responseJSON.errors[firstKey][0];
+                }
+            }
+        }
+
+        if (error && error.message) {
+            return error.message;
+        }
+
+        return 'Unable to share the report.';
+    }
+
     function sendShareRequest() {
-        if (!pendingShare) {
+        if (!pendingShare || shareRequestInFlight) {
+            return;
+        }
+
+        if (!config.shareUrl) {
+            Swal.fire({
+                icon: 'warning',
+                customClass: { icon: 'adwiseri-oops-icon' },
+                title: 'Oops!',
+                text: 'Share endpoint is unavailable on this page.',
+            });
             return;
         }
 
@@ -222,46 +270,47 @@
         }
 
         var sendBtn = document.getElementById('reportShareSendBtn');
+        var sharePayload = pendingShare;
+        var formData = new FormData();
+        formData.append('_token', config.csrfToken);
+        formData.append('pdf_name', sharePayload.fileName);
+        formData.append('pdf_file', sharePayload.blob, sharePayload.fileName);
+        formData.append('source', sharePayload.source || 'report');
+        recipients.forEach(function (recipientId) {
+            formData.append('recipients[]', recipientId);
+        });
+
+        shareRequestInFlight = true;
         if (sendBtn) {
             sendBtn.disabled = true;
             sendBtn.textContent = 'Sending...';
         }
 
-        blobToBase64(pendingShare.blob).then(function (pdfData) {
-            return $.ajax({
-                url: config.shareUrl,
-                method: 'POST',
-                data: {
-                    _token: config.csrfToken,
-                    pdf_name: pendingShare.fileName,
-                    pdf_data: pdfData,
-                    recipients: recipients,
-                    source: pendingShare.source,
-                },
-            });
-        }).then(function (response) {
+        $.ajax({
+            url: config.shareUrl,
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            timeout: SHARE_REQUEST_TIMEOUT_MS,
+        }).done(function (response) {
             closeModal();
             Swal.fire({
                 icon: 'success',
                 title: 'Shared',
-                text: response.message || 'Report shared successfully.',
+                text: (response && response.message) || 'Report shared successfully.',
             });
-        }).catch(function (xhr) {
-            var message = 'Unable to share the report.';
-            if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
-                message = xhr.responseJSON.message;
-            }
+        }).fail(function (xhr, textStatus) {
             Swal.fire({
                 icon: 'warning',
                 customClass: { icon: 'adwiseri-oops-icon' },
                 title: 'Oops!',
-                text: message,
+                text: extractShareErrorMessage(xhr, textStatus),
             });
-        }).finally(function () {
-            if (sendBtn) {
-                sendBtn.disabled = false;
-                sendBtn.textContent = 'Send Email';
-            }
+        }).always(function () {
+            shareRequestInFlight = false;
+            resetSendButton();
         });
     }
 
@@ -377,7 +426,10 @@
         }
 
         $('#reportShareModalClose, #reportShareCancelBtn').on('click', closeModal);
-        $('#reportShareSendBtn').on('click', sendShareRequest);
+        $('#reportShareSendBtn').on('click', function (event) {
+            event.preventDefault();
+            sendShareRequest();
+        });
         $('#reportShareSelectAll').on('change', function () {
             var checked = this.checked;
             document.querySelectorAll('.report-share-recipient').forEach(function (input) {

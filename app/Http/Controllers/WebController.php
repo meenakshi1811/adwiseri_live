@@ -6620,16 +6620,23 @@ class WebController extends Controller
 
         $request->validate([
             'pdf_name' => 'required|string|max:255',
-            'pdf_data' => 'required|string',
+            'pdf_data' => 'nullable|string',
+            'pdf_file' => 'nullable|file|mimes:pdf|max:51200',
             'recipients' => 'required|array|min:1',
             'recipients.*' => 'required|string|max:255',
             'source' => 'nullable|string|in:report,analytics',
         ]);
 
+        if (!$request->hasFile('pdf_file') && !$request->filled('pdf_data')) {
+            return response()->json(['message' => 'PDF data is required.'], 422);
+        }
+
         $subscriber = app(CountryCategorySettingsService::class)->resolveSubscriber($user);
 
         try {
-            $pdfBinary = $reportShareService->decodePdfPayload($request->input('pdf_data'));
+            $pdfBinary = $request->hasFile('pdf_file')
+                ? $reportShareService->readUploadedPdf($request->file('pdf_file'))
+                : $reportShareService->decodePdfPayload($request->input('pdf_data'));
             $result = $reportShareService->share(
                 $user,
                 $subscriber,

@@ -104,6 +104,20 @@ class ReportShareService
         ];
     }
 
+    public function readUploadedPdf($uploadedFile): string
+    {
+        $binary = file_get_contents($uploadedFile->getRealPath());
+        if (!is_string($binary) || strlen($binary) < 100) {
+            throw new \InvalidArgumentException('Invalid PDF data received.');
+        }
+
+        if (strncmp($binary, '%PDF', 4) !== 0) {
+            throw new \InvalidArgumentException('Uploaded file is not a valid PDF.');
+        }
+
+        return $binary;
+    }
+
     public function decodePdfPayload(?string $pdfData): string
     {
         $pdfData = trim((string) $pdfData);

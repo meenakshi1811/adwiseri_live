@@ -119,6 +119,7 @@ class SendTestDocumentListEmail extends Command
         $this->line('Matched     : '
             . trim((string) (($diagnosis['matched_country'] ?? '—') . ' / ' . ($diagnosis['matched_category'] ?? '—'))));
         $this->line('Configured  : ' . $this->formatList($diagnosis['configured_combinations'] ?? []));
+        $this->line('Settings    : ' . (!empty($diagnosis['settings_found']) ? 'found' : 'missing'));
 
         if (!empty($diagnosis['reason'])) {
             $this->warn('Issue       : ' . $diagnosis['reason']);

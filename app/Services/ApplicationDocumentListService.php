@@ -42,6 +42,41 @@ class ApplicationDocumentListService
         ], fn ($value) => $value !== '' && $value !== '—')));
     }
 
+    /**
+     * Destination/service countries for document list lookup (not client home country).
+     *
+     * @return array<int, string>
+     */
+    public function resolveDocumentListCountryCandidates(Applications $application): array
+    {
+        $candidates = array_values(array_unique(array_filter([
+            trim((string) ($application->visa_country ?? '')),
+        ], fn ($value) => $value !== '' && $value !== '—')));
+
+        foreach ($this->resolveApplicationCategoryCandidates($application) as $category) {
+            if (!str_contains($category, ' - ')) {
+                continue;
+            }
+
+            $prefix = trim(explode(' - ', $category, 2)[0]);
+            if ($prefix !== '') {
+                $candidates[] = $prefix;
+            }
+        }
+
+        return $this->ccService->expandDocumentListCountryCandidates($candidates);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function resolveDocumentListCategoryCandidates(Applications $application): array
+    {
+        return $this->ccService->expandDocumentListCategoryCandidates(
+            $this->resolveApplicationCategoryCandidates($application)
+        );
+    }
+
     public function resolveApplicationVisaCategory(Applications $application): string
     {
         $candidates = $this->resolveApplicationCategoryCandidates($application);
@@ -109,9 +144,9 @@ class ApplicationDocumentListService
         $subscriber = $this->resolveSubscriberForApplication($user, $application);
         $country = $this->resolveApplicationCountry($application);
         $visaCategory = $this->resolveApplicationVisaCategory($application);
-        $entry = $this->ccService->resolveDocumentListEntryWithCandidates(
+        $entry = $this->ccService->resolveDocumentListEntryForApplication(
             $subscriber,
-            $this->resolveApplicationCountryCandidates($application),
+            $this->resolveDocumentListCountryCandidates($application),
             $this->resolveApplicationCategoryCandidates($application)
         );
 
@@ -175,6 +210,7 @@ class ApplicationDocumentListService
      *     matched_country: string|null,
      *     matched_category: string|null,
      *     configured_combinations: array<int, string>,
+     *     settings_found: bool,
      *     reason: string|null
      * }
      */
@@ -182,14 +218,15 @@ class ApplicationDocumentListService
     {
         $application->loadMissing('client');
         $subscriber = $this->resolveSubscriberForApplication($user, $application);
-        $countryCandidates = $this->resolveApplicationCountryCandidates($application);
-        $categoryCandidates = $this->resolveApplicationCategoryCandidates($application);
-        $entry = $this->ccService->resolveDocumentListEntryWithCandidates(
+        $countryCandidates = $this->resolveDocumentListCountryCandidates($application);
+        $categoryCandidates = $this->resolveDocumentListCategoryCandidates($application);
+        $entry = $this->ccService->resolveDocumentListEntryForApplication(
             $subscriber,
             $countryCandidates,
-            $categoryCandidates
+            $this->resolveApplicationCategoryCandidates($application)
         );
 
+        $setting = $this->ccService->getSetting($subscriber);
         $configuredCombinations = collect($this->ccService->getAllStoredDocumentLists($subscriber))
             ->map(function (array $listEntry) {
                 return trim((string) ($listEntry['country'] ?? ''))
@@ -201,7 +238,11 @@ class ApplicationDocumentListService
             ->all();
 
         $reason = null;
-        if ($entry === null) {
+        if ($configuredCombinations === []) {
+            $reason = $setting
+                ? 'No document lists are saved for this subscriber. Add them under Settings -> Countries & Categories, then click Save Document Lists.'
+                : 'No Countries & Categories settings record exists for this subscriber yet.';
+        } elseif ($entry === null) {
             $reason = 'No saved document list matches this application\'s country/category combination.';
         } else {
             $sections = $this->ccService->buildNumberedDocumentSections($entry);
@@ -227,6 +268,7 @@ class ApplicationDocumentListService
             'matched_country' => $entry['country'] ?? null,
             'matched_category' => $entry['visa_category'] ?? null,
             'configured_combinations' => $configuredCombinations,
+            'settings_found' => $setting !== null,
             'reason' => $reason,
         ];
     }
@@ -236,9 +278,9 @@ class ApplicationDocumentListService
      */
     public function resolveMissingDocuments(User $subscriber, Applications $application): array
     {
-        $entry = $this->ccService->resolveDocumentListEntryWithCandidates(
+        $entry = $this->ccService->resolveDocumentListEntryForApplication(
             $subscriber,
-            $this->resolveApplicationCountryCandidates($application),
+            $this->resolveDocumentListCountryCandidates($application),
             $this->resolveApplicationCategoryCandidates($application)
         );
 
