@@ -32,7 +32,8 @@ class DocumentChecklistMailService
         User $actingUser,
         ?User $subscriber = null,
         ?string $toEmail = null,
-        ?string $customMessage = null
+        ?string $customMessage = null,
+        bool $recordSent = true
     ): array {
         $application->loadMissing('client');
         $subscriber = $subscriber ?? $this->documentListService->resolveSubscriberForApplication($actingUser, $application);
@@ -85,8 +86,10 @@ class DocumentChecklistMailService
                 fn () => new DocumentListMail($payload, $pdfContents, $fileName)
             );
 
-            $this->logSentActivity($application, $actingUser, $subscriber, $recipient, $payload);
-            $this->markChecklistSent($application, $recipient);
+            if ($recordSent) {
+                $this->logSentActivity($application, $actingUser, $subscriber, $recipient, $payload);
+                $this->markChecklistSent($application, $recipient);
+            }
 
             return [
                 'success' => true,

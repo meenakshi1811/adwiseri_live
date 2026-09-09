@@ -57,6 +57,7 @@ class ApplicationDocumentListService
     {
         return array_values(array_unique(array_filter([
             trim((string) ($application->application_name ?? '')),
+            trim((string) ($application->application_program ?? '')),
         ], fn ($value) => $value !== '' && $value !== '—')));
     }
 
@@ -77,10 +78,13 @@ class ApplicationDocumentListService
 
     public function resolveSubscriberForApplication(User $user, Applications $application): User
     {
-        if ($user->user_type === 'admin') {
-            $subscriber = User::find($application->subscriber_id);
+        $owner = User::find($application->subscriber_id);
+        if ($owner) {
+            return $owner;
+        }
 
-            return $subscriber ?: $this->ccService->resolveSubscriber($user);
+        if ($user->user_type === 'admin') {
+            return $this->ccService->resolveSubscriber($user);
         }
 
         return $this->ccService->resolveSubscriber($user);
@@ -159,6 +163,72 @@ class ApplicationDocumentListService
         } catch (RuntimeException $e) {
             return false;
         }
+    }
+
+    /**
+     * @return array{
+     *     available: bool,
+     *     subscriber_id: int|null,
+     *     subscriber_name: string,
+     *     country_candidates: array<int, string>,
+     *     category_candidates: array<int, string>,
+     *     matched_country: string|null,
+     *     matched_category: string|null,
+     *     configured_combinations: array<int, string>,
+     *     reason: string|null
+     * }
+     */
+    public function diagnoseListAvailability(User $user, Applications $application): array
+    {
+        $application->loadMissing('client');
+        $subscriber = $this->resolveSubscriberForApplication($user, $application);
+        $countryCandidates = $this->resolveApplicationCountryCandidates($application);
+        $categoryCandidates = $this->resolveApplicationCategoryCandidates($application);
+        $entry = $this->ccService->resolveDocumentListEntryWithCandidates(
+            $subscriber,
+            $countryCandidates,
+            $categoryCandidates
+        );
+
+        $configuredCombinations = collect($this->ccService->getAllStoredDocumentLists($subscriber))
+            ->map(function (array $listEntry) {
+                return trim((string) ($listEntry['country'] ?? ''))
+                    . ' / '
+                    . trim((string) ($listEntry['visa_category'] ?? ''));
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        $reason = null;
+        if ($entry === null) {
+            $reason = 'No saved document list matches this application\'s country/category combination.';
+        } else {
+            $sections = $this->ccService->buildNumberedDocumentSections($entry);
+            if ($sections === []) {
+                $reason = 'A document list entry was found, but it has no document items configured.';
+            }
+        }
+
+        if ($reason === null) {
+            try {
+                $this->buildPdfPayload($user, $application);
+            } catch (RuntimeException $e) {
+                $reason = $e->getMessage();
+            }
+        }
+
+        return [
+            'available' => $reason === null,
+            'subscriber_id' => $subscriber->id ?? null,
+            'subscriber_name' => trim((string) ($subscriber->name ?? '')),
+            'country_candidates' => $countryCandidates,
+            'category_candidates' => $categoryCandidates,
+            'matched_country' => $entry['country'] ?? null,
+            'matched_category' => $entry['visa_category'] ?? null,
+            'configured_combinations' => $configuredCombinations,
+            'reason' => $reason,
+        ];
     }
 
     /**
