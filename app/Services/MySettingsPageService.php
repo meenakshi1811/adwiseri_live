@@ -107,6 +107,14 @@ class MySettingsPageService
             'ccUsingDefaults' => $this->safe(fn () => !$ccService->hasSavedCcSelection($subscriber), true),
             'documentTypes' => $ccService->getDocumentTypes(),
             'ccDocumentLists' => is_array($ccDocumentLists) ? $ccDocumentLists : [],
+            'autoSendDocumentChecklist' => $this->safe(
+                fn () => $ccService->autoSendDocumentChecklistEnabled($subscriber),
+                false
+            ),
+            'staffMembers' => $this->safe(
+                fn () => app(ReportShareService::class)->staffMembersForSubscriber($subscriber),
+                collect()
+            ),
             'ccCommonDocuments' => $ccService->getCommonDocumentSet(),
             'notificationTypes' => $this->safe(
                 fn () => app(NotificationService::class)->typeDefinitionsForUser($user),

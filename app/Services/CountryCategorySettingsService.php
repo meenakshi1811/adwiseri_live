@@ -748,6 +748,46 @@ class CountryCategorySettingsService
         return $this->normalizeDocumentLists($setting->document_lists, [], []);
     }
 
+    public function autoSendDocumentChecklistEnabled(User $subscriber): bool
+    {
+        if (!$this->settingsTableExists()
+            || !Schema::hasColumn('subscriber_cc_settings', 'auto_send_document_checklist')) {
+            return false;
+        }
+
+        $setting = $this->getSetting($subscriber);
+
+        return (bool) ($setting?->auto_send_document_checklist ?? false);
+    }
+
+    public function saveAutoSendDocumentChecklist(User $subscriber, bool $enabled): SubscriberCcSetting
+    {
+        $this->ensureSettingsTableExists();
+
+        if (!Schema::hasColumn('subscriber_cc_settings', 'auto_send_document_checklist')) {
+            throw new \RuntimeException(
+                'Documents checklist automation storage is not set up. Please run: php artisan migrate --path=database/migrations/2026_09_10_000001_add_auto_send_document_checklist_to_subscriber_cc_settings_table.php'
+            );
+        }
+
+        $setting = $this->getSetting($subscriber);
+
+        if ($setting) {
+            $setting->auto_send_document_checklist = $enabled;
+            $setting->save();
+
+            return $setting;
+        }
+
+        return SubscriberCcSetting::create([
+            'subscriber_id' => $subscriber->id,
+            'countries' => $this->resolveCountryNames($subscriber)->all(),
+            'visa_categories' => $this->resolveVisaCategoryNames($subscriber)->all(),
+            'document_lists' => [],
+            'auto_send_document_checklist' => $enabled,
+        ]);
+    }
+
     public function saveDocumentLists(User $subscriber, array $documentLists): SubscriberCcSetting
     {
         $this->ensureSettingsTableExists();

@@ -56,7 +56,7 @@ class DocumentChecklistUploadService
         return route('document_checklist_upload', [
             'application' => $application->id,
             'token' => $token,
-        ]);
+        ], true);
     }
 
     public function resolveApplication(int $applicationId, string $token): ?Applications
@@ -103,7 +103,7 @@ class DocumentChecklistUploadService
             'subscriber_name' => trim((string) ($subscriber->name ?? '')),
             'country' => $this->documentListService->resolveApplicationCountry($application),
             'category' => $this->documentListService->resolveApplicationVisaCategory($application),
-            'application_ref' => trim((string) ($application->application_id ?? '')),
+            'application_ref' => application_display_no($application),
             'checklist_items' => $checklistItems,
             'document_folders' => $this->ccService->getDocumentFolders(),
         ];

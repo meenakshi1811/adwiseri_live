@@ -2917,7 +2917,7 @@ class WebController extends Controller
                     return $row->client ?  $row->client->name.'('.$row->client_id.')' :'';
                 })
                     ->editColumn('application_name', function ($row) {
-                        return $row->application_name.'('.$row->application_id.')';
+                        return application_display_label($row->application_name, $row);
                     })
                     ->editColumn('end_date', function ($row) {
                         if ($row->end_date != null) {
@@ -6656,7 +6656,8 @@ class WebController extends Controller
             return response()->json(['message' => 'Unable to send the report to the selected recipients.'], 500);
         }
 
-        $message = 'Report shared with ' . $result['sent'] . ' recipient(s).';
+        $shareLabel = $source === 'analytics' ? 'Chart' : 'Report';
+        $message = $shareLabel . ' shared with ' . $result['sent'] . ' recipient(s).';
         if (!empty($result['errors'])) {
             $message .= ' Some recipients could not be reached.';
         }
@@ -8379,6 +8380,91 @@ class WebController extends Controller
                 'message' => $exception->getMessage() ?: 'Failed to save Countries & Categories settings.',
             ], 500);
         }
+    }
+
+    public function save_cc_document_checklist_auto_send(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        try {
+            $validated = $request->validate([
+                'auto_send_document_checklist' => 'required|boolean',
+            ]);
+
+            $ccService = app(\App\Services\CountryCategorySettingsService::class);
+            $subscriber = $ccService->resolveSubscriber($user);
+            $ccService->saveAutoSendDocumentChecklist($subscriber, (bool) $validated['auto_send_document_checklist']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Documents checklist automation setting saved.',
+                'auto_send_document_checklist' => (bool) $validated['auto_send_document_checklist'],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $validationException) {
+            throw $validationException;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage() ?: 'Failed to save documents checklist setting.',
+            ], 500);
+        }
+    }
+
+    public function share_cc_document_list(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized.'], 401);
+        }
+
+        $ccService = app(\App\Services\CountryCategorySettingsService::class);
+        $subscriber = $ccService->resolveSubscriber($user);
+
+        if ($user->user_type !== 'admin' && $user->user_type !== 'Subscriber') {
+            return response()->json(['message' => 'You do not have permission to share document lists.'], 403);
+        }
+
+        $request->validate([
+            'country' => 'required|string|max:255',
+            'visa_category' => 'required|string|max:255',
+            'recipients' => 'required|array|min:1',
+            'recipients.*' => 'required|string|max:255',
+        ]);
+
+        try {
+            $result = app(\App\Services\DocumentListShareService::class)->shareToStaff(
+                $user,
+                $subscriber,
+                (string) $request->input('country'),
+                (string) $request->input('visa_category'),
+                $request->input('recipients', [])
+            );
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json(['message' => 'Unable to share the documents list. Please try again.'], 500);
+        }
+
+        if ($result['sent'] === 0) {
+            return response()->json(['message' => 'Unable to send the documents list to the selected staff members.'], 500);
+        }
+
+        $message = 'Documents checklist shared with ' . $result['sent'] . ' recipient(s).';
+        if (!empty($result['errors'])) {
+            $message .= ' Some recipients could not be reached.';
+        }
+
+        return response()->json([
+            'message' => $message,
+            'sent' => $result['sent'],
+        ]);
     }
 
     public function save_cc_document_lists(Request $request)

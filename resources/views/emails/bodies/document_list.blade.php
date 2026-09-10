@@ -29,4 +29,4 @@
 
 <p style="margin:16px 0 12px 0;">If you prefer, you may also reply to this email with your documents attached, or contact us if anything on the checklist is unclear.</p>
 
-<p style="margin:0;">Regards,<br>{{ $data['given_by'] ?? '' }}@if(($data['given_by'] ?? '') !== ($data['subscriber_name'] ?? ''))<br>{{ $data['subscriber_name'] ?? '' }}@endif</p>
+<p style="margin:0;">Regards,<br>{{ $data['subscriber_name'] ?? '' }}</p>

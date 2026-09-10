@@ -2223,8 +2223,9 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                     return row.chart_label;
                 }
 
-                const applicationName = row.application_name
-                    || (row.application_id ? 'Application ' + row.application_id : '');
+        const applicationNo = row.application_no ?? row.application_id;
+        const applicationName = row.application_name
+            || (applicationNo ? 'Application ' + applicationNo : '');
 
                 return formatClientApplicationLabel(row.client_name, applicationName);
             }

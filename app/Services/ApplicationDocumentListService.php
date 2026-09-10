@@ -139,6 +139,46 @@ class ApplicationDocumentListService
         return implode('_', $parts) . '_Documents_Checklist.pdf';
     }
 
+    public function buildTemplatePdfPayload(User $user, User $subscriber, string $country, string $visaCategory): array
+    {
+        $entry = $this->ccService->resolveDocumentListEntry($subscriber, $country, $visaCategory);
+
+        if (!$entry) {
+            throw new RuntimeException(
+                'No document list is configured for ' . trim($country) . ' / ' . trim($visaCategory) . '.'
+            );
+        }
+
+        $sections = $this->ccService->buildNumberedDocumentSections($entry);
+
+        if ($sections === []) {
+            throw new RuntimeException('This document list has no document items configured.');
+        }
+
+        $now = now();
+        if (!empty($user->timezone)) {
+            try {
+                $now = now()->timezone($user->timezone);
+            } catch (\Exception $e) {
+            }
+        }
+
+        $resolvedCountry = trim((string) ($entry['country'] ?? $country));
+        $resolvedCategory = trim((string) ($entry['visa_category'] ?? $visaCategory));
+
+        return [
+            'client_name' => '—',
+            'country' => $resolvedCountry,
+            'category' => $resolvedCategory,
+            'application_name' => $resolvedCategory,
+            'given_by' => trim((string) ($user->name ?? '—')) ?: '—',
+            'date' => $now->format('d/m/Y'),
+            'time' => $now->format('h:i A'),
+            'datetime' => $now->format('d/m/Y h:i A'),
+            'sections' => $sections,
+        ];
+    }
+
     public function buildPdfPayload(User $user, Applications $application): array
     {
         $subscriber = $this->resolveSubscriberForApplication($user, $application);

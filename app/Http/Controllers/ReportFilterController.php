@@ -241,16 +241,16 @@ class ReportFilterController extends Controller
                 $applications = Applications::whereBetween('created_at', [$startDate, $endDate])
                     ->where('subscriber_id', $this->consultancySubscriberId($user))
                     ->selectRaw(
-                        'CONCAT(application_name, " (", application_id, ")") as application_name, COUNT(DISTINCT client_id) AS number_of_clients'
+                        'CONCAT(application_name, " (", id, ")") as application_name, COUNT(DISTINCT client_id) AS number_of_clients'
                     )
-                    ->groupBy('application_id', 'application_name') // Ensure correct grouping
+                    ->groupBy('id', 'application_name') // Ensure correct grouping
                     ->get();
             }
             if ($user->user_type == 'admin') {
                 $applications = Applications::whereBetween('created_at', [$startDate, $endDate])->selectRaw(
-                    'CONCAT(application_name, " (", application_id, ")") as application_name, COUNT(DISTINCT client_id) AS number_of_clients'
+                    'CONCAT(application_name, " (", id, ")") as application_name, COUNT(DISTINCT client_id) AS number_of_clients'
                     )
-                    ->groupBy('application_id', 'application_name') // Ensure correct grouping
+                    ->groupBy('id', 'application_name') // Ensure correct grouping
                         ->get();
             }
             return DataTables::of($applications)
@@ -373,7 +373,7 @@ class ReportFilterController extends Controller
                 ->addIndexColumn()
                 ->addColumn('application_name', function ($row) {
                     return $row->application
-                        ? $row->application->application_name . '(' . $row->application->application_id . ')'  // ✅ Use application name if exists
+                        ? application_display_label($row->application->application_name, $row->application)  // ✅ Use application name if exists
                         : ($row->service_description ?? 'N/A'); // ✅ Otherwise, use service_description
                 })
                 ->addColumn('client_name', function ($row) {
@@ -716,11 +716,11 @@ class ReportFilterController extends Controller
                     ->where('applications.subscriber_id', $this->consultancySubscriberId($user))
                     ->whereBetween('applications.created_at', [$startDate, $endDate])
                     ->select(
-                        DB::raw('CONCAT(applications.application_name, " (", applications.application_id, ")") as applicationName'), // Concatenating name and ID
+                        DB::raw('CONCAT(applications.application_name, " (", applications.id, ")") as applicationName'), // Concatenating name and numeric No.
                         DB::raw('SUM(CASE WHEN dependants.client_id IS NULL THEN 1 ELSE 0 END) as single'), // Clients with 0 dependants
                         DB::raw('SUM(CASE WHEN dependants.client_id IS NOT NULL THEN 1 ELSE 0 END) as joint') // Clients with 1 or more dependants
                     )
-                    ->groupBy('applications.application_id', 'applications.application_name') // Corrected GROUP BY
+                    ->groupBy('applications.id', 'applications.application_name') // Corrected GROUP BY
                     ->orderBy('applications.application_name') // Order by application name
                     ->get();
             }
@@ -730,11 +730,11 @@ class ReportFilterController extends Controller
                     ->leftJoin('dependants', 'clients.id', '=', 'dependants.client_id') // Left join with dependants
                     ->whereBetween('applications.created_at', [$startDate, $endDate])
                     ->select(
-                        DB::raw('CONCAT(applications.application_name, " (", applications.application_id, ")") as applicationName'), // Concatenating name and ID
+                        DB::raw('CONCAT(applications.application_name, " (", applications.id, ")") as applicationName'), // Concatenating name and numeric No.
                         DB::raw('SUM(CASE WHEN dependants.client_id IS NULL THEN 1 ELSE 0 END) as single'), // Clients with 0 dependants
                         DB::raw('SUM(CASE WHEN dependants.client_id IS NOT NULL THEN 1 ELSE 0 END) as joint') // Clients with 1 or more dependants
                     )
-                    ->groupBy('applications.application_id', 'applications.application_name') // Corrected GROUP BY
+                    ->groupBy('applications.id', 'applications.application_name') // Corrected GROUP BY
                     ->orderBy('applications.application_name') // Order by application name
                     ->get();
             }
@@ -818,7 +818,7 @@ class ReportFilterController extends Controller
                 ->addIndexColumn()
                 ->addColumn('application_name', function ($row) {
                     return $row->application
-                        ? $row->application->application_name . '(' . $row->application->application_id . ')'  // ✅ Use application name if exists
+                        ? application_display_label($row->application->application_name, $row->application)  // ✅ Use application name if exists
                         : ($row->service_description ?? 'N/A'); // ✅ Otherwise, use service_description
                 })
                 ->addColumn('client_name', function ($row) {
@@ -838,7 +838,7 @@ class ReportFilterController extends Controller
 
                 $applicationsByDocumentStored = Client_Docs::join('applications', 'client_docs.application_id', '=', 'applications.application_id') // Join Client model
                     ->selectRaw(
-                        'CONCAT(applications.application_name, " (", applications.application_id, ")") as name, COUNT(*) AS no_of_docs' // Corrected CONCAT and COUNT syntax
+                        'CONCAT(applications.application_name, " (", applications.id, ")") as name, COUNT(*) AS no_of_docs' // Corrected CONCAT and COUNT syntax
                     )
                     ->groupBy('client_docs.application_id', 'applications.application_name') // Group by application_id and application_name
                     ->whereNotNull('client_docs.application_id') // Ensure application_id is not null in Client_Docs table
@@ -850,7 +850,7 @@ class ReportFilterController extends Controller
             if ($user->user_type == 'admin') {
 
                 $applicationsByDocumentStored = Client_Docs::join('applications', 'client_docs.application_id', '=', 'applications.application_id') // Join Client model
-                    ->selectRaw('CONCAT(applications.application_name, " (", applications.application_id, ")") as name, COUNT(*) AS no_of_docs') // Select client name, client_id, and count of documents
+                    ->selectRaw('CONCAT(applications.application_name, " (", applications.id, ")") as name, COUNT(*) AS no_of_docs') // Select client name, client_id, and count of documents
                     ->groupBy('client_docs.application_id', 'applications.application_name') // Group by application_id and application_name
                     ->whereNotNull('client_docs.application_id') // Ensure application_id is not null in Client_Docs table
                     ->whereBetween('client_docs.created_at', [$startDate, $endDate]) // Date range filter
@@ -2125,7 +2125,7 @@ class ReportFilterController extends Controller
                             ->addIndexColumn()
                             ->addColumn('application_name', function ($row) {
                                 return $row->application
-                                    ? $row->application->application_name . '(' . $row->application->application_id . ')'  // ✅ Use application name if exists
+                                    ? application_display_label($row->application->application_name, $row->application)  // ✅ Use application name if exists
                                     : ($row->service_description ?? 'N/A'); // ✅ Otherwise, use service_description
                             })
                             ->addColumn('client_name', function ($row) {
@@ -3450,7 +3450,7 @@ class ReportFilterController extends Controller
                                 'clients.name as client_name', // Client name
                                 'clients.id as client_id', // Client ID
                                 'applications.application_name', // Application name
-                                'applications.application_id as application_id', // Application ID
+                                'applications.id as application_id', // Application No. (numeric, for display)
                                 DB::raw('COUNT(client_docs.id) as no_of_docs'), // Count the number of client documents
                                 DB::raw('COUNT(DISTINCT applications.id) as no_of_applications') // Count the number of unique applications
                             )
@@ -3483,7 +3483,7 @@ class ReportFilterController extends Controller
                     return $row->client_name . ' (' . $row->client_id . ')';
                 })
                 ->editColumn('application', function ($row) {
-                    return $row->application_name . ' (' . $row->application_id . ')';
+                    return application_display_label($row->application_name, $row->application_id);
                 })
                 ->make(true);
         } elseif (request()->type == "byClient") {
@@ -3573,7 +3573,7 @@ class ReportFilterController extends Controller
                     'client_docs.client_id',
                     'clients.name as client_name',
                     'applications.application_name', // Select the application name
-                    'applications.application_id as application_id', // Select the application ID
+                    'applications.id as application_id', // Application No. (numeric, for display)
                     'client_docs.doc_name',
                     'client_docs.id'
                 )
@@ -3606,7 +3606,7 @@ class ReportFilterController extends Controller
                     // Add the document and its size to the array
                     $filesWithSize[] = [
                         'client_name' => $doc->client_name.'('.$doc->client_id.')',
-                        'application_name' => $doc->application_name.'('.$doc->application_id.')', // Application name
+                        'application_name' => application_display_label($doc->application_name, $doc->application_id), // Application name
                         'application_id' => $doc->application_id, // Application ID
                         'docs_name' => $doc->doc_name . ' (' . $doc->id . ')',
                         'doc_file' => \App\Support\DocumentFileName::forTable($doc->doc_file, $doc->doc_name),

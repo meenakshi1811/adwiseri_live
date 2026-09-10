@@ -1018,7 +1018,7 @@ class DashboardPreferenceService
                     clients.name,
                     ' - ',
                     COALESCE(
-                        NULLIF(TRIM(CONCAT(applications.application_name, ' (', applications.application_id, ')')), '()'),
+                        NULLIF(TRIM(CONCAT(applications.application_name, ' (', applications.id, ')')), '()'),
                         NULLIF(TRIM(MAX(payment_ar.service_description)), ''),
                         CONCAT('Invoice ', payment_ar.invoice_no)
                     )

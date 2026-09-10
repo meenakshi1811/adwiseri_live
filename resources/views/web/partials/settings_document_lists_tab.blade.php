@@ -1,12 +1,21 @@
 @if(strtolower($user->user_type) !== 'admin')
 <div class="tab-pane fade" id="documents-list-settings" role="tabpanel" aria-labelledby="documents-list-settings-tab">
     <div class="row p-1 m-0">
-        <p class="m-0 p-1" style="font-size:18px;font-weight: 550;">Documents List</p>
+        <p class="m-0 p-1" style="font-size:18px;font-weight: 550;">Documents Checklist</p>
     </div>
     <p class="text-muted px-1 small">
         Standard document requirements by country and visa category. Use the builder under <strong>Countries &amp; Categories</strong> to add or edit lists.
     </p>
-    <div class="mt-3">
+    <div class="px-1 mt-3">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="1" id="auto-send-document-checklist"
+                {{ !empty($autoSendDocumentChecklist) ? 'checked' : '' }}>
+            <label class="form-check-label" for="auto-send-document-checklist">
+                Send Documents Checklist automatically upon application creation
+            </label>
+        </div>
+    </div>
+    <div class="mt-3 px-1">
         <button type="button" class="btn btn-sm btn-outline-primary" id="open-cc-doc-builder">
             <i class="fa fa-pen-to-square me-1"></i> Manage Document Lists
         </button>
@@ -53,6 +62,13 @@
                                         title="Edit documents list">
                                     <i class="fa-solid fa-edit btn text-primary p-1 m-0"></i>
                                 </button>
+                                <button type="button"
+                                        class="btn btn-link p-0 m-0 text-dark cc-doc-list-share"
+                                        data-country="{{ $entry['country'] ?? '' }}"
+                                        data-visa-category="{{ $entry['visa_category'] ?? '' }}"
+                                        title="Share documents list with staff">
+                                    <i class="fa-solid fa-share-nodes btn text-success p-1 m-0"></i>
+                                </button>
                             </td>
                         </tr>
                     @endforeach
@@ -83,6 +99,52 @@
                 </dl>
                 <div id="cc-doc-list-view-content"></div>
             </div>
+        </div>
+    </div>
+</div>
+
+@php
+    $dcStaffMembers = ($staffMembers ?? collect())->filter();
+    $dcStaffByDesignation = $dcStaffMembers->groupBy(function ($staff) {
+        $designation = trim((string) ($staff->designation ?? ''));
+        return $designation !== '' ? $designation : 'Other';
+    });
+@endphp
+<link rel="stylesheet" href="{{ asset('web_assets/css/report-share.css') }}">
+<div id="documentListShareModal" class="report-share-modal" style="display:none;" aria-hidden="true">
+    <div class="report-share-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="documentListShareModalTitle">
+        <div class="report-share-modal__header">
+            <h4 id="documentListShareModalTitle" class="mb-0">Share Documents Checklist</h4>
+            <button type="button" class="btn-close" id="documentListShareModalClose" aria-label="Close"></button>
+        </div>
+        <div class="report-share-modal__body">
+            <p class="text-muted small mb-3" id="documentListShareFileName"></p>
+            <label class="form-label fw-bold">Select Recipient(s)</label>
+            <div class="report-share-recipient-wrap" id="documentListShareRecipients">
+                @if($dcStaffMembers->isEmpty())
+                    <p class="text-danger mb-0">No staff members found in your consultancy.</p>
+                @else
+                    <div class="report-share-recipient-list">
+                        <label class="report-share-recipient-option">
+                            <input type="checkbox" id="documentListShareSelectAll">
+                            <strong>Select All</strong>
+                        </label>
+                        @foreach($dcStaffByDesignation as $designation => $members)
+                            <div class="report-share-group-title">{{ $designation }}</div>
+                            @foreach($members as $staff)
+                                <label class="report-share-recipient-option" data-search="{{ strtolower($staff->name . ' ' . $designation) }}">
+                                    <input type="checkbox" class="document-list-share-recipient" name="document_list_share_recipients[]" value="{{ $staff->id }}">
+                                    {{ $staff->name }}
+                                </label>
+                            @endforeach
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        </div>
+        <div class="report-share-modal__footer">
+            <button type="button" class="btn btn-primary" id="documentListShareSendBtn" @if($dcStaffMembers->isEmpty()) disabled data-share-disabled="true" @endif>Send Email</button>
+            <button type="button" class="btn btn-secondary" id="documentListShareCancelBtn">Cancel</button>
         </div>
     </div>
 </div>

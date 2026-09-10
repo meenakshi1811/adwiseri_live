@@ -1391,7 +1391,9 @@ class AdminController extends Controller
             })
             ->editColumn('application_id', function ($row) {
                 // Format the `start_date` for better readability
-                return $row->application ? $row->application->application_name . '(' . $row->application->id . ')' : $row->application_id;
+                return $row->application
+                    ? application_display_label($row->application->application_name, $row->application)
+                    : $row->application_id;
             })
             ->editColumn('doc_file', function ($doc) {
                 if (!empty($doc->doc_file)) {
@@ -1597,7 +1599,7 @@ class AdminController extends Controller
             ->addIndexColumn()
             ->editColumn('application_id', function ($row) {
                 // Format the `start_date` for better readability
-                return  $row->application_name .'('.$row->application_id.')';
+                return application_display_label($row->application_name, $row);
             })
             ->editColumn('subscriber_id', function ($row) {
                 // Format the `start_date` for better readability

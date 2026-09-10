@@ -299,7 +299,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Shared',
-                text: (response && response.message) || 'Report shared successfully.',
+                text: (response && response.message) || (sharePayload.source === 'analytics' ? 'Chart shared successfully.' : 'Report shared successfully.'),
             });
         }).fail(function (xhr, textStatus) {
             Swal.fire({

@@ -16,12 +16,14 @@ class SubscriberCcSetting extends Model
         'countries',
         'visa_categories',
         'document_lists',
+        'auto_send_document_checklist',
     ];
 
     protected $casts = [
         'countries' => 'array',
         'visa_categories' => 'array',
         'document_lists' => 'array',
+        'auto_send_document_checklist' => 'boolean',
     ];
 
     public function subscriber()

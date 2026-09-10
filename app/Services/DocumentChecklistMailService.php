@@ -15,7 +15,8 @@ class DocumentChecklistMailService
 {
     public function __construct(
         private ApplicationDocumentListService $documentListService,
-        private DocumentChecklistUploadService $uploadService
+        private DocumentChecklistUploadService $uploadService,
+        private CountryCategorySettingsService $ccService
     ) {
     }
 
@@ -70,7 +71,7 @@ class DocumentChecklistMailService
 
         $fileName = $this->documentListService->buildPdfFileName($payload['country'], $payload['category']);
 
-        $payload['application_id'] = $application->application_id;
+        $payload['application_id'] = application_display_no($application);
         $payload['subscriber_name'] = $subscriber->name ?? '';
         $payload['subscriber_email'] = $subscriber->email ?? '';
         $payload['attachment_name'] = $fileName;
@@ -115,6 +116,17 @@ class DocumentChecklistMailService
 
     public function sendOnApplicationCreated(Applications $application, User $actingUser, ?User $subscriber = null): array
     {
+        $subscriber = $subscriber ?? $this->documentListService->resolveSubscriberForApplication($actingUser, $application);
+
+        if (!$this->ccService->autoSendDocumentChecklistEnabled($subscriber)) {
+            return [
+                'success' => false,
+                'skipped' => true,
+                'message' => 'Automatic documents checklist email is disabled in settings.',
+                'recipient' => null,
+            ];
+        }
+
         return $this->send($application, $actingUser, $subscriber);
     }
 

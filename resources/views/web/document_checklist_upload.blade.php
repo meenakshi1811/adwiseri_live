@@ -84,12 +84,8 @@
         <div class="hero-card">
             <div class="hero-title">Documents Checklist Upload</div>
             <p class="mb-0">
-                Hello <strong>{{ $client_name }}</strong>, please upload the documents requested in your
-                <strong>{{ trim($country . ' ' . $category) }}</strong> checklist
-                @if($application_ref !== '')
-                    ({{ $application_ref }})
-                @endif
-                for <strong>{{ $subscriber_name }}</strong>.
+                Hello <strong>{{ $client_name }}</strong>, please upload documents required for your
+                <strong>{{ trim($country . ' ' . $category) }}</strong> checklist@if($application_ref !== '') ({{ $application_ref }})@endif.
             </p>
 
             <div class="meta-grid">

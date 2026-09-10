@@ -788,7 +788,7 @@
                 @if(strtolower($user->user_type) !== 'admin')
                 <li class="nav-item">
                     <button class="nav-link" id="documents-list-settings-tab" data-bs-toggle="tab" href="#documents-list-settings" role="tab"
-                        aria-controls="documents-list-settings" aria-selected="false">Documents List</button>
+                        aria-controls="documents-list-settings" aria-selected="false">Documents Checklist</button>
                 </li>
                 @endif
                 <li class="nav-item">
@@ -4193,6 +4193,176 @@
 
             $(document).on('click', '.cc-doc-list-edit', function () {
                 openCcDocListEditorByKey($(this).data('country'), $(this).data('visa-category'));
+            });
+
+            let pendingDocumentListShare = null;
+            let documentListShareInFlight = false;
+
+            function resetDocumentListShareSendButton() {
+                const sendBtn = document.getElementById('documentListShareSendBtn');
+                if (!sendBtn) {
+                    return;
+                }
+
+                sendBtn.disabled = sendBtn.hasAttribute('data-share-disabled');
+                sendBtn.textContent = 'Send Email';
+            }
+
+            function closeDocumentListShareModal() {
+                const modal = document.getElementById('documentListShareModal');
+                if (!modal) {
+                    return;
+                }
+
+                modal.style.display = 'none';
+                modal.setAttribute('aria-hidden', 'true');
+                pendingDocumentListShare = null;
+                documentListShareInFlight = false;
+                resetDocumentListShareSendButton();
+            }
+
+            function openDocumentListShareModal(country, visaCategory) {
+                const modal = document.getElementById('documentListShareModal');
+                const fileLabel = document.getElementById('documentListShareFileName');
+                if (!modal) {
+                    return;
+                }
+
+                pendingDocumentListShare = {
+                    country: country,
+                    visaCategory: visaCategory,
+                };
+
+                if (fileLabel) {
+                    fileLabel.textContent = 'Documents Checklist: ' + country + ' · ' + visaCategory;
+                }
+
+                document.querySelectorAll('.document-list-share-recipient').forEach(function (input) {
+                    input.checked = false;
+                });
+                const selectAll = document.getElementById('documentListShareSelectAll');
+                if (selectAll) {
+                    selectAll.checked = false;
+                }
+
+                resetDocumentListShareSendButton();
+                modal.style.display = 'flex';
+                modal.setAttribute('aria-hidden', 'false');
+            }
+
+            function getSelectedDocumentListShareRecipients() {
+                const values = [];
+                document.querySelectorAll('.document-list-share-recipient:checked').forEach(function (input) {
+                    values.push(input.value);
+                });
+                return values;
+            }
+
+            function sendDocumentListShareRequest() {
+                if (!pendingDocumentListShare || documentListShareInFlight) {
+                    return;
+                }
+
+                const recipients = getSelectedDocumentListShareRecipients();
+                if (!recipients.length) {
+                    Swal.fire({
+                        icon: 'warning',
+                        customClass: { icon: 'adwiseri-oops-icon' },
+                        title: 'Oops!',
+                        text: 'Please select at least one staff recipient.',
+                    });
+                    return;
+                }
+
+                const sendBtn = document.getElementById('documentListShareSendBtn');
+                const sharePayload = pendingDocumentListShare;
+                documentListShareInFlight = true;
+
+                if (sendBtn) {
+                    sendBtn.disabled = true;
+                    sendBtn.textContent = 'Sending...';
+                }
+
+                $.ajax({
+                    url: "{{ route('share_cc_document_list') }}",
+                    method: 'POST',
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        country: sharePayload.country,
+                        visa_category: sharePayload.visaCategory,
+                        recipients: recipients,
+                    },
+                    dataType: 'json',
+                }).done(function (response) {
+                    closeDocumentListShareModal();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Shared',
+                        text: (response && response.message) || 'Documents checklist shared successfully.',
+                    });
+                }).fail(function (xhr) {
+                    const message = (xhr.responseJSON && xhr.responseJSON.message)
+                        ? xhr.responseJSON.message
+                        : 'Unable to share the documents checklist.';
+                    Swal.fire({
+                        icon: 'warning',
+                        customClass: { icon: 'adwiseri-oops-icon' },
+                        title: 'Oops!',
+                        text: message,
+                    });
+                }).always(function () {
+                    documentListShareInFlight = false;
+                    resetDocumentListShareSendButton();
+                });
+            }
+
+            $(document).on('click', '.cc-doc-list-share', function () {
+                openDocumentListShareModal($(this).data('country'), $(this).data('visa-category'));
+            });
+
+            $('#documentListShareSendBtn').on('click', sendDocumentListShareRequest);
+            $('#documentListShareCancelBtn, #documentListShareModalClose').on('click', closeDocumentListShareModal);
+            $('#documentListShareModal').on('click', function (event) {
+                if (event.target === this) {
+                    closeDocumentListShareModal();
+                }
+            });
+            $('#documentListShareSelectAll').on('change', function () {
+                const checked = $(this).is(':checked');
+                $('.document-list-share-recipient').prop('checked', checked);
+            });
+
+            let autoSendDocumentChecklistSaving = false;
+            $('#auto-send-document-checklist').on('change', function () {
+                if (autoSendDocumentChecklistSaving) {
+                    return;
+                }
+
+                autoSendDocumentChecklistSaving = true;
+                const enabled = $(this).is(':checked');
+
+                $.ajax({
+                    url: "{{ route('save_cc_document_checklist_auto_send') }}",
+                    method: 'POST',
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        auto_send_document_checklist: enabled ? 1 : 0,
+                    },
+                    dataType: 'json',
+                }).fail(function (xhr) {
+                    $('#auto-send-document-checklist').prop('checked', !enabled);
+                    const message = (xhr.responseJSON && xhr.responseJSON.message)
+                        ? xhr.responseJSON.message
+                        : 'Unable to save the documents checklist setting.';
+                    Swal.fire({
+                        icon: 'warning',
+                        customClass: { icon: 'adwiseri-oops-icon' },
+                        title: 'Oops!',
+                        text: message,
+                    });
+                }).always(function () {
+                    autoSendDocumentChecklistSaving = false;
+                });
             });
 
             $(document).on('click', '.cc-delete-doc-combo', function () {

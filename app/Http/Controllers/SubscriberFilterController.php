@@ -781,7 +781,7 @@ class SubscriberFilterController extends Controller
                 'clients.name as client_name', // Client name
                 'clients.id as client_id', // Client ID
                 'applications.application_name', // Application name
-                'applications.application_id as application_id', // Application ID
+                'applications.id as application_no', // Application No. (numeric, for display)
                 DB::raw('COUNT(client_docs.id) as no_of_docs'), // Count the number of client documents
                 DB::raw('COUNT(DISTINCT applications.id) as no_of_applications') // Count the number of unique applications
             )
@@ -793,14 +793,14 @@ class SubscriberFilterController extends Controller
                     'clients.id',
                     'clients.name',
                     'applications.application_name',
-                    'applications.application_id'
+                    'applications.id'
                 ) // Group by subscriber, client, and application
                 ->get()
                 ->map(function ($row) {
                     $row->chart_label = $this->formatClientApplicationChartLabel(
                         $row->client_name,
                         $row->application_name,
-                        $row->application_id
+                        $row->application_no
                     );
 
                     return $row;
@@ -1086,7 +1086,7 @@ class SubscriberFilterController extends Controller
                                 clients.name,
                                 ' - ',
                                 COALESCE(
-                                    NULLIF(TRIM(CONCAT(applications.application_name, ' (', applications.application_id, ')')), '()'),
+                                    NULLIF(TRIM(CONCAT(applications.application_name, ' (', applications.id, ')')), '()'),
                                     NULLIF(TRIM(MAX(payment_ar.service_description)), ''),
                                     CONCAT('Invoice ', payment_ar.invoice_no)
                                 )
@@ -1148,7 +1148,7 @@ class SubscriberFilterController extends Controller
                 'users.id as sub_id', // Subscriber ID
                 'clients.name as client_name', // Client name
                 'clients.id as client_id', // Client ID
-                DB::raw("CONCAT(applications.application_name, ' (', applications.application_id, ')') as application_name"), // Format: Test (1)
+                DB::raw("CONCAT(applications.application_name, ' (', applications.id, ')') as application_name"), // Format: Test (1)
                 DB::raw('COUNT(client_docs.id) as docs_count'), // Count the number of client documents
                 DB::raw('COUNT(DISTINCT applications.application_id) as no_of_applications') // Count the number of unique applications
             )
@@ -1159,7 +1159,7 @@ class SubscriberFilterController extends Controller
                 'users.id',
                 'clients.id',
                 'clients.name',
-                'applications.application_id',
+                'applications.id',
                 'applications.application_name'
             ) // Group by subscriber, client, and application
             ->havingRaw('docs_count > 0') // Ensure the client uploaded at least one document
@@ -1327,10 +1327,10 @@ class SubscriberFilterController extends Controller
                 ->whereBetween('client_docs.created_at', [$startDate, $endDate]) // Filter by date range
                 ->whereNotNull('client_docs.application_id') // Ensure application_id exists
                 ->select(
-                    DB::raw("CONCAT(applications.application_name, ' (', applications.application_id, ')') as application_name"), // Format: Test (1)
+                    DB::raw("CONCAT(applications.application_name, ' (', applications.id, ')') as application_name"), // Format: Test (1)
                     DB::raw('COUNT(DISTINCT client_docs.id) as no_of_docs') // Count total number of documents
                 )
-                ->groupBy('applications.application_id', 'applications.application_name') // Group by application_id & application_name
+                ->groupBy('applications.id', 'applications.application_name') // Group by application No. & application_name
                 ->orderBy('no_of_docs', 'desc') // Order by highest number of docs
                 ->limit(50) // Limit results (optional)
                 ->get();
@@ -1422,7 +1422,7 @@ class SubscriberFilterController extends Controller
                     'client_docs.client_id',
                     'clients.name as client_name',
                     'applications.application_name', // Select the application name
-                    'applications.application_id as application_id', // Select the application ID
+                    'applications.id as application_no', // Application No. (numeric, for display)
                     'client_docs.doc_name',
                     'client_docs.id'
                 )
@@ -1455,8 +1455,8 @@ class SubscriberFilterController extends Controller
                     // Add the document and its size to the array
                     $filesWithSize[] = [
                         'client_name' => $doc->client_name . '(' . $doc->client_id . ')',
-                        'application_name' => $doc->application_name . '(' . $doc->application_id . ')', // Application name
-                        'application_id' => $doc->application_id, // Application ID
+                        'application_name' => application_display_label($doc->application_name, $doc->application_no), // Application name
+                        'application_id' => $doc->application_no, // Application No. (numeric, for display)
                         'docs_name' => $doc->doc_name . ' (' . $doc->id . ')',
                         'doc_file' => \App\Support\DocumentFileName::forTable($doc->doc_file, $doc->doc_name),
                         'file_size' => $fileSize, // Size in bytes

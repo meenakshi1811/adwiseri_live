@@ -29,7 +29,7 @@ class DatasheetApplications implements FromCollection, WithTitle, WithHeadings
                 'ID' => $data->id,
                 'Client_ID' => $data->client_id,
                 'Subscriber_ID' => $data->subscriber_id,
-                'Application NO.' => $data->application_id,
+                'Application NO.' => $data->id,
                 // 'Category' => $data->application_category,
                 // 'Subcategory' => $data->application_subcategory,
                 'Application Type' => $data->application_name,

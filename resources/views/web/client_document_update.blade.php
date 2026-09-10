@@ -102,9 +102,7 @@
                                     <strong>{{ $message }}</strong>
                                 </span>
                             @enderror
-                            </div>
-                            <div class="col text-start p-1">
-                                <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
+                                <button type="submit" class="btn btn-primary mt-2" style="width: fit-content;">Update</button>
                             </div>
                         </div>
                     </form>

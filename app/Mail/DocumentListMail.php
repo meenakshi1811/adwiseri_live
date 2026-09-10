@@ -29,14 +29,16 @@ class DocumentListMail extends Mailable
         $subject = 'Documents Checklist - ' . $country . ' - ' . $category;
         $content = BrandedMail::renderBody('emails.bodies.document_list', ['data' => $this->data]);
 
+        $fromEmail = $subscriberEmail !== '' ? $subscriberEmail : BrandedMail::alertsFromAddress();
+
         $mail = $this->subject($subject)
-            ->from(BrandedMail::alertsFromAddress(), BrandedMail::alertsFromName($subscriberName))
+            ->from($fromEmail, BrandedMail::alertsFromName($subscriberName))
             ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle'));
 
+        BrandedMail::applyDefaultReplyTo($mail);
+
         if ($subscriberEmail !== '') {
-            BrandedMail::applySubscriberReplyTo($mail, $subscriberEmail, $subscriberName);
-        } else {
-            BrandedMail::applyDefaultReplyTo($mail);
+            $mail->bcc($subscriberEmail);
         }
 
         // Attach the PDF after envelope headers so MIME parts are not dropped by mail clients.

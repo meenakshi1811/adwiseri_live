@@ -124,7 +124,7 @@ tr:nth-child(even){
     @if (count($section['rows']) === 0)
 
         <div class="no-data">
-            No records found for this module and duration.
+            No records found for this module for the selected duration.
         </div>
 
     @else

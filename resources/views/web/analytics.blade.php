@@ -14,10 +14,21 @@
         /* Adds spacing between title and chart */
     }
 
-    #downloadPdf,
-    #shareReportPdf {
-        margin-left: 30px;
-        font-weight: bold;
+    .analytics-actions {
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .analytics-actions .login-btn,
+    .analytics-actions #downloadPdf,
+    .analytics-actions #shareReportPdf {
+        min-width: 150px;
+        white-space: nowrap;
+        text-align: center;
+        margin-left: 0;
     }
 </style>
 <div class="col-lg-10 column-client">
@@ -180,11 +191,9 @@
     </select>
 </div>
 </div>
-<div class="row mt-4 mb-4 d-flex justify-content-center">
-    <div class="col-md-3 d-flex justify-content-center">
+<div class="row mt-4 mb-4">
+    <div class="col-12 analytics-actions">
         <button class="login-btn" onclick="onClickGetReport()">View Data-Chart</button>
-    </div>
-    <div class="col-md-3 d-flex justify-content-center">
         <button class="login-btn" id="downloadPdf" style="display: none">Download Chart</button>
         <button class="login-btn" id="shareReportPdf" style="display: none">Share</button>
     </div>
@@ -2206,8 +2215,9 @@ window.clientVisaChartFilters = @json($clientVisaChartFilters ?? []);
             return row.chart_label;
         }
 
+        const applicationNo = row.application_no ?? row.application_id;
         const applicationName = row.application_name
-            || (row.application_id ? 'Application ' + row.application_id : '');
+            || (applicationNo ? 'Application ' + applicationNo : '');
 
         return formatClientApplicationLabel(row.client_name, applicationName);
     }

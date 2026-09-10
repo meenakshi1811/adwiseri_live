@@ -260,3 +260,41 @@ if (!function_exists('membership_access_blocked_for_subscriber')) {
         return \App\Services\SubscriptionTermPricing::isSubscriptionLapsed($subscriber);
     }
 }
+
+if (!function_exists('application_display_no')) {
+    /**
+     * Numeric application number shown in reports, charts, and auto-emails.
+     */
+    function application_display_no($application): string
+    {
+        if ($application === null || $application === '') {
+            return '';
+        }
+
+        if (is_object($application)) {
+            return (string) ($application->id ?? '');
+        }
+
+        return (string) $application;
+    }
+}
+
+if (!function_exists('application_display_label')) {
+    function application_display_label(?string $applicationName, $applicationOrId): string
+    {
+        $name = trim((string) ($applicationName ?? ''));
+        $no = is_object($applicationOrId)
+            ? application_display_no($applicationOrId)
+            : trim((string) ($applicationOrId ?? ''));
+
+        if ($name !== '' && $no !== '') {
+            return $name . ' (' . $no . ')';
+        }
+
+        if ($name !== '') {
+            return $name;
+        }
+
+        return $no !== '' ? 'Application ' . $no : '';
+    }
+}

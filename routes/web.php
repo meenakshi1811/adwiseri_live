@@ -346,6 +346,8 @@ Route::get('/view_message/{id?}', [App\Http\Controllers\WebController::class, 'v
 Route::post('/add_service', [App\Http\Controllers\WebController::class, 'add_service'])->name('add_service')->middleware(['auth','check.device']);
 Route::post('/save_cc_settings', [App\Http\Controllers\WebController::class, 'save_cc_settings'])->name('save_cc_settings')->middleware(['auth','check.device']);
 Route::post('/save_cc_document_lists', [App\Http\Controllers\WebController::class, 'save_cc_document_lists'])->name('save_cc_document_lists')->middleware(['auth','check.device']);
+Route::post('/save_cc_document_checklist_auto_send', [App\Http\Controllers\WebController::class, 'save_cc_document_checklist_auto_send'])->name('save_cc_document_checklist_auto_send')->middleware(['auth','check.device']);
+Route::post('/share_cc_document_list', [App\Http\Controllers\WebController::class, 'share_cc_document_list'])->name('share_cc_document_list')->middleware(['auth','check.device']);
 Route::post('/save_dashboard_settings', [App\Http\Controllers\WebController::class, 'save_dashboard_settings'])->name('save_dashboard_settings')->middleware(['auth','check.device']);
 Route::post('/save_enquiry_form_settings', [App\Http\Controllers\WebController::class, 'save_enquiry_form_settings'])->name('save_enquiry_form_settings')->middleware(['auth','check.device']);
 Route::post('/save_application_status_settings', [App\Http\Controllers\WebController::class, 'save_application_status_settings'])->name('save_application_status_settings')->middleware(['auth','check.device']);
