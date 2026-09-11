@@ -15,7 +15,7 @@ class DocumentListShareService
     }
 
     /**
-     * @return array{sent: int, errors: array<int, string>, recipients: int}
+     * @return array{sent: int, errors: array<int, array{email?: string, message?: string}|string>, sent_to: array<int, array{name?: string, email?: string}>, recipients: int}
      */
     public function shareToStaff(
         User $sender,

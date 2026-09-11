@@ -193,9 +193,9 @@
 </div>
 <div class="row mt-4 mb-4">
     <div class="col-12 analytics-actions">
-        <button class="login-btn" onclick="onClickGetReport()">View Data-Chart</button>
+        <button class="login-btn" onclick="onClickGetReport()">View Chart</button>
         <button class="login-btn" id="downloadPdf" style="display: none">Download Chart</button>
-        <button class="login-btn" id="shareReportPdf" style="display: none">Share</button>
+        <button class="login-btn" id="shareReportPdf" style="display: none">Share Chart</button>
     </div>
 </div>
 

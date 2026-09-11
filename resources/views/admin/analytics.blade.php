@@ -186,10 +186,10 @@
 
         <div class="row mt-4 mb-4 d-flex justify-content-center">
             <div class="col-md-3 d-flex justify-content-center">
-                <button class="login-btn" onclick="onClickGetReport()">View Data-Chart</button>
+                <button class="login-btn" onclick="onClickGetReport()">View Chart</button>
             </div>
             <div class="col-md-3 d-flex justify-content-center">
-                <button class="login-btn" id="downloadPdf" style="display: none">Download (PDF)</button>
+                <button class="login-btn" id="downloadPdf" style="display: none">Download Chart</button>
             </div>
         </div>
 

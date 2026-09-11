@@ -6652,19 +6652,27 @@ class WebController extends Controller
             return response()->json(['message' => 'Unable to share the report. Please try again.'], 500);
         }
 
+        $failureDetails = $reportShareService->formatShareErrors($result['errors'] ?? []);
+
         if ($result['sent'] === 0) {
-            return response()->json(['message' => 'Unable to send the report to the selected recipients.'], 500);
+            $shareLabel = $source === 'analytics' ? 'chart' : 'report';
+            $message = 'Unable to send the ' . $shareLabel . ' to the selected recipients.';
+            if ($failureDetails !== '') {
+                $message .= ' Reason: ' . $failureDetails;
+            } else {
+                $message .= ' Please verify staff email addresses and mail delivery settings, then try again.';
+            }
+
+            return response()->json(['message' => $message], 500);
         }
 
         $shareLabel = $source === 'analytics' ? 'Chart' : 'Report';
-        $message = $shareLabel . ' shared with ' . $result['sent'] . ' recipient(s).';
-        if (!empty($result['errors'])) {
-            $message .= ' Some recipients could not be reached.';
-        }
+        $message = $reportShareService->buildShareResultMessage($shareLabel, $result);
 
         return response()->json([
             'message' => $message,
             'sent' => $result['sent'],
+            'sent_to' => $result['sent_to'] ?? [],
         ]);
     }
 
@@ -8436,6 +8444,8 @@ class WebController extends Controller
             'recipients.*' => 'required|string|max:255',
         ]);
 
+        $reportShareService = app(\App\Services\ReportShareService::class);
+
         try {
             $result = app(\App\Services\DocumentListShareService::class)->shareToStaff(
                 $user,
@@ -8446,24 +8456,41 @@ class WebController extends Controller
             );
         } catch (\InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
             report($e);
 
-            return response()->json(['message' => 'Unable to share the documents list. Please try again.'], 500);
+            $reason = trim($e->getMessage());
+            $message = 'Unable to share the documents checklist.';
+            if ($reason !== '') {
+                $message .= ' Reason: ' . $reason;
+            } else {
+                $message .= ' Please try again.';
+            }
+
+            return response()->json(['message' => $message], 500);
         }
+
+        $failureDetails = $reportShareService->formatShareErrors($result['errors'] ?? []);
 
         if ($result['sent'] === 0) {
-            return response()->json(['message' => 'Unable to send the documents list to the selected staff members.'], 500);
+            $message = 'Unable to send the documents checklist to the selected staff members.';
+            if ($failureDetails !== '') {
+                $message .= ' Reason: ' . $failureDetails;
+            } else {
+                $message .= ' Please verify staff email addresses and mail delivery settings, then try again.';
+            }
+
+            return response()->json(['message' => $message], 500);
         }
 
-        $message = 'Documents checklist shared with ' . $result['sent'] . ' recipient(s).';
-        if (!empty($result['errors'])) {
-            $message .= ' Some recipients could not be reached.';
-        }
+        $message = $reportShareService->buildShareResultMessage('Documents checklist', $result);
 
         return response()->json([
             'message' => $message,
             'sent' => $result['sent'],
+            'sent_to' => $result['sent_to'] ?? [],
         ]);
     }
 

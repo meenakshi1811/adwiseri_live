@@ -469,7 +469,7 @@
                     text: error.message || 'Unable to prepare the chart PDF.',
                 });
             }).finally(function () {
-                shareBtn.textContent = 'Share';
+                shareBtn.textContent = 'Share Chart';
                 syncChartShareButton();
             });
         });
