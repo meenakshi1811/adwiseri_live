@@ -20,6 +20,7 @@ class Kernel extends ConsoleKernel
         Commands\SendTestInvoiceEmail::class,
         Commands\SendTestAppointmentEmail::class,
         Commands\SendTestSubscriptionRenewalEmail::class,
+        Commands\SendTestSubscriptionReminderEmail::class,
         Commands\SendTestScheduledReportEmail::class,
         Commands\SendTestDocumentListEmail::class,
         Commands\SendOutstandingPaymentNotifications::class,
