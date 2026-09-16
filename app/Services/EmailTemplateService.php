@@ -20,6 +20,8 @@ class EmailTemplateService
         'newsletter',
         'payment_reminder',
         'subscription_expiry_reminder',
+        'subscription_winback_reminder',
+        'subscription_winback_final_reminder',
         'subscription_termination',
         'wallet_credit_alert',
         'wallet_debit_alert',

@@ -16,6 +16,7 @@ class Kernel extends ConsoleKernel
         Commands\ExportCron::class,
         Commands\SendScheduledReports::class,
         Commands\SendPaymentReminderEmails::class,
+        Commands\SendSubscriptionRenewalReminders::class,
         Commands\SendTestInvoiceEmail::class,
         Commands\SendTestAppointmentEmail::class,
         Commands\SendTestSubscriptionRenewalEmail::class,
