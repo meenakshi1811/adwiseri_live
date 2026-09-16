@@ -47,7 +47,7 @@ class SendTestSubscriptionReminderEmail extends Command
         $sent = 0;
         foreach ($samples as $sample) {
             try {
-                Mail::to($recipient)->send(new SubscriptionRenewalReminder(
+                Mail::mailer((string) config('mail.default'))->to($recipient)->send(new SubscriptionRenewalReminder(
                     $subscriber,
                     $sample['days'],
                     $sample['phase']

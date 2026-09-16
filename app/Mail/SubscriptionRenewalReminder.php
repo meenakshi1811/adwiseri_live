@@ -28,7 +28,7 @@ class SubscriptionRenewalReminder extends Mailable
 
     public function build()
     {
-        $renewalLink = route('price_plans', ['id' => $this->subscriber->id]);
+        $renewalLink = route('membership');
         $daysExpired = $this->isPostExpiry() ? (int) $this->daysRemaining : 0;
         $daysLeft = $this->isPostExpiry()
             ? max(0, SubscriptionRenewalReminderSchedule::POST_EXPIRY_FINAL_DAY - $daysExpired)
