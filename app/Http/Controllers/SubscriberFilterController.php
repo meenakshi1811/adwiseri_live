@@ -260,7 +260,7 @@ class SubscriberFilterController extends Controller
 
                 $subscribersByCountry = User::where('added_by', request()->subid)->where('user_type', 'Subscriber')
                     ->whereIn('country', $country) // Use `whereIn` to handle both cases
-                    ->whereBetween('created_a t', [$startDate, $endDate])
+                    ->whereBetween('created_at', [$startDate, $endDate])
                     ->select('country', DB::raw('COUNT(users.id) as No_of_Subscribers'))
                     ->groupBy('country')
                     ->get();

@@ -93,6 +93,22 @@ class SubscriberTableFilterService
         return $key ? (self::EXPIRY_ORDER[$key] ?? null) : null;
     }
 
+    public function expiryDaysUntil(User $subscriber): ?int
+    {
+        if (empty($subscriber->membership_expiry_date)) {
+            return null;
+        }
+
+        $expiry = Carbon::parse($subscriber->membership_expiry_date)->startOfDay();
+        $today = Carbon::today();
+
+        if ($expiry->lt($today)) {
+            return null;
+        }
+
+        return $today->diffInDays($expiry);
+    }
+
     public function buildFilterSummary(Collection $subscribers): array
     {
         $planCounts = [];
