@@ -1030,7 +1030,7 @@
 
     <script>
         const emailTemplateAudience = @json($emailTemplateAudience);
-        const emailTemplatesData = @json(($emailTemplates[$emailTemplateAudience] ?? collect()->values()));
+        const emailTemplatesData = @json(($emailTemplates[$emailTemplateAudience] ?? collect())->values());
         const oneOffCreditTypes = @json(array_keys(\App\Services\OfferBenefitService::oneOffCreditTypeOptions()));
         let emailTemplateEditor = null;
 

@@ -7535,6 +7535,10 @@ class WebController extends Controller
             return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
 
+        if (strtolower((string) $user->user_type) === 'admin') {
+            return redirect()->route('settings');
+        }
+
         try {
             @ini_set('memory_limit', '256M');
 

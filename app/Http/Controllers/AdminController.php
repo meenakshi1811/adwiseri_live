@@ -20,6 +20,7 @@ use App\Support\ApplicationStatuses;
 use DateTime;
 use DateTimeZone;
 use App\Models\ReportSetting;
+use App\Services\DashboardPreferenceService;
 
 use App\Mail\PlanSubscriptionMail;
 use App\Models\User;
@@ -343,7 +344,12 @@ class AdminController extends Controller
                 $total_activities[$categ] = $categ_app;
             }
             $page = "dashboard";
-            return view('admin.dashboard', compact('ticketsStatus', 'messagings', 'refferals', 'referralACount', 'referralSCount', 'user', 'tickets', 'page', 'total_users', 'total_payments', 'total_countries', 'total_subscribers', 'clients', 'users', 'subscribers', 'invoices', 'countries', 'activities', 'applications', 'total_clients', 'total_tickets', 'total_activities'));
+            $dashboardService = app(DashboardPreferenceService::class);
+            $headerCards = $dashboardService->buildHeaderCards($user, $user);
+            $charts = $dashboardService->buildCharts($user);
+            $dashboardChartCount = $dashboardService->resolveChartCount($user);
+
+            return view('admin.dashboard', compact('ticketsStatus', 'messagings', 'refferals', 'referralACount', 'referralSCount', 'user', 'tickets', 'page', 'total_users', 'total_payments', 'total_countries', 'total_subscribers', 'clients', 'users', 'subscribers', 'invoices', 'countries', 'activities', 'applications', 'total_clients', 'total_tickets', 'total_activities', 'headerCards', 'charts', 'dashboardChartCount'));
         } else {
             return redirect()->route('login');
         }
@@ -4372,9 +4378,15 @@ class AdminController extends Controller
     public function settings()
     {
         $user = Auth::user();
-        if ($user) {
+        if (!$user) {
+            return redirect()->route('admin');
+        }
+
+        try {
+            @ini_set('memory_limit', '256M');
+
             $tzlist = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
-            $page = "settings";
+            $page = 'settings';
             $countries = Countries::get();
             $currencies = Currency::orderBy('currency_code')->get();
             $inv_setting = Invoice_settings::forUser((int) $user->id);
@@ -4385,7 +4397,6 @@ class AdminController extends Controller
             $emailTemplateAudience = strtolower($user->user_type) === 'admin' ? 'admin' : 'subscriber';
             $offerApplications = $offerBenefitService->successfulOfferApplications();
             $subscriberOfferEligibility = $offerBenefitService->subscriberOfferEligibilityMap($subscribers);
-            $notificationService = app(\App\Services\NotificationService::class);
             $recipientNotificationTypes = \App\Services\NotificationService::adminSendableNotificationTypes();
             $notificationSubscribers = User::where('user_type', 'Subscriber')->orderBy('name')->get();
             $staffUsers = User::where('user_type', 'User')->orderBy('name')->get();
@@ -4401,10 +4412,155 @@ class AdminController extends Controller
                 'affiliates' => 'Affiliates',
             ];
 
-            return view('admin.settings', compact('tzlist', 'user', 'page', 'countries', 'currencies', 'inv_setting', 'subscribers', 'reportSetting', 'reportModules', 'emailTemplates', 'emailTemplateAudience', 'offerApplications', 'offerBenefitService', 'subscriberOfferEligibility', 'recipientNotificationTypes', 'notificationSubscribers', 'staffUsers', 'subscriberLookup'));
-        } else {
-            return redirect()->route('admin');
+            $dashboardService = app(DashboardPreferenceService::class);
+            $dashboardHeaderOptions = $dashboardService->headerOptions();
+            $dashboardChartModules = $dashboardService->chartModules();
+            $dashboardChartTypes = $dashboardService->chartTypes();
+            $dashboardDurations = $dashboardService->durations();
+            $dashboardHeaders = $dashboardService->resolveHeaders($user);
+            $dashboardCharts = $dashboardService->resolveCharts($user);
+            $dashboardChartCount = $dashboardService->resolveChartCount($user);
+            $dashboardUsingDefaults = !$dashboardService->hasSavedPreferences($user);
+            $dashboardHeaderSlots = DashboardPreferenceService::HEADER_SLOTS;
+            $dashboardChartSlots = DashboardPreferenceService::CHART_SLOTS;
+            $dashboardChartAvailability = [];
+
+            $html = view('admin.settings', compact(
+                'tzlist',
+                'user',
+                'page',
+                'countries',
+                'currencies',
+                'inv_setting',
+                'subscribers',
+                'reportSetting',
+                'reportModules',
+                'emailTemplates',
+                'emailTemplateAudience',
+                'offerApplications',
+                'offerBenefitService',
+                'subscriberOfferEligibility',
+                'recipientNotificationTypes',
+                'notificationSubscribers',
+                'staffUsers',
+                'subscriberLookup',
+                'dashboardHeaderOptions',
+                'dashboardChartModules',
+                'dashboardChartTypes',
+                'dashboardDurations',
+                'dashboardHeaders',
+                'dashboardCharts',
+                'dashboardChartCount',
+                'dashboardUsingDefaults',
+                'dashboardHeaderSlots',
+                'dashboardChartSlots',
+                'dashboardChartAvailability'
+            ))->render();
+
+            return response($html);
+        } catch (\Throwable $e) {
+            Log::error('admin settings failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'user_id' => $user->id,
+            ]);
+
+            return response()->view('errors.generic', [
+                'statusCode' => 500,
+                'message' => 'Something went wrong while loading Settings. Please try again later.',
+            ], 500);
         }
+    }
+
+    public function save_admin_dashboard_settings(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        $validated = $request->validate([
+            'headers' => 'nullable|array',
+            'headers.*' => 'nullable|string|max:50',
+            'charts' => 'nullable|array',
+            'charts.*.module' => 'nullable|string|max:50',
+            'charts.*.filter' => 'nullable|string|max:50',
+            'charts.*.duration' => 'nullable|string|max:50',
+            'charts.*.chart_type' => 'nullable|string|max:20',
+            'chart_count' => 'nullable|integer|in:4',
+            'reset_defaults' => 'nullable|boolean',
+            'reset_headers' => 'nullable|boolean',
+            'reset_charts' => 'nullable|boolean',
+        ]);
+
+        $dashboardService = app(DashboardPreferenceService::class);
+
+        if (!empty($validated['reset_headers'])) {
+            $dashboardService->saveSettings(
+                $user,
+                $dashboardService->defaultHeaders(),
+                $dashboardService->resolveCharts($user),
+                $dashboardService->resolveChartCount($user)
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Header preferences reset to defaults.',
+                'headers' => $dashboardService->resolveHeaders($user),
+                'charts' => $dashboardService->resolveCharts($user),
+                'chart_count' => $dashboardService->resolveChartCount($user),
+            ]);
+        }
+
+        if (!empty($validated['reset_charts'])) {
+            $chartCount = DashboardPreferenceService::DEFAULT_CHART_COUNT;
+            $dashboardService->saveSettings(
+                $user,
+                $dashboardService->resolveHeaders($user),
+                $dashboardService->defaultCharts($chartCount),
+                $chartCount
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Chart preferences reset to defaults.',
+                'headers' => $dashboardService->resolveHeaders($user),
+                'charts' => $dashboardService->resolveCharts($user),
+                'chart_count' => $dashboardService->resolveChartCount($user),
+            ]);
+        }
+
+        if (!empty($validated['reset_defaults'])) {
+            $chartCount = DashboardPreferenceService::DEFAULT_CHART_COUNT;
+            $dashboardService->saveSettings(
+                $user,
+                $dashboardService->defaultHeaders(),
+                $dashboardService->defaultCharts($chartCount),
+                $chartCount
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Dashboard preferences reset to defaults.',
+                'headers' => $dashboardService->resolveHeaders($user),
+                'charts' => $dashboardService->resolveCharts($user),
+                'chart_count' => $dashboardService->resolveChartCount($user),
+            ]);
+        }
+
+        $dashboardService->saveSettings(
+            $user,
+            $validated['headers'] ?? [],
+            $validated['charts'] ?? [],
+            $validated['chart_count'] ?? null
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Dashboard preferences saved.',
+            'headers' => $dashboardService->resolveHeaders($user),
+            'charts' => $dashboardService->resolveCharts($user),
+            'chart_count' => $dashboardService->resolveChartCount($user),
+        ]);
     }
 
     public function invoice_settings(Request $request)
