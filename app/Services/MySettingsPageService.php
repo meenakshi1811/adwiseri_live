@@ -20,7 +20,10 @@ class MySettingsPageService
 {
     public function buildViewData(User $user): array
     {
-        $subscriber = app(CountryCategorySettingsService::class)->resolveSubscriber($user);
+        $subscriber = $this->safe(
+            fn () => app(CountryCategorySettingsService::class)->resolveSubscriber($user),
+            $user
+        );
         $subscriberId = empty($user->added_by) ? (int) $user->id : (int) $user->added_by;
 
         $invSetting = $this->safe(fn () => Invoice_settings::forUser((int) $user->id, Invoice_settings::RECIPIENT_CLIENTS));
@@ -29,29 +32,7 @@ class MySettingsPageService
         $paymentReminderSetting = $this->safe(fn () => PaymentReminderSetting::forUserPayments((int) $user->id));
         $documentsReminderSetting = $this->safe(fn () => PaymentReminderSetting::forUserDocuments((int) $user->id));
 
-        $selectedRemindersTo = PaymentReminderSetting::normalizeRemindersTo(
-            optional($paymentReminderSetting)->reminders_to,
-            optional($paymentReminderSetting)->email_to
-        );
-        $audienceFlags = PaymentReminderSetting::audienceFlagsFromRemindersTo($selectedRemindersTo);
-        $remindClients = $audienceFlags['remind_clients'];
-        $remindAssociates = $audienceFlags['remind_associates'];
-
-        $selectedEmailTo = $paymentReminderSetting
-            ? $paymentReminderSetting->emailToForClients()
-            : PaymentReminderSetting::EMAIL_TO_CLIENT_ONLY;
-        $selectedEmailToAssociates = $paymentReminderSetting
-            ? $paymentReminderSetting->emailToForAssociates()
-            : PaymentReminderSetting::EMAIL_TO_ASSOCIATE_ONLY;
-
-        $selectedDocumentsEmailTo = PaymentReminderSetting::normalizeEmailTo(optional($documentsReminderSetting)->email_to);
-        if (!in_array(
-            $selectedDocumentsEmailTo,
-            PaymentReminderSetting::allowedEmailToValuesForRemindersTo(PaymentReminderSetting::REMINDERS_TO_CLIENTS),
-            true
-        )) {
-            $selectedDocumentsEmailTo = PaymentReminderSetting::EMAIL_TO_CLIENT_ONLY;
-        }
+        $reminderViewState = $this->resolvePaymentReminderViewState($paymentReminderSetting, $documentsReminderSetting);
 
         $ccService = app(CountryCategorySettingsService::class);
         $dashboardService = app(DashboardPreferenceService::class);
@@ -59,6 +40,40 @@ class MySettingsPageService
         $applicationStatusService = app(ApplicationStatusSettingsService::class);
 
         $ccDocumentLists = $this->safe(fn () => $ccService->getDocumentLists($subscriber), []);
+        $ccDocumentLists = $this->sanitizeForJson(is_array($ccDocumentLists) ? $ccDocumentLists : []);
+
+        $applicationStatusSettings = $this->safe(
+            fn () => $applicationStatusService->getSettingsPayload($subscriber),
+            [
+                'default' => [
+                    'statuses' => \App\Support\ApplicationStatuses::FLOW,
+                    'end_date_required' => \App\Support\ApplicationStatuses::END_DATE_REQUIRED,
+                    'has_custom' => false,
+                ],
+                'by_category' => [],
+                'visa_categories' => [],
+                'system_default_statuses' => \App\Support\ApplicationStatuses::FLOW,
+                'system_default_end_date_required' => \App\Support\ApplicationStatuses::END_DATE_REQUIRED,
+            ]
+        );
+        $applicationStatusSettings = $this->sanitizeForJson(
+            is_array($applicationStatusSettings) ? $applicationStatusSettings : []
+        );
+
+        $invoiceSettingsByRecipient = $this->safe(
+            fn () => [
+                Invoice_settings::RECIPIENT_CLIENTS => $invSetting
+                    ? $invSetting->toSettingsArray()
+                    : $this->emptyInvoiceSettings(),
+                Invoice_settings::RECIPIENT_ASSOCIATES => $invSettingAssociates
+                    ? $invSettingAssociates->toSettingsArray()
+                    : $this->emptyInvoiceSettings(),
+            ],
+            [
+                Invoice_settings::RECIPIENT_CLIENTS => $this->emptyInvoiceSettings(),
+                Invoice_settings::RECIPIENT_ASSOCIATES => $this->emptyInvoiceSettings(),
+            ]
+        );
 
         return [
             'tzlist' => $this->safe(fn () => DateTimeZone::listIdentifiers(DateTimeZone::ALL), ['UTC']),
@@ -68,14 +83,7 @@ class MySettingsPageService
             'currencies' => $this->safe(fn () => Currency::orderBy('currency_code')->get(), collect()),
             'inv_setting' => $invSetting,
             'inv_setting_associates' => $invSettingAssociates,
-            'invoiceSettingsByRecipient' => [
-                Invoice_settings::RECIPIENT_CLIENTS => $invSetting
-                    ? $invSetting->toSettingsArray()
-                    : $this->emptyInvoiceSettings(),
-                Invoice_settings::RECIPIENT_ASSOCIATES => $invSettingAssociates
-                    ? $invSettingAssociates->toSettingsArray()
-                    : $this->emptyInvoiceSettings(),
-            ],
+            'invoiceSettingsByRecipient' => $invoiceSettingsByRecipient,
             'clients' => $this->safe(
                 fn () => Clients::where('subscriber_id', '=', $subscriber->id)->orderBy('created_at', 'desc')->get(),
                 collect()
@@ -83,12 +91,12 @@ class MySettingsPageService
             'reportSetting' => $this->safe(fn () => ReportSetting::where('user_id', $user->id)->first()),
             'paymentReminderSetting' => $paymentReminderSetting,
             'documentsReminderSetting' => $documentsReminderSetting,
-            'selectedRemindersTo' => $selectedRemindersTo,
-            'remindClients' => $remindClients,
-            'remindAssociates' => $remindAssociates,
-            'selectedEmailTo' => $selectedEmailTo,
-            'selectedEmailToAssociates' => $selectedEmailToAssociates,
-            'selectedDocumentsEmailTo' => $selectedDocumentsEmailTo,
+            'selectedRemindersTo' => $reminderViewState['selectedRemindersTo'],
+            'remindClients' => $reminderViewState['remindClients'],
+            'remindAssociates' => $reminderViewState['remindAssociates'],
+            'selectedEmailTo' => $reminderViewState['selectedEmailTo'],
+            'selectedEmailToAssociates' => $reminderViewState['selectedEmailToAssociates'],
+            'selectedDocumentsEmailTo' => $reminderViewState['selectedDocumentsEmailTo'],
             'applicationReminders' => $this->loadApplicationReminders((int) $user->id),
             'reportModules' => $this->reportModulesFor($user),
             'emailTemplates' => $this->safe(
@@ -106,7 +114,7 @@ class MySettingsPageService
             'ccSetting' => $this->safe(fn () => $ccService->getSetting($subscriber)),
             'ccUsingDefaults' => $this->safe(fn () => !$ccService->hasSavedCcSelection($subscriber), true),
             'documentTypes' => $ccService->getDocumentTypes(),
-            'ccDocumentLists' => is_array($ccDocumentLists) ? $ccDocumentLists : [],
+            'ccDocumentLists' => $ccDocumentLists,
             'autoSendDocumentChecklist' => $this->safe(
                 fn () => $ccService->autoSendDocumentChecklistEnabled($subscriber),
                 false
@@ -146,20 +154,7 @@ class MySettingsPageService
                 ['countries' => collect(), 'visa_categories' => collect(), 'has_saved' => false]
             ),
             'appointments' => $this->loadAppointments($subscriberId),
-            'applicationStatusSettings' => $this->safe(
-                fn () => $applicationStatusService->getSettingsPayload($subscriber),
-                [
-                    'default' => [
-                        'statuses' => \App\Support\ApplicationStatuses::FLOW,
-                        'end_date_required' => \App\Support\ApplicationStatuses::END_DATE_REQUIRED,
-                        'has_custom' => false,
-                    ],
-                    'by_category' => [],
-                    'visa_categories' => [],
-                    'system_default_statuses' => \App\Support\ApplicationStatuses::FLOW,
-                    'system_default_end_date_required' => \App\Support\ApplicationStatuses::END_DATE_REQUIRED,
-                ]
-            ),
+            'applicationStatusSettings' => $applicationStatusSettings,
             'applicationStatusUsingDefaults' => $this->safe(
                 fn () => !$applicationStatusService->hasSavedSettings($subscriber),
                 true
@@ -219,6 +214,93 @@ class MySettingsPageService
             'payment_qr_url' => '',
             'invoice_note' => '',
         ];
+    }
+
+    /**
+     * @return array{
+     *     selectedRemindersTo: string,
+     *     remindClients: bool,
+     *     remindAssociates: bool,
+     *     selectedEmailTo: string,
+     *     selectedEmailToAssociates: string,
+     *     selectedDocumentsEmailTo: string
+     * }
+     */
+    private function resolvePaymentReminderViewState(
+        ?PaymentReminderSetting $paymentReminderSetting,
+        ?PaymentReminderSetting $documentsReminderSetting
+    ): array {
+        return $this->safe(function () use ($paymentReminderSetting, $documentsReminderSetting) {
+            $selectedRemindersTo = PaymentReminderSetting::normalizeRemindersTo(
+                optional($paymentReminderSetting)->reminders_to,
+                optional($paymentReminderSetting)->email_to
+            );
+            $audienceFlags = PaymentReminderSetting::audienceFlagsFromRemindersTo($selectedRemindersTo);
+
+            $selectedEmailTo = $paymentReminderSetting
+                ? $paymentReminderSetting->emailToForClients()
+                : PaymentReminderSetting::EMAIL_TO_CLIENT_ONLY;
+            $selectedEmailToAssociates = $paymentReminderSetting
+                ? $paymentReminderSetting->emailToForAssociates()
+                : PaymentReminderSetting::EMAIL_TO_ASSOCIATE_ONLY;
+
+            $selectedDocumentsEmailTo = PaymentReminderSetting::normalizeEmailTo(
+                optional($documentsReminderSetting)->email_to
+            );
+            if (!in_array(
+                $selectedDocumentsEmailTo,
+                PaymentReminderSetting::allowedEmailToValuesForRemindersTo(PaymentReminderSetting::REMINDERS_TO_CLIENTS),
+                true
+            )) {
+                $selectedDocumentsEmailTo = PaymentReminderSetting::EMAIL_TO_CLIENT_ONLY;
+            }
+
+            return [
+                'selectedRemindersTo' => $selectedRemindersTo,
+                'remindClients' => $audienceFlags['remind_clients'],
+                'remindAssociates' => $audienceFlags['remind_associates'],
+                'selectedEmailTo' => $selectedEmailTo,
+                'selectedEmailToAssociates' => $selectedEmailToAssociates,
+                'selectedDocumentsEmailTo' => $selectedDocumentsEmailTo,
+            ];
+        }, [
+            'selectedRemindersTo' => PaymentReminderSetting::REMINDERS_TO_CLIENTS,
+            'remindClients' => true,
+            'remindAssociates' => false,
+            'selectedEmailTo' => PaymentReminderSetting::EMAIL_TO_CLIENT_ONLY,
+            'selectedEmailToAssociates' => PaymentReminderSetting::EMAIL_TO_ASSOCIATE_ONLY,
+            'selectedDocumentsEmailTo' => PaymentReminderSetting::EMAIL_TO_CLIENT_ONLY,
+        ]);
+    }
+
+    /**
+     * Strip invalid UTF-8 so @json() in the settings Blade templates cannot throw.
+     *
+     * @param  mixed  $value
+     * @return mixed
+     */
+    private function sanitizeForJson($value)
+    {
+        if (is_array($value)) {
+            $clean = [];
+            foreach ($value as $key => $item) {
+                $clean[$key] = $this->sanitizeForJson($item);
+            }
+
+            return $clean;
+        }
+
+        if (is_string($value)) {
+            if (mb_check_encoding($value, 'UTF-8')) {
+                return $value;
+            }
+
+            $converted = @iconv('UTF-8', 'UTF-8//IGNORE', $value);
+
+            return $converted === false ? '' : $converted;
+        }
+
+        return $value;
     }
 
     /**

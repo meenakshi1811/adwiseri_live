@@ -7536,9 +7536,18 @@ class WebController extends Controller
         }
 
         try {
-            return view('web.my_settings', app(MySettingsPageService::class)->buildViewData($user));
+            @ini_set('memory_limit', '256M');
+
+            $viewData = app(MySettingsPageService::class)->buildViewData($user);
+            // Render here so Blade/layout errors are caught (return view() alone renders later).
+            $html = view('web.my_settings', $viewData)->render();
+
+            return response($html);
         } catch (\Throwable $e) {
-            Log::error('my_settings failed: ' . $e->getMessage(), ['exception' => $e]);
+            Log::error('my_settings failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'user_id' => $user->id,
+            ]);
 
             return response()->view('errors.generic', [
                 'statusCode' => 500,

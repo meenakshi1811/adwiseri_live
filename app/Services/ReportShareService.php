@@ -6,6 +6,7 @@ use App\Mail\SharedReportChartMail;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class ReportShareService
@@ -18,12 +19,15 @@ class ReportShareService
 
     public function staffMembersForSubscriber(User $subscriber)
     {
-        return User::query()
+        $query = User::query()
             ->where('added_by', $subscriber->id)
-            ->where('user_type', 'User')
-            ->orderBy('designation')
-            ->orderBy('name')
-            ->get();
+            ->where('user_type', 'User');
+
+        if (Schema::hasColumn('users', 'designation')) {
+            $query->orderBy('designation');
+        }
+
+        return $query->orderBy('name')->get();
     }
 
     public function canShareReports(User $user): bool

@@ -1390,7 +1390,10 @@
                                         </div>
                                         <div class="p-2" id="dashChartSlots">
                                             @for($i = 0; $i < $dashboardChartSlots; $i++)
-                                                @php $slot = $dashboardCharts[$i] ?? null; @endphp
+                                                @php
+                                                    $slot = $dashboardCharts[$i] ?? null;
+                                                    $slot = is_array($slot) ? $slot : null;
+                                                @endphp
                                                 <div class="dash-chart-slot border rounded"
                                                     data-slot-index="{{ $i }}">
                                                     <div class="dash-chart-slot-title">
@@ -1516,7 +1519,9 @@
                     </form>
                 </div>
 
-                @include('partials.application_status_settings_tab')
+                @include('partials.application_status_settings_tab', [
+                    'applicationStatusSettings' => $applicationStatusSettings ?? [],
+                ])
                 @endif
 
                 <div class="tab-pane fade" id="payment-reminder" role="tabpanel" aria-labelledby="payment-reminder-tab">
