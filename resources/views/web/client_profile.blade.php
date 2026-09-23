@@ -290,11 +290,11 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     @csrf
                     <input type="hidden" name="local_time" class="localtime" />
                     <input type="hidden" name="client_id" value="{{ $client->id }}" />
-                    <h3 class="mb-4 pt-3 text-center">Generate Client Care Letter</h3>
+                    <h3 class="mb-4 pt-3 text-center">Generate Client Care Letter / Service Agreement</h3>
 
                     <div class="mb-3">
                         <label>Document Type</label>
-                        <select name="letter_type" class="form-select" required>
+                        <select name="letter_type" id="ccl_letter_type" class="form-select" required>
                             <option value="">Select</option>
                             <option value="oisc_iaa">Client Care Letter (UK IAA/OISC)</option>
                             <option value="service_agreement">Service Agreement (Non-IAA)</option>
@@ -388,11 +388,11 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         <label>Complaint Handling Details</label>
                         <textarea name="complaint_handling_details" class="form-control" rows="3" maxlength="1500"></textarea>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 ccl-iaa-only">
                         <label>IAA / OISC Registration Number</label>
                         <input type="text" name="oisc_registration_number" class="form-control" maxlength="100">
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 ccl-iaa-only">
                         <label>Authorisation Level</label>
                         <input type="text" name="authorisation_level" class="form-control" maxlength="150">
                     </div>
@@ -779,6 +779,30 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         })
     </script>
 @endif
+
+<script>
+    (function () {
+        var letterType = document.getElementById('ccl_letter_type');
+        if (!letterType) {
+            return;
+        }
+
+        var iaaFields = document.querySelectorAll('.ccl-iaa-only');
+
+        function syncIaaFields() {
+            var show = letterType.value === 'oisc_iaa';
+            iaaFields.forEach(function (row) {
+                row.style.display = show ? '' : 'none';
+                row.querySelectorAll('input').forEach(function (input) {
+                    input.required = show;
+                });
+            });
+        }
+
+        letterType.addEventListener('change', syncIaaFields);
+        syncIaaFields();
+    })();
+</script>
 
 @if (session()->has('ccl_sent'))
 <script>

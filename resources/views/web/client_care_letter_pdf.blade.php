@@ -16,6 +16,10 @@
     </style>
 </head>
 <body>
+    @php
+        $isIaaLetter = ($letter_type ?? '') === 'oisc_iaa';
+        $documentLabel = $isIaaLetter ? 'letter' : 'agreement';
+    @endphp
     <h1>{{ $document_title === 'Client Care Letter' ? 'Client Care Letter' : 'Service Agreement' }}</h1>
     <p class="muted">Our ref: {{ $reference_no }} | Issued on: {{ $issue_date }}</p>
 
@@ -57,9 +61,19 @@
     <h2>Professional Fees and Disbursements</h2>
     <div class="box">
         <p><strong>Fee details:</strong> {{ $fee_details }}</p>
-        <p><strong>Agreed fixed fee:</strong> £{{ $fixed_fee }}</p>
-        <p><strong>Estimated Home Office application fees:</strong> £{{ $home_office_fee }}</p>
-        <p><strong>Estimated Immigration Health Surcharge:</strong> £{{ $ihs_fee }}</p>
+        @php
+            $formatFee = static function (string $amount): string {
+                $amount = trim($amount);
+                if ($amount === '' || !preg_match('/^\d+(?:\.\d{1,2})?$/', $amount)) {
+                    return $amount;
+                }
+
+                return '£' . $amount;
+            };
+        @endphp
+        <p><strong>Agreed fixed fee:</strong> {{ $formatFee((string) $fixed_fee) }}</p>
+        <p><strong>Estimated Home Office application fees:</strong> {{ $formatFee((string) $home_office_fee) }}</p>
+        <p><strong>Estimated Immigration Health Surcharge:</strong> {{ $formatFee((string) $ihs_fee) }}</p>
         <p><strong>VAT note:</strong> {{ $vat_note }}</p>
         <p><strong>Additional costs client may incur:</strong> {{ $additional_costs }}</p>
         <p>Where money is held by us on your behalf for work not yet done, such money will remain your money in a separate client account until you are invoiced and payment is due.</p>
@@ -80,7 +94,7 @@
     @endif
 
     <h2>Terms and Conditions</h2>
-    <p>This letter forms the basis of our agreement with you. All terms and conditions applicable to your case, including complaint handling and data handling, apply to this engagement.</p>
+    <p>This {{ $documentLabel }} forms the basis of our agreement with you. All terms and conditions applicable to your case, including complaint handling and data handling, apply to this engagement.</p>
     @if($letter_type === 'oisc_iaa')
         <p>If this agreement is a distance/off-premises contract and you are an individual consumer, you may have a statutory 14-day cancellation right under applicable law.</p>
     @endif
@@ -94,7 +108,7 @@
     @endif
 
     <h2>Conclusion</h2>
-    <p>Finally, thank you for instructing us. Please sign, date, and return this letter to confirm you understand and agree to its contents.</p>
+    <p>Finally, thank you for instructing us. Please sign, date, and return this {{ $documentLabel }} to confirm you understand and agree to its contents.</p>
 
     <div class="signature">
         <p>Yours sincerely,</p>

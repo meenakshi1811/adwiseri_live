@@ -2620,15 +2620,34 @@ class WebController extends Controller
             'line_manager_email' => 'nullable|email|max:150',
             'office_hours' => 'nullable|string|max:150',
             'complaint_handling_details' => 'nullable|string|max:1500',
-            'oisc_registration_number' => 'nullable|string|max:100',
-            'authorisation_level' => 'nullable|string|max:150',
+            'oisc_registration_number' => 'nullable|required_if:letter_type,oisc_iaa|string|max:100',
+            'authorisation_level' => 'nullable|required_if:letter_type,oisc_iaa|string|max:150',
             'allow_resend' => 'nullable|in:0,1',
             'correction_note' => 'nullable|string|max:500',
         ]);
 
         $client = Clients::findOrFail($validated['client_id']);
 
+        if (!$subscriber || (int) $client->subscriber_id !== (int) $subscriber->id) {
+            abort(403);
+        }
+
+        $clientEmail = trim((string) $client->email);
+        if (!filter_var($clientEmail, FILTER_VALIDATE_EMAIL)) {
+            return back()
+                ->withInput()
+                ->with('ccl_error', 'This client does not have a valid email address on file. Update the client profile before generating and sending the document.');
+        }
+
         $baseDocName = $validated['letter_type'] === 'oisc_iaa' ? 'Client Care Letter' : 'Service Agreement';
+
+        $filledOr = static function (?string $value, string $default): string {
+            $value = trim((string) $value);
+
+            return $value !== '' ? $value : $default;
+        };
+
+        $subscriberFooter = BrandedMail::subscriberFooterContext($subscriber);
 
         $existingLetter = Client_Docs::where('client_id', $client->id)
             ->where('doc_name', 'like', $baseDocName . '%')
@@ -2651,39 +2670,39 @@ class WebController extends Controller
             'prepared_by' => $user,
             'letter_type' => $validated['letter_type'],
             'document_title' => $baseDocName,
-            'reference_no' => 'IMM/' . now()->format('ymd') . '/' . strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $user->name), 0, 3)),
+            'reference_no' => 'IMM/' . now()->format('ymd') . '/' . strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $user->name) . 'ADV', 0, 3)),
             'issue_date' => now()->format('d-m-Y'),
             'consultation_date' => date('d F Y', strtotime($validated['consultation_date'])),
             'application_type' => $validated['application_type'],
-            'application_name' => $validated['application_name'] ?? '-',
-            'immigration_status' => $validated['immigration_status'] ?? 'As stated during consultation and based on documents shared.',
-            'client_instructions' => $validated['client_instructions'] ?? 'As discussed with the adviser during initial consultation.',
-            'advice_given' => $validated['advice_given'] ?? 'Advice provided based on information and documents shared by the client.',
-            'work_agreed' => $validated['work_agreed'] ?? 'Preparation, review and submission support for the identified application.',
+            'application_name' => $filledOr($validated['application_name'] ?? null, '-'),
+            'immigration_status' => $filledOr($validated['immigration_status'] ?? null, 'As stated during consultation and based on documents shared.'),
+            'client_instructions' => $filledOr($validated['client_instructions'] ?? null, 'As discussed with the adviser during initial consultation.'),
+            'advice_given' => $filledOr($validated['advice_given'] ?? null, 'Advice provided based on information and documents shared by the client.'),
+            'work_agreed' => $filledOr($validated['work_agreed'] ?? null, 'Preparation, review and submission support for the identified application.'),
             'estimated_timeline' => $validated['estimated_timeline'],
-            'key_dates' => $validated['key_dates'] ?? 'Key dates will be tracked and communicated in writing as the matter progresses.',
-            'fee_details' => $validated['fee_details'] ?? 'Fees discussed during consultation and confirmed in writing.',
-            'fixed_fee' => $validated['fixed_fee'] ?? '0',
-            'home_office_fee' => $validated['home_office_fee'] ?? '0',
-            'ihs_fee' => $validated['ihs_fee'] ?? '0',
-            'additional_costs' => $validated['additional_costs'] ?? 'Additional costs may include translation, interpreter, courier and photocopying expenses.',
-            'vat_note' => $validated['vat_note'] ?? 'No VAT will be charged unless otherwise stated in writing.',
+            'key_dates' => $filledOr($validated['key_dates'] ?? null, 'Key dates will be tracked and communicated in writing as the matter progresses.'),
+            'fee_details' => $filledOr($validated['fee_details'] ?? null, 'Fees discussed during consultation and confirmed in writing.'),
+            'fixed_fee' => $filledOr($validated['fixed_fee'] ?? null, 'As agreed in writing'),
+            'home_office_fee' => $filledOr($validated['home_office_fee'] ?? null, 'As applicable at time of submission'),
+            'ihs_fee' => $filledOr($validated['ihs_fee'] ?? null, 'As applicable at time of submission'),
+            'additional_costs' => $filledOr($validated['additional_costs'] ?? null, 'Additional costs may include translation, interpreter, courier and photocopying expenses.'),
+            'vat_note' => $filledOr($validated['vat_note'] ?? null, 'No VAT will be charged unless otherwise stated in writing.'),
             'merits_of_case' => $validated['merits_of_case'],
             'case_notes' => $validated['case_notes'] ?? '',
             'adviser_name' => $user->name,
             'adviser_phone' => $user->phone ?? '-',
             'adviser_email' => $user->email,
-            'line_manager_name' => $validated['line_manager_name'] ?? 'N/A',
-            'line_manager_phone' => $validated['line_manager_phone'] ?? '-',
-            'line_manager_email' => $validated['line_manager_email'] ?? '-',
-            'organisation_name' => $subscriber->organization ?: $subscriber->name,
-            'organisation_address' => $subscriber->address ?: 'Address available on request.',
-            'organisation_phone' => $subscriber->phone ?: '-',
-            'organisation_email' => $subscriber->email,
-            'office_hours' => $validated['office_hours'] ?? '9am to 5pm during weekdays',
-            'complaint_handling_details' => $validated['complaint_handling_details'] ?? 'Please raise concerns first with your case adviser or their line manager in writing.',
-            'oisc_registration_number' => $validated['oisc_registration_number'] ?? 'To be provided by organisation',
-            'authorisation_level' => $validated['authorisation_level'] ?? 'Level 1',
+            'line_manager_name' => $filledOr($validated['line_manager_name'] ?? null, 'N/A'),
+            'line_manager_phone' => $filledOr($validated['line_manager_phone'] ?? null, '-'),
+            'line_manager_email' => $filledOr($validated['line_manager_email'] ?? null, '-'),
+            'organisation_name' => $subscriberFooter['organization'],
+            'organisation_address' => $subscriberFooter['address'] !== '' ? $subscriberFooter['address'] : 'Address available on request.',
+            'organisation_phone' => $filledOr($subscriber->phone ?? null, '-'),
+            'organisation_email' => $subscriberFooter['email'] !== '' ? $subscriberFooter['email'] : $subscriber->email,
+            'office_hours' => $filledOr($validated['office_hours'] ?? null, '9am to 5pm during weekdays'),
+            'complaint_handling_details' => $filledOr($validated['complaint_handling_details'] ?? null, 'Please raise concerns first with your case adviser or their line manager in writing.'),
+            'oisc_registration_number' => $filledOr($validated['oisc_registration_number'] ?? null, 'To be provided by organisation'),
+            'authorisation_level' => $filledOr($validated['authorisation_level'] ?? null, 'Level 1'),
             'correction_note' => $validated['correction_note'] ?? null,
         ];
 
@@ -2718,15 +2737,21 @@ class WebController extends Controller
         $activity->local_time = $validated['local_time'] ?? null;
         $activity->save();
 
+        $attachmentPath = $folder . $fileName;
+
         try {
-            Mail::to($client->email)->send(new ClientCareLetterMail($letterData, $folder . $fileName));
+            BrandedMail::sendWithAlertsArchive(
+                $clientEmail,
+                fn () => new ClientCareLetterMail($letterData, $attachmentPath)
+            );
+
             return back()->with('ccl_sent', $baseDocName . ' generated, saved to documents, and emailed to the client for signature.');
         } catch (\Exception $exception) {
-            echo'<pre>';print_r($exception);exit();
             Log::error('Client care letter email sending failed.', [
                 'client_id' => $client->id,
-                'client_email' => $client->email,
+                'client_email' => $clientEmail,
                 'document' => $fileName,
+                'letter_type' => $validated['letter_type'],
                 'error' => $exception->getMessage(),
             ]);
 
