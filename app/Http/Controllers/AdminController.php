@@ -898,6 +898,20 @@ class AdminController extends Controller
             $user = Auth::user();
             if ($user) {
                 $subscriber = User::find($id);
+                if (!$subscriber) {
+                    return back()->withErrors(['message' => 'User not found.']);
+                }
+
+                if (strtolower((string) $subscriber->user_type) === 'admin') {
+                    $moduleAccess = app(\App\Services\RoleModuleAccessService::class);
+                    if (!$moduleAccess->isFullAdmin($user)) {
+                        abort(403, 'Only the primary admin can change admin user status.');
+                    }
+                    if ((int) ($subscriber->is_support ?? 0) !== 1) {
+                        return back()->withErrors(['message' => 'Primary admin account status cannot be changed here.']);
+                    }
+                }
+
                 if ($subscriber->status == "true") {
                     $subscriber->status = "false";
                     if ($subscriber->user_type == "Subscriber") {
@@ -1021,6 +1035,14 @@ class AdminController extends Controller
     public function siteuser_update($id)
     {
         $siteuser = User::find($id);
+        if (
+            $siteuser
+            && strtolower((string) $siteuser->user_type) === 'admin'
+            && (int) ($siteuser->is_support ?? 0) === 1
+        ) {
+            return redirect()->route('admin_edit_staff', $siteuser->id);
+        }
+
         $countries = Countries::get();
         foreach ($countries as $country) {
             if ($country->country_name == $siteuser->country) {
@@ -2166,7 +2188,19 @@ class AdminController extends Controller
     {
         if (!empty($id)) { //edit the page.
             $vuser  = User::find($id);
+            if (!$vuser) {
+                return back()->withErrors(['message' => 'User not found.']);
+            }
+
             $user = Auth::user();
+            if (
+                strtolower((string) $vuser->user_type) === 'admin'
+                && (int) ($vuser->is_support ?? 0) === 1
+                && !app(\App\Services\RoleModuleAccessService::class)->isFullAdmin($user)
+            ) {
+                abort(403, 'Only the primary admin can view admin staff profiles.');
+            }
+
             if ($vuser->user_type == "Subscriber") {
                 $page = "subscriber";
             } else {
@@ -3625,12 +3659,33 @@ class AdminController extends Controller
             $user = Auth::user();
             if ($user) {
                 $siteuser = User::find($id);
+                if (!$siteuser) {
+                    return back()->withErrors(['message' => 'User not found.']);
+                }
+
+                $moduleAccess = app(\App\Services\RoleModuleAccessService::class);
+
+                if (strtolower((string) $siteuser->user_type) === 'admin') {
+                    if (!$moduleAccess->isFullAdmin($user)) {
+                        abort(403, 'Only the primary admin can delete admin users.');
+                    }
+                    if ((int) ($siteuser->is_support ?? 0) !== 1) {
+                        return back()->withErrors(['message' => 'The primary admin account cannot be deleted.']);
+                    }
+                }
+
+                if ((int) $siteuser->id === (int) $user->id) {
+                    return back()->withErrors(['message' => 'You cannot delete your own account while logged in.']);
+                }
+
+                $deletedName = $siteuser->name;
+                UserRoles::where('user_id', $siteuser->id)->delete();
                 $siteuser->delete();
                 $activity = new Activities();
                 $activity->user_id = $user->id;
                 $activity->user_name = $user->name;
                 $activity->activity_name = "User Deleted";
-                $activity->activity_detail = "User " . $siteuser->name . " deleted by " . $user->name . " at " . date('d M, Y H:i:s');
+                $activity->activity_detail = "User " . $deletedName . " deleted by " . $user->name . " at " . date('d M, Y H:i:s');
                 $activity->activity_icon = "user.png";
                 $activity->save();
                 return back()->with('deleted', 'User deleted successfully.');

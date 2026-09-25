@@ -7927,6 +7927,8 @@ class WebController extends Controller
             //     }
             // }
 
+            app(\App\Services\AffiliateReportSettingService::class)->ensureReportSetting($user);
+
             DB::commit();
             if ($req->has('url_model')) {
                 return redirect()->route('affiliates')->with('msg', 'Affiliate Added Successfully');
@@ -10605,29 +10607,69 @@ class WebController extends Controller
         ]);
     }
 
+    public function affiliate_settings()
+    {
+        $affiliateAccount = Auth::guard('affiliates')->user();
+        if (!$affiliateAccount) {
+            return redirect()->route('affiliate.createLogin');
+        }
+
+        $affiliateReportService = app(\App\Services\AffiliateReportSettingService::class);
+        $user = $affiliateReportService->resolveLinkedUser($affiliateAccount);
+        if (!$user) {
+            return redirect()->route('affiliate.createLogin')->withErrors([
+                'email' => 'Affiliate account is not linked to an active user profile.',
+            ]);
+        }
+
+        $reportSetting = $affiliateReportService->ensureReportSetting($user);
+        $page = 'settings';
+
+        return view('affiliate.settings', [
+            'user' => $user,
+            'affiliateUser' => $affiliateAccount,
+            'page' => $page,
+            'reportSetting' => $reportSetting,
+            'reportModules' => $affiliateReportService->moduleLabels(),
+        ]);
+    }
+
     public function saveReportSettings(Request $request)
     {
         try {
-            $user = Auth::user();
+            $affiliateReportService = app(\App\Services\AffiliateReportSettingService::class);
+            $user = $affiliateReportService->resolveUserForReportSettings() ?? Auth::user();
 
-            $allowedModules = [
-                'clients',
-                'applications',
-                'invoices',
-                'payments',
-                'referrals',
-                'wallets',
-            ];
+            if (!$user) {
+                return response()->json(['status' => false, 'message' => 'Unauthorized.'], 401);
+            }
 
-            if ($user && strtolower($user->user_type) === 'admin') {
+            $isAffiliate = $affiliateReportService->isAffiliateUser($user);
+
+            $allowedModules = $isAffiliate
+                ? \App\Services\AffiliateReportSettingService::DEFAULT_MODULES
+                : [
+                    'clients',
+                    'applications',
+                    'invoices',
+                    'payments',
+                    'referrals',
+                    'wallets',
+                ];
+
+            if (!$isAffiliate && $user && strtolower($user->user_type) === 'admin') {
                 $allowedModules[] = 'subscribers';
                 $allowedModules[] = 'affiliates';
             }
 
+            $frequencyRule = $isAffiliate
+                ? 'required|in:monthly'
+                : 'required|in:daily,weekly,monthly,quarterly';
+
             $request->validate([
                 'modules' => 'required|array|min:1',
                 'modules.*' => 'in:'.implode(',', $allowedModules),
-                'frequency' => 'required|in:daily,weekly,monthly,quarterly',
+                'frequency' => $frequencyRule,
                 'delivery_mode' => 'required|in:attachment,link',
                 'emails' => ['required', 'string', 'max:1000']
             ]);
@@ -10676,11 +10718,22 @@ class WebController extends Controller
             $emails = array_slice(array_values(array_unique($emails, SORT_STRING)), 0, 5);
             $normalizedEmails = implode(', ', $emails);
 
+            $modules = $isAffiliate
+                ? array_values(array_intersect(
+                    (array) $request->modules,
+                    \App\Services\AffiliateReportSettingService::DEFAULT_MODULES
+                ))
+                : $request->modules;
+
+            if ($isAffiliate && $modules === []) {
+                $modules = \App\Services\AffiliateReportSettingService::DEFAULT_MODULES;
+            }
+
             $setting = ReportSetting::updateOrCreate(
-                ['user_id' => Auth::id()],
+                ['user_id' => $user->id],
                 [
-                    'modules' => $request->modules,
-                    'frequency' => $request->frequency,
+                    'modules' => $modules,
+                    'frequency' => $isAffiliate ? 'monthly' : $request->frequency,
                     'delivery_mode' => $request->delivery_mode,
                     'emails' => $normalizedEmails
                 ]
@@ -10688,7 +10741,9 @@ class WebController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => 'Report settings saved successfully. Reports will be sent according to the selected schedule.',
+                'message' => $isAffiliate
+                    ? 'Affiliate report settings saved. Your Subscribers, Commissions, and Wallet summary will be emailed on the last day of each calendar month.'
+                    : 'Report settings saved successfully. Reports will be sent according to the selected schedule.',
                 'data' => $setting
             ]);
 

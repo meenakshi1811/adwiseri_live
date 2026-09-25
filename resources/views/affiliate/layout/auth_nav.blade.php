@@ -174,6 +174,12 @@
                                 </span>
                                 Commissions
                             </a>
+                        <a href="{{ route('affiliate_settings') }}" @if($page == "settings") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
+                                <span class="sidebar-menu-icon">
+                                    <i class="fas fa-gear"></i>
+                                </span>
+                                Settings
+                            </a>
                     @endif
                 </div>
             </div>

@@ -381,6 +381,7 @@ Route::get('/subscribers_affiliate', [App\Http\Controllers\WebController::class,
 Route::get('/commissions_affiliate', [App\Http\Controllers\WebController::class, 'commissions_affiliate'])->name('commissions_affiliate');
 Route::get('/referrals_affiliate', [App\Http\Controllers\WebController::class, 'referrals'])->name('referrals_affiliate');
 Route::get('/wallet_affiliate', [App\Http\Controllers\WebController::class, 'wallet'])->name('wallet_affiliate');
+Route::get('/affiliate_settings', [App\Http\Controllers\WebController::class, 'affiliate_settings'])->name('affiliate_settings');
 Route::group(['middleware' => ['ops.sys']], function () {
     Route::get('/support_affiliate', [App\Http\Controllers\WebController::class, 'support'])->name('support_affiliate');
     Route::get('/ask_support_affiliate', [App\Http\Controllers\WebController::class, 'ask_support'])->name('ask_support_affiliate');
@@ -402,6 +403,8 @@ Route::group(['middleware' => ['ops.sys']], function () {
 
 
 Route::post('/admin_new_staff', [App\Http\Controllers\AdminStaffController::class, 'add_new_staff'])->name('admin_new_staff')->middleware('admin_auth');
+Route::get('/admin_edit_staff/{id}', [App\Http\Controllers\AdminStaffController::class, 'edit_admin_staff'])->name('admin_edit_staff')->middleware('admin_auth');
+Route::post('/admin_update_staff', [App\Http\Controllers\AdminStaffController::class, 'update_admin_staff'])->name('admin_update_staff')->middleware('admin_auth');
 
 
 Route::post('/assign_supports', [App\Http\Controllers\AdminStaffController::class, 'assign_supports'])->name('assign_supports')->middleware('admin_auth');

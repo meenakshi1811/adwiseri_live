@@ -5,7 +5,6 @@ namespace App\Http\Middleware;
 use App\Services\RoleModuleAccessService;
 use Illuminate\Auth\Middleware\Authenticate as Middleware;
 use Closure;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class AdminAuthenticate extends Middleware
@@ -14,23 +13,6 @@ class AdminAuthenticate extends Middleware
     {
         // 🔒 First, call parent to ensure authentication check works
         $this->authenticate($request, $guards);
-
-        // ⏰ Expiry logic
-        $expiryDate = Carbon::create(2025, 8, 1); // base + 15 days
-        $today = Carbon::now();
-
-        $blockedRoutes = [
-            'new_user',
-            'view_user',
-        ];
-
-        if ($today->greaterThanOrEqualTo($expiryDate)) {
-            foreach ($blockedRoutes as $route) {
-                if ($request->is($route)) {
-                    abort(403, ' Page Not Found.');
-                }
-            }
-        }
 
         $user = Auth::user();
         $moduleAccess = app(RoleModuleAccessService::class);

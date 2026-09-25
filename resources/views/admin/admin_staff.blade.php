@@ -148,7 +148,7 @@
         confirmButtonText: 'Yes, continue'
       }).then((result) => {
         if (result.isConfirmed) {
-          window.location.href = "siteuser_update/"+id+"";
+          window.location.href = "{{ url('admin_edit_staff') }}/"+id;
         }
       })
     }

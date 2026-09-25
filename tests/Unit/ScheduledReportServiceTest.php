@@ -2,15 +2,21 @@
 
 namespace Tests\Unit;
 
+use App\Services\AffiliateReportSettingService;
 use App\Services\ScheduledReportService;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
 class ScheduledReportServiceTest extends TestCase
 {
+    private function service(): ScheduledReportService
+    {
+        return new ScheduledReportService(new AffiliateReportSettingService());
+    }
+
     public function testExtractRecipientsKeepsAllCommaSeparatedEmails(): void
     {
-        $service = new ScheduledReportService();
+        $service = $this->service();
         $method = (new ReflectionClass($service))->getMethod('extractRecipients');
         $method->setAccessible(true);
 
@@ -30,7 +36,7 @@ class ScheduledReportServiceTest extends TestCase
 
     public function testExtractRecipientsSplitsSupportedSeparatorsAndDeduplicatesCaseInsensitively(): void
     {
-        $service = new ScheduledReportService();
+        $service = $this->service();
         $method = (new ReflectionClass($service))->getMethod('extractRecipients');
         $method->setAccessible(true);
 

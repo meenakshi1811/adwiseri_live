@@ -9,28 +9,145 @@ use App\Models\Currency;
 use App\Models\UserRoles;
 use App\Models\Activities;
 use App\Models\Tickets;
+use App\Services\RoleModuleAccessService;
 use Auth;
 use DateTimeZone;
 use Hash;
+use Illuminate\Validation\Rule;
+use App\Models\States;
 
 class AdminStaffController extends Controller
 {
+    private function requireFullAdmin()
+    {
+        $user = Auth::user();
+        if (!$user || !app(RoleModuleAccessService::class)->isFullAdmin($user)) {
+            abort(403, 'Only the primary admin can manage admin staff users.');
+        }
+
+        return $user;
+    }
+
+    private function findAdminStaffUser(int $id): User
+    {
+        $staff = User::findOrFail($id);
+        if (strtolower((string) $staff->user_type) !== 'admin' || (int) ($staff->is_support ?? 0) !== 1) {
+            abort(404);
+        }
+
+        return $staff;
+    }
 
     public function admin_staff(){
-        $siteusers = User::where('user_type', '=', 'admin')->orderBy('created_at', 'desc')->get();
+        $this->requireFullAdmin();
+        $siteusers = User::where('user_type', '=', 'admin')
+            ->where('is_support', 1)
+            ->orderBy('created_at', 'desc')
+            ->get();
         $user = Auth::user();
-        $page = "users";
+        $page = "admin_staff";
         return view('admin.admin_staff', compact('siteusers', 'user', 'page'));
     }
     public function admin_new_staff(){
+        $this->requireFullAdmin();
         $countries = Countries::get();
         $tzlist = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
         $user = Auth::user();
-        $page = "admin_staffs";
-        return view('admin.admin_new_staff', compact('page','countries','tzlist','user'));
+        $page = "admin_staff";
+        $states = collect();
+
+        return view('admin.admin_new_staff', compact('page', 'countries', 'tzlist', 'user', 'states'));
     }
-    public function add_new_staff(Request $request){
+
+    public function edit_admin_staff($id)
+    {
+        $this->requireFullAdmin();
+        $staffUser = $this->findAdminStaffUser((int) $id);
+        $countries = Countries::get();
+        $states = collect();
+        foreach ($countries as $country) {
+            if ($country->country_name == $staffUser->country) {
+                $states = States::where('country_id', '=', $country->id)->get();
+                break;
+            }
+        }
+        $tzlist = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
         $user = Auth::user();
+        $page = 'admin_staff';
+
+        return view('admin.admin_new_staff', compact('page', 'countries', 'tzlist', 'user', 'staffUser', 'states'));
+    }
+
+    public function update_admin_staff(Request $request)
+    {
+        $actor = $this->requireFullAdmin();
+        $staffUser = $this->findAdminStaffUser((int) $request->input('id'));
+
+        $validated = $request->validate([
+            'id' => 'required|exists:users,id',
+            'name' => 'required|string|max:255',
+            'phone' => ['required', 'phone_intl', Rule::unique('users', 'phone')->ignore($staffUser->id)],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($staffUser->id)],
+            'dob' => 'required|date',
+            'designation' => 'required|string|max:255',
+            'country' => 'required',
+            'state' => 'required',
+            'city' => 'required|string|max:255',
+            'pincode' => 'required',
+            'timezone' => 'required|string|max:255',
+            'password' => 'nullable|string|min:8',
+        ]);
+
+        $country = Countries::find($validated['country']);
+        if (!$country) {
+            return back()->withInput()->withErrors(['country' => 'Please select a valid country.']);
+        }
+
+        $staffUser->name = $validated['name'];
+        $staffUser->phone = $validated['phone'];
+        $staffUser->email = $validated['email'];
+        $staffUser->dob = $validated['dob'];
+        $staffUser->designation = $validated['designation'];
+        $staffUser->country = $country->country_name;
+        $staffUser->state = $validated['state'];
+        $staffUser->city = $validated['city'];
+        $staffUser->pincode = $validated['pincode'];
+        $staffUser->timezone = $validated['timezone'];
+        $staffUser->user_type = 'admin';
+        $staffUser->is_support = 1;
+
+        if (!empty($validated['password'])) {
+            $staffUser->password = Hash::make($validated['password']);
+        }
+
+        $crcode = $country->currency;
+        $currency = Currency::where('currency_code', '=', $crcode)->first();
+        $staffUser->currency = $currency
+            ? $currency->currency_code . '(' . $currency->currency_symbol . ')'
+            : 'USD($)';
+
+        $staffUser->save();
+
+        UserRoles::where('user_id', $staffUser->id)->update([
+            'name' => $staffUser->name,
+            'email' => $staffUser->email,
+        ]);
+
+        $activity = new Activities();
+        $activity->subscriber_id = $actor->id;
+        $activity->user_id = $actor->id;
+        $activity->user_name = $actor->name;
+        $activity->activity_name = 'Admin Staff Updated';
+        $activity->activity_detail = 'Admin staff user ' . $staffUser->name . ' updated by ' . $actor->name . ' at ' . ($request->local_time ?? now()->format('d M, Y H:i:s'));
+        $activity->activity_icon = 'user.png';
+        $activity->local_time = $request->local_time;
+        $activity->save();
+
+        return redirect()->route('admin_staff')->with('user_updated', 'Staff member updated successfully.');
+    }
+
+    public function add_new_staff(Request $request){
+        $user = $this->requireFullAdmin();
         // $this->set_timezone();
         $data = new User();
         $this->validate(
@@ -56,16 +173,16 @@ class AdminStaffController extends Controller
         $data->email = $request['email'];
         $data->dob = $request['dob'];
         $data->status = "true";
-        $data->category = $user->category;
-        $data->sub_category = $user->sub_category;
-        $data->other_subcategory = $user->other_subcategory;
-        $data->membership = $user->membership;
-        $data->membership_type = $user->membership_type;
-        $data->membership_start_date = $user->membership_start_date;
-        $data->membership_expiry_date = $user->membership_expiry_date;
+        $data->category = null;
+        $data->sub_category = null;
+        $data->other_subcategory = null;
+        $data->membership = null;
+        $data->membership_type = null;
+        $data->membership_start_date = null;
+        $data->membership_expiry_date = null;
         $data->wallet = 0;
         $data->is_support = 1;
-        $data->referral = $user->referral;
+        $data->referral = null;
         $data->organization = $user->organization;
         $data->designation = $request['designation'];
         $data->employee_strength = $user->employee_strength;

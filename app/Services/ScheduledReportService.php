@@ -13,6 +13,7 @@ use App\Models\ReportSetting;
 use App\Models\Used_referrals;
 use App\Mail\ScheduledReportMail;
 use App\Models\User;
+use App\Services\RenewalCommissionService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use DateTimeZone;
@@ -23,12 +24,28 @@ use Illuminate\Support\Facades\URL;
 
 class ScheduledReportService
 {
+    public function __construct(
+        private AffiliateReportSettingService $affiliateReportSettingService
+    ) {
+    }
+
     public function dispatchForSetting(ReportSetting $setting, $trigger = 'manual', ?array $overrideRecipients = null, bool $skipPersistence = false)
     {
         $user = User::find($setting->user_id);
 
         if (!$user || empty($setting->modules) || empty($setting->frequency) || empty($setting->delivery_mode)) {
             return ['status' => 'skipped', 'message' => 'Invalid report setting configuration.'];
+        }
+
+        if ($this->affiliateReportSettingService->isAffiliateUser($user)) {
+            $setting->modules = array_values(array_intersect(
+                (array) $setting->modules,
+                AffiliateReportSettingService::DEFAULT_MODULES
+            ));
+
+            if ($setting->modules === []) {
+                $setting->modules = AffiliateReportSettingService::DEFAULT_MODULES;
+            }
         }
 
         [$startDate, $endDate] = $this->resolveDateRange($setting->frequency, $setting);
@@ -50,7 +67,7 @@ class ScheduledReportService
             }
         }
 
-        $subscriberId = (strtolower($user->user_type) === 'subscriber' || strtolower($user->user_type) === 'admin') ? $user->id : $user->added_by;
+        $subscriberId = $this->resolveReportOwnerId($user);
         $reportData = $this->buildReportData($setting->modules, $subscriberId, $startDate, $endDate, $user);
 
         $storageFileName = 'scheduled_report_' . $setting->user_id . '_' . now()->format('Ymd_His') . '.pdf';
@@ -84,10 +101,12 @@ class ScheduledReportService
             : $this->extractRecipients($setting->emails, $user->email);
         $downloadLink = URL::temporarySignedRoute('scheduled_report_download', now()->addDays(7), ['file' => $storageFileName]);
 
-        $subscriber = User::find($subscriberId);
-        $subscriberName = trim((string) ($subscriber->name ?? $user->name ?? 'Subscriber'));
+        $subscriber = User::find($subscriberId) ?? $user;
+        $subscriberName = trim((string) ($user->name ?? $subscriber->name ?? 'Subscriber'));
         $consultancyName = trim((string) ($subscriber->organization ?? ''));
-        if ($consultancyName === '') {
+        if ($this->affiliateReportSettingService->isAffiliateUser($user)) {
+            $consultancyName = $subscriberName !== '' ? $subscriberName : 'Affiliate Partner';
+        } elseif ($consultancyName === '') {
             $consultancyName = 'consultancy';
         }
 
@@ -339,7 +358,7 @@ class ScheduledReportService
         }
 
         if ($setting->frequency === 'monthly') {
-            return $now->day === 1;
+            return (int) $now->day === (int) $now->daysInMonth;
         }
 
         if ($setting->frequency === 'quarterly') {
@@ -368,7 +387,12 @@ class ScheduledReportService
         }
 
         if ($frequency === 'monthly') {
+            if ((int) $now->day === (int) $now->daysInMonth) {
+                return [$now->copy()->startOfMonth(), $now->copy()->endOfDay()];
+            }
+
             $period = $now->copy()->subMonthNoOverflow();
+
             return [$period->copy()->startOfMonth(), $period->copy()->endOfMonth()];
         }
 
@@ -451,8 +475,25 @@ class ScheduledReportService
         }
     }
 
+    private function resolveReportOwnerId(User $user): int
+    {
+        if ($this->affiliateReportSettingService->isAffiliateUser($user)) {
+            return (int) $user->id;
+        }
+
+        if (in_array(strtolower((string) $user->user_type), ['subscriber', 'admin'], true)) {
+            return (int) $user->id;
+        }
+
+        return (int) ($user->added_by ?? $user->id);
+    }
+
     private function buildReportData($modules, $subscriberId, $startDate, $endDate, $user)
     {
+        if ($this->affiliateReportSettingService->isAffiliateUser($user)) {
+            return $this->buildAffiliateReportData($modules, $user, $startDate, $endDate);
+        }
+
         $userIds = User::where('added_by', $subscriberId)->pluck('id')->toArray();
         $userIds[] = $subscriberId;
 
@@ -556,6 +597,80 @@ class ScheduledReportService
         return $data;
     }
 
+    private function buildAffiliateReportData(array $modules, User $affiliateUser, $startDate, $endDate): array
+    {
+        $referralCode = trim((string) ($affiliateUser->referral ?? ''));
+        $data = [];
+
+        if (in_array(AffiliateReportSettingService::MODULE_SUBSCRIBERS, $modules, true)) {
+            $query = User::query()
+                ->where('user_type', 'Subscriber')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->select('id', 'name', 'email', 'status', 'created_at')
+                ->orderByDesc('created_at');
+
+            if ($referralCode !== '') {
+                $query->where('referral_code', $referralCode);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+
+            $data[] = [
+                'title' => 'Subscribers Referred',
+                'rows' => $query->get()->toArray(),
+            ];
+        }
+
+        if (in_array(AffiliateReportSettingService::MODULE_COMMISSIONS, $modules, true)) {
+            $commissionQuery = Referrals::query()
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->whereIn('type', ['Referral Commission', RenewalCommissionService::TYPE])
+                ->select('id', 'user_name', 'type', 'amount_added', 'total_amount', 'created_at')
+                ->orderByDesc('created_at');
+
+            if ($referralCode !== '') {
+                $commissionQuery->where('referral_code', $referralCode);
+            } else {
+                $commissionQuery->whereRaw('1 = 0');
+            }
+
+            $data[] = [
+                'title' => 'Commissions',
+                'rows' => $commissionQuery->get()->toArray(),
+            ];
+        }
+
+        if (in_array(AffiliateReportSettingService::MODULE_WALLET, $modules, true)) {
+            $walletQuery = Referrals::query()
+                ->walletTableVisible()
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->select('id', 'user_name', 'type', 'amount_added', 'debit_amount', 'wallet_balance', 'created_at')
+                ->orderByDesc('created_at');
+
+            if ($referralCode !== '') {
+                $walletQuery->where('referral_code', $referralCode);
+            } else {
+                $walletQuery->whereRaw('1 = 0');
+            }
+
+            $walletRows = $walletQuery->get()->map(static function ($row) {
+                $payload = $row->toArray();
+                $payload['movement'] = !empty($row->amount_added)
+                    ? (string) $row->amount_added
+                    : (!empty($row->debit_amount) ? (string) $row->debit_amount : '0');
+
+                return $payload;
+            })->toArray();
+
+            $data[] = [
+                'title' => 'Wallet',
+                'rows' => $walletRows,
+            ];
+        }
+
+        return $data;
+    }
+
 
     private function resolveExistingColumn(string $table, array $candidates): ?string
     {
@@ -597,12 +712,52 @@ class ScheduledReportService
 
     private function extractRecipients($emails, $fallbackEmail)
     {
-        if (empty($emails)) {
-            return [$fallbackEmail];
+        $fallbackEmail = trim((string) $fallbackEmail);
+        $raw = trim((string) $emails);
+
+        if ($raw === '') {
+            return $fallbackEmail !== '' ? [$fallbackEmail] : [];
         }
 
-        $items = array_filter(array_map('trim', explode(',', $emails)));
+        $normalized = str_replace(["\r\n", "\r", "\n", ';'], ',', $raw);
+        $items = [];
 
-        return empty($items) ? [$fallbackEmail] : array_values(array_unique($items));
+        foreach (explode(',', $normalized) as $item) {
+            $item = trim($item);
+            if ($item === '' || !filter_var($item, FILTER_VALIDATE_EMAIL)) {
+                continue;
+            }
+
+            $items[] = $item;
+        }
+
+        $deduped = [];
+        $seen = [];
+        foreach ($items as $item) {
+            $key = strtolower($item);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $deduped[] = $item;
+        }
+
+        if ($fallbackEmail !== '' && filter_var($fallbackEmail, FILTER_VALIDATE_EMAIL)) {
+            array_unshift($deduped, $fallbackEmail);
+            $seen = [];
+            $final = [];
+            foreach ($deduped as $item) {
+                $key = strtolower($item);
+                if (isset($seen[$key])) {
+                    continue;
+                }
+                $seen[$key] = true;
+                $final[] = $item;
+            }
+
+            return $final;
+        }
+
+        return $deduped;
     }
 }

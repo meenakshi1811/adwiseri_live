@@ -3,17 +3,23 @@
 @section('main-section')
 
         <div class="col-lg-10 column-client">
-            <h3 class="text-primary px-2">Add ADMIN User (Staff)</h3>
+            @php
+                $isEdit = isset($staffUser);
+            @endphp
+            <h3 class="text-primary px-2">{{ $isEdit ? 'Update ADMIN User (Staff)' : 'Add ADMIN User (Staff)' }}</h3>
             <div class="col">
-                <form id="registration_form" class="register-box login-box" method="POST" action="{{ route('admin_new_staff') }}" autocomplete="off">
+                <form id="registration_form" class="register-box login-box" method="POST" action="{{ $isEdit ? route('admin_update_staff') : route('admin_new_staff') }}" autocomplete="off">
                     @csrf
+                    @if($isEdit)
+                        <input type="hidden" name="id" value="{{ $staffUser->id }}">
+                    @endif
                     <input type="hidden" name="local_time" class="localtime" />
                     <div class="row">
                         <div class="col-md-4 p-1">
                             <label>Name<span class="text-danger" style="font-size: 18px;">*</span></label>
                         </div>
                         <div class="col-md-8 p-1">
-                            <input name="name" minlength="3" maxlength="100" required type="text" class="form-control @error('name') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('name') }}" placeholder="Name" autocomplete="name">
+                            <input name="name" minlength="3" maxlength="100" required type="text" class="form-control @error('name') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('name', $staffUser->name ?? '') }}" placeholder="Name" autocomplete="name">
                             @error('name')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -24,7 +30,7 @@
                             <label>Phone<span class="text-danger" style="font-size: 18px;">*</span></label>
                         </div>
                         <div class="col-md-8 p-1">
-                            <input name="phone" type="tel" class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('phone') }}" required placeholder="Phone Number" autocomplete="phone">
+                            <input name="phone" type="tel" class="form-control @error('phone') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('phone', isset($staffUser) ? \App\Support\PhoneNumber::displayE164($staffUser->phone) : '') }}" required placeholder="Phone Number" autocomplete="phone">
                             @error('phone')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -35,7 +41,7 @@
                             <label>Email<span class="text-danger" style="font-size: 18px;">*</span></label>
                         </div>
                         <div class="col-md-8 p-1">
-                            <input name="email" minlength="3" maxlength="100" type="email" class="form-control @error('email') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('email') }}" required placeholder="Email ID" autocomplete="email">
+                            <input name="email" minlength="3" maxlength="100" type="email" class="form-control @error('email') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('email', $staffUser->email ?? '') }}" required placeholder="Email ID" autocomplete="email">
                             @error('email')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -46,7 +52,7 @@
                             <label>Date of Birth<span class="text-danger" style="font-size: 18px;">*</span></label>
                         </div>
                         <div class="col-md-8 p-1">
-                            <input name="dob" type="date" max="{{ date('Y-m-d') }}" class="form-control date @error('dob') is-invalid @enderror" id="exampleInputdob1" aria-describedby="dobHelp" value="{{ old('dob') }}" required placeholder="Date of Birth" autocomplete="dob">
+                            <input name="dob" type="date" max="{{ date('Y-m-d') }}" class="form-control date @error('dob') is-invalid @enderror" id="exampleInputdob1" aria-describedby="dobHelp" value="{{ old('dob', $staffUser->dob ?? '') }}" required placeholder="Date of Birth" autocomplete="dob">
                             @error('dob')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -59,14 +65,15 @@
                         <div class="col-md-8 p-1">
                             <select name="designation" class="form-control form-select @error('designation') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required autocomplete="designation">
                                 <option value="">Select Designation/Role</option>
-                                <option {{(old('designation') == "Branch Manager") ? 'selected':''}} value="Branch Manager">Branch Manager</option>
-                                <option {{(old('designation') == "Consultant/Advisor") ? 'selected':''}} value="Consultant/Advisor">Consultant/Advisor</option>
-                                <option {{(old('designation') == "Administrator") ? 'selected':''}} value="Administrator">Administrator</option>
-                                <option {{(old('designation') == "HR Executive") ? 'selected':''}} value="HR Executive">HR Executive</option>
-                                <option {{(old('designation') == "Sales Team Member") ? 'selected':''}} value="Sales Team Member">Sales Team Member</option>
-                                <option {{(old('designation') == "Accounts Team Member") ? 'selected':''}} value="Accounts Team Member">Accounts Team Member</option>
-                                <option {{(old('designation') == "Support Team Member") ? 'selected':''}} value="Support Team Member">Support Team Member</option>
-                                <option {{(old('designation') == "Other") ? 'selected':''}} value="Other">Other</option>
+                                @php $designationValue = old('designation', $staffUser->designation ?? ''); @endphp
+                                <option {{($designationValue == "Branch Manager") ? 'selected':''}} value="Branch Manager">Branch Manager</option>
+                                <option {{($designationValue == "Consultant/Advisor") ? 'selected':''}} value="Consultant/Advisor">Consultant/Advisor</option>
+                                <option {{($designationValue == "Administrator") ? 'selected':''}} value="Administrator">Administrator</option>
+                                <option {{($designationValue == "HR Executive") ? 'selected':''}} value="HR Executive">HR Executive</option>
+                                <option {{($designationValue == "Sales Team Member") ? 'selected':''}} value="Sales Team Member">Sales Team Member</option>
+                                <option {{($designationValue == "Accounts Team Member") ? 'selected':''}} value="Accounts Team Member">Accounts Team Member</option>
+                                <option {{($designationValue == "Support Team Member") ? 'selected':''}} value="Support Team Member">Support Team Member</option>
+                                <option {{($designationValue == "Other") ? 'selected':''}} value="Other">Other</option>
                             </select>
                             @error('designation')
                                 <span class="invalid-feedback" role="alert">
@@ -83,6 +90,8 @@
                                 @include('partials.country_select_options', [
                                     'countries' => $countries,
                                     'phoneForPrefill' => old('phone'),
+                                    'savedCountry' => $staffUser->country ?? null,
+                                    'savedIsCountryName' => true,
                                 ])
                             </select>
                             @error('country')
@@ -97,8 +106,12 @@
                         <div class="col-md-8 p-1">
                             <select name="state" id="state" class="form-control form-select @error('state') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
                                 <option value="">Select State/County</option>
-                                @if(old('state'))
-                                <option value="{{old('state')}}" selected>{{old('state')}}</option>
+                                @if(isset($states) && count($states))
+                                    @foreach($states as $state)
+                                        <option value="{{ $state->state_name }}" @selected(old('state', $staffUser->state ?? '') == $state->state_name)>{{ $state->state_name }}</option>
+                                    @endforeach
+                                @elseif(old('state'))
+                                    <option value="{{ old('state') }}" selected>{{ old('state') }}</option>
                                 @endif
                             </select>
                             @error('state')
@@ -111,7 +124,7 @@
                             <label>City/Town<span class="text-danger" style="font-size: 18px;">*</span></label>
                         </div>
                         <div class="col-md-8 p-1">
-                            <input name="city" type="city" minlength="3" maxlength="100" class="form-control @error('city') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('city') }}" required placeholder="City" autocomplete="city">
+                            <input name="city" type="city" minlength="3" maxlength="100" class="form-control @error('city') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" value="{{ old('city', $staffUser->city ?? '') }}" required placeholder="City" autocomplete="city">
                             @error('city')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -122,7 +135,7 @@
                             <label>Postcode<span class="text-danger" style="font-size: 18px;">*</span></label>
                         </div>
                         <div class="col-md-8 p-1">
-                            <input name="pincode" minlength="3" maxlength="10" style="text-transform:uppercase" type="text" class="form-control @error('pincode') is-invalid @enderror" id="pincode"  value="{{ old('pincode') }}" required placeholder="Postcode" autocomplete="postcode">
+                            <input name="pincode" minlength="3" maxlength="10" style="text-transform:uppercase" type="text" class="form-control @error('pincode') is-invalid @enderror" id="pincode"  value="{{ old('pincode', $staffUser->pincode ?? '') }}" required placeholder="Postcode" autocomplete="postcode">
                             @error('pincode')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -136,7 +149,7 @@
                             <select name="timezone" id="timezone" class="form-control form-select @error('timezone') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
                                 <option value="">Select Timezone</option>
                                 @foreach($tzlist as $zone)
-                                <option {{($zone == old('timezone')) ? 'selected':''}} value="{{ $zone }}">{{ $zone }}</option>
+                                <option @selected($zone == old('timezone', $staffUser->timezone ?? '')) value="{{ $zone }}">{{ $zone }}</option>
                                 @endforeach
                             </select>
                             @error('timezone')
@@ -146,10 +159,10 @@
                             @enderror
                         </div>
                         <div class="col-md-4 p-1">
-                            <label>Password<span class="text-danger" style="font-size: 18px;">*</span></label>
+                            <label>Password@if(!$isEdit)<span class="text-danger" style="font-size: 18px;">*</span>@endif</label>
                         </div>
                         <div class="col-md-8 p-1">
-                            <input id="password" name="password" value="{{old('password')}}" type="text" onfocus="this.type ='password'" class="form-control @error('password') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required placeholder="Password" autocomplete="password">
+                            <input id="password" name="password" value="{{ old('password') }}" type="text" onfocus="this.type ='password'" class="form-control @error('password') is-invalid @enderror" aria-describedby="emailHelp" @if(!$isEdit) required @endif placeholder="{{ $isEdit ? 'Leave blank to keep current password' : 'Password' }}" autocomplete="new-password">
                             @error('password')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
