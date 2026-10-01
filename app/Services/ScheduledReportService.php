@@ -344,6 +344,14 @@ class ScheduledReportService
     {
         $timezone = $this->resolveTimezone($setting);
         $now = now($timezone);
+        $owner = User::find($setting->user_id);
+        $isAffiliateMonthly = $this->affiliateReportSettingService->isAffiliateUser($owner)
+            && $setting->frequency === 'monthly';
+
+        if ($isAffiliateMonthly) {
+            return (int) $now->day === (int) $now->daysInMonth
+                && (int) $now->format('G') === 23;
+        }
 
         if ((int) $now->format('G') !== 8) {
             return false;

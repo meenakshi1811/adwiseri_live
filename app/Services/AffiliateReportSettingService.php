@@ -38,12 +38,21 @@ class AffiliateReportSettingService
         return $user && strtolower((string) $user->user_type) === 'affiliate';
     }
 
+    public function isActiveAffiliateAccount(?Affiliates $affiliateAccount): bool
+    {
+        if (!$affiliateAccount) {
+            return false;
+        }
+
+        return (int) $affiliateAccount->status === 1;
+    }
+
     /**
      * Linked users row for an authenticated affiliates-guard account.
      */
     public function resolveLinkedUser(?Affiliates $affiliateAccount): ?User
     {
-        if (!$affiliateAccount) {
+        if (!$this->isActiveAffiliateAccount($affiliateAccount)) {
             return null;
         }
 
@@ -52,9 +61,9 @@ class AffiliateReportSettingService
             return null;
         }
 
-        return User::where('email', $email)
-            ->where('user_type', 'Affiliate')
-            ->where('status', 'true')
+        return User::query()
+            ->where('email', $email)
+            ->whereRaw('LOWER(user_type) = ?', ['affiliate'])
             ->first();
     }
 
@@ -74,18 +83,8 @@ class AffiliateReportSettingService
         $existing = ReportSetting::where('user_id', $affiliateUser->id)->first();
 
         if ($existing) {
-            $modules = array_values(array_intersect(
-                (array) ($existing->modules ?? []),
-                self::DEFAULT_MODULES
-            ));
-
-            if ($modules === []) {
-                $existing->modules = self::DEFAULT_MODULES;
-            }
-
-            if (empty($existing->frequency)) {
-                $existing->frequency = 'monthly';
-            }
+            $existing->modules = self::DEFAULT_MODULES;
+            $existing->frequency = 'monthly';
 
             if (empty($existing->delivery_mode)) {
                 $existing->delivery_mode = 'attachment';
@@ -116,9 +115,21 @@ class AffiliateReportSettingService
      */
     public function activeAffiliateUsers()
     {
+        $activeEmails = Affiliates::query()
+            ->where('status', 1)
+            ->pluck('email')
+            ->map(static fn ($email) => trim((string) $email))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($activeEmails->isEmpty()) {
+            return collect();
+        }
+
         return User::query()
-            ->where('user_type', 'Affiliate')
-            ->where('status', 'true')
+            ->whereRaw('LOWER(user_type) = ?', ['affiliate'])
+            ->whereIn('email', $activeEmails)
             ->orderBy('id')
             ->get();
     }
@@ -128,8 +139,10 @@ class AffiliateReportSettingService
         $created = 0;
 
         foreach ($this->activeAffiliateUsers() as $affiliateUser) {
-            if (!ReportSetting::where('user_id', $affiliateUser->id)->exists()) {
-                $this->ensureReportSetting($affiliateUser);
+            $hadSetting = ReportSetting::where('user_id', $affiliateUser->id)->exists();
+            $this->ensureReportSetting($affiliateUser);
+
+            if (!$hadSetting) {
                 $created++;
             }
         }

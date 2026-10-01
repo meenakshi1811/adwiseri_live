@@ -11,7 +11,7 @@
             <div class="row p-3 m-0">
                 <p class="m-0" style="font-size:18px;font-weight:550;">Auto Reports</p>
                 <small class="text-muted mt-1">
-                    A monthly PDF covering Subscribers Referred, Commissions, and Wallet activity is emailed on the last day of each calendar month (even when counts are zero).
+                    A monthly PDF covering Subscribers Referred, Commissions, and Wallet activity is emailed on the last day of each calendar month at 11:00 PM in your account timezone (even when counts are zero).
                 </small>
             </div>
 
@@ -41,7 +41,7 @@
                 <div class="row mb-3 align-items-center">
                     <div class="col-md-4"><label>Frequency</label></div>
                     <div class="col-md-8">
-                        <input type="text" class="form-control" value="Monthly (last day of each calendar month)" readonly>
+                        <input type="text" class="form-control" value="Monthly (last day of each calendar month, 11:00 PM)" readonly>
                     </div>
                 </div>
 

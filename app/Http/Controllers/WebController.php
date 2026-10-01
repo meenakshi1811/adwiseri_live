@@ -7871,6 +7871,7 @@ class WebController extends Controller
                     'name' => $validated['name'],
                     'wallet' => 0,
                     'user_type' => 'Affiliate',
+                    'status' => 'true',
                     'password' => $validated['password'],
                     'referral' => $this->get_referral(),
                     'referral_code' => $req['referral'],
@@ -7878,6 +7879,22 @@ class WebController extends Controller
                     'local_time' => $req['local_time']
                 ]
             );
+
+            if ($user->wasRecentlyCreated === false && strtolower((string) $user->user_type) !== 'affiliate') {
+                $user->user_type = 'Affiliate';
+            }
+
+            if ((string) $user->status !== 'true') {
+                $user->status = 'true';
+            }
+
+            if (empty($user->referral)) {
+                $user->referral = $this->get_referral();
+            }
+
+            if ($user->isDirty()) {
+                $user->save();
+            }
             // if($req['referral'] != null){
             //     $find_referral = User::where('referral','=',$req['referral'])->first();
             // }
@@ -7957,6 +7974,13 @@ class WebController extends Controller
             if ($affiliates->status == 1) {
                 if (Auth::guard('affiliates')->attempt($loginDetails)) {
                     $request->session()->regenerate();
+
+                    $affiliateReportService = app(\App\Services\AffiliateReportSettingService::class);
+                    $linkedUser = $affiliateReportService->resolveLinkedUser($affiliates);
+                    if ($linkedUser) {
+                        $affiliateReportService->ensureReportSetting($linkedUser);
+                    }
+
                     return redirect()->route(app(\App\Services\RoleModuleAccessService::class)->affiliateHomeRoute());
                 }
             } else {
