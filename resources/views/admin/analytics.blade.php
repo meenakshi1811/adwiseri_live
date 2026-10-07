@@ -70,9 +70,12 @@
                     <option value="Applications">Applications</option>
                     <option value="Documents">Documents</option>
                     <option value="Users">Users</option>
-                    <option value="Invoices">Invoices</option>
-                    <option value="Payments">Payments</option>
                     <option value="Communications">Communications</option>
+                    <option value="Associates">Associates</option>
+                    <option value="Invoices">Invoices(AR)</option>
+                    <option value="Invoices_ap">Invoices(AP)</option>
+                    <option value="Payments">Payments (AR)</option>
+                    <option value="PaymentsAP">Payments (AP)</option>
                     <option value="Referrals">Referrals</option>
                     <option value="Wallet">Wallet</option>
                     {{-- <option value="Affiliates" id="affiliatesOption1">Affiliates</option> --}}

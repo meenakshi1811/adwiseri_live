@@ -81,8 +81,11 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     @include('partials.report_tab_button', ['module' => 'users', 'id' => 'users-tab', 'label' => 'Users', 'active' => false, 'onclick' => 'onClickUsers()', 'target' => '#users'])
                     @include('partials.report_tab_button', ['module' => 'documents', 'id' => 'documents-tab', 'label' => 'Documents', 'active' => false, 'onclick' => 'onClickDocuments()', 'target' => '#documents'])
                     @include('partials.report_tab_button', ['module' => 'communications', 'id' => 'communication-tab', 'label' => 'Communications', 'active' => false, 'onclick' => 'onClickCommunications()', 'target' => '#communication'])
-                    @include('partials.report_tab_button', ['module' => 'invoices_ar', 'id' => 'invocies-tab', 'label' => 'Invoices', 'active' => false, 'onclick' => 'onClickInvoices()', 'target' => '#invocies'])
-                    @include('partials.report_tab_button', ['module' => 'payments_ar', 'id' => 'payments-tab', 'label' => 'Payments', 'active' => false, 'onclick' => 'onClickPayments()', 'target' => '#payments'])
+                    @include('partials.report_tab_button', ['module' => 'associates', 'id' => 'associates-report-tab', 'label' => 'Associates', 'active' => false, 'onclick' => 'onClickAssociates()', 'target' => '#associatesReport'])
+                    @include('partials.report_tab_button', ['module' => 'invoices_ar', 'id' => 'invocies-tab', 'label' => 'Invoices (AR)', 'active' => false, 'onclick' => 'onClickInvoices()', 'target' => '#invocies'])
+                    @include('partials.report_tab_button', ['module' => 'invoices_ap', 'id' => 'invocies-ap-tab', 'label' => 'Invoices (AP)', 'active' => false, 'onclick' => 'onClickInvoicesAP()', 'target' => '#invocies_ap'])
+                    @include('partials.report_tab_button', ['module' => 'payments_ar', 'id' => 'payments-tab', 'label' => 'Payments (AR)', 'active' => false, 'onclick' => 'onClickPayments()', 'target' => '#payments'])
+                    @include('partials.report_tab_button', ['module' => 'payments_ap', 'id' => 'paymentsap-tab', 'label' => 'Payments (AP)', 'active' => false, 'onclick' => 'onClickPaymentsAP()', 'target' => '#paymentsap'])
                     @include('partials.report_tab_button', ['module' => 'referrals', 'id' => 'refferals-tab', 'label' => 'Referrals', 'active' => false, 'onclick' => 'onClickReferrals()', 'target' => '#refferals'])
                     @include('partials.report_tab_button', ['module' => 'wallet', 'id' => 'wallet-tab', 'label' => 'Wallet', 'active' => false, 'onclick' => 'onClickWallets()', 'target' => '#wallet'])
                     @if ($user->user_type == 'admin')
@@ -626,6 +629,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                             </table>
                         </div>
                     </div>
+                    @include('partials.reports_tab_invoices_ap')
                     <div class="tab-pane fade" id="payments" role="tabpanel" aria-labelledby="payments-tab">
                         <div style="display: flex; justify-content: center; align-items: center; text-align: center;" class="row">
                             <div class="col-4 my-3 d-flex align-items-center">
@@ -701,6 +705,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                             </table>
                         </div>
                     </div>
+                    @include('partials.reports_tab_payments_ap')
 
 
                     <div class="tab-pane fade" id="refferals" role="tabpanel" aria-labelledby="refferals-tab">
@@ -765,6 +770,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         </div>
                     </div>
 
+                    @include('partials.reports_tab_associates')
 
                     <div class="tab-pane fade" id="wallet" role="tabpanel" aria-labelledby="wallet-tab">
                         <div style="display: flex; justify-content: center; align-items: center; text-align: center;" class="row">
@@ -1150,8 +1156,11 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
     var userTable1 = false;
     var communicationTable1 = false;
     var invoiceTable1 = false;
+    var invoiceAPTable1 = false;
     var paymentTable1 = false;
+    var paymentsAPTable1 = false;
     var refferalsTable1 = false;
+    var associatesTable1 = false;
     var walletsTable1 = false;
     var transactionsTable1 = false;
     var Subscribers1 = false;
@@ -1173,8 +1182,11 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         userTable1 = false;
         communicationTable1 = false;
         invoiceTable1 = false;
+        invoiceAPTable1 = false;
         paymentTable1 = false;
+        paymentsAPTable1 = false;
         refferalsTable1 = false;
+        associatesTable1 = false;
         walletsTable1 = false;
         transactionsTable1 = false;
         Subscribers1 = false;
@@ -1393,8 +1405,14 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             var selectedDate = $('#custom_date_picker5').val();
         } else if (type == 'Invoice') {
             var selectedDate = $('#custom_date_picker6').val();
-        } else if (type == 'Payment') {
+        } else if (type == 'InvoiceAP') {
+            var selectedDate = $('#custom_date_picker66').val();
+        } else if (type == 'Payment' || type == 'PaymentAR') {
             var selectedDate = $('#custom_date_picker7').val();
+        } else if (type == 'PaymentAP') {
+            var selectedDate = $('#custom_date_picker71').val();
+        } else if (type == 'Associate') {
+            var selectedDate = $('#custom_date_picker15').val();
         } else if (type == 'Referral') {
             var selectedDate = $('#custom_date_picker8').val();
         } else if (type == 'Wallet') {
@@ -5279,6 +5297,7 @@ function checkDataAndToggleButtons(table) {
                     // Add additional data here
                     d.startDate = result.startDate;
                     d.endDate = result.endDate;
+                    d.type = 'ar';
 
                 }
             },
@@ -5471,7 +5490,8 @@ function checkDataAndToggleButtons(table) {
                 data: function(d) {
                     d.type = type;
                     d.startDate = result.startDate;
-                    d.endDate = result.endDate
+                    d.endDate = result.endDate;
+                    d.payment_type = 'ar';
                 }
             },
             order: [
@@ -7664,14 +7684,14 @@ function checkDataAndToggleButtons(table) {
 
         function cb(start, end) {
             // Update the display for each date picker
-            $('#custom_date_picker span, #custom_date_picker2 span, #custom_date_picker3 span, #custom_date_picker4 span, #custom_date_picker5 span, #custom_date_picker6 span, #custom_date_picker7 span, #custom_date_picker8 span, #custom_date_picker9 span, #custom_date_picker10 span, #custom_date_picker11 span, #custom_date_picker12 span, #custom_date_picker13 span, #custom_date_picker14 span')
+            $('#custom_date_picker span, #custom_date_picker2 span, #custom_date_picker3 span, #custom_date_picker4 span, #custom_date_picker5 span, #custom_date_picker6 span, #custom_date_picker66 span, #custom_date_picker7 span, #custom_date_picker71 span, #custom_date_picker8 span, #custom_date_picker9 span, #custom_date_picker10 span, #custom_date_picker11 span, #custom_date_picker12 span, #custom_date_picker13 span, #custom_date_picker14 span, #custom_date_picker15 span')
                 .html(
                     start.format('D MMMM, YYYY') + ' - ' + end.format('D MMMM, YYYY')
                 );
         }
 
         // Apply daterangepicker to all elements
-        $('#custom_date_picker, #custom_date_picker2, #custom_date_picker3, #custom_date_picker4, #custom_date_picker5, #custom_date_picker6, #custom_date_picker7, #custom_date_picker8, #custom_date_picker9, #custom_date_picker10, #custom_date_picker11, #custom_date_picker12, #custom_date_picker13, #custom_date_picker14')
+        $('#custom_date_picker, #custom_date_picker2, #custom_date_picker3, #custom_date_picker4, #custom_date_picker5, #custom_date_picker6, #custom_date_picker66, #custom_date_picker7, #custom_date_picker71, #custom_date_picker8, #custom_date_picker9, #custom_date_picker10, #custom_date_picker11, #custom_date_picker12, #custom_date_picker13, #custom_date_picker14, #custom_date_picker15')
             .daterangepicker({
                 startDate: start,
                 endDate: end,
@@ -7703,7 +7723,7 @@ function checkDataAndToggleButtons(table) {
         cb(start, end, 'Today');
 
         // Handle the apply event for each date picker
-        $('#custom_date_picker, #custom_date_picker2, #custom_date_picker3, #custom_date_picker4, #custom_date_picker5, #custom_date_picker6, #custom_date_picker7, #custom_date_picker8, #custom_date_picker9, #custom_date_picker10, #custom_date_picker11, #custom_date_picker12, #custom_date_picker13, #custom_date_picker14')
+        $('#custom_date_picker, #custom_date_picker2, #custom_date_picker3, #custom_date_picker4, #custom_date_picker5, #custom_date_picker6, #custom_date_picker66, #custom_date_picker7, #custom_date_picker71, #custom_date_picker8, #custom_date_picker9, #custom_date_picker10, #custom_date_picker11, #custom_date_picker12, #custom_date_picker13, #custom_date_picker14, #custom_date_picker15')
             .on('apply.daterangepicker', function(ev, picker) {
                 // Get the start and end date values from the picker
                 var startdate = picker.startDate.format('DD-MM-YYYY');
@@ -7765,6 +7785,13 @@ function checkDataAndToggleButtons(table) {
                     if (type.trim() !== '') {
                         onchangeInvoicesReport(type, selectedText);
                     }
+                } else if (invoiceAPTable1 == true) {
+                    onClickInvoicesAP();
+                    var type = $('#invoiceAPFilter').val();
+                    let selectedText = $('#invoiceAPFilter').find('option:selected').text();
+                    if (type.trim() !== '') {
+                        onchangeInvoicesAPReport(type, selectedText);
+                    }
                 } else if (paymentTable1 == true) {
                     onClickPayments();
                     var type = $('#paymentFilter').val();
@@ -7773,6 +7800,13 @@ function checkDataAndToggleButtons(table) {
                     if (type.trim() !== '') {
                         onchangePaymentsReport(type, selectedText);
                     }
+                } else if (paymentsAPTable1 == true) {
+                    onClickPaymentsAP();
+                    var type = $('#paymentAPFilter').val();
+                    let selectedText = $('#paymentAPFilter').find('option:selected').text();
+                    if (type.trim() !== '') {
+                        onchangePaymentsAPReport(type, selectedText);
+                    }
                 } else if (refferalsTable1 == true) {
                     onClickReferrals();
                     var type = $('#referralFilter').val();
@@ -7780,6 +7814,13 @@ function checkDataAndToggleButtons(table) {
                     let selectedText = $('#referralFilter').find('option:selected').text();
                     if (type.trim() !== '') {
                         onChangeReferralsReport(type, selectedText);
+                    }
+                } else if (associatesTable1 == true) {
+                    onClickAssociates();
+                    var type = $('#associateReportFilter').val();
+                    let selectedText = $('#associateReportFilter').find('option:selected').text();
+                    if (type && type.trim() !== '') {
+                        onChangeAssociatesReport(type, selectedText);
                     }
                 } else if (SupportTickets1 == true) {
                     onClickSupportTickets();
@@ -7836,4 +7877,5 @@ function checkDataAndToggleButtons(table) {
     // ---------------------- Affiliates  Report ------------------------------------------
     // -------------------------------------------------------------------------------
 </script>
+@include('partials.reports_subscriber_parity_scripts')
 @endpush

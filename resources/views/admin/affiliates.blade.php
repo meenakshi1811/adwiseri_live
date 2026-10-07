@@ -297,6 +297,7 @@
                     <tr>
                         <th class="p-1 text-center">Sr.No.</th>
                         <th class="p-1 text-center">Affiliate Name(id)</th>
+                        <th class="p-1 text-center">Email</th>
                         <th class="p-1 text-center">Referral Code</th>
                         <th class="p-1 text-center">Type</th>
                         <th class="p-1 text-center">Country</th>
@@ -357,6 +358,10 @@
                         name: 'name',
 
 
+                    },
+                    {
+                        data: 'email',
+                        name: 'email',
                     },
                     {
                         data: 'referral',

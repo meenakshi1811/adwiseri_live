@@ -114,17 +114,12 @@ class ReportFilterController extends Controller
 
         $startDate = $this->parseReportDate(request()->input('startDate'));
         $endDate = $this->parseReportDate(request()->input('endDate'), true);
-        $query =  Clients::join('users', 'referrals.userid', '=', 'users.id')
-        ->where('users.user_type', 'Subscriber')
-        ->whereNull('referrals.debit_amount')
-        ->where('referrals.type', 'Referral Commission');
-
         if (request()->type == "homeCountry") {
             if ($this->hasConsultancyReportAccess($user)) {
-                $clientsByCountry = Clients::whereBetween('created_at', [$startDate, $endDate])->where('subscriber_id', '=', $this->consultancySubscriberId($user))->select('country as country_name', DB::raw('COUNT(subscriber_id) as No_of_Subscribers'))
+                $clientsByCountry = Clients::whereBetween('created_at', [$startDate, $endDate])->where('subscriber_id', '=', $this->consultancySubscriberId($user))->select('country as country_name', DB::raw('COUNT(id) as No_of_Clients'))
                     ->groupBy('country')->get();
             } else {
-                $clientsByCountry = Clients::whereBetween('created_at', [$startDate, $endDate])->select('country as country_name', DB::raw('COUNT(subscriber_id) as No_of_Subscribers'))
+                $clientsByCountry = Clients::whereBetween('created_at', [$startDate, $endDate])->select('country as country_name', DB::raw('COUNT(id) as No_of_Clients'))
                     ->groupBy('country')
                     ->get();
             }
@@ -456,7 +451,7 @@ class ReportFilterController extends Controller
             $lastYear = Carbon::today()->subYear()->year;
             if ($this->hasConsultancyReportAccess($user)) {
 
-                $query = $query->where('user_id', $this->consultancySubscriberId($user));
+                $query = $query->where('subscriber_id', $this->consultancySubscriberId($user));
               
             }
 
@@ -1526,7 +1521,7 @@ class ReportFilterController extends Controller
 
         // Check if user is a Subscriber with a specific membership
         if ($this->hasConsultancyReportAccess($user)) {
-            $query = $query->where('user_id', $this->consultancySubscriberId($user));
+            $query = $query->where('subscriber_id', $this->consultancySubscriberId($user));
         }
 
         // Select the amount range and count the number of invoices
@@ -1571,7 +1566,7 @@ class ReportFilterController extends Controller
         } elseif (request()->type == "byClient") {
             $query = new Internal_Invoices();
             if ($this->hasConsultancyReportAccess($user)) {
-                $query =  $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ar');
+                $query =  $query->where('subscriber_id', $this->consultancySubscriberId($user))->where('type', 'ar');
             }
             $invoice_interval = $query->whereBetween('created_at', [$startDate, $endDate])
                 ->select('country')
@@ -1585,7 +1580,7 @@ class ReportFilterController extends Controller
             $query = new Internal_Invoices();
             if ($this->hasConsultancyReportAccess($user)) {
 
-                $query =  $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ar');
+                $query =  $query->where('subscriber_id', $this->consultancySubscriberId($user))->where('type', 'ar');
             }
             $invoice_interval =  $query->whereBetween('created_at', [$startDate, $endDate])
                 ->select('to_country')
@@ -1619,8 +1614,8 @@ class ReportFilterController extends Controller
 
             // Filter for specific user types
             if ($this->hasConsultancyReportAccess($user)) {
-               $query = $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ar');
-               $query1 = $query1->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ar');
+               $query = $query->where('subscriber_id', $this->consultancySubscriberId($user))->where('type', 'ar');
+               $query1 = $query1->where('subscriber_id', $this->consultancySubscriberId($user))->where('type', 'ar');
             }
 
             if($user->user_type == 'admin') {
@@ -1660,8 +1655,8 @@ class ReportFilterController extends Controller
 
             // // Filter for specific user types
             // if ($this->hasConsultancyReportAccess($user)) {
-            //    $query = $query->where('user_id', $this->consultancySubscriberId($user));
-            //    $query1 = $query1->where('user_id', $this->consultancySubscriberId($user));
+            //    $query = $query->where('subscriber_id', $this->consultancySubscriberId($user));
+            //    $query1 = $query1->where('subscriber_id', $this->consultancySubscriberId($user));
             // }
             // // Past year data query
             // $pastYearData = $query1->selectRaw("YEAR(created_at) as type, COUNT(*) as count")
@@ -1787,7 +1782,7 @@ class ReportFilterController extends Controller
 
         // Check if user is a Subscriber with a specific membership
         if ($this->hasConsultancyReportAccess($user)) {
-            $query = $query->where('user_id', $this->consultancySubscriberId($user));
+            $query = $query->where('subscriber_id', $this->consultancySubscriberId($user));
         }
 
         // Select the amount range and count the number of invoices
@@ -1832,7 +1827,7 @@ class ReportFilterController extends Controller
         } elseif (request()->type == "byClient") {
             $query = new Internal_Invoices();
             if ($this->hasConsultancyReportAccess($user)) {
-                $query =  $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ap');
+                $query =  $query->where('subscriber_id', $this->consultancySubscriberId($user))->where('type', 'ap');
             }
             $invoice_interval = $query->whereBetween('created_at', [$startDate, $endDate])
                 ->select('country')
@@ -1846,7 +1841,7 @@ class ReportFilterController extends Controller
             $query = new Internal_Invoices();
             if ($this->hasConsultancyReportAccess($user)) {
 
-                $query =  $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ap');
+                $query =  $query->where('subscriber_id', $this->consultancySubscriberId($user))->where('type', 'ap');
             }
             $invoice_interval =  $query->whereBetween('created_at', [$startDate, $endDate])
                 ->select('to_country')
@@ -1880,8 +1875,8 @@ class ReportFilterController extends Controller
 
             // Filter for specific user types
             if ($this->hasConsultancyReportAccess($user)) {
-               $query = $query->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ap');
-               $query1 = $query1->where('user_id', $this->consultancySubscriberId($user))->where('type', 'ap');
+               $query = $query->where('subscriber_id', $this->consultancySubscriberId($user))->where('type', 'ap');
+               $query1 = $query1->where('subscriber_id', $this->consultancySubscriberId($user))->where('type', 'ap');
             }
 
             if($user->user_type == 'admin') {
@@ -1921,8 +1916,8 @@ class ReportFilterController extends Controller
 
             // // Filter for specific user types
             // if ($this->hasConsultancyReportAccess($user)) {
-            //    $query = $query->where('user_id', $this->consultancySubscriberId($user));
-            //    $query1 = $query1->where('user_id', $this->consultancySubscriberId($user));
+            //    $query = $query->where('subscriber_id', $this->consultancySubscriberId($user));
+            //    $query1 = $query1->where('subscriber_id', $this->consultancySubscriberId($user));
             // }
             // // Past year data query
             // $pastYearData = $query1->selectRaw("YEAR(created_at) as type, COUNT(*) as count")
@@ -2540,7 +2535,7 @@ class ReportFilterController extends Controller
                 ->make(true);
         } else if (request()->type == "yearly") {
             if ($this->hasConsultancyReportAccess($user)) {
-                $yearlyClient_discussions = Client_discussions::where('user_id', $this->consultancySubscriberId($user))->selectRaw('YEAR(created_at) as year, COUNT(*) as year_count')->whereBetween('created_at', [$startDate, $endDate])
+                $yearlyClient_discussions = Client_discussions::where('subscriber_id', $this->consultancySubscriberId($user))->selectRaw('YEAR(created_at) as year, COUNT(*) as year_count')->whereBetween('created_at', [$startDate, $endDate])
                     ->groupBy('year')->get();
             }
             if ($user->user_type == 'admin') {
@@ -2655,7 +2650,7 @@ class ReportFilterController extends Controller
                 $pastYearData = Referrals::whereYear('created_at', '<', $currentYear)
                 ->where('userid', $this->consultancySubscriberId($user))
                 // ->when($this->hasConsultancyReportAccess($user), function ($query) use ($user) {
-                //     return $query->where('user_id', $this->consultancySubscriberId($user));
+                //     return $query->where('subscriber_id', $this->consultancySubscriberId($user));
                 // })
                 ->selectRaw("YEAR(created_at) as type, COUNT(*) as count")
                 ->whereNull('debit_amount')
@@ -2666,7 +2661,7 @@ class ReportFilterController extends Controller
             }else{
                 $pastYearData = Referrals::whereYear('created_at', '<', $currentYear)
                 // ->when($this->hasConsultancyReportAccess($user), function ($query) use ($user) {
-                //     return $query->where('user_id', $this->consultancySubscriberId($user));
+                //     return $query->where('subscriber_id', $this->consultancySubscriberId($user));
                 // })
                 ->selectRaw("YEAR(created_at) as type, COUNT(*) as count")
                 ->whereNull('debit_amount')
@@ -3740,10 +3735,10 @@ class ReportFilterController extends Controller
             //     ->whereYear('created_at', $currentYear);
 
             // if ($this->hasConsultancyReportAccess($user)) {
-            //     $query->where('user_id', $this->consultancySubscriberId($user));
+            //     $query->where('subscriber_id', $this->consultancySubscriberId($user));
             //     $pastYearData = Client_Docs::query()
             //         ->whereYear('created_at', '<', $currentYear)
-            //         ->where('user_id', $this->consultancySubscriberId($user))
+            //         ->where('subscriber_id', $this->consultancySubscriberId($user))
             //         ->selectRaw("YEAR(created_at) as type, COUNT(*) as count")
             //         ->groupBy('type')
             //         ->orderBy('type', 'desc')

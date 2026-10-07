@@ -2750,7 +2750,11 @@ class AdminController extends Controller
                             ->orderBy('referrals.created_at', 'desc') // Order by referral creation date
                             ->select('referrals.*'); // Select all columns from referrals
         if ($subscriberId = $this->consultancySubscriberId($user)) {
-            $query = $query->where('users.referral_code', auth()->user()->referral);
+            $subscriber = User::find($subscriberId);
+            $referralCode = trim((string) ($subscriber->referral ?? ''));
+            if ($referralCode !== '') {
+                $query = $query->where('users.referral_code', $referralCode);
+            }
         }
         $referrals = $query->where('referrals.type', 'Referral Commission') // Apply specific condition for Subscriber
         ->get();
@@ -2887,10 +2891,11 @@ class AdminController extends Controller
         $activity->save();
 
 
+        $ccService = app(\App\Services\CountryCategorySettingsService::class);
         if ($subscriber->category == "Law Firm") {
             $client_jobs = Client_jobs::where('category', '=', $subscriber->category)->get();
-        } elseif ($subscriber->category == "Travel Agency") {
-            $client_jobs = Client_jobs::where('category', '=', $subscriber->category)->get();
+        } elseif ($ccService->isTravelAgentSubscriber($subscriber)) {
+            $client_jobs = $ccService->getClientJobsForSubscriber($subscriber);
         } else {
             $client_jobs = Client_jobs::where('category', '=', $subscriber->category)->where('sub_category', '=', $subscriber->sub_category)->get();
         }
@@ -4773,13 +4778,17 @@ class AdminController extends Controller
 
         $this->set_timezone();
 
-        $activity = new Activities();
-        $activity->user_id = $user->id;
-        $activity->user_name = $user->name;
-        $activity->activity_name = "Performed Analytics";
-        $activity->activity_detail = "Analytics Performed by " . $user->name . " at " . date('d M, Y H:i:s');
-        $activity->activity_icon = "user.png";
-        $activity->save();
+        try {
+            $activity = new Activities();
+            $activity->user_id = $user->id;
+            $activity->user_name = $user->name;
+            $activity->activity_name = "Performed Analytics";
+            $activity->activity_detail = "Analytics Performed by " . $user->name . " at " . date('d M, Y H:i:s');
+            $activity->activity_icon = "user.png";
+            $activity->save();
+        } catch (\Throwable $e) {
+            \Log::warning('Analytics activity log failed: ' . $e->getMessage());
+        }
 
         if (auth()->user()->user_type == 'admin') {
 
@@ -4790,15 +4799,11 @@ class AdminController extends Controller
         $page = "analytics";
          $countries = Countries::get();
          $affiliates = User::where('user_type', 'Affiliate')->where('name', '!=', 'ADMIN (adwiseri.com)')->pluck('id', 'name');
-        $clientVisaChartFilters = [
-            'by_university' => false,
-            'by_course' => false,
-            'by_intake' => false,
-            'by_employer' => false,
-            'by_job_role' => false,
-        ];
+        $subscriber = app(\App\Services\CountryCategorySettingsService::class)->resolveSubscriber($user);
+        $clientVisaChartFilters = app(\App\Services\AnalyticsClientChartService::class)
+            ->visaDetailFilterAvailability((int) $subscriber->id);
 
-        return view('admin.analytics', compact('page', 'user', 'subscribers', 'countries', 'affiliates', 'clientVisaChartFilters'));
+        return view('admin.analytics', compact('page', 'user', 'subscribers', 'countries', 'affiliates', 'clientVisaChartFilters', 'subscriber'));
     }
 
 
@@ -4904,6 +4909,14 @@ class AdminController extends Controller
                 })
                 ->addColumn('name', function ($row) {
                     return $row->name . " (" . $row->id . ")";
+                })
+                ->addColumn('email', function ($row) {
+                    $email = trim((string) ($row->email ?? ''));
+                    if ($email !== '') {
+                        return $email;
+                    }
+
+                    return trim((string) optional($row->getAffiliate)->email) ?: '-';
                 })
                 ->editColumn('created_at', function ($row) {
                     return $row->created_at->format('d-m-Y H:i:s');
