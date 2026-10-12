@@ -1,0 +1,9 @@
+<p style="margin:0 0 12px 0;">A new demo request was submitted on adwiseri.com.</p>
+<p style="margin:0 0 6px 0;"><strong>Name:</strong> {{ $data->name ?? '-' }}</p>
+<p style="margin:0 0 6px 0;"><strong>Email:</strong> {{ $data->email ?? '-' }}</p>
+<p style="margin:0 0 6px 0;"><strong>Phone:</strong> {{ \App\Support\PhoneNumber::displayE164($data->phone ?? '') }}</p>
+<p style="margin:0 0 6px 0;"><strong>Country:</strong> {{ $data->country ?? '-' }}</p>
+<p style="margin:0 0 6px 0;"><strong>City:</strong> {{ $data->city ?? '-' }}</p>
+<p style="margin:0 0 6px 0;"><strong>Company:</strong> {{ $data->company_name ?? '-' }}</p>
+<p style="margin:0 0 6px 0;"><strong>Job title:</strong> {{ $data->job_title ?? '-' }}</p>
+<p style="margin:0;"><strong>How they heard about us:</strong> {{ $data->how_did_hear ?? '-' }}</p>

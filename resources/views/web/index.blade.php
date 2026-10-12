@@ -171,12 +171,12 @@
     <div class="container-fluid top-feature mb-5">
         @if($showHomepageSection('key_features'))
         <div class="container">
+            <h1 class="key-features-heading">Key Features</h1>
             <div class="row feature-row mb-3">
                 <div class="col-sm-12 col-lg-4 feature-img" style="overflow: hidden;">
                     <img src="{{ asset('web_assets/images/feature.png') }}" width="auto" height="330" alt="">
                 </div>
                 <div class="col-sm-12 col-lg-8 feature-text">
-                    <h1>Key Features</h1>
                     <div class="row">
                         @foreach($features as $feature)
                         <h4 class="col-sm-12 col-md-6"> <img src="{{ asset('admin_assets/features/icon/'.$feature->icon) }}" width="30"

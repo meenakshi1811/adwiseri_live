@@ -52,7 +52,7 @@
 <nav class="navbar navbar-expand-lg navbar-light fixed-top" style="background:#695EEE;">
     <div class="container-fluid">
       <!-- Brand -->
-      <a class="navbar-brand text-white" href="{{ route('/') }}"><img class="logo-fix" src="{{ asset('web_assets/images/Style2.png') }}" alt="adwiseri" /></a>
+      <a class="navbar-brand text-white" href="{{ route('/') }}"><img class="logo-fix navbar-logo" src="{{ asset('web_assets/images/Style2.png') }}" width="170" alt="adwiseri" /></a>
 
       <!-- Hamburger Menu Button -->
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,12 +65,11 @@
           {{-- <li class="nav-item">
             <a class="nav-link active text-white" href="{{ route('/') }}">Home</a>
           </li> --}}
-          <li class="nav-item">
-            <div class="dropdown">
-                <a class="nav-link active  dropdown-toggle" data-bs-toggle="dropdown" href="#">Use Cases</a>
-                <ul class="dropdown-menu" style="background-color:#695EEE;">
+          <li class="nav-item dropdown">
+                <a class="nav-link active dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Use Cases</a>
+                <ul class="dropdown-menu use-cases-menu">
                     <li><p class="dropdown-item mb-0">General (All countries) Visa Consultants</p></li>
-                    <li><p class="dropdown-item mb-0">Study Abroad / Visa Consultants</p></li>
+                    <li><p class="dropdown-item mb-0">Study Abroad (Student) Visa Consultants</p></li>
                     <li><p class="dropdown-item mb-0">Business / Work Visa Specialists</p></li>
                     <li><p class="dropdown-item mb-0">PR / Immigration Advisories</p></li>
                     <li><p class="dropdown-item mb-0">USA - Immigration Attorneys</p></li>
@@ -78,13 +77,9 @@
                     <li><p class="dropdown-item mb-0">Australia - MARA Advisors</p></li>
                     <li><p class="dropdown-item mb-0">Canada - ICCRC Advisors</p></li>
                     <li><p class="dropdown-item mb-0">CBI - Citizenship By Investment Consultants</p></li>
-                    <li><p class="dropdown-item mb-0">Visit Visa / Travel Agents</p></li>
-
+                    <li><p class="dropdown-item mb-0">Travel Agents (Visit Visa Specialists)</p></li>
                     <li><p class="dropdown-item mb-0">Immigration Law Firms</p></li>
-
-
                 </ul>
-            </div>
           </li>
           {{-- <li class="nav-item">
             <a class="nav-link active text-white" href="{{ route('aboutadvisori') }}">About Us</a>

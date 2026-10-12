@@ -70,7 +70,7 @@
                 <a class="nav-link active  dropdown-toggle" data-bs-toggle="dropdown" href="#">Use Cases</a>
                 <ul class="dropdown-menu" style="background-color:#695EEE;">
                     <li><p class="dropdown-item mb-0">General (All countries) Visa Consultants</p></li>
-                    <li><p class="dropdown-item mb-0">Study Abroad / Visa Consultants</p></li>
+                    <li><p class="dropdown-item mb-0">Study Abroad (Student) Visa Consultants</p></li>
                     <li><p class="dropdown-item mb-0">Business / Work Visa Specialists</p></li>
                     <li><p class="dropdown-item mb-0">PR / Immigration Advisories</p></li>
                     <li><p class="dropdown-item mb-0">USA - Immigration Attorneys</p></li>
@@ -78,7 +78,7 @@
                     <li><p class="dropdown-item mb-0">Australia - MARA Advisors</p></li>
                     <li><p class="dropdown-item mb-0">Canada - ICCRC Advisors</p></li>
                     <li><p class="dropdown-item mb-0">CBI - Citizenship By Investment Consultants</p></li>
-                    <li><p class="dropdown-item mb-0">Visit Visa / Travel Agents</p></li>
+                    <li><p class="dropdown-item mb-0">Travel Agents (Visit Visa Specialists)</p></li>
 
                     <li><p class="dropdown-item mb-0">Immigration Law Firms</p></li>
 

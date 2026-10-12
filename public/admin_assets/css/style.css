@@ -1743,7 +1743,46 @@ textarea::placeholder {
 }
 
 .dashboard-box .dash-main-col .dash-charts-row {
-    flex: 0 0 auto;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.dashboard-box .dash-main-col .dash-charts-row.dash-charts-row--count-4 {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(220px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+    width: 100%;
+    align-items: stretch;
+    align-content: stretch;
+}
+
+.dashboard-box .dash-main-col .dash-charts-row.dash-charts-row--count-4 > [class*="col-"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+    display: flex;
+    min-height: 0;
+    padding: 0 !important;
+}
+
+.dashboard-box .dash-main-col .dash-charts-row.dash-charts-row--count-4 .dash-chart-panel {
+    flex: 1 1 auto;
+    min-height: 220px;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-box .dash-main-col .dash-charts-row.dash-charts-row--count-4 .dash-chart-canvas {
+    flex: 1 1 auto;
+    min-height: 200px !important;
+    height: auto !important;
+    max-height: none !important;
 }
 
 .dashboard-box .client-row > .activity-box,
@@ -1791,22 +1830,29 @@ textarea::placeholder {
 
 @media (min-width: 992px) {
     .dashboard-box .client-row.dashboard-equal-cols {
-        align-items: flex-start;
+        align-items: stretch;
     }
 
-    .dashboard-box .client-row.dashboard-equal-cols > .column-dashbox {
-        align-self: flex-start;
-        height: auto;
+    .dashboard-box .client-row.dashboard-equal-cols > .column-dashbox,
+    .dashboard-box .client-row.dashboard-equal-cols > .dash-main-col,
+    .dashboard-box .client-row.dashboard-equal-cols > .activity-box {
+        align-self: stretch;
+        min-height: 0;
     }
 
     .dashboard-box .client-row.dashboard-equal-cols > .dash-main-col {
-        align-self: flex-start;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .dashboard-box .client-row.dashboard-equal-cols > .dash-main-col > .dash-charts-row {
+        flex: 1 1 auto;
+        min-height: 0;
     }
 
     .dashboard-box .client-row.dashboard-equal-cols > .activity-box {
         display: flex;
         flex-direction: column;
-        align-self: flex-start;
         overflow: hidden;
     }
 

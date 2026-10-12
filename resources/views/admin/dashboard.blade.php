@@ -80,5 +80,5 @@
     <script>
         window.__DASHBOARD_CHARTS__ = @json($charts ?? []);
     </script>
-    <script src="{{ asset('web_assets/js/dashboard-charts.js') }}?v=20260821b"></script>
+    <script src="{{ asset('web_assets/js/dashboard-charts.js') }}?v=20261012a"></script>
 @endpush

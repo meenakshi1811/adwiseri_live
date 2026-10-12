@@ -40,6 +40,21 @@ class EmailVerification extends Mailable
             $templateKey = 'demo_request_notification_email';
             $defaultSubject = 'Demo Request from adwiseri.com';
             $headerTitle = 'Demo Request';
+
+            $owner = $templateService->resolveTemplateOwner($data);
+            $template = $templateService->getTemplateForUser($owner, 'admin', $templateKey);
+            $placeholderData = $this->placeholderData($data);
+
+            $content = BrandedMail::renderBody('emails.bodies.demo_request_internal', compact('data'));
+            $subject = $defaultSubject;
+            if ($template && trim((string) $template->subject) !== '') {
+                $subject = BrandedMail::replacePlaceholders($template->subject, $placeholderData);
+            }
+
+            $mail = $this->subject($subject)
+                ->view('emails.internal_plain', ['content' => $content, 'pageTitle' => $subject]);
+
+            return BrandedMail::applyPlatformEnvelope($mail);
         }
 
         $owner = $templateService->resolveTemplateOwner($data);

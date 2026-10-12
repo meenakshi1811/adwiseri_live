@@ -641,39 +641,35 @@
     var left = row.querySelector(':scope > .column-dashbox') || row.querySelector('.column-dashbox');
     var right = row.querySelector(':scope > .activity-box') || row.querySelector('.activity-box');
     var mainCol = row.querySelector(':scope > .dash-main-col') || row.querySelector('.dash-main-col');
-    if (!left || !right) {
+    if (!left || !right || !mainCol) {
       return;
     }
 
-    left.style.minHeight = '';
-    left.style.height = '';
-    right.style.minHeight = '';
-    right.style.height = '';
-    right.style.maxHeight = '';
-    if (mainCol) {
-      mainCol.style.minHeight = '';
-      mainCol.style.height = '';
-    }
+    var columns = [left, mainCol, right];
+    columns.forEach(function (col) {
+      col.style.minHeight = '';
+      col.style.height = '';
+      col.style.maxHeight = '';
+    });
 
     if (global.matchMedia('(max-width: 991px)').matches) {
       return;
     }
 
-    var leftHeight = left.offsetHeight;
-    if (leftHeight < 1) {
+    var maxHeight = 0;
+    columns.forEach(function (col) {
+      maxHeight = Math.max(maxHeight, col.offsetHeight);
+    });
+
+    if (maxHeight < 1) {
       return;
     }
 
-    right.style.height = leftHeight + 'px';
-    right.style.maxHeight = leftHeight + 'px';
-    right.style.minHeight = leftHeight + 'px';
-
-    if (mainCol) {
-      var chartsRow = mainCol.querySelector('.dash-charts-row');
-      var needsAutoHeight = chartsRow && /dash-charts-row--count-(4|5|6)/.test(chartsRow.className);
-      mainCol.style.minHeight = needsAutoHeight ? '' : (leftHeight + 'px');
-      mainCol.style.height = needsAutoHeight ? 'auto' : (leftHeight + 'px');
-    }
+    columns.forEach(function (col) {
+      col.style.minHeight = maxHeight + 'px';
+      col.style.height = maxHeight + 'px';
+    });
+    right.style.maxHeight = maxHeight + 'px';
 
     requestAnimationFrame(resizeDashCharts);
     equalizeDashStatCards();

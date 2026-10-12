@@ -355,6 +355,26 @@ textarea {
     padding:10px;
 }
 
+.navbar.fixed-top {
+    z-index: 1050;
+}
+
+.navbar,
+.navbar .container-fluid,
+.navbar .navbar-collapse {
+    overflow: visible;
+}
+
+.navbar .dropdown-menu.use-cases-menu,
+.navbar .dropdown-menu {
+    background-color: #695EEE;
+    border: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    z-index: 1055;
+    max-height: min(70vh, 520px);
+    overflow-y: auto;
+}
+
 .contact-texthead {
     margin-left: 100px;
     text-decoration: none;
@@ -390,13 +410,15 @@ textarea {
     font-size: 25px;
 }
 
-/* Header logo — stable height so stripe is not cramped around buttons */
+/* Header logo — match footer asset width for sharper rendering (avoid over-scaling) */
+.navbar-brand .logo-fix.navbar-logo,
 .navbar-brand .logo-fix {
-    width: auto;
-    height: 42px;
-    max-width: none;
+    width: 170px;
+    max-width: 170px;
+    height: auto;
     display: block;
     vertical-align: middle;
+    image-rendering: -webkit-optimize-contrast;
 }
 
 .navbar-nav {
@@ -583,9 +605,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         margin-left: 0;
     }
 
+    .navbar-brand .logo-fix.navbar-logo,
     .navbar-brand .logo-fix {
-        width: auto;
-        height: 36px;
+        width: 140px;
+        max-width: 140px;
+        height: auto;
     }
 
     /* Match the header's near-flush logo on small screens. */
@@ -1017,12 +1041,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     font-weight: 500;
 }
 
-.top-feature h1 {
+.top-feature h1,
+.top-feature .key-features-heading {
     font-weight: 600;
     font-size: clamp(26px, 4vw, 35px);
     margin-left: 0;
     text-align: center;
     color: var(--adwiseri-primary-deep, #4C3BB7);
+}
+
+.top-feature .key-features-heading {
+    width: 100%;
+    margin-bottom: 1.25rem;
 }
 
 /* .feature-img {
@@ -1061,7 +1091,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         font-weight: 600;
     }
 
-    .top-feature h1 {
+    .top-feature h1,
+    .top-feature .key-features-heading {
         margin-top: 20px;
         margin-left: 0;
         text-align: center;
@@ -2685,16 +2716,17 @@ span {
 }
 
 .dashboard-box .dash-main-col .dash-charts-row.dash-charts-row--count-5 {
-    flex: 0 0 auto;
+    flex: 1 1 auto;
+    min-height: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(3, minmax(220px, auto));
+    grid-template-rows: repeat(3, minmax(220px, 1fr));
     gap: 8px;
     margin-top: 8px;
     width: 100%;
     height: auto;
     align-items: stretch;
-    align-content: start;
+    align-content: stretch;
 }
 
 /*
@@ -2702,16 +2734,17 @@ span {
  * Use content-driven row heights so axes, legends, and donuts are not clipped.
  */
 .dashboard-box .dash-main-col .dash-charts-row.dash-charts-row--count-6 {
-    flex: 0 0 auto;
+    flex: 1 1 auto;
+    min-height: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(3, minmax(268px, auto));
+    grid-template-rows: repeat(3, minmax(268px, 1fr));
     gap: 8px;
     margin-top: 8px;
     width: 100%;
     height: auto;
     align-items: stretch;
-    align-content: start;
+    align-content: stretch;
 }
 
 .dashboard-box .dash-main-col .dash-charts-row.dash-charts-row--count-4 > [class*="col-"],
@@ -2831,22 +2864,29 @@ span {
 
 @media (min-width: 992px) {
     .dashboard-box .client-row.dashboard-equal-cols {
-        align-items: flex-start;
+        align-items: stretch;
     }
 
-    .dashboard-box .client-row.dashboard-equal-cols > .column-dashbox {
-        align-self: flex-start;
-        height: auto;
+    .dashboard-box .client-row.dashboard-equal-cols > .column-dashbox,
+    .dashboard-box .client-row.dashboard-equal-cols > .dash-main-col,
+    .dashboard-box .client-row.dashboard-equal-cols > .activity-box {
+        align-self: stretch;
+        min-height: 0;
     }
 
     .dashboard-box .client-row.dashboard-equal-cols > .dash-main-col {
-        align-self: flex-start;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .dashboard-box .client-row.dashboard-equal-cols > .dash-main-col > .dash-charts-row {
+        flex: 1 1 auto;
+        min-height: 0;
     }
 
     .dashboard-box .client-row.dashboard-equal-cols > .activity-box {
         display: flex;
         flex-direction: column;
-        align-self: flex-start;
         overflow: hidden;
     }
 

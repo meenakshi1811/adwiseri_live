@@ -972,62 +972,6 @@
 
                 <!-- Services Tab -->
                 <div class="tab-pane fade" id="service" role="tabpanel" aria-labelledby="service-tab">
-                    @php
-                        $serviceCcPrefs = $serviceCcPreferences ?? ['countries' => collect(), 'visa_categories' => collect(), 'has_saved' => false];
-                        $serviceCcCountries = collect($serviceCcPrefs['countries'] ?? []);
-                        $serviceCcCategories = collect($serviceCcPrefs['visa_categories'] ?? []);
-                        $serviceCcHasSaved = !empty($serviceCcPrefs['has_saved']);
-                    @endphp
-                    <div class="cc-settings-shell px-1">
-                        <div class="cc-settings-hero mb-3" id="service-cc-preferences">
-                            <h5><i class="fa fa-sliders me-1"></i> Country &amp; Visa Category Preferences</h5>
-                            <p class="mb-2">
-                                Add New Service only lists countries and visa categories you have saved under
-                                <strong>Countries &amp; Categories</strong>. It never shows the full world list.
-                            </p>
-                            <div class="cc-stat-row mt-2 mb-2">
-                                <span class="cc-stat-pill"><i class="fa fa-globe"></i> <span id="serviceCcCountriesCount">{{ $serviceCcCountries->count() }}</span> preferred countries</span>
-                                <span class="cc-stat-pill"><i class="fa fa-passport"></i> <span id="serviceCcCategoriesCount">{{ $serviceCcCategories->count() }}</span> preferred categories</span>
-                            </div>
-                            <div id="serviceCcPreferencesBody">
-                                @if($serviceCcHasSaved)
-                                    <div class="text-start mb-2">
-                                        <div class="small text-muted mb-1">Preferred countries</div>
-                                        <div class="cc-selected-chips" id="serviceCcCountryChips">
-                                            @foreach($serviceCcCountries as $countryName)
-                                                <span class="cc-chip">{{ $countryName }}</span>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                    <div class="text-start mb-2">
-                                        <div class="small text-muted mb-1">Preferred visa categories</div>
-                                        <div class="cc-selected-chips" id="serviceCcCategoryChips">
-                                            @foreach($serviceCcCategories as $categoryName)
-                                                <span class="cc-chip">{{ $categoryName }}</span>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                @else
-                                    <div class="cc-defaults-notice mb-2" id="serviceCcEmptyNotice">
-                                        <i class="fa fa-circle-info"></i>
-                                        <div>
-                                            <strong>No Countries &amp; Categories preferences saved yet.</strong>
-                                            Configure your preferred countries and visa categories in the
-                                            <strong>Countries &amp; Categories</strong> tab, then return here to add services for those combinations only.
-                                        </div>
-                                    </div>
-                                    <div class="cc-selected-chips d-none" id="serviceCcCountryChips"></div>
-                                    <div class="cc-selected-chips d-none" id="serviceCcCategoryChips"></div>
-                                @endif
-                            </div>
-                            <div class="text-center mt-2">
-                                <button type="button" class="btn btn-outline-primary btn-sm" id="open-cc-from-services">
-                                    Manage Countries &amp; Categories Preferences
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="row p-1 m-0">
                         <p class="m-0 p-1" id="serviceSectionTitle" style="font-size:18px;font-weight: 550;">Services</p>
                     </div>
@@ -2862,45 +2806,7 @@
             $select.val(value);
         }
 
-        function updateServiceCcPreferencesSummary(serviceCountries, serviceNames, preferences) {
-            let countries = [];
-            let names = [];
-
-            if (preferences && typeof preferences === 'object') {
-                countries = (preferences.countries || []).map(function (c) { return (c || '').toString().trim(); }).filter(Boolean);
-                names = (preferences.visa_categories || []).map(function (n) { return (n || '').toString().trim(); }).filter(Boolean);
-            } else {
-                countries = (serviceCountries || []).map(function (c) { return (c || '').toString().trim(); }).filter(Boolean);
-                names = (serviceNames || []).map(function (n) { return (n || '').toString().trim(); }).filter(Boolean)
-                    .filter(function (n) { return n.toLowerCase() !== 'consultation'; });
-            }
-
-            $('#serviceCcCountriesCount').text(countries.length);
-            $('#serviceCcCategoriesCount').text(names.length);
-
-            const $countryChips = $('#serviceCcCountryChips').empty().removeClass('d-none');
-            const $categoryChips = $('#serviceCcCategoryChips').empty().removeClass('d-none');
-            countries.forEach(function (country) {
-                $countryChips.append($('<span class="cc-chip"></span>').text(country));
-            });
-            names.forEach(function (name) {
-                $categoryChips.append($('<span class="cc-chip"></span>').text(name));
-            });
-
-            if (countries.length && names.length) {
-                $('#serviceCcEmptyNotice').addClass('d-none');
-            } else if ($('#serviceCcEmptyNotice').length === 0) {
-                $('#serviceCcPreferencesBody').prepend(
-                    '<div class="cc-defaults-notice mb-2" id="serviceCcEmptyNotice">' +
-                    '<i class="fa fa-circle-info"></i><div><strong>No Countries &amp; Categories preferences saved yet.</strong> ' +
-                    'Configure preferred countries and visa categories in the <strong>Countries &amp; Categories</strong> tab.</div></div>'
-                );
-            } else {
-                $('#serviceCcEmptyNotice').removeClass('d-none');
-            }
-        }
-
-        function updateServiceDropdowns(serviceCountries, serviceNames, preferences) {
+        function updateServiceDropdowns(serviceCountries, serviceNames) {
             const $countrySelect = $('#serviceCountry');
             const currentCountry = $countrySelect.val();
             $countrySelect.find('option:not([value="NA"])').remove();
@@ -2929,8 +2835,6 @@
             } else {
                 $nameSelect.val('');
             }
-
-            updateServiceCcPreferencesSummary(serviceCountries, serviceNames, preferences);
         }
 
         function ccSettingsErrorMessage(xhr, fallback) {
@@ -2953,16 +2857,6 @@
             ensureServiceCountryOption('NA');
             $('#serviceName').val('');
         }
-
-        $('#open-cc-from-services').on('click', function () {
-            const tabTrigger = document.querySelector('#cc-tab');
-            if (tabTrigger && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
-                bootstrap.Tab.getOrCreateInstance(tabTrigger).show();
-            } else {
-                $('#cc-tab').tab('show');
-            }
-            $('html, body').animate({ scrollTop: $('#cc-settings').offset().top - 80 }, 300);
-        });
 
         $(document).on('click', '.editService', function() {
             const id = $(this).data('id');

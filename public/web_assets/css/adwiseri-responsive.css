@@ -517,12 +517,27 @@ table.table-responsive {
     .navbar.fixed-top .navbar-collapse {
         max-height: calc(100vh - 72px);
         overflow-y: auto;
+        overflow-x: visible;
     }
 
     .navbar .navbar-nav .nav-link,
     .navbar .navbar-nav .btn {
         width: 100%;
         text-align: center;
+    }
+
+    /* Keep Use Cases list in the menu flow so it is not clipped by the collapse panel */
+    .navbar .nav-item.dropdown {
+        position: static;
+    }
+
+    .navbar .nav-item.dropdown .dropdown-menu {
+        position: static !important;
+        float: none;
+        width: 100%;
+        margin-top: 0.25rem;
+        transform: none !important;
+        max-height: none;
     }
 }
 

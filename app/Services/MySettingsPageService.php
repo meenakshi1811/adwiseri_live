@@ -149,10 +149,6 @@ class MySettingsPageService
             'enquiryFormUsingDefaults' => $this->safe(fn () => !$enquiryFormService->hasSavedSettings($subscriber), true),
             'serviceCountryOptions' => $this->safe(fn () => $ccService->resolveServiceCountryOptions($subscriber), collect()),
             'serviceNameOptions' => $this->safe(fn () => $ccService->resolveServiceNameOptions($subscriber), collect()),
-            'serviceCcPreferences' => $this->safe(
-                fn () => $ccService->resolveSavedServicePreferences($subscriber),
-                ['countries' => collect(), 'visa_categories' => collect(), 'has_saved' => false]
-            ),
             'appointments' => $this->loadAppointments($subscriberId),
             'applicationStatusSettings' => $applicationStatusSettings,
             'applicationStatusUsingDefaults' => $this->safe(

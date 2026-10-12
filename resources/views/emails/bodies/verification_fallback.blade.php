@@ -19,6 +19,7 @@
     <p style="margin:0 0 6px 0;"><strong>Country:</strong> {{ $data->country }}</p>
     <p style="margin:0 0 6px 0;"><strong>City:</strong> {{ $data->city }}</p>
     <p style="margin:0 0 6px 0;"><strong>Company:</strong> {{ $data->company_name ?? '-' }}</p>
+    <p style="margin:0 0 6px 0;"><strong>Job title:</strong> {{ $data->job_title ?? '-' }}</p>
     <p style="margin:0;"><strong>How they heard about us:</strong> {{ $data->how_did_hear }}</p>
 @else
     <p style="margin:0 0 12px 0;"><strong>Hello {{ $data->name }}</strong></p>
