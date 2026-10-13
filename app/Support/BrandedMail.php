@@ -393,7 +393,7 @@ class BrandedMail
     /**
      * Build footer context for subscriber-originated broadcast emails.
      *
-     * @return array{organization: string, name: string, address: string, website: string, website_url: string, email: string, logo_url: ?string}
+     * @return array{organization: string, name: string, address: string, website: string, website_url: string, email: string, phone: string, logo_url: ?string}
      */
     public static function subscriberFooterContext($subscriber): array
     {
@@ -417,6 +417,10 @@ class BrandedMail
         $websiteUrl = self::normalizeWebsiteUrl($website);
         $email = trim((string) ($subscriber->email ?? ''));
         $name = trim((string) ($subscriber->name ?? ''));
+        $phoneRaw = trim((string) ($subscriber->phone ?? ''));
+        $phone = $phoneRaw !== '' && class_exists(PhoneNumber::class)
+            ? PhoneNumber::displayE164($phoneRaw)
+            : $phoneRaw;
 
         return [
             'organization' => $organization,
@@ -425,6 +429,7 @@ class BrandedMail
             'website' => $website,
             'website_url' => $websiteUrl,
             'email' => $email,
+            'phone' => $phone,
             'logo_url' => self::subscriberLogoUrl($subscriber),
         ];
     }

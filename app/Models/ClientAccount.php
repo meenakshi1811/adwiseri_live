@@ -18,6 +18,7 @@ class ClientAccount extends Model
         'application_id',
         'trans_type',
         'amount',
+        'payment_mode',
         'description',
         'prev_balance',
         'total',
@@ -51,6 +52,17 @@ class ClientAccount extends Model
     public const CREDIT_DESCRIPTION_TYPES = [
         'Deposit / Advance Collected',
         'Other',
+    ];
+
+    /** @var list<string> */
+    public const PAYMENT_MODES = [
+        'Cash',
+        'Cheque',
+        'DD',
+        'Wire',
+        'UPI',
+        'Vouchers',
+        'Notes',
     ];
 
     public static function debitDescriptionTypes(): array

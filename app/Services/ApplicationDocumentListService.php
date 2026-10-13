@@ -145,14 +145,14 @@ class ApplicationDocumentListService
 
         if (!$entry) {
             throw new RuntimeException(
-                'No document list is configured for ' . trim($country) . ' / ' . trim($visaCategory) . '.'
+                'No Documents Checklist is configured for ' . trim($country) . ' / ' . trim($visaCategory) . '.'
             );
         }
 
         $sections = $this->ccService->buildNumberedDocumentSections($entry);
 
         if ($sections === []) {
-            throw new RuntimeException('This document list has no document items configured.');
+            throw new RuntimeException('This Documents Checklist has no document items configured.');
         }
 
         $now = now();
@@ -203,7 +203,7 @@ class ApplicationDocumentListService
 
         if ($sections === []) {
             throw new RuntimeException(
-                'No document list is configured for ' . $country . ' / ' . $visaCategory
+                'No Documents Checklist is configured for ' . $country . ' / ' . $visaCategory
                 . '. Please add it under Settings → Countries & Visa Categories, or upload documents to this application.'
             );
         }
@@ -283,11 +283,11 @@ class ApplicationDocumentListService
                 ? 'No document lists are saved for this subscriber. Add them under Settings -> Countries & Categories, then click Save Document Lists.'
                 : 'No Countries & Categories settings record exists for this subscriber yet.';
         } elseif ($entry === null) {
-            $reason = 'No saved document list matches this application\'s country/category combination.';
+            $reason = 'No saved Documents Checklist matches this application\'s country/category combination.';
         } else {
             $sections = $this->ccService->buildNumberedDocumentSections($entry);
             if ($sections === []) {
-                $reason = 'A document list entry was found, but it has no document items configured.';
+                $reason = 'A Documents Checklist entry was found, but it has no document items configured.';
             }
         }
 

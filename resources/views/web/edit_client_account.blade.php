@@ -84,6 +84,8 @@
                         @enderror
                     </div>
 
+                    @include('partials.mode_of_payment_select', ['selected' => old('payment_mode', $account->payment_mode)])
+
                     <div class="col-md-4 p-1">
                         <label>Description <span class="text-danger" style="font-size: 18px;">*</span></label>
                     </div>

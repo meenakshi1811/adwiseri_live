@@ -216,6 +216,7 @@ Route::get('/privacy_policy', [App\Http\Controllers\WebController::class, 'priva
 Route::get('/client_profile/{id?}', [App\Http\Controllers\WebController::class, 'client_profile'])->name('client_profile')->middleware(['auth','check.device']);
 Route::get('/siteuser_profile/{id?}', [App\Http\Controllers\WebController::class, 'siteuser_profile'])->name('siteuser_profile')->middleware(['auth','check.device']);
 Route::get('/delete_siteuser/{id?}/{localtime?}', [App\Http\Controllers\WebController::class, 'delete_siteuser'])->name('delete_siteuser')->middleware(['auth','check.device']);
+Route::get('/siteuser_status/{id}/{status}/{localtime?}', [App\Http\Controllers\WebController::class, 'siteuser_status'])->name('siteuser_status')->middleware(['auth','check.device']);
 Route::get('/delete_client/{id?}/{localtime?}', [App\Http\Controllers\WebController::class, 'delete_client'])->name('delete_client')->middleware(['auth','check.device']);
 Route::post('/upload_client_doc', [App\Http\Controllers\WebController::class, 'upload_client_doc'])->name('upload_client_doc')->middleware(['auth','check.device']);
 Route::post('/make_payment', [App\Http\Controllers\WebController::class, 'make_payment'])->name('make_payment');
@@ -346,6 +347,7 @@ Route::get('/view_message/{id?}', [App\Http\Controllers\WebController::class, 'v
 Route::post('/add_service', [App\Http\Controllers\WebController::class, 'add_service'])->name('add_service')->middleware(['auth','check.device']);
 Route::post('/save_cc_settings', [App\Http\Controllers\WebController::class, 'save_cc_settings'])->name('save_cc_settings')->middleware(['auth','check.device']);
 Route::post('/save_cc_document_lists', [App\Http\Controllers\WebController::class, 'save_cc_document_lists'])->name('save_cc_document_lists')->middleware(['auth','check.device']);
+Route::post('/save_cc_study_visa_lists', [App\Http\Controllers\WebController::class, 'save_cc_study_visa_lists'])->name('save_cc_study_visa_lists')->middleware(['auth','check.device']);
 Route::post('/save_cc_document_checklist_auto_send', [App\Http\Controllers\WebController::class, 'save_cc_document_checklist_auto_send'])->name('save_cc_document_checklist_auto_send')->middleware(['auth','check.device']);
 Route::post('/share_cc_document_list', [App\Http\Controllers\WebController::class, 'share_cc_document_list'])->name('share_cc_document_list')->middleware(['auth','check.device']);
 Route::post('/save_dashboard_settings', [App\Http\Controllers\WebController::class, 'save_dashboard_settings'])->name('save_dashboard_settings')->middleware(['auth','check.device']);

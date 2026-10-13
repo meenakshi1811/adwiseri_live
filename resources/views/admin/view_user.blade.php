@@ -2,9 +2,13 @@
 
 @section('main-section')
 
-        <div class="col-lg-10 userdash-client column-client">
-            <h3>{{ $vuser->name }}</h3>
-            <div class="profile-detail">
+        <div class="col-lg-10 column-client">
+            <div class="client-dashboard">
+                <div class="col-12 d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <h3 class="text-primary text-center flex-grow-1 m-0">{{ $vuser->name }}</h3>
+                    <a href="{{ route('manage_users') }}" class="text-nowrap">Back to Users</a>
+                </div>
+                <div class="profile-detail">
                 <div class="col-lg-7 profile-data" style="border-color: lightgrey;">
                     <!-- <div class="row">
                         <div class="col-11"></div>
@@ -151,10 +155,12 @@
                     </div>
                 </div>
             </div>
+            </div>
         </div>
+
     </div>
 
-  </div>
+</div>
 
 @endsection()
             

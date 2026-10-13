@@ -300,20 +300,28 @@
                     <tr>
                         <td class="email-footer" style="text-align:center;background:#695EEE;padding:20px 24px;color:#ffffff;">
                             @if(($footerMode ?? 'platform') === 'subscriber' && !empty($subscriberFooter))
+                                @if(!empty($subscriberFooter['name']) || !empty($subscriberFooter['organization']))
+                                    <p style="margin:0 0 8px;color:#ffffff;font-size:14px;font-weight:700;line-height:1.5;word-wrap:break-word;overflow-wrap:break-word;">{{ $subscriberFooter['name'] ?? $subscriberFooter['organization'] }}</p>
+                                @endif
                                 @if(!empty($subscriberFooter['address']))
                                     <p style="margin:0 0 8px;color:#ffffff;font-size:13px;line-height:1.6;word-wrap:break-word;overflow-wrap:break-word;">{{ $subscriberFooter['address'] }}</p>
                                 @endif
                                 <p style="margin:0;font-size:13px;line-height:1.6;word-wrap:break-word;overflow-wrap:break-word;">
-                                    @if(!empty($subscriberFooter['website']) && !empty($subscriberFooter['website_url']))
-                                        <span class="footer-contact-item">Web: <a href="{{ $subscriberFooter['website_url'] }}" style="color:#ffffff;text-decoration:underline;">{{ $subscriberFooter['website'] }}</a></span>
+                                    @if(!empty($subscriberFooter['phone']))
+                                        <span class="footer-contact-item">Tel: {{ $subscriberFooter['phone'] }}</span>
                                     @endif
-                                    @if(!empty($subscriberFooter['website']) && !empty($subscriberFooter['email']))
+                                    @if(!empty($subscriberFooter['phone']) && !empty($subscriberFooter['email']))
                                         <span class="footer-contact-item" style="color:#ffffff;"> &nbsp;|&nbsp; </span>
                                     @endif
                                     @if(!empty($subscriberFooter['email']))
                                         <span class="footer-contact-item">Email: <a href="mailto:{{ $subscriberFooter['email'] }}" style="color:#ffffff;text-decoration:underline;">{{ $subscriberFooter['email'] }}</a></span>
                                     @endif
                                 </p>
+                                @if(!empty($subscriberFooter['website']) && !empty($subscriberFooter['website_url']))
+                                    <p style="margin:8px 0 0;font-size:13px;line-height:1.6;word-wrap:break-word;overflow-wrap:break-word;">
+                                        <span class="footer-contact-item">Web: <a href="{{ $subscriberFooter['website_url'] }}" style="color:#ffffff;text-decoration:underline;">{{ $subscriberFooter['website'] }}</a></span>
+                                    </p>
+                                @endif
                             @else
                                 <p style="margin:0 0 8px;color:#ffffff;font-size:13px;word-wrap:break-word;overflow-wrap:break-word;">&copy; {{ $copyrightYears ?? \App\Support\BrandedMail::copyrightYears() }} Adwiseri. All rights reserved.</p>
                                 <p class="footer-platform-links" style="margin:0;font-size:13px;word-wrap:break-word;overflow-wrap:break-word;line-height:1.6;">

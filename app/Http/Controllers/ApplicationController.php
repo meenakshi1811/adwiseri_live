@@ -99,7 +99,7 @@ class ApplicationController extends Controller
 
         $message = 'Application added successfully.';
         if ($mailResult['success']) {
-            $message .= ' Documents checklist emailed to ' . $mailResult['recipient'] . '.';
+            $message .= ' ' . $mailResult['message'];
         } elseif (!$mailResult['skipped']) {
             \Log::warning('Application created but documents checklist email not sent', [
                 'application_id' => $application->id,

@@ -33,7 +33,7 @@ class DocumentListShareService
 
         $entry = $this->ccService->resolveDocumentListEntry($subscriber, $country, $visaCategory);
         if (!$entry) {
-            throw new RuntimeException('No document list found for this country and visa category.');
+            throw new RuntimeException('No Documents Checklist found for this country and visa category.');
         }
 
         $payload = $this->documentListService->buildTemplatePdfPayload($sender, $subscriber, $country, $visaCategory);

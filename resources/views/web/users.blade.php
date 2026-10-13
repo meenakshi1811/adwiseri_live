@@ -56,12 +56,14 @@
                             <td class="p-1 text-center">@include('partials.phone_display', ['phone' => $siteuser->phone])</td>
                             <td class="p-1 text-center"  data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $siteuser->email }}"  style="position: relative;">@if(strlen($siteuser->email) > 22){{ substr($siteuser->email, 0, 22) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$siteuser->email}}</span> @else {{$siteuser->email}} @endif</td>
                             <td class="p-1 text-center">{{ $siteuser->designation }}</td>
-                            <td class="p-1 text-center">@if($siteuser->status == 'true') <a style="background:green;border-color:green;" href="#" onclick="userstatus({{ $siteuser->id }})" class="p-0 px-1">Active</a> @else <a style="background:red;border-color:red;" href="#" onclick="userstatus({{ $siteuser->id }})" class="p-0 px-1">Inactive</a> @endif</td>
+                            <td class="p-1 text-center">
+                                @include('partials.staff_status_select', ['staff' => $siteuser])
+                            </td>
                             <td class="p-1 text-center">{{ \Carbon\Carbon::parse($siteuser->created_at)->format('d-m-Y H:i:s') }}</td>
                             <td class="p-1 text-center action-icon">
                                 <a href="{{ route('siteuser_profile', $siteuser->id) }}" style="text-decoration:none;" data-bs-toggle="tooltip" data-bs-placement="top" title="View"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>
                                 <a href="{{ route('siteuser_profile', ['id' => $siteuser->id, 'edit' => 1]) }}" style="text-decoration:none;" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"><i class="fa-solid fa-pen-to-square btn p-1 text-primary" style="font-size:14px;"></i></a>
-                                <i class="fa-solid fa-trash btn p-1 text-danger" style="font-size:14px;" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete" onclick="deleteuser({{ $siteuser->id }})"></i>
+                                <i class="fa-solid fa-trash btn p-1 text-danger staff-delete-btn" style="font-size:14px;cursor:pointer;" data-user-id="{{ $siteuser->id }}" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"></i>
                             </td>
                         </tr>
                         @endforeach
@@ -103,21 +105,79 @@
             }
         });
     }
+
+    bindStaffStatusSelects(document);
+    bindStaffDeleteButtons(document);
 });
-  function deleteuser(id){
-      var localtime = new Date();
-      var conf = confirm('Are you sure you want to delete this user?');
-      if(conf == true){
-          window.location.href = "delete_siteuser/"+id+"/"+localtime.toString()+"";
-      }
-  }
-    function userstatus(id){
-        var localtime = new Date();
-        var conf = confirm('Are you sure you want to change this user's status?');
-        if(conf == true){
-            window.location.href = "subscriber_status/"+id+"/"+localtime.toString()+"";
+
+function bindStaffStatusSelects(root) {
+    (root || document).querySelectorAll('.staff-status-select').forEach(function (select) {
+        if (select.dataset.bound === '1') {
+            return;
         }
-    }
+        select.dataset.bound = '1';
+        select.addEventListener('change', function () {
+            var userId = select.getAttribute('data-user-id');
+            var newStatus = select.value;
+            var previousStatus = select.getAttribute('data-current') || 'true';
+            if (newStatus === previousStatus) {
+                return;
+            }
+
+            var label = newStatus === 'true' ? 'activate' : 'deactivate';
+            Swal.fire({
+                title: 'Change user status?',
+                text: 'Are you sure you want to ' + label + ' this staff member?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#695EEE',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, continue'
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    var localtime = new Date().toString();
+                    window.location.href = "{{ url('siteuser_status') }}/" + userId + "/" + newStatus + "/" + encodeURIComponent(localtime);
+                    return;
+                }
+                select.value = previousStatus;
+            });
+        });
+    });
+}
+
+function bindStaffDeleteButtons(root) {
+    (root || document).querySelectorAll('.staff-delete-btn').forEach(function (button) {
+        if (button.dataset.bound === '1') {
+            return;
+        }
+        button.dataset.bound = '1';
+        button.addEventListener('click', function () {
+            var userId = button.getAttribute('data-user-id');
+            Swal.fire({
+                title: 'Delete user?',
+                text: 'Are you sure you want to delete this staff member? This action cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#695EEE',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete'
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    var localtime = new Date().toString();
+                    window.location.href = "{{ url('delete_siteuser') }}/" + userId + "/" + encodeURIComponent(localtime);
+                }
+            });
+        });
+    });
+}
+
+$(document).on('draw.dt', '#clientTable', function () {
+    bindStaffStatusSelects(document.getElementById('clientTable'));
+    bindStaffDeleteButtons(document.getElementById('clientTable'));
+    document.querySelectorAll('#clientTable [data-bs-toggle="tooltip"]').forEach(function (tooltipTriggerEl) {
+        new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
 </script>
 @if(session()->has('user_added'))
   <script>

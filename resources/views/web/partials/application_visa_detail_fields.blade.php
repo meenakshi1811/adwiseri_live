@@ -1,6 +1,7 @@
 @php
     $layout = $layout ?? 'row';
     $application = $application ?? null;
+    $studyVisaOptions = $studyVisaOptions ?? [];
     $fieldValue = function (string $field) use ($application) {
         $value = old($field, $application->{$field} ?? 'NA');
 
@@ -12,31 +13,51 @@
     <div class="js-study-visa-fields" style="display: none;">
         <div class="mb-3">
             <label class="form-label">Course Name</label>
-            <input type="text" name="course_name" maxlength="255"
-                class="form-control @error('course_name') is-invalid @enderror"
-                value="{{ $fieldValue('course_name') }}" placeholder="Course Name">
-            @error('course_name')<span class="invalid-feedback"><strong>{{ $message }}</strong></span>@enderror
+            @include('partials.study_visa_list_input', [
+                'layout' => 'modal',
+                'studyVisaOptions' => $studyVisaOptions,
+                'optionKey' => 'course_names',
+                'inputName' => 'course_name',
+                'inputId' => 'course_name_modal',
+                'placeholder' => 'Course Name',
+                'value' => $fieldValue('course_name'),
+            ])
         </div>
         <div class="mb-3">
             <label class="form-label">Course Duration</label>
-            <input type="text" name="course_duration" maxlength="255"
-                class="form-control @error('course_duration') is-invalid @enderror"
-                value="{{ $fieldValue('course_duration') }}" placeholder="e.g. 12 months, 2 years">
-            @error('course_duration')<span class="invalid-feedback"><strong>{{ $message }}</strong></span>@enderror
+            @include('partials.study_visa_list_input', [
+                'layout' => 'modal',
+                'studyVisaOptions' => $studyVisaOptions,
+                'optionKey' => 'course_durations',
+                'inputName' => 'course_duration',
+                'inputId' => 'course_duration_modal',
+                'placeholder' => 'e.g. 12 months, 2 years',
+                'value' => $fieldValue('course_duration'),
+            ])
         </div>
         <div class="mb-3">
             <label class="form-label">Institution</label>
-            <input type="text" name="institution" maxlength="255"
-                class="form-control @error('institution') is-invalid @enderror"
-                value="{{ $fieldValue('institution') }}" placeholder="University / College">
-            @error('institution')<span class="invalid-feedback"><strong>{{ $message }}</strong></span>@enderror
+            @include('partials.study_visa_list_input', [
+                'layout' => 'modal',
+                'studyVisaOptions' => $studyVisaOptions,
+                'optionKey' => 'institutions',
+                'inputName' => 'institution',
+                'inputId' => 'institution_modal',
+                'placeholder' => 'University / College',
+                'value' => $fieldValue('institution'),
+            ])
         </div>
         <div class="mb-3">
             <label class="form-label">Intake</label>
-            <input type="text" name="intake" maxlength="255"
-                class="form-control @error('intake') is-invalid @enderror"
-                value="{{ $fieldValue('intake') }}" placeholder="e.g. September 2025">
-            @error('intake')<span class="invalid-feedback"><strong>{{ $message }}</strong></span>@enderror
+            @include('partials.study_visa_list_input', [
+                'layout' => 'modal',
+                'studyVisaOptions' => $studyVisaOptions,
+                'optionKey' => 'intakes',
+                'inputName' => 'intake',
+                'inputId' => 'intake_modal',
+                'placeholder' => 'e.g. September 2025',
+                'value' => $fieldValue('intake'),
+            ])
         </div>
         <div class="mb-3">
             <label class="form-label">Admission Number (CAS / I-20)</label>
@@ -84,37 +105,53 @@
             <label>Course Name</label>
         </div>
         <div class="col-md-8 p-1">
-            <input type="text" name="course_name" maxlength="255"
-                class="form-control @error('course_name') is-invalid @enderror"
-                value="{{ $fieldValue('course_name') }}" placeholder="Course Name">
-            @error('course_name')<span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>@enderror
+            @include('partials.study_visa_list_input', [
+                'studyVisaOptions' => $studyVisaOptions,
+                'optionKey' => 'course_names',
+                'inputName' => 'course_name',
+                'inputId' => 'course_name',
+                'placeholder' => 'Course Name',
+                'value' => $fieldValue('course_name'),
+            ])
         </div>
         <div class="col-md-4 p-1">
             <label>Course Duration</label>
         </div>
         <div class="col-md-8 p-1">
-            <input type="text" name="course_duration" maxlength="255"
-                class="form-control @error('course_duration') is-invalid @enderror"
-                value="{{ $fieldValue('course_duration') }}" placeholder="e.g. 12 months, 2 years">
-            @error('course_duration')<span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>@enderror
+            @include('partials.study_visa_list_input', [
+                'studyVisaOptions' => $studyVisaOptions,
+                'optionKey' => 'course_durations',
+                'inputName' => 'course_duration',
+                'inputId' => 'course_duration',
+                'placeholder' => 'e.g. 12 months, 2 years',
+                'value' => $fieldValue('course_duration'),
+            ])
         </div>
         <div class="col-md-4 p-1">
             <label>Institution</label>
         </div>
         <div class="col-md-8 p-1">
-            <input type="text" name="institution" maxlength="255"
-                class="form-control @error('institution') is-invalid @enderror"
-                value="{{ $fieldValue('institution') }}" placeholder="University / College">
-            @error('institution')<span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>@enderror
+            @include('partials.study_visa_list_input', [
+                'studyVisaOptions' => $studyVisaOptions,
+                'optionKey' => 'institutions',
+                'inputName' => 'institution',
+                'inputId' => 'institution',
+                'placeholder' => 'University / College',
+                'value' => $fieldValue('institution'),
+            ])
         </div>
         <div class="col-md-4 p-1">
             <label>Intake</label>
         </div>
         <div class="col-md-8 p-1">
-            <input type="text" name="intake" maxlength="255"
-                class="form-control @error('intake') is-invalid @enderror"
-                value="{{ $fieldValue('intake') }}" placeholder="e.g. September 2025">
-            @error('intake')<span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>@enderror
+            @include('partials.study_visa_list_input', [
+                'studyVisaOptions' => $studyVisaOptions,
+                'optionKey' => 'intakes',
+                'inputName' => 'intake',
+                'inputId' => 'intake',
+                'placeholder' => 'e.g. September 2025',
+                'value' => $fieldValue('intake'),
+            ])
         </div>
         <div class="col-md-4 p-1">
             <label>Admission Number (CAS / I-20)</label>

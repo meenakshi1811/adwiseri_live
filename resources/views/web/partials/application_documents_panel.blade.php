@@ -516,12 +516,12 @@
             var listAction = event.target.closest('.app-doc-list-action[data-doc-list-unconfigured="1"]');
             if (listAction && panel.contains(listAction)) {
                 event.preventDefault();
-                var message = 'No document list is configured for this application\'s country and visa category, and no uploaded documents were found. Add a list under Settings → Countries & Visa Categories, or upload documents to this application first.';
+                var message = 'No Documents Checklist is configured for this application\'s country and visa category, and no uploaded documents were found. Add a checklist under Settings → Countries & Visa Categories, or upload documents to this application first.';
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
                         icon: 'warning',
                         customClass: { icon: 'adwiseri-oops-icon' },
-                        title: 'Document List unavailable',
+                        title: 'Documents Checklist unavailable',
                         text: message
                     });
                 } else {

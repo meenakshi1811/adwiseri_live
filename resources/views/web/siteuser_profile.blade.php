@@ -2,12 +2,13 @@
 
 @section('main-section')
 
-        <div class="col-lg-10 userdash-client column-client profile-page-shell">
-        <div class="col-12 d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 profile-page-header">
-            <h3 class="text-primary text-center flex-grow-1 m-0 profile-page-title">Staff Profile</h3>
-            <a href="{{ route('users') }}" class="text-nowrap">Back to Users</a>
-        </div>
-            <div class="profile-detail profile-detail-responsive">
+        <div class="col-lg-10 column-client">
+            <div class="client-dashboard profile-page-shell">
+                <div class="col-12 d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 profile-page-header">
+                    <h3 class="text-primary text-center flex-grow-1 m-0 profile-page-title">Staff Profile</h3>
+                    <a href="{{ route('users') }}" class="text-nowrap">Back to Users</a>
+                </div>
+                <div class="profile-detail profile-detail-responsive">
                 <div class="col-12 col-lg-7 profile-data profile-card-panel">
                     <div class="row">
                         <div class="col-11"></div>
@@ -110,10 +111,12 @@
                     </div>
                 </div>
             </div>
+            </div>
         </div>
+
     </div>
 
-  </div>
+</div>
   <div id="siteuser_update_box" class="profile-modal-overlay" style="display: none;">
     <div class="row justify-content-center g-0">
         <div class="col-12 col-md-10 col-lg-6 col-xl-5 loginouter-box profile-modal-panel">

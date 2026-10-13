@@ -1574,6 +1574,8 @@ class WebController extends Controller
             $clients,
             fn ($client) => TableFilterCountService::clientVisaCountry($client)
         );
+        $studyVisaOptions = $ccService->resolveStudyVisaLists($subscriber);
+
         return view('web.client', compact(
             'user',
             'clients',
@@ -1584,7 +1586,8 @@ class WebController extends Controller
             'clientVisaCountryFilters',
             'statusFlowsByCategory',
             'endDateRequiredByCategory',
-            'applicationStatusFlow'
+            'applicationStatusFlow',
+            'studyVisaOptions'
         ));
     }
 
@@ -1620,19 +1623,19 @@ class WebController extends Controller
                 $siteusers = $siteusers->whereBetween('created_at', [$startDate, $endDate]);
                 return DataTables::of($siteusers)
                     ->editColumn('status', function ($row) {
-                        $html = '';
-                        if ($row->status == 'true') {
-                            $html .= '<a style="background:green;border-color:green;" href="#" onclick="userstatus(' . $row->id . ')" class="p-0 px-1">Active</a>';
-                        } else {
-                            $html .= '<a style="background:red;border-color:red;" href="#" onclick="userstatus(' . $row->id . ')" class="p-0 px-1">Inactive</a>';
-                        }
-                        return $html;
+                        return view('partials.staff_status_select', [
+                            'staff' => $row,
+                        ])->render();
                     })
                     ->addColumn('action', function ($row) {
-                        $html = '';
-                        $html .= '<a href="' . route('siteuser_profile', $row->id) . '" style="text-decoration:none; background:none; border:none">';
-                        $html .= '<i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i>';
-                        $html .= '</a>';
+                        $html = '<div class="action-icon">';
+                        $html .= '<a href="' . route('siteuser_profile', $row->id) . '" style="text-decoration:none;" data-bs-toggle="tooltip" data-bs-placement="top" title="View">';
+                        $html .= '<i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>';
+                        $html .= '<a href="' . route('siteuser_profile', ['id' => $row->id, 'edit' => 1]) . '" style="text-decoration:none;" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit">';
+                        $html .= '<i class="fa-solid fa-pen-to-square btn p-1 text-primary" style="font-size:14px;"></i></a>';
+                        $html .= '<i class="fa-solid fa-trash btn p-1 text-danger staff-delete-btn" style="font-size:14px;cursor:pointer;" data-user-id="' . $row->id . '" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"></i>';
+                        $html .= '</div>';
+
                         return $html;
                     })
                     ->rawColumns(['status', 'action'])
@@ -2833,18 +2836,69 @@ class WebController extends Controller
         }
     }
 
+    public function siteuser_status($id = null, $status = null, $localtime = null)
+    {
+        $user = $this->check_login();
+        if (membership_access_blocked($user)) {
+            return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
+        }
+
+        if (empty($id) || !in_array($status, ['true', 'false'], true)) {
+            return redirect()->route('users');
+        }
+
+        $siteuser = User::find($id);
+        if (!$siteuser || $siteuser->user_type !== 'User') {
+            return redirect()->route('users')->withErrors(['message' => 'Staff user not found.']);
+        }
+
+        if ($user->user_type !== 'admin') {
+            $subscriberId = $user->user_type === 'Subscriber' ? (int) $user->id : (int) $user->added_by;
+            if ((int) $siteuser->added_by !== $subscriberId) {
+                abort(403);
+            }
+        }
+
+        $this->set_timezone();
+        $siteuser->status = $status;
+        $siteuser->save();
+
+        $activity = new Activities();
+        $activity->subscriber_id = $user->user_type === 'Subscriber' ? $user->id : (int) $user->added_by;
+        $activity->user_id = $user->id;
+        $activity->user_name = $user->name;
+        $activity->activity_name = "User Status Updated";
+        $activity->activity_detail = $siteuser->name . " status set to " . ($status === 'true' ? 'Active' : 'Inactive') . " by " . $user->name . " at " . ($localtime ?? date('d M, Y H:i:s'));
+        $activity->activity_icon = "user.png";
+        $activity->local_time = $localtime;
+        $activity->save();
+
+        return redirect()->route('users')->with('status_updated', 'User status changed successfully.');
+    }
+
     public function delete_siteuser($id = null, $localtime = null)
     {
         if (!empty($id)) { //edit the page.
             $user = Auth::user();
             $this->set_timezone();
             if ($user) {
-                $subscriber = $user;
                 $siteuser = User::find($id);
+                if (!$siteuser || $siteuser->user_type !== 'User') {
+                    return redirect()->route('users')->withErrors(['message' => 'Staff user not found.']);
+                }
+
+                if ($user->user_type !== 'admin') {
+                    $subscriberId = $user->user_type === 'Subscriber' ? (int) $user->id : (int) $user->added_by;
+                    if ((int) $siteuser->added_by !== $subscriberId) {
+                        abort(403);
+                    }
+                }
+
                 $username = $siteuser->name;
+                $ownerSubscriberId = (int) ($siteuser->added_by ?: ($user->user_type === 'Subscriber' ? $user->id : $user->added_by));
                 $siteuser->delete();
                 $activity = new Activities();
-                $activity->subscriber_id = $subscriber->id;
+                $activity->subscriber_id = $ownerSubscriberId;
                 $activity->user_id = $user->id;
                 $activity->user_name = $user->name;
                 $activity->activity_name = "User Deleted";
@@ -2852,12 +2906,12 @@ class WebController extends Controller
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $localtime;
                 $activity->save();
-                return back()->with('deleted', 'User deleted successfully.');
+                return redirect()->route('users')->with('deleted', 'User deleted successfully.');
             } else {
                 return redirect()->route('login');
             }
         } else { //view the page.
-            return back();
+            return redirect()->route('users');
         }
     }
 
@@ -3214,6 +3268,7 @@ class WebController extends Controller
         $endDateRequiredStatuses = $statusService->resolveEndDateRequired((int) $subscriber->id, null);
         $statusFlowsByCategory = $statusService->resolveFlowsByCategory((int) $subscriber->id, $visaCategories);
         $endDateRequiredByCategory = $statusService->resolveEndDateRequiredByCategory((int) $subscriber->id, $visaCategories);
+        $studyVisaOptions = $ccService->resolveStudyVisaLists($subscriber);
         $page = "applications";
         return view('web.add_application', compact(
             'clients',
@@ -3226,7 +3281,8 @@ class WebController extends Controller
             'applicationStatusFlow',
             'endDateRequiredStatuses',
             'statusFlowsByCategory',
-            'endDateRequiredByCategory'
+            'endDateRequiredByCategory',
+            'studyVisaOptions'
         ));
     }
 
@@ -3266,6 +3322,7 @@ class WebController extends Controller
         );
         $statusFlowsByCategory = $statusService->resolveFlowsByCategory((int) $subscriber->id, $visaCategories);
         $endDateRequiredByCategory = $statusService->resolveEndDateRequiredByCategory((int) $subscriber->id, $visaCategories);
+        $studyVisaOptions = $ccService->resolveStudyVisaLists($subscriber);
         $page = "applications";
         return view('web.add_application', compact(
             'application',
@@ -3278,7 +3335,8 @@ class WebController extends Controller
             'applicationStatusFlow',
             'endDateRequiredStatuses',
             'statusFlowsByCategory',
-            'endDateRequiredByCategory'
+            'endDateRequiredByCategory',
+            'studyVisaOptions'
         ));
     }
 
@@ -3492,7 +3550,7 @@ class WebController extends Controller
                         ->sendOnApplicationCreated($application, $user, $subscriber);
                     $addedMessage = 'Application added successfully.';
                     if ($mailResult['success']) {
-                        $addedMessage .= ' Documents checklist emailed to ' . $mailResult['recipient'] . '.';
+                        $addedMessage .= ' ' . $mailResult['message'];
                     } elseif (!$mailResult['skipped']) {
                         \Log::warning('Application created but documents checklist email not sent', [
                             'application_id' => $application->id,
@@ -8556,6 +8614,47 @@ class WebController extends Controller
             'sent' => $result['sent'],
             'sent_to' => $result['sent_to'] ?? [],
         ]);
+    }
+
+    public function save_cc_study_visa_lists(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        try {
+            $validated = $request->validate([
+                'study_visa_lists' => 'required|array',
+                'study_visa_lists.course_names' => 'nullable|array',
+                'study_visa_lists.course_names.*' => 'string|max:255',
+                'study_visa_lists.course_durations' => 'nullable|array',
+                'study_visa_lists.course_durations.*' => 'string|max:255',
+                'study_visa_lists.institutions' => 'nullable|array',
+                'study_visa_lists.institutions.*' => 'string|max:255',
+                'study_visa_lists.intakes' => 'nullable|array',
+                'study_visa_lists.intakes.*' => 'string|max:255',
+            ]);
+
+            $ccService = app(CountryCategorySettingsService::class);
+            $subscriber = $ccService->resolveSubscriber($user);
+            $ccService->saveStudyVisaLists($subscriber, $validated['study_visa_lists']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Study visa lists saved successfully.',
+                'study_visa_lists' => $ccService->resolveStudyVisaLists($subscriber),
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $validationException) {
+            throw $validationException;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage() ?: 'Failed to save study visa lists.',
+            ], 500);
+        }
     }
 
     public function save_cc_document_lists(Request $request)

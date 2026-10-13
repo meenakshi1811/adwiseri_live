@@ -23,11 +23,18 @@ $canAddEntry = $client_roles && ($client_roles->write_only == 1 || $client_roles
         margin-top: -0.35rem;
     }
 
-    .client-accounts-pdf-link.disabled {
+    .client-accounts-pdf-link.disabled,
+    .client-accounts-pdf-btn.disabled {
         opacity: 0.45;
         pointer-events: none;
         cursor: not-allowed;
         text-decoration: none;
+    }
+
+    .client-accounts-filter-actions {
+        display: flex;
+        align-items: flex-end;
+        height: 100%;
     }
 </style>
 <div class="col-lg-10 column-client">
@@ -35,9 +42,6 @@ $canAddEntry = $client_roles && ($client_roles->write_only == 1 || $client_roles
         <div class="client-btn d-flex justify-content-between align-items-start client-accounts-page-header">
             <h3 class="text-primary text-center flex-grow-1 text-center m-0 pt-1">Client Accounts</h3>
             <div class="d-flex gap-3 align-items-center flex-wrap justify-content-end client-accounts-actions">
-                @if($canDownloadPdf)
-                <a href="javascript:void(0)" id="downloadClientAccountsPdf" class="m-0 client-accounts-pdf-link disabled" aria-disabled="true">Download PDF</a>
-                @endif
                 @if($canAddEntry)
                     @if(ModuleAvailability::hasClients($user))
                     <a href="{{ route('add_client_account') }}" class="m-0">Add Client Account Record</a>
@@ -66,6 +70,11 @@ $canAddEntry = $client_roles && ($client_roles->write_only == 1 || $client_roles
                     <option value="">All Applications</option>
                 </select>
             </div>
+            @if($canDownloadPdf)
+            <div class="col-md-4 col-lg-3 client-accounts-filter-actions">
+                <a href="javascript:void(0)" id="downloadClientAccountsPdf" class="btn btn-outline-primary btn-sm w-100 client-accounts-pdf-btn disabled" aria-disabled="true">Download PDF</a>
+            </div>
+            @endif
         </div>
 
         @if(count($accounts) != 0)
@@ -78,6 +87,7 @@ $canAddEntry = $client_roles && ($client_roles->write_only == 1 || $client_roles
                         <th class="p-1 text-center">App_ID</th>
                         <th class="p-1 text-center">Trans_Type</th>
                         <th class="p-1 text-center">Amount</th>
+                        <th class="p-1 text-center">Mode_Of_Payment</th>
                         <th class="p-1 text-center">Description</th>
                         <th class="p-1 text-center">Prev_Balance</th>
                         <th class="p-1 text-center">Total</th>
@@ -103,6 +113,7 @@ $canAddEntry = $client_roles && ($client_roles->write_only == 1 || $client_roles
                             </span>
                         </td>
                         <td class="p-1 text-center">{{ number_format((float) $account->amount, 2, '.', '') }}</td>
+                        <td class="p-1 text-center">{{ $account->payment_mode ?: '—' }}</td>
                         <td class="p-1 text-center">{{ $account->description === 'Advance Collection' ? 'Deposit / Advance Collected' : $account->description }}</td>
                         <td class="p-1 text-center">{{ number_format((float) $account->prev_balance, 2, '.', '') }}</td>
                         <td class="p-1 text-center">{{ number_format((float) $account->total, 2, '.', '') }}</td>
@@ -213,7 +224,7 @@ $(document).ready(function () {
     }
 
     accountsTable = $('#clientAccountsTable').DataTable({
-        order: [[8, 'desc'], [0, 'desc']]
+        order: [[9, 'desc'], [0, 'desc']]
     });
 
     function populateApplications(clientId) {
@@ -221,20 +232,45 @@ $(document).ready(function () {
             return;
         }
 
-        applicationSelect.innerHTML = '<option value="">All Applications</option>';
+        applicationSelect.innerHTML = '';
         applicationSelect.disabled = true;
 
         if (!clientId) {
+            var placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = 'All Applications';
+            applicationSelect.appendChild(placeholder);
             return;
         }
 
         var apps = applicationsByClient[clientId] || applicationsByClient[String(clientId)] || [];
-        apps.forEach(function (app) {
-            var option = document.createElement('option');
-            option.value = app.id;
-            option.textContent = app.name + ' (' + app.id + ')';
-            applicationSelect.appendChild(option);
-        });
+
+        if (apps.length > 1) {
+            var allOption = document.createElement('option');
+            allOption.value = '';
+            allOption.textContent = 'All Applications';
+            applicationSelect.appendChild(allOption);
+            apps.forEach(function (app) {
+                var option = document.createElement('option');
+                option.value = app.id;
+                option.textContent = app.name + ' (' + app.id + ')';
+                applicationSelect.appendChild(option);
+            });
+            applicationSelect.value = '';
+        } else if (apps.length === 1) {
+            var single = apps[0];
+            var singleOption = document.createElement('option');
+            singleOption.value = single.id;
+            singleOption.textContent = single.name + ' (' + single.id + ')';
+            applicationSelect.appendChild(singleOption);
+            applicationSelect.value = String(single.id);
+        } else {
+            var emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = 'All Applications';
+            applicationSelect.appendChild(emptyOption);
+            applicationSelect.value = '';
+        }
 
         applicationSelect.disabled = false;
     }
@@ -297,9 +333,6 @@ $(document).ready(function () {
     if (clientSelect) {
         clientSelect.addEventListener('change', function () {
             populateApplications(this.value);
-            if (applicationSelect) {
-                applicationSelect.value = '';
-            }
             applyFilters();
         });
     }

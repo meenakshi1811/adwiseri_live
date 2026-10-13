@@ -115,6 +115,15 @@ class MySettingsPageService
             'ccUsingDefaults' => $this->safe(fn () => !$ccService->hasSavedCcSelection($subscriber), true),
             'documentTypes' => $ccService->getDocumentTypes(),
             'ccDocumentLists' => $ccDocumentLists,
+            'studyVisaLists' => $this->safe(
+                fn () => $ccService->resolveStudyVisaLists($subscriber),
+                [
+                    'course_names' => [],
+                    'course_durations' => [],
+                    'institutions' => [],
+                    'intakes' => [],
+                ]
+            ),
             'autoSendDocumentChecklist' => $this->safe(
                 fn () => $ccService->autoSendDocumentChecklistEnabled($subscriber),
                 false

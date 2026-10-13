@@ -16,6 +16,7 @@ class SubscriberCcSetting extends Model
         'countries',
         'visa_categories',
         'document_lists',
+        'study_visa_lists',
         'auto_send_document_checklist',
     ];
 
@@ -23,6 +24,7 @@ class SubscriberCcSetting extends Model
         'countries' => 'array',
         'visa_categories' => 'array',
         'document_lists' => 'array',
+        'study_visa_lists' => 'array',
         'auto_send_document_checklist' => 'boolean',
     ];
 

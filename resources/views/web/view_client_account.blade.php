@@ -5,6 +5,35 @@
 use App\Models\UserRoles;
 $client_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','Clients')->first();
 @endphp
+<style>
+    .client-account-detail-table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+    }
+
+    .client-account-detail-table th,
+    .client-account-detail-table td {
+        vertical-align: middle;
+    }
+
+    .client-account-detail-table thead th {
+        text-align: center;
+    }
+
+    .client-account-detail-table thead th.amount-col {
+        text-align: right;
+    }
+
+    .client-account-detail-table .amount-col {
+        width: 28%;
+        white-space: nowrap;
+    }
+
+    .client-account-detail-table .summary-label {
+        text-align: right;
+    }
+</style>
 <div class="col-lg-10 column-client">
     <div class="client-dashboard">
         <div class="client-btn d-flex justify-content-between mb-4">
@@ -17,7 +46,7 @@ $client_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','C
             </div>
         </div>
 
-        <div class="col p-3">
+        <div class="p-3">
             <div class="row mb-3">
                 <div class="col-md-6">
                     <p class="m-1"><strong>Trans_ID:</strong> {{ $account->id }}</p>
@@ -42,24 +71,39 @@ $client_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','C
                 </div>
             </div>
 
-            <table class="fl-table table mt-3" style="border: 1px solid grey;">
-                <tr>
-                    <th class="col-8">Description</th>
-                    <th class="col-4 text-end">Amount ({{ $user->currency ?? '' }})</th>
-                </tr>
-                <tr>
-                    <td>{{ $account->description }}</td>
-                    <td class="text-end">{{ number_format((float) $account->amount, 2, '.', '') }}</td>
-                </tr>
-                <tr>
-                    <td class="text-end"><strong>Previous Balance</strong></td>
-                    <td class="text-end">{{ number_format((float) $account->prev_balance, 2, '.', '') }}</td>
-                </tr>
-                <tr>
-                    <td class="text-end"><strong>Running Total</strong></td>
-                    <td class="text-end"><strong>{{ number_format((float) $account->total, 2, '.', '') }}</strong></td>
-                </tr>
-            </table>
+            <div class="fl-table-wrap mt-3">
+                <table class="fl-table table client-account-detail-table mb-0" style="border: 1px solid grey;">
+                    <colgroup>
+                        <col>
+                        <col class="amount-col">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th scope="col">Description</th>
+                            <th scope="col" class="amount-col">Amount ({{ $user->currency ?? '' }})</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                {{ $account->description }}
+                                @if($account->payment_mode)
+                                    <div class="text-muted small mt-1">Mode Of Payment: {{ $account->payment_mode }}</div>
+                                @endif
+                            </td>
+                            <td class="text-end">{{ number_format((float) $account->amount, 2, '.', '') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="summary-label"><strong>Previous Balance</strong></td>
+                            <td class="text-end">{{ number_format((float) $account->prev_balance, 2, '.', '') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="summary-label"><strong>Running Total</strong></td>
+                            <td class="text-end"><strong>{{ number_format((float) $account->total, 2, '.', '') }}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
             <div class="mt-4">
                 <a href="{{ route('client_accounts') }}" class="btn btn-secondary">Back to Accounts</a>

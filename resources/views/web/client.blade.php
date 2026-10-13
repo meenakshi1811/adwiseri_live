@@ -100,9 +100,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
         <div class="col-lg-10 column-client">
             <div class="client-dashboard">
 
-                <div class="col-12 d-flex justify-content-between align-items-center mb-3">
+                <div class="client-btn d-flex mb-2">
                     <h3 class="text-primary text-center flex-grow-1 text-center m-0">Clients</h3>
-                    <div class="d-flex gap-2">
+                    <p class="module-header-actions d-flex gap-2 mb-0">
                     @php
                     $encryptedId = encrypt($user->id);
                     @endphp
@@ -128,9 +128,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         <a href="javascript:void(0)" onclick="showNoClientAlert(); return false;" class="m-0">Add Spouse/Dependant</a>
                         @endif
                       @endif
-                    </div>
+                    </p>
                   </div>
-                  <div class="client-btn d-flex justify-content-between mb-4">
                     <div id="myModal" class="modal" tabindex="-1">
                         <div class="modal-dialog modal-md">
                             <div class="modal-content">
@@ -431,7 +430,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             </div>
                         </div>
                     </div>
-                </div>
                 @include('partials.client_module_tabs', ['activeTab' => 'clients'])
                 @if(count($clients) != 0)
                 @include('partials.table_filter_toolbar', [
@@ -441,7 +439,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     'totalCount' => count($clients),
                 ])
                 <div class="table-wrapper">
-                    <table class="fl-table table table-hover table-responsive p-0 m-0" id="clientTable">
+                    <table class="fl-table table table-hover p-0 m-0" id="clientTable">
                         <thead>
                         <tr>
                             <th class="p-1 text-center">Sr No.</th>

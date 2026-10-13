@@ -2685,6 +2685,27 @@ span {
     flex: 0 0 auto;
 }
 
+@media (min-width: 992px) {
+    /* Module pages (non-dashboard): extend nav panel to match main column height */
+    .dashboard-box .client-row:not(.dashboard-equal-cols) {
+        align-items: stretch;
+    }
+
+    .dashboard-box .client-row:not(.dashboard-equal-cols) > .column-dashbox {
+        align-self: stretch;
+    }
+
+    .dashboard-box .client-row:not(.dashboard-equal-cols) > .column-dashbox .dash-box {
+        flex: 1 1 auto;
+        min-height: 100%;
+    }
+
+    .dashboard-box .client-row:not(.dashboard-equal-cols) > .column-client,
+    .dashboard-box .client-row:not(.dashboard-equal-cols) > .userdash-client {
+        align-self: stretch;
+    }
+}
+
 .dashboard-box .dash-main-col {
     display: flex;
     flex-direction: column;

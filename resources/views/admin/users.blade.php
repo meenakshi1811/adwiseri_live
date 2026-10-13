@@ -66,27 +66,8 @@
                             <td class="text-center">{{ $siteuser->city }}</td>
                             <td class="text-center"  data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $siteuser->designation }}" style="position: relative;">@if(strlen($siteuser->designation) > 22){{ substr($siteuser->designation, 0, 22) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$siteuser->designation}}</span> @else {{$siteuser->designation}} @endif</td>
                             <td class="text-center">{{  \Carbon\Carbon::parse($siteuser->created_at)->format('d-m-Y H:i:s') }}</td>
-                            <!-- <td class="text-center">@if($siteuser->status == 'true') <a style="background:green;border-color:green;" href="{{ route('subscriber_status', $siteuser->id) }}" class="p-0 px-1">Active</a> @else <a style="background:red;border-color:red;" href="{{ route('subscriber_status', $siteuser->id) }}" class="p-0 px-1">Inactive</a> @endif</td> -->
-                            @php
-                                $isActive = false;
-
-                                // check expiry date
-                                if(!empty($siteuser->membership_expiry_date)) {
-                                    $isActive = \Carbon\Carbon::parse($siteuser->membership_expiry_date)->isFuture() 
-                                                || \Carbon\Carbon::parse($siteuser->membership_expiry_date)->isToday();
-                                }
-                            @endphp
-
                             <td class="text-center">
-                                @if($isActive)
-                                    <a style="background:green;border-color:green;" 
-                                      href="{{ route('subscriber_status', $siteuser->id) }}" 
-                                      class="p-0 px-1">Active</a>
-                                @else
-                                    <a style="background:red;border-color:red;" 
-                                      href="{{ route('subscriber_status', $siteuser->id) }}" 
-                                      class="p-0 px-1">Inactive</a>
-                                @endif
+                                @include('partials.staff_status_select', ['staff' => $siteuser])
                             </td>
 
                             <td class="text-center">
@@ -141,10 +122,46 @@
         });
     }
 });
+      function bindAdminStaffStatusSelects(root) {
+          (root || document).querySelectorAll('.staff-status-select').forEach(function (select) {
+              if (select.dataset.bound === '1') {
+                  return;
+              }
+              select.dataset.bound = '1';
+              select.addEventListener('change', function () {
+                  var userId = select.getAttribute('data-user-id');
+                  var newStatus = select.value;
+                  var previousStatus = select.getAttribute('data-current') || 'true';
+                  if (newStatus === previousStatus) {
+                      return;
+                  }
+                  var label = newStatus === 'true' ? 'activate' : 'deactivate';
+                  Swal.fire({
+                      title: 'Change user status?',
+                      text: 'Are you sure you want to ' + label + ' this staff member?',
+                      icon: 'warning',
+                      showCancelButton: true,
+                      confirmButtonColor: '#695EEE',
+                      cancelButtonColor: '#d33',
+                      confirmButtonText: 'Yes, continue'
+                  }).then(function (result) {
+                      if (result.isConfirmed) {
+                          var localtime = new Date().toString();
+                          window.location.href = "{{ url('subscriber_status') }}/" + userId + "/" + encodeURIComponent(localtime) + "?set_status=" + newStatus;
+                          return;
+                      }
+                      select.value = previousStatus;
+                  });
+              });
+          });
+      }
+
+      bindAdminStaffStatusSelects(document);
+
       function deleteuser(id){
         Swal.fire({
-          title: 'Are you sure?',
-          text: "This action cannot be undone.",
+          title: 'Delete user?',
+          text: "Are you sure you want to delete this staff member? This action cannot be undone.",
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#695EEE',
@@ -152,7 +169,7 @@
           confirmButtonText: 'Yes, delete it!'
         }).then((result) => {
           if (result.isConfirmed) {
-            window.location.href = "delete_user/"+id+"";
+            window.location.href = "{{ url('delete_user') }}/" + id;
           }
         })
       }

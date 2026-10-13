@@ -127,7 +127,7 @@
     <script>
       Swal.fire({
         icon: 'error',
-        title: 'Document List unavailable',
+        title: 'Documents Checklist unavailable',
         text: @json(session('document_list_error'))
       })
     </script>

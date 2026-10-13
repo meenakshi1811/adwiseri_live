@@ -19,6 +19,8 @@
 .payment-module-tabs,
 .users-module-tabs,
 .module-tab-row,
+.client-module-tabs,
+.client-dashboard > .module-tab-row,
 .client-dashboard > .row.m-0.pb-2:has(> [class*="col-"].border),
 .client-dashboard > .row.m-0.p-2:has(> [class*="col-"].border),
 .client-dashboard > .row.m-0.pb-2:has(> .tab-anchor),
@@ -43,6 +45,8 @@
 
 .users-module-tabs > [class*="col-"],
 .module-tab-row > [class*="col-"],
+.client-module-tabs > [class*="col-"],
+.client-dashboard > .module-tab-row > [class*="col-"],
 .client-dashboard > .row.m-0.pb-2:has(> [class*="col-"].border) > [class*="col-"],
 .client-dashboard > .row.m-0.p-2:has(> [class*="col-"].border) > [class*="col-"],
 .client-dashboard > .row.m-0.pb-2:has(> .tab-anchor) > [class*="col-"],
@@ -65,6 +69,8 @@
 .payment-module-tabs .tab-anchor,
 .users-module-tabs > [class*="col-"].border,
 .module-tab-row > [class*="col-"].border,
+.client-module-tabs > [class*="col-"].border,
+.client-dashboard > .module-tab-row > [class*="col-"].border,
 .client-dashboard > .row.m-0.pb-2 > [class*="col-"].border,
 .client-dashboard > .row.m-0.p-2 > [class*="col-"].border {
     display: flex !important;
@@ -186,6 +192,8 @@
     .payment-module-tabs,
     .users-module-tabs,
     .module-tab-row,
+    .client-module-tabs,
+    .client-dashboard > .module-tab-row,
     .client-dashboard > .row.m-0.pb-2:has(> [class*="col-"].border),
     .client-dashboard > .row.m-0.p-2:has(> [class*="col-"].border) {
         flex-wrap: nowrap;
@@ -199,6 +207,8 @@
     .payment-module-tabs .tab-anchor,
     .users-module-tabs > [class*="col-"].border,
     .module-tab-row > [class*="col-"].border,
+    .client-module-tabs > [class*="col-"].border,
+    .client-dashboard > .module-tab-row > [class*="col-"].border,
     .client-dashboard > .row.m-0.pb-2 > [class*="col-"].border,
     .client-dashboard > .row.m-0.p-2 > [class*="col-"].border {
         flex: 0 0 auto;
@@ -216,5 +226,11 @@
     .nav-tabs .nav-link {
         flex: 0 0 auto;
         white-space: nowrap;
+    }
+
+    .client-module-tabs > [class*="col-"].border,
+    .client-dashboard > .module-tab-row.client-module-tabs > [class*="col-"].border {
+        min-width: max(32%, 7.25rem);
+        font-size: clamp(10px, 2.6vw, 13px);
     }
 }

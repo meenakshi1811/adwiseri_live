@@ -1169,6 +1169,8 @@
                                 </button>
                             </div>
 
+                            @include('partials.settings_study_visa_lists', ['studyVisaLists' => $studyVisaLists ?? []])
+
                             <div class="cc-documents-panel mt-4">
                                     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
                                         <div>

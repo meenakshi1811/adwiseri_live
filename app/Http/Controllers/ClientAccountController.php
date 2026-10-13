@@ -13,6 +13,7 @@ use Carbon\Carbon;
 use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class ClientAccountController extends Controller
 {
@@ -433,6 +434,7 @@ class ClientAccountController extends Controller
             'application_id' => 'nullable|integer|exists:applications,id',
             'trans_type' => 'required|in:Credit,Debit',
             'amount' => 'required|numeric|min:0.01',
+            'payment_mode' => ['required', 'string', Rule::in(ClientAccount::PAYMENT_MODES)],
             'description' => 'required|string|max:255',
             'description_other' => 'nullable|string|max:255',
             'transaction_date' => 'required|date_format:d-m-Y',
@@ -454,6 +456,7 @@ class ClientAccountController extends Controller
             'application_id' => $request->application_id ?: null,
             'trans_type' => $request->trans_type,
             'amount' => $request->amount,
+            'payment_mode' => $request->payment_mode,
             'description' => $description,
             'transaction_date' => Carbon::createFromFormat('d-m-Y', $request->transaction_date)->format('Y-m-d'),
             'trans_by' => $user->name,
@@ -546,6 +549,7 @@ class ClientAccountController extends Controller
             'application_id' => 'nullable|integer|exists:applications,id',
             'trans_type' => 'required|in:Credit,Debit',
             'amount' => 'required|numeric|min:0.01',
+            'payment_mode' => ['required', 'string', Rule::in(ClientAccount::PAYMENT_MODES)],
             'description' => 'required|string|max:255',
             'description_other' => 'nullable|string|max:255',
             'transaction_date' => 'required|date_format:d-m-Y',
@@ -566,6 +570,7 @@ class ClientAccountController extends Controller
             'application_id' => $request->application_id ?: null,
             'trans_type' => $request->trans_type,
             'amount' => $request->amount,
+            'payment_mode' => $request->payment_mode,
             'description' => $this->resolveDescription($request),
             'transaction_date' => Carbon::createFromFormat('d-m-Y', $request->transaction_date)->format('Y-m-d'),
             'trans_by' => $user->name,

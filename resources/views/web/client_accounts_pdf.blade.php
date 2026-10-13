@@ -110,11 +110,11 @@
                     <th>Trans_ID</th>
                     <th>Trans_Type</th>
                     <th>Amount</th>
+                    <th>Mode Of Payment</th>
                     <th>Description</th>
                     <th>Prev_Balance</th>
                     <th>Total</th>
                     <th>Date</th>
-                    <th>Entry By</th>
                 </tr>
             </thead>
             <tbody>
@@ -125,11 +125,11 @@
                         {{ $account->trans_type }}
                     </td>
                     <td>{{ number_format((float) $account->amount, 2, '.', '') }}</td>
+                    <td>{{ $account->payment_mode ?: '—' }}</td>
                     <td>{{ $account->description === 'Advance Collection' ? 'Deposit / Advance Collected' : $account->description }}</td>
                     <td>{{ number_format((float) $account->prev_balance, 2, '.', '') }}</td>
                     <td>{{ number_format((float) $account->total, 2, '.', '') }}</td>
                     <td>{{ $account->transaction_date ? $account->transaction_date->format('d-m-Y') : '—' }}</td>
-                    <td>{{ $account->trans_by }}</td>
                 </tr>
                 @empty
                 <tr>

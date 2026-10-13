@@ -5,9 +5,9 @@
 <div class="col-lg-10 column-client">
 <div class="client-dashboard">
 
-<div class="col-12 d-flex justify-content-between align-items-center mb-3">
+<div class="client-btn d-flex mb-2">
 <h3 class="text-primary text-center flex-grow-1 m-0">Enquiries (Leads)</h3>
-<div class="d-flex gap-2">
+<p class="module-header-actions d-flex gap-2 mb-0">
 @php
 use App\Models\User;
 $subscriber = $user->user_type === 'Subscriber' ? $user : User::find($user->added_by);
@@ -25,7 +25,7 @@ $subscriberDisplayName = $subscriber->organization ?? $subscriber->name;
 <a href="{{ route('enquiries.create') }}" class="btn btn-primary btn-sm">Add Lead</a>
 <a href="{{ route('createLead', $encryptedId) }}" class="btn btn-outline-primary btn-sm">Full Enquiry Form</a>
 <a href="javascript:void(0)" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#qrModal">Get QR Code For Enquiry Form</a>
-</div>
+</p>
 </div>
 
 
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <div class="table-wrapper">
 
-<table class="fl-table table table-hover table-responsive p-0 m-0" id="clientTable">
+<table class="fl-table table table-hover p-0 m-0" id="clientTable">
 
 <thead>
 
@@ -301,6 +301,10 @@ Yes
 </p>
 
 </div>
+</div>
+
+    </div>
+
 </div>
 
 @include('partials.lead_follow_up_history_modal')

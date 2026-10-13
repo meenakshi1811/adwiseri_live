@@ -813,6 +813,94 @@ class CountryCategorySettingsService
         ]);
     }
 
+    /**
+     * @return array{course_names: array<int, string>, course_durations: array<int, string>, institutions: array<int, string>, intakes: array<int, string>}
+     */
+    public function resolveStudyVisaLists(User $subscriber): array
+    {
+        $keys = ['course_names', 'course_durations', 'institutions', 'intakes'];
+        $empty = array_fill_keys($keys, []);
+
+        if (!$this->settingsTableExists()
+            || !Schema::hasColumn('subscriber_cc_settings', 'study_visa_lists')) {
+            return $empty;
+        }
+
+        $setting = $this->getSetting($subscriber);
+        $stored = is_array($setting?->study_visa_lists) ? $setting->study_visa_lists : [];
+
+        $result = [];
+        foreach ($keys as $key) {
+            $result[$key] = $this->normalizeStudyVisaListItems($stored[$key] ?? []);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<string, mixed> $lists
+     * @return array{course_names: array<int, string>, course_durations: array<int, string>, institutions: array<int, string>, intakes: array<int, string>}
+     */
+    public function normalizeStudyVisaListsInput(array $lists): array
+    {
+        return [
+            'course_names' => $this->normalizeStudyVisaListItems($lists['course_names'] ?? []),
+            'course_durations' => $this->normalizeStudyVisaListItems($lists['course_durations'] ?? []),
+            'institutions' => $this->normalizeStudyVisaListItems($lists['institutions'] ?? []),
+            'intakes' => $this->normalizeStudyVisaListItems($lists['intakes'] ?? []),
+        ];
+    }
+
+    /**
+     * @param mixed $items
+     * @return array<int, string>
+     */
+    public function normalizeStudyVisaListItems($items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+
+        return collect($items)
+            ->map(fn ($value) => trim((string) $value))
+            ->filter(fn ($value) => $value !== '')
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param array<string, mixed> $lists
+     */
+    public function saveStudyVisaLists(User $subscriber, array $lists): SubscriberCcSetting
+    {
+        $this->ensureSettingsTableExists();
+
+        if (!Schema::hasColumn('subscriber_cc_settings', 'study_visa_lists')) {
+            throw new \RuntimeException(
+                'Study visa list storage is not set up. Please run: php artisan migrate --path=database/migrations/2026_10_13_000001_add_study_visa_lists_to_subscriber_cc_settings_table.php'
+            );
+        }
+
+        $normalized = $this->normalizeStudyVisaListsInput($lists);
+        $setting = $this->getSetting($subscriber);
+
+        if ($setting) {
+            $setting->study_visa_lists = $normalized;
+            $setting->save();
+
+            return $setting;
+        }
+
+        return SubscriberCcSetting::create([
+            'subscriber_id' => $subscriber->id,
+            'countries' => $this->resolveCountryNames($subscriber)->all(),
+            'visa_categories' => $this->resolveVisaCategoryNames($subscriber)->all(),
+            'document_lists' => [],
+            'study_visa_lists' => $normalized,
+        ]);
+    }
+
     public function resolveDocumentsForCombination(User $subscriber, string $country, string $visaCategory): array
     {
         $entry = $this->resolveDocumentListEntry($subscriber, $country, $visaCategory);

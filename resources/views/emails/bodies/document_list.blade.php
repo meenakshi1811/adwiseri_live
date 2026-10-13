@@ -1,4 +1,8 @@
-<p style="margin:0 0 12px 0;">Dear {{ $data['client_name'] ?? 'Client' }},</p>
+<p style="margin:0 0 12px 0;">Dear {{ $data['client_first_name'] ?? $data['client_name'] ?? 'Client' }},</p>
+
+@if(!empty($data['subscriber_footer']))
+    <p style="margin:0 0 16px 0;font-size:16px;font-weight:700;color:#111827;">Documents Checklist</p>
+@endif
 
 @php
     $applicationLabel = trim(($data['country'] ?? '') . ' ' . ($data['category'] ?? ''));

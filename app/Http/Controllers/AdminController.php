@@ -892,7 +892,7 @@ class AdminController extends Controller
         }
     }
 
-    public function subscriber_status($id = null, $localtime = null)
+    public function subscriber_status(Request $request, $id = null, $localtime = null)
     {
         if (!empty($id)) { //edit the page.
             $user = Auth::user();
@@ -912,26 +912,21 @@ class AdminController extends Controller
                     }
                 }
 
-                if ($subscriber->status == "true") {
+                $requestedStatus = $request->query('set_status');
+                if (in_array($requestedStatus, ['true', 'false'], true)) {
+                    $subscriber->status = $requestedStatus;
+                } elseif ($subscriber->status == "true") {
                     $subscriber->status = "false";
-                    if ($subscriber->user_type == "Subscriber") {
-                        $users = User::where('added_by', '=', $subscriber->id)->get();
-                        if (count($users) > 0) {
-                            foreach ($users as $u) {
-                                $u->status = "false";
-                                $u->save();
-                            }
-                        }
-                    }
                 } else {
                     $subscriber->status = "true";
-                    if ($subscriber->user_type == "Subscriber") {
-                        $users = User::where('added_by', '=', $subscriber->id)->get();
-                        if (count($users) > 0) {
-                            foreach ($users as $u) {
-                                $u->status = "true";
-                                $u->save();
-                            }
+                }
+
+                if ($subscriber->user_type == "Subscriber") {
+                    $staffMembers = User::where('added_by', '=', $subscriber->id)->get();
+                    if (count($staffMembers) > 0) {
+                        foreach ($staffMembers as $u) {
+                            $u->status = $subscriber->status;
+                            $u->save();
                         }
                     }
                 }
@@ -1824,7 +1819,7 @@ class AdminController extends Controller
                         ->sendOnApplicationCreated($application, $user, $subscriber);
                     $addedMessage = 'Application added successfully.';
                     if ($mailResult['success']) {
-                        $addedMessage .= ' Documents checklist emailed to ' . $mailResult['recipient'] . '.';
+                        $addedMessage .= ' ' . $mailResult['message'];
                     } elseif (!$mailResult['skipped']) {
                         \Log::warning('Application created but documents checklist email not sent', [
                             'application_id' => $application->id,

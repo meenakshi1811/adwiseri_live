@@ -53,7 +53,7 @@ class DocumentChecklistMailService
             return [
                 'success' => false,
                 'skipped' => true,
-                'message' => 'No document list is configured for this application\'s country and visa category.',
+                'message' => 'No Documents Checklist is configured for this application\'s country and visa category.',
                 'recipient' => $recipient,
             ];
         }
@@ -74,6 +74,11 @@ class DocumentChecklistMailService
         $payload['application_id'] = application_display_no($application);
         $payload['subscriber_name'] = $subscriber->name ?? '';
         $payload['subscriber_email'] = $subscriber->email ?? '';
+        $payload['subscriber_footer'] = BrandedMail::subscriberFooterContext($subscriber);
+        $clientFullName = trim((string) ($payload['client_name'] ?? optional($application->client)->name ?? ''));
+        $payload['client_first_name'] = app(ReminderScheduleService::class)->firstName(
+            $clientFullName !== '' ? $clientFullName : 'Client'
+        );
         $payload['attachment_name'] = $fileName;
         $payload['upload_url'] = $this->uploadService->buildUploadUrl($application);
         if ($customMessage !== null) {
@@ -95,7 +100,7 @@ class DocumentChecklistMailService
             return [
                 'success' => true,
                 'skipped' => false,
-                'message' => 'Documents checklist emailed to ' . $recipient . '.',
+                'message' => $this->sentConfirmationMessage($application, $recipient),
                 'recipient' => $recipient,
             ];
         } catch (Throwable $e) {
@@ -128,6 +133,17 @@ class DocumentChecklistMailService
         }
 
         return $this->send($application, $actingUser, $subscriber);
+    }
+
+    private function sentConfirmationMessage(Applications $application, string $recipient): string
+    {
+        $application->loadMissing('client');
+        $clientName = trim((string) (optional($application->client)->name ?? ''));
+        if ($clientName === '') {
+            $clientName = 'client';
+        }
+
+        return 'Documents checklist sent to ' . $clientName . ' via ' . $recipient . '.';
     }
 
     private function markChecklistSent(Applications $application, string $recipient): void
