@@ -2722,32 +2722,32 @@ span {
     flex: 0 0 auto;
 }
 
-/* Fill centre column when 4 charts — grid rows stretch to match sidebar height */
+/* 4+ charts: fixed row heights; do not grow rows (1fr) when columns are height-equalized */
 .dashboard-box .dash-main-col .dash-charts-row.dash-charts-row--count-4 {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     min-height: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(2, minmax(220px, 1fr));
+    grid-template-rows: repeat(2, minmax(220px, auto));
     gap: 8px;
     margin-top: 8px;
     width: 100%;
     align-items: stretch;
-    align-content: stretch;
+    align-content: start;
 }
 
 .dashboard-box .dash-main-col .dash-charts-row.dash-charts-row--count-5 {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     min-height: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(3, minmax(220px, 1fr));
+    grid-template-rows: repeat(3, minmax(220px, auto));
     gap: 8px;
     margin-top: 8px;
     width: 100%;
     height: auto;
     align-items: stretch;
-    align-content: stretch;
+    align-content: start;
 }
 
 /*
@@ -2755,17 +2755,17 @@ span {
  * Use content-driven row heights so axes, legends, and donuts are not clipped.
  */
 .dashboard-box .dash-main-col .dash-charts-row.dash-charts-row--count-6 {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     min-height: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(3, minmax(268px, 1fr));
+    grid-template-rows: repeat(3, minmax(268px, auto));
     gap: 8px;
     margin-top: 8px;
     width: 100%;
     height: auto;
     align-items: stretch;
-    align-content: stretch;
+    align-content: start;
 }
 
 .dashboard-box .dash-main-col .dash-charts-row.dash-charts-row--count-4 > [class*="col-"],
@@ -2901,7 +2901,7 @@ span {
     }
 
     .dashboard-box .client-row.dashboard-equal-cols > .dash-main-col > .dash-charts-row {
-        flex: 1 1 auto;
+        flex: 0 0 auto;
         min-height: 0;
     }
 

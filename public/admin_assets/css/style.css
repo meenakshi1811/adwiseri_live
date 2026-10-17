@@ -1743,21 +1743,21 @@ textarea::placeholder {
 }
 
 .dashboard-box .dash-main-col .dash-charts-row {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     min-height: 0;
 }
 
 .dashboard-box .dash-main-col .dash-charts-row.dash-charts-row--count-4 {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     min-height: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(2, minmax(220px, 1fr));
+    grid-template-rows: repeat(2, minmax(220px, auto));
     gap: 8px;
     margin-top: 8px;
     width: 100%;
     align-items: stretch;
-    align-content: stretch;
+    align-content: start;
 }
 
 .dashboard-box .dash-main-col .dash-charts-row.dash-charts-row--count-4 > [class*="col-"] {
@@ -1846,7 +1846,7 @@ textarea::placeholder {
     }
 
     .dashboard-box .client-row.dashboard-equal-cols > .dash-main-col > .dash-charts-row {
-        flex: 1 1 auto;
+        flex: 0 0 auto;
         min-height: 0;
     }
 

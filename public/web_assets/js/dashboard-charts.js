@@ -665,9 +665,16 @@
       return;
     }
 
+    var chartsRow = mainCol.querySelector('.dash-charts-row');
+    var multiChartGrid = chartsRow && /dash-charts-row--count-(4|5|6)/.test(chartsRow.className);
+
     columns.forEach(function (col) {
       col.style.minHeight = maxHeight + 'px';
-      col.style.height = maxHeight + 'px';
+      if (col === mainCol && multiChartGrid) {
+        col.style.height = 'auto';
+      } else {
+        col.style.height = maxHeight + 'px';
+      }
     });
     right.style.maxHeight = maxHeight + 'px';
 
