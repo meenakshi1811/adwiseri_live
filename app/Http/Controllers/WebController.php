@@ -7396,7 +7396,9 @@ class WebController extends Controller
                     ->rawColumns(['action'])
                     ->make(true);
             }
-            return view('web.client_documents', compact('roles', 'applications', 'user', 'page', 'clients', 'client_docs'));
+            $documentFolders = app(\App\Services\CountryCategorySettingsService::class)->getDocumentFolders();
+
+            return view('web.client_documents', compact('roles', 'applications', 'user', 'page', 'clients', 'client_docs', 'documentFolders'));
         } else {
             return redirect()->route('login');
         }
@@ -7427,7 +7429,9 @@ class WebController extends Controller
 
             $clients = Clients::get();
             $page = "applications";
-            return view('web.client_document_update', compact('document', 'user', 'page', 'clients', 'application'));
+            $documentFolders = app(\App\Services\CountryCategorySettingsService::class)->getDocumentFolders();
+
+            return view('web.client_document_update', compact('document', 'user', 'page', 'clients', 'application', 'documentFolders'));
         } else {
             return redirect()->route('login');
         }
@@ -7453,7 +7457,7 @@ class WebController extends Controller
                 'doc_file' => $docFileRule,
                 'doc_type' => 'required|string|max:100',
                 'doc_name' => 'required|string|min:3|max:100',
-                'doc_folder' => 'required|string|max:120',
+                'doc_folder' => 'nullable|string|max:120',
             ], [
                 'doc_file.mimes' => 'Please select a valid file format (jpg, jpeg, png, pdf).',
                 'doc_file.max' => 'Please select file up to 4MB.',

@@ -46,41 +46,11 @@
                                     </span>
                                 @enderror
                             </div>
-                            <div class="col-md-4 p-1">
-                                <label>Document Type<span class="text-danger" style="font-size: 18px;">*</span></label>
-                            </div>
-                            <div class="col-md-8 p-1">
-                              <select name="doc_type" id="doc_type" class="form-control form-select @error('doc_type') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
-                                <option value="">Select Document Type</option>
-                                <option {{ ($document->doc_type == "Photo") ? 'selected' : ''}} value="Photo">Photo</option>
-                                <option {{ ($document->doc_type == "Passport") ? 'selected' : ''}} value="Passport">Passport</option>
-                                <option {{ ($document->doc_type == "Birth Certificate") ? 'selected' : ''}} value="Birth Certificate">Birth Certificate</option>
-                                <option {{ ($document->doc_type == "Marriage Certificate") ? 'selected' : ''}} value="Marriage Certificate">Marriage Certificate</option>
-                                <option {{ ($document->doc_type == "Degree Certificate") ? 'selected' : ''}} value="Degree Certificate">Degree Certificate</option>
-                                <option {{ ($document->doc_type == "Application Form") ? 'selected' : ''}} value="Application Form">Application Form</option>
-                                <option {{ ($document->doc_type == "Decision") ? 'selected' : ''}} value="Decision">Decision</option>
-                                <option {{ ($document->doc_type == "Appeal") ? 'selected' : ''}} value="Appeal">Appeal</option>
-                                <option {{ ($document->doc_type == "Appeal Decision") ? 'selected' : ''}} value="Appeal Decision">Appeal Decision</option>
-                                <option {{ ($document->doc_type == "Admin/Judicial Review") ? 'selected' : ''}} value="Admin/Judicial Review">Admin/Judicial Review</option>
-                                <option {{ ($document->doc_type == "AR/JR Decision") ? 'selected' : ''}} value="AR/JR Decision">AR/JR Decision</option>
-                                <option {{ ($document->doc_type == "Supporting Document 1") ? 'selected' : ''}} value="Supporting Document 1">Supporting Document 1</option>
-                                <option {{ ($document->doc_type == "Supporting Document 2") ? 'selected' : ''}} value="Supporting Document 2">Supporting Document 2</option>
-                                <option {{ ($document->doc_type == "Supporting Document 3") ? 'selected' : ''}} value="Supporting Document 3">Supporting Document 3</option>
-                                <option {{ ($document->doc_type == "Supporting Document 4") ? 'selected' : ''}} value="Supporting Document 4">Supporting Document 4</option>
-                                <option {{ ($document->doc_type == "Supporting Document 5") ? 'selected' : ''}} value="Supporting Document 5">Supporting Document 5</option>
-                                <option {{ ($document->doc_type == "Supporting Document 6") ? 'selected' : ''}} value="Supporting Document 6">Supporting Document 6</option>
-                                <option {{ ($document->doc_type == "Supporting Document 7") ? 'selected' : ''}} value="Supporting Document 7">Supporting Document 7</option>
-                                <option {{ ($document->doc_type == "Supporting Document 8") ? 'selected' : ''}} value="Supporting Document 8">Supporting Document 8</option>
-                                <option {{ ($document->doc_type == "Supporting Document 9") ? 'selected' : ''}} value="Supporting Document 9">Supporting Document 9</option>
-                                <option {{ ($document->doc_type == "Supporting Document 10") ? 'selected' : ''}} value="Supporting Document 10">Supporting Document 10</option>
-                                <option {{ ($document->doc_type == "Other") ? 'selected' : ''}} value="Other">Other</option>
-                              </select>
-                                @error('doc_type')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
+                            @include('web.partials.client_document_folder_fields', [
+                                'documentFolders' => $documentFolders ?? [],
+                                'selectedDocFolder' => old('doc_folder', $document->doc_folder),
+                                'selectedDocType' => old('doc_type', $document->doc_type),
+                            ])
                             <div class="col-md-4 p-1">
                                 <label>Document Name<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>

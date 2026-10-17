@@ -27,7 +27,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 ])
 
 
-                <div style="display: none;" class="col" id="new_document">
+                <div style="display: {{ (old('client_id') || $errors->any()) ? 'block' : 'none' }};" class="col" id="new_document">
                     <h5>Add New Document</h5>
                     <form id="registration_form" class="register-box login-box" method="POST" action="{{ route('upload_client_document') }}" enctype="multipart/form-data">
                         @csrf
@@ -68,41 +68,11 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 @enderror
                             </div>
 
-                            <div class="col-md-4 p-1">
-                                <label>Document Type<span class="text-danger" style="font-size: 18px;">*</span></label>
-                            </div>
-                            <div class="col-md-8 p-1">
-                                <select name="doc_type" id="doc_type" class="form-control form-select @error('doc_type') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
-                                    <option value="">Select Document Type</option>
-                                    <option value="Photo">Photo</option>
-                                    <option value="Passport">Passport</option>
-                                    <option value="Birth Certificate">Birth Certificate</option>
-                                    <option value="Marriage Certificate">Marriage Certificate</option>
-                                    <option value="Degree Certificate">Degree Certificate</option>
-                                    <option value="Application Form">Application Form</option>
-                                    <option value="Decision">Decision</option>
-                                    <option value="Appeal">Appeal</option>
-                                    <option value="Appeal Decision">Appeal Decision</option>
-                                    <option value="Admin/Judicial Review">Admin/Judicial Review</option>
-                                    <option value="AR/JR Decision">AR/JR Decision</option>
-                                    <option value="Supporting Document 1">Supporting Document 1</option>
-                                    <option value="Supporting Document 2">Supporting Document 2</option>
-                                    <option value="Supporting Document 3">Supporting Document 3</option>
-                                    <option value="Supporting Document 4">Supporting Document 4</option>
-                                    <option value="Supporting Document 5">Supporting Document 5</option>
-                                    <option value="Supporting Document 6">Supporting Document 6</option>
-                                    <option value="Supporting Document 7">Supporting Document 7</option>
-                                    <option value="Supporting Document 8">Supporting Document 8</option>
-                                    <option value="Supporting Document 9">Supporting Document 9</option>
-                                    <option value="Supporting Document 10">Supporting Document 10</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                                @error('doc_type')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
+                            @include('web.partials.client_document_folder_fields', [
+                                'documentFolders' => $documentFolders ?? [],
+                                'selectedDocFolder' => old('doc_folder'),
+                                'selectedDocType' => old('doc_type'),
+                            ])
                             <div class="col-md-4 p-1">
                                 <label>Document Name<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
@@ -131,7 +101,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         </div>
                     </form>
                 </div>
-                <div class="table-wrapper" id="documents">
+                <div class="table-wrapper" id="documents" style="display: {{ (old('client_id') || $errors->any()) ? 'none' : 'block' }};">
                     <table class="table table-hover table-bordered fl-table" id="clientTable">
                         <thead>
                         <tr>
@@ -313,13 +283,17 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
   </script>
 
 
-  @if($errors->has('doc_file'))
+  @if($errors->any())
     <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        $("#add_new").css('display','none');
+        $("#back").css('display','block');
+      });
       Swal.fire({
         title: 'Oops!',
         icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
-        html: @json($errors->first('doc_file'))
-      })
+        html: @json($errors->first())
+      });
     </script>
   @endif
 
