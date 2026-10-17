@@ -60,7 +60,13 @@
                                         {{ $receiver }}
                                     @endif
                                 </td>
+                                @php
+                                    $msgAttachments = \App\Support\InternalMessageAttachments::normalizeList($msg->attachments ?? null);
+                                @endphp
                                 <td class="p-1 text-center" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $msg->message }}">
+                                    @if(count($msgAttachments) > 0)
+                                        <i class="fa-solid fa-paperclip text-muted me-1" title="{{ count($msgAttachments) }} attachment(s)"></i>
+                                    @endif
                                     @if(strlen($msg->message) > 50)
                                         <span class="comm-message-cell">{{ substr($msg->message, 0, 50) }}...</span>
                                     @else
