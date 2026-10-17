@@ -50,6 +50,7 @@
                 <div class="col-md-8 p-1">
                     {{ $message->message }}
                 </div>
+                @include('partials.message_attachment_list', ['message' => $message])
                 <hr>
                 <div class="col-md-4 p-1">
                     <label>Date</label>

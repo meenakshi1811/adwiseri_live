@@ -3980,7 +3980,19 @@ class AdminController extends Controller
             $this->validate($request, [
                 'sendto' => 'required',
                 'message' => 'required|string',
+                'attachments' => 'nullable|array|max:' . \App\Support\InternalMessageAttachments::MAX_FILES,
+                'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx,txt|max:25600',
+            ], [
+                'attachments.max' => 'You can attach up to ' . \App\Support\InternalMessageAttachments::MAX_FILES . ' documents.',
+                'attachments.*.mimes' => 'Attachments must be jpg, png, pdf, doc, docx, xls, xlsx, or txt.',
+                'attachments.*.max' => 'Each attachment must be 25 MB or less.',
             ]);
+
+            try {
+                \App\Support\InternalMessageAttachments::assertWithinLimits($request->file('attachments', []));
+            } catch (\InvalidArgumentException $e) {
+                return back()->withInput()->withErrors(['attachments' => $e->getMessage()]);
+            }
             function communication_id()
             {
                 $ch = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -4035,6 +4047,23 @@ class AdminController extends Controller
                     $message->receiver_name = json_encode($receiver_name, true);
                     $message->message = $request['message'];
                     $message->save();
+
+                    $attachmentOwnerId = (int) ($message->subscriber_id ?: $user->id);
+                    if ($request->hasFile('attachments')) {
+                        try {
+                            $message->attachments = \App\Support\InternalMessageAttachments::storeBatch(
+                                $attachmentOwnerId,
+                                (int) $message->id,
+                                $request->file('attachments', [])
+                            );
+                            $message->save();
+                        } catch (\InvalidArgumentException $e) {
+                            $message->delete();
+
+                            return back()->withInput()->withErrors(['attachments' => $e->getMessage()]);
+                        }
+                    }
+
                     $activity = new Activities();
                     $activity->subscriber_id = $user->added_by ?  $user->added_by : $user->id ;
                     $activity->user_id = $user->id;

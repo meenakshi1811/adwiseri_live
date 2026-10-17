@@ -16,6 +16,11 @@ class Internal_communications extends Model
         'user_id',
         'user_name',
         'message',
+        'attachments',
+    ];
+
+    protected $casts = [
+        'attachments' => 'array',
     ];
     public function getFormattedCreatedAtAttribute()
     {

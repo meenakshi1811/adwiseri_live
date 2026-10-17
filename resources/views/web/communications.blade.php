@@ -75,7 +75,15 @@ $canDeleteMessages = $user->user_type == 'admin'
                                     <td class="p-1 text-center comm-id-cell" style="width: 10%;">{{ $msg->communication_id }}</td>
                                     <td class="p-1 text-center" style="width: 15%;">{{ $msg->sender_name }} ({{ $msg->send_by }})</td>
                                     <td  data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $receiver }}"  class="p-1 text-center" style="width: 15%;">@if(strlen($receiver) > 22){{ substr($receiver, 0, 22) }}... @else {{ $receiver }} @endif</td>
-                                    <td  data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $msg->message }}"  class="p-1 text-center comm-message-cell" style="width: 35%;">@if(strlen($msg->message) > 50){{ substr($msg->message, 0, 50) }}... @else {{ $msg->message }} @endif</td>
+                                    @php
+                                        $msgAttachments = \App\Support\InternalMessageAttachments::normalizeList($msg->attachments ?? null);
+                                    @endphp
+                                    <td  data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $msg->message }}"  class="p-1 text-center comm-message-cell" style="width: 35%;">
+                                        @if(count($msgAttachments) > 0)
+                                            <i class="fa-solid fa-paperclip text-muted me-1" title="{{ count($msgAttachments) }} attachment(s)"></i>
+                                        @endif
+                                        @if(strlen($msg->message) > 50){{ substr($msg->message, 0, 50) }}... @else {{ $msg->message }} @endif
+                                    </td>
                                     <td class="p-1 text-center" style="width: 10%;">{{ \Carbon\Carbon::parse($msg->created_at)->format('d-m-Y H:i:s') }}</td>
                                     <td class="p-1 text-center action-icon" style="width: 12%;">
                                         @include('partials.communication_action_buttons', [

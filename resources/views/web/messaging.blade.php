@@ -166,7 +166,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
               <div class="col mt-3 p-2 messaging" style="border: 2px solid lightgrey; border-radius:7px;">
                 <h4 class="text-center pb-3">Send Message</h4>
-                <form id="message_form" class="form-control" method="POST" action="{{route('communicate')}}">
+                <form id="message_form" class="form-control" method="POST" action="{{route('communicate')}}" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="local_time" class="localtime" />
 
@@ -206,6 +206,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         @enderror
                       </div>
                     </div>
+
+                    @include('partials.message_attachment_fields')
 
                     <div class="msg-row">
                       <div class="msg-label"></div>

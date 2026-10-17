@@ -160,7 +160,7 @@
 
                 <div class="col mt-3 p-2" style="border: 2px solid lightgrey; border-radius:7px;">
                   <h4 class="text-center pb-3">Send Message</h4>
-                  <form id="message_form" class="form-control" method="POST" action="{{ route('admin_communicate') }}">
+                  <form id="message_form" class="form-control" method="POST" action="{{ route('admin_communicate') }}" enctype="multipart/form-data">
                       @csrf
                       <input type="hidden" name="local_time" class="localtime" />
 
@@ -229,6 +229,8 @@
                             @enderror
                         </div>
                       </div>
+
+                      @include('partials.message_attachment_fields')
 
                       <div class="msg-row">
                         <div class="msg-label"></div>
