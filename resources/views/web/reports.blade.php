@@ -1,6 +1,6 @@
 @extends('web.layout.main')
 
-<link rel="stylesheet" href="{{ asset('web_assets/css/reports-module.css') }}">
+<link rel="stylesheet" href="{{ asset('web_assets/css/reports-module.css') }}?v=20261019a">
 <style>
     /* .dt-buttons {
     position: absolute !important;

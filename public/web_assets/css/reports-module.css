@@ -47,6 +47,23 @@
     overflow-x: auto;
 }
 
+/*
+ * Every report table (filtered reports on top, gross reports below) spans the full content
+ * width and sits centred. `table-responsive` on the <table> itself turns it into a block that
+ * shrinks to its columns, so restore table layout and let the DataTables wrapper scroll instead.
+ */
+.reports-module .dataTables_wrapper {
+    container-type: inline-size;
+    overflow-x: auto;
+}
+
+.reports-module table.fl-table {
+    display: table;
+    width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
 /* Toolbar: length (left), export buttons (center), search (right) */
 .reports-module .reports-dt-toolbar {
     display: grid !important;
