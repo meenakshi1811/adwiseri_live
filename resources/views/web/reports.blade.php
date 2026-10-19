@@ -8615,5 +8615,6 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
     }
 </script>
 @include('partials.report_tabs_init')
+@include('partials.report_table_errors')
 @include('partials.report_share_modal')
 @endsection()
