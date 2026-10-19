@@ -11,4 +11,4 @@
 <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.12/build/js/intlTelInput.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.12/build/js/utils.js"></script>
 <script src="{{ asset('web_assets/js/intl-phone.js') }}"></script>
-<script src="{{ asset('web_assets/js/form-validation.js') }}"></script>
+<script src="{{ asset('web_assets/js/form-validation.js') }}?v=20261019a"></script>

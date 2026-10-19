@@ -171,6 +171,24 @@
             return;
         }
 
+        // Opening the file picker blurs the input before a file is chosen, which flagged it as empty.
+        // File inputs are checked on change and on submit instead.
+        if ((input.type || '').toLowerCase() === 'file') {
+            return;
+        }
+
+        validateInput(input);
+    }, true);
+
+    // Re-check a field that is showing an error once its value changes (a file picked, an option chosen),
+    // so the message clears as soon as the field is fixed.
+    document.addEventListener('change', function (event) {
+        var input = event.target;
+
+        if (!input || !input.classList || !input.classList.contains('form-validation-error')) {
+            return;
+        }
+
         validateInput(input);
     }, true);
 

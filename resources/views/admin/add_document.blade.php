@@ -94,7 +94,7 @@
                             @enderror
                             </div>
                             <div class="col-md-4 p-1">
-                                <label>Document File<span class="text-danger" style="font-size: 18px;">*</span></label>
+                                <label>Upload Document (File)<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
                                 <input name="doc_file" type="file" class="form-control @error('doc_file') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp">
@@ -205,7 +205,7 @@
                             @enderror
                             </div>
                             <div class="col-md-4 p-1">
-                                <label>Document File<span class="text-danger" style="font-size: 18px;">*</span></label>
+                                <label>Upload Document (File)<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
                             <div class="col-md-8 p-1">
                                 <input name="doc_file" type="file" class="form-control @error('doc_file') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
