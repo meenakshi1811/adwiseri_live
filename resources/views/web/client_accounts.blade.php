@@ -311,10 +311,12 @@ $(document).ready(function () {
         var hasEntries = countMatchingEntries(clientId, applicationId) > 0;
 
         if (hasEntries) {
-            downloadBtn.classList.remove('disabled');
+            downloadBtn.classList.remove('disabled', 'btn-outline-primary');
+            downloadBtn.classList.add('btn-primary');
             downloadBtn.setAttribute('aria-disabled', 'false');
         } else {
-            downloadBtn.classList.add('disabled');
+            downloadBtn.classList.add('disabled', 'btn-outline-primary');
+            downloadBtn.classList.remove('btn-primary');
             downloadBtn.setAttribute('aria-disabled', 'true');
         }
     }
