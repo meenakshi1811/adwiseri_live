@@ -9774,7 +9774,7 @@ class WebController extends Controller
 
             return DataTables::eloquent($query)
                 ->addColumn('client_name', function (Appointment $row) {
-                    return optional($row->client)->name ?? 'N/A';
+                    return $this->formatAppointmentClientDisplay($row->client);
                 })
                 ->addColumn('appointment_date', fn (Appointment $row) => $row->formattedDate())
                 ->addColumn('appointment_time', fn (Appointment $row) => $row->formattedTime())
@@ -9870,13 +9870,29 @@ class WebController extends Controller
         };
     }
 
+    private function formatAppointmentClientDisplay($client): string
+    {
+        if (!$client) {
+            return 'N/A';
+        }
+
+        $name = trim((string) ($client->name ?? ''));
+        $id = (int) ($client->id ?? 0);
+
+        if ($name === '') {
+            return $id > 0 ? '(' . $id . ')' : 'N/A';
+        }
+
+        return $id > 0 ? $name . ' (' . $id . ')' : $name;
+    }
+
     private function formatAppointmentRecord(Appointment $appointment): array
     {
         $status = strtolower((string) ($appointment->status ?: 'pending'));
 
         return [
             'id' => $appointment->id,
-            'client_name' => optional($appointment->client)->name ?? 'N/A',
+            'client_name' => $this->formatAppointmentClientDisplay($appointment->client),
             'appointment_date' => $appointment->formattedDate(),
             'appointment_time' => $appointment->formattedTime(),
             'remarks' => $appointment->remarks ?? 'N/A',

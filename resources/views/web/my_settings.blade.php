@@ -34,12 +34,67 @@
         font-weight: 600;
     }
 
+    #appointment-records-table-wrap {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    #appointment-records-table-wrap .dataTables_wrapper {
+        width: 100% !important;
+        max-width: 100%;
+    }
+
+    #appointmentRecordsTable {
+        width: 100% !important;
+        table-layout: fixed;
+    }
+
+    #appointmentRecordsTable .appointment-col-id {
+        width: 4.5rem;
+        max-width: 4.5rem;
+        white-space: nowrap;
+    }
+
+    #appointmentRecordsTable .appointment-col-client {
+        width: 14%;
+        min-width: 8rem;
+    }
+
+    #appointmentRecordsTable .appointment-col-date,
+    #appointmentRecordsTable .appointment-col-time {
+        width: 8%;
+        min-width: 6.5rem;
+        white-space: nowrap;
+    }
+
     #appointmentRecordsTable .appointment-purpose-col {
-        min-width: 240px;
-        width: 30%;
+        width: auto;
+        min-width: 10rem;
         white-space: normal;
         word-break: break-word;
         text-align: center !important;
+    }
+
+    #appointmentRecordsTable .appointment-col-status {
+        width: 7%;
+        min-width: 5.5rem;
+    }
+
+    #appointmentRecordsTable .appointment-col-sent-by {
+        width: 14%;
+        min-width: 8rem;
+    }
+
+    #appointmentRecordsTable .appointment-col-sent-on {
+        width: 12%;
+        min-width: 9rem;
+        white-space: nowrap;
+        font-size: 13px;
+    }
+
+    #appointmentRecordsTable .appointment-col-action {
+        width: 4.5rem;
+        max-width: 4.5rem;
     }
 
     .service-status-switch {
@@ -1988,20 +2043,20 @@
                     <div class="row p-1 m-0" id="appointment-records-section">
                         <p class="m-0 p-1" style="font-size:18px;font-weight:550;">Appointment Records</p>
                     </div>
-                    <div class="table-wrapper mt-2" id="appointment-records-table-wrap">
-                        <table class="fl-table table table-hover table-responsive p-0 m-0" style="width:100%"
+                    <div class="table-wrapper mt-2 appointment-records-table-wrap" id="appointment-records-table-wrap">
+                        <table class="fl-table table table-hover p-0 m-0 w-100"
                             id="appointmentRecordsTable">
                             <thead>
                                 <tr>
-                                    <th class="text-center">ID</th>
-                                    <th class="text-center">Client</th>
-                                    <th class="text-center">Date</th>
-                                    <th class="text-center">Time</th>
+                                    <th class="text-center appointment-col-id">ID</th>
+                                    <th class="text-center appointment-col-client">Client(ID)</th>
+                                    <th class="text-center appointment-col-date">Date</th>
+                                    <th class="text-center appointment-col-time">Time</th>
                                     <th class="text-center appointment-purpose-col">Purpose</th>
-                                    <th class="text-center">Status</th>
-                                    <th class="text-center">Sent By</th>
-                                    <th class="text-center">Sent On</th>
-                                    <th class="text-center">Action</th>
+                                    <th class="text-center appointment-col-status">Status</th>
+                                    <th class="text-center appointment-col-sent-by">Sent By</th>
+                                    <th class="text-center appointment-col-sent-on">Sent On</th>
+                                    <th class="text-center appointment-col-action">Action</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -2019,7 +2074,7 @@
                                     <dl class="row mb-0 appointment-record-view-list">
                                         <dt class="col-sm-4 text-end">ID</dt>
                                         <dd class="col-sm-8 text-start" id="appointment-view-id">—</dd>
-                                        <dt class="col-sm-4 text-end">Client</dt>
+                                        <dt class="col-sm-4 text-end">Client(ID)</dt>
                                         <dd class="col-sm-8 text-start" id="appointment-view-client">—</dd>
                                         <dt class="col-sm-4 text-end">Date</dt>
                                         <dd class="col-sm-8 text-start" id="appointment-view-date">—</dd>
@@ -2382,6 +2437,7 @@
             $('#appointmentRecordsTable').DataTable({
                 processing: true,
                 serverSide: true,
+                autoWidth: false,
                 order: [[7, 'desc']],
                 pageLength: 10,
                 lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
@@ -2391,8 +2447,15 @@
                 },
                 columnDefs: [
                     { targets: '_all', className: 'text-center align-middle' },
+                    { targets: 0, className: 'text-center align-middle appointment-col-id' },
+                    { targets: 1, className: 'text-center align-middle appointment-col-client' },
+                    { targets: 2, className: 'text-center align-middle appointment-col-date' },
+                    { targets: 3, className: 'text-center align-middle appointment-col-time' },
                     { targets: 4, className: 'text-center align-middle appointment-purpose-col' },
-                    { targets: 8, orderable: false, searchable: false },
+                    { targets: 5, className: 'text-center align-middle appointment-col-status' },
+                    { targets: 6, className: 'text-center align-middle appointment-col-sent-by' },
+                    { targets: 7, className: 'text-center align-middle appointment-col-sent-on' },
+                    { targets: 8, className: 'text-center align-middle appointment-col-action', orderable: false, searchable: false },
                 ],
                 columns: [
                     { data: 'id', name: 'id' },
@@ -2409,6 +2472,10 @@
                     document.querySelectorAll('#appointmentRecordsTable [data-bs-toggle="tooltip"]').forEach(function (el) {
                         bootstrap.Tooltip.getOrCreateInstance(el);
                     });
+                    this.api().columns.adjust();
+                },
+                initComplete: function () {
+                    this.api().columns.adjust();
                 },
             });
         }
