@@ -1,54 +1,62 @@
 @php
-    $studyVisaLists = $studyVisaLists ?? [
-        'course_names' => [],
-        'course_durations' => [],
-        'institutions' => [],
-        'intakes' => [],
-    ];
-    $studyListFields = [
-        'course_names' => ['label' => 'Course Name', 'placeholder' => 'e.g. MSc Computer Science'],
-        'course_durations' => ['label' => 'Course Duration', 'placeholder' => 'e.g. 12 months, 2 years'],
-        'institutions' => ['label' => 'Institution', 'placeholder' => 'e.g. University of Example'],
-        'intakes' => ['label' => 'Intake', 'placeholder' => 'e.g. September 2025'],
-    ];
+    $studyVisaLists = $studyVisaLists ?? [];
+    $studyInstitutions = $studyVisaLists['institutions'] ?? [];
+    $studyUnlinked = array_filter([
+        'Courses' => $studyVisaLists['unlinked']['course_names'] ?? [],
+        'Durations' => $studyVisaLists['unlinked']['course_durations'] ?? [],
+        'Intakes' => $studyVisaLists['unlinked']['intakes'] ?? [],
+    ]);
 @endphp
+<style>
+    #study-visa-lists-panel .study-visa-course {
+        border-left: 3px solid #E5E8FF;
+    }
+
+    #study-visa-lists-panel .study-visa-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: #F7F8FF;
+        border: 1px solid #E5E8FF;
+        border-radius: 999px;
+        padding: 0.15rem 0.6rem;
+        margin: 0 0.35rem 0.35rem 0;
+        font-size: 0.8rem;
+    }
+
+    #study-visa-lists-panel .study-visa-chip .btn-close {
+        font-size: 0.5rem;
+    }
+</style>
 <div class="cc-documents-panel mt-4" id="study-visa-lists-panel">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
-        <div>
-            <div class="panel-title">Study Visa Application Fields</div>
-            <div class="panel-subtitle mb-0">
-                Build dropdown suggestions for study visa applications (Course Name, Duration, Institution, and Intake).
-                These appear on <strong>Add Application</strong> when the application type is a study visa.
-            </div>
+    <div class="mb-3">
+        <div class="panel-title">Study Visa Application Fields</div>
+        <div class="panel-subtitle mb-0">
+            Add each institution, the courses it offers, and each course's durations and intakes.
+            On <strong>Add Application</strong> (study visa types) staff choose Institution → Course → Course Duration → Intake,
+            and each list only shows what belongs to the previous choice.
         </div>
     </div>
-    <div class="row g-3">
-        @foreach ($studyListFields as $key => $meta)
-            @php $items = $studyVisaLists[$key] ?? []; @endphp
-            <div class="col-lg-6">
-                <div class="border rounded p-3 h-100 bg-white study-visa-list-card" data-list-key="{{ $key }}">
-                    <label class="form-label fw-semibold mb-2">{{ $meta['label'] }}</label>
-                    <div class="input-group input-group-sm mb-2">
-                        <input type="text" class="form-control study-visa-list-input" maxlength="255"
-                            placeholder="{{ $meta['placeholder'] }}" autocomplete="off"
-                            aria-label="Add {{ $meta['label'] }}">
-                        <button type="button" class="btn btn-outline-primary study-visa-list-add">Add</button>
-                    </div>
-                    <ul class="list-group list-group-flush study-visa-list-items small mb-0">
-                        @foreach ($items as $item)
-                            <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
-                                <span class="study-visa-list-label text-break">{{ $item }}</span>
-                                <button type="button" class="btn btn-link btn-sm text-danger p-0 study-visa-list-remove" aria-label="Remove">&times;</button>
-                            </li>
-                        @endforeach
-                    </ul>
-                    @if (count($items) === 0)
-                        <p class="text-muted small mb-0 study-visa-list-empty">No items yet.</p>
-                    @endif
-                </div>
-            </div>
-        @endforeach
+
+    @if (count($studyUnlinked) > 0)
+        <div class="alert alert-warning small py-2" id="study-visa-unlinked">
+            These were saved before courses were linked to institutions. Add them under the right institution below and save;
+            this note then disappears.
+            @foreach ($studyUnlinked as $label => $values)
+                <div class="mt-1"><strong>{{ $label }}:</strong> {{ implode(', ', $values) }}</div>
+            @endforeach
+        </div>
+    @endif
+
+    <div class="input-group input-group-sm mb-3" style="max-width: 520px;">
+        <input type="text" class="form-control" maxlength="255" placeholder="e.g. University of Example"
+            aria-label="Institution name" data-add-input="institution" autocomplete="off">
+        <button type="button" class="btn btn-outline-primary" data-action="add-institution">Add Institution</button>
     </div>
+
+    <div id="study-visa-institutions"></div>
+    <p class="text-muted small mb-0" id="study-visa-institutions-empty">No institutions yet.</p>
+
     <div class="cc-settings-actions mt-3">
         <button type="button" class="btn btn-primary" id="save-study-visa-lists">
             <i class="fa fa-save me-1"></i> Save Study Visa Lists
@@ -58,129 +66,234 @@
 
 <script>
     (function () {
-        function collectStudyVisaLists() {
-            const payload = {
-                course_names: [],
-                course_durations: [],
-                institutions: [],
-                intakes: [],
-            };
+        const panel = document.getElementById('study-visa-lists-panel');
+        if (!panel) {
+            return;
+        }
 
-            document.querySelectorAll('.study-visa-list-card').forEach(function (card) {
-                const key = card.getAttribute('data-list-key');
-                if (!payload.hasOwnProperty(key)) {
-                    return;
-                }
-                card.querySelectorAll('.study-visa-list-label').forEach(function (label) {
-                    const value = (label.textContent || '').trim();
-                    if (value !== '') {
-                        payload[key].push(value);
-                    }
+        const list = document.getElementById('study-visa-institutions');
+        const emptyNote = document.getElementById('study-visa-institutions-empty');
+        let institutions = @json($studyInstitutions);
+
+        function el(tag, className, text) {
+            const node = document.createElement(tag);
+            if (className) {
+                node.className = className;
+            }
+            if (text !== undefined) {
+                node.textContent = text;
+            }
+            return node;
+        }
+
+        function hasName(items, value) {
+            const key = value.toLowerCase();
+            return items.some(function (item) {
+                return (typeof item === 'string' ? item : item.name).toLowerCase() === key;
+            });
+        }
+
+        // Text box + button that adds a value; Enter in the box does the same.
+        function addRow(placeholder, buttonText, action, data, focusKey) {
+            const group = el('div', 'input-group input-group-sm');
+            const input = el('input', 'form-control');
+            input.type = 'text';
+            input.maxLength = 255;
+            input.placeholder = placeholder;
+            input.autocomplete = 'off';
+            input.setAttribute('aria-label', placeholder);
+            input.dataset.focusKey = focusKey;
+            const button = el('button', 'btn btn-outline-primary', buttonText);
+            button.type = 'button';
+            button.dataset.action = action;
+            Object.keys(data).forEach(function (key) {
+                button.dataset[key] = data[key];
+            });
+            group.appendChild(input);
+            group.appendChild(button);
+            return group;
+        }
+
+        function valueList(title, values, kind, i, c) {
+            const wrap = el('div', 'col-md-6');
+            wrap.appendChild(el('div', 'small fw-semibold mb-1', title));
+            const chips = el('div');
+            values.forEach(function (value, v) {
+                const chip = el('span', 'study-visa-chip');
+                chip.appendChild(el('span', 'text-break', value));
+                const remove = el('button', 'btn-close');
+                remove.type = 'button';
+                remove.setAttribute('aria-label', 'Remove ' + value);
+                Object.assign(remove.dataset, { action: 'remove-value', kind: kind, i: i, c: c, v: v });
+                chip.appendChild(remove);
+                chips.appendChild(chip);
+            });
+            if (!values.length) {
+                chips.appendChild(el('div', 'text-muted small mb-1', 'None yet.'));
+            }
+            wrap.appendChild(chips);
+            const singular = kind === 'durations' ? 'duration, e.g. 12 months' : 'intake, e.g. September 2026';
+            wrap.appendChild(addRow('Add ' + singular, 'Add', 'add-value', { kind: kind, i: i, c: c }, kind + '-' + i + '-' + c));
+            return wrap;
+        }
+
+        function render(focusKey) {
+            list.innerHTML = '';
+            emptyNote.style.display = institutions.length ? 'none' : '';
+
+            institutions.forEach(function (institution, i) {
+                const card = el('div', 'border rounded p-3 mb-3 bg-white');
+                const header = el('div', 'd-flex justify-content-between align-items-start gap-2 mb-2');
+                header.appendChild(el('div', 'fw-semibold text-break', institution.name));
+                const removeInstitution = el('button', 'btn btn-link btn-sm text-danger p-0', 'Remove');
+                removeInstitution.type = 'button';
+                Object.assign(removeInstitution.dataset, { action: 'remove-institution', i: i });
+                header.appendChild(removeInstitution);
+                card.appendChild(header);
+
+                institution.courses.forEach(function (course, c) {
+                    const block = el('div', 'study-visa-course ps-3 mb-3');
+                    const courseHeader = el('div', 'd-flex justify-content-between align-items-start gap-2');
+                    courseHeader.appendChild(el('div', 'small fw-semibold text-break', course.name));
+                    const removeCourse = el('button', 'btn-close');
+                    removeCourse.type = 'button';
+                    removeCourse.setAttribute('aria-label', 'Remove ' + course.name);
+                    Object.assign(removeCourse.dataset, { action: 'remove-course', i: i, c: c });
+                    courseHeader.appendChild(removeCourse);
+                    block.appendChild(courseHeader);
+
+                    const values = el('div', 'row g-3 mt-0');
+                    values.appendChild(valueList('Course Durations', course.durations, 'durations', i, c));
+                    values.appendChild(valueList('Intakes', course.intakes, 'intakes', i, c));
+                    block.appendChild(values);
+                    card.appendChild(block);
                 });
+
+                if (!institution.courses.length) {
+                    card.appendChild(el('p', 'text-muted small mb-2', 'No courses yet.'));
+                }
+
+                const addCourse = addRow('Add a course, e.g. MSc Computer Science', 'Add Course', 'add-course', { i: i }, 'course-' + i);
+                addCourse.style.maxWidth = '520px';
+                card.appendChild(addCourse);
+                list.appendChild(card);
             });
 
-            return payload;
-        }
-
-        function syncStudyVisaEmptyState(card) {
-            const hasItems = card.querySelectorAll('.study-visa-list-label').length > 0;
-            let empty = card.querySelector('.study-visa-list-empty');
-            if (!hasItems && !empty) {
-                empty = document.createElement('p');
-                empty.className = 'text-muted small mb-0 study-visa-list-empty';
-                empty.textContent = 'No items yet.';
-                card.querySelector('.study-visa-list-items').after(empty);
-            } else if (hasItems && empty) {
-                empty.remove();
+            if (focusKey) {
+                panel.querySelector('[data-focus-key="' + focusKey + '"]')?.focus();
             }
         }
 
-        function addStudyVisaItem(card, value) {
-            const trimmed = (value || '').trim();
-            if (trimmed === '') {
-                return false;
-            }
-            const existing = Array.from(card.querySelectorAll('.study-visa-list-label'))
-                .some(function (el) {
-                    return (el.textContent || '').trim().toLowerCase() === trimmed.toLowerCase();
-                });
-            if (existing) {
-                return false;
-            }
-
-            const li = document.createElement('li');
-            li.className = 'list-group-item d-flex justify-content-between align-items-center py-2 px-0';
-            li.innerHTML = '<span class="study-visa-list-label text-break"></span>'
-                + '<button type="button" class="btn btn-link btn-sm text-danger p-0 study-visa-list-remove" aria-label="Remove">&times;</button>';
-            li.querySelector('.study-visa-list-label').textContent = trimmed;
-            card.querySelector('.study-visa-list-items').appendChild(li);
-            syncStudyVisaEmptyState(card);
-            return true;
+        function inputFor(button) {
+            return button.closest('.input-group').querySelector('input');
         }
 
-        document.querySelectorAll('.study-visa-list-add').forEach(function (button) {
-            button.addEventListener('click', function () {
-                const card = button.closest('.study-visa-list-card');
-                const input = card.querySelector('.study-visa-list-input');
-                if (addStudyVisaItem(card, input.value)) {
-                    input.value = '';
-                }
-                input.focus();
-            });
-        });
-
-        document.querySelectorAll('.study-visa-list-input').forEach(function (input) {
-            input.addEventListener('keydown', function (event) {
-                if (event.key !== 'Enter') {
-                    return;
-                }
-                event.preventDefault();
-                const card = input.closest('.study-visa-list-card');
-                const addBtn = card.querySelector('.study-visa-list-add');
-                if (addBtn) {
-                    addBtn.click();
-                }
-            });
-        });
-
-        document.getElementById('study-visa-lists-panel')?.addEventListener('click', function (event) {
-            const removeBtn = event.target.closest('.study-visa-list-remove');
-            if (!removeBtn) {
+        panel.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-action]');
+            if (!button || !panel.contains(button)) {
                 return;
             }
-            const card = removeBtn.closest('.study-visa-list-card');
-            removeBtn.closest('li')?.remove();
-            syncStudyVisaEmptyState(card);
+
+            const action = button.dataset.action;
+            const i = Number(button.dataset.i);
+            const c = Number(button.dataset.c);
+
+            if (action === 'add-institution' || action === 'add-course' || action === 'add-value') {
+                const input = inputFor(button);
+                const value = (input.value || '').trim();
+                if (value === '') {
+                    input.focus();
+                    return;
+                }
+
+                let target;
+                let entry;
+                if (action === 'add-institution') {
+                    target = institutions;
+                    entry = { name: value, courses: [] };
+                } else if (action === 'add-course') {
+                    target = institutions[i].courses;
+                    entry = { name: value, durations: [], intakes: [] };
+                } else {
+                    target = institutions[i].courses[c][button.dataset.kind];
+                    entry = value;
+                }
+
+                if (!hasName(target, value)) {
+                    target.push(entry);
+                }
+                input.value = '';
+
+                if (action === 'add-institution') {
+                    input.focus();
+                    render();
+                } else {
+                    render(inputFor(button).dataset.focusKey);
+                }
+                return;
+            }
+
+            if (action === 'remove-institution') {
+                institutions.splice(i, 1);
+            } else if (action === 'remove-course') {
+                institutions[i].courses.splice(c, 1);
+            } else if (action === 'remove-value') {
+                institutions[i].courses[c][button.dataset.kind].splice(Number(button.dataset.v), 1);
+            }
+            render();
         });
 
-        $('#save-study-visa-lists').on('click', function () {
-            const lists = collectStudyVisaLists();
-            $.ajax({
-                url: "{{ route('save_cc_study_visa_lists') }}",
+        panel.addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter' || !event.target.matches('.input-group input')) {
+                return;
+            }
+            event.preventDefault();
+            event.target.closest('.input-group').querySelector('[data-action]')?.click();
+        });
+
+        document.getElementById('save-study-visa-lists').addEventListener('click', function () {
+            fetch("{{ route('save_cc_study_visa_lists') }}", {
                 method: 'POST',
-                data: {
-                    _token: "{{ csrf_token() }}",
-                    study_visa_lists: lists,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': "{{ csrf_token() }}",
                 },
-                success: function (response) {
+                body: JSON.stringify({ study_visa_lists: { institutions: institutions } }),
+            })
+                .then(function (response) {
+                    return response.json().catch(function () {
+                        return {};
+                    }).then(function (data) {
+                        if (!response.ok) {
+                            throw new Error(data.message || 'Failed to save study visa lists.');
+                        }
+                        return data;
+                    });
+                })
+                .then(function (data) {
+                    if (data.study_visa_lists) {
+                        institutions = data.study_visa_lists.institutions || [];
+                        render();
+                    }
+                    document.getElementById('study-visa-unlinked')?.remove();
                     Swal.fire({
                         icon: 'success',
                         title: 'Success',
-                        text: response.message || 'Study visa lists saved successfully.',
+                        text: data.message || 'Study visa lists saved successfully.',
                     });
-                },
-                error: function (xhr) {
-                    const message = (xhr.responseJSON && xhr.responseJSON.message)
-                        ? xhr.responseJSON.message
-                        : 'Failed to save study visa lists.';
+                })
+                .catch(function (error) {
                     Swal.fire({
                         icon: 'warning',
                         customClass: { icon: 'adwiseri-oops-icon' },
                         title: 'Oops!',
-                        text: message,
+                        text: error.message || 'Failed to save study visa lists.',
                     });
-                },
-            });
+                });
         });
+
+        render();
     })();
 </script>

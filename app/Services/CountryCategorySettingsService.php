@@ -814,41 +814,100 @@ class CountryCategorySettingsService
     }
 
     /**
-     * @return array{course_names: array<int, string>, course_durations: array<int, string>, institutions: array<int, string>, intakes: array<int, string>}
+     * Study visa catalogue: each institution lists its courses, and each course its durations and intakes,
+     * so Add Application can offer Institution → Course → Course Duration → Intake as linked dropdowns.
+     * `unlinked` holds values saved by the older flat lists, shown in Settings so they can be re-entered.
+     *
+     * @return array{institutions: array<int, array{name: string, courses: array<int, array{name: string, durations: array<int, string>, intakes: array<int, string>}>}>, unlinked: array{course_names: array<int, string>, course_durations: array<int, string>, intakes: array<int, string>}}
      */
     public function resolveStudyVisaLists(User $subscriber): array
     {
-        $keys = ['course_names', 'course_durations', 'institutions', 'intakes'];
-        $empty = array_fill_keys($keys, []);
-
         if (!$this->settingsTableExists()
             || !Schema::hasColumn('subscriber_cc_settings', 'study_visa_lists')) {
-            return $empty;
+            return $this->emptyStudyVisaLists();
         }
 
         $setting = $this->getSetting($subscriber);
         $stored = is_array($setting?->study_visa_lists) ? $setting->study_visa_lists : [];
 
-        $result = [];
-        foreach ($keys as $key) {
-            $result[$key] = $this->normalizeStudyVisaListItems($stored[$key] ?? []);
-        }
+        return [
+            'institutions' => $this->normalizeStudyVisaInstitutions($stored['institutions'] ?? []),
+            'unlinked' => [
+                'course_names' => $this->normalizeStudyVisaListItems($stored['course_names'] ?? []),
+                'course_durations' => $this->normalizeStudyVisaListItems($stored['course_durations'] ?? []),
+                'intakes' => $this->normalizeStudyVisaListItems($stored['intakes'] ?? []),
+            ],
+        ];
+    }
 
-        return $result;
+    public function emptyStudyVisaLists(): array
+    {
+        return [
+            'institutions' => [],
+            'unlinked' => ['course_names' => [], 'course_durations' => [], 'intakes' => []],
+        ];
     }
 
     /**
      * @param array<string, mixed> $lists
-     * @return array{course_names: array<int, string>, course_durations: array<int, string>, institutions: array<int, string>, intakes: array<int, string>}
+     * @return array{institutions: array<int, array{name: string, courses: array<int, array{name: string, durations: array<int, string>, intakes: array<int, string>}>}>}
      */
     public function normalizeStudyVisaListsInput(array $lists): array
     {
         return [
-            'course_names' => $this->normalizeStudyVisaListItems($lists['course_names'] ?? []),
-            'course_durations' => $this->normalizeStudyVisaListItems($lists['course_durations'] ?? []),
-            'institutions' => $this->normalizeStudyVisaListItems($lists['institutions'] ?? []),
-            'intakes' => $this->normalizeStudyVisaListItems($lists['intakes'] ?? []),
+            'institutions' => $this->normalizeStudyVisaInstitutions($lists['institutions'] ?? []),
         ];
+    }
+
+    /**
+     * Older saves stored institutions as plain names; those come back as institutions with no courses yet.
+     *
+     * @param mixed $items
+     */
+    public function normalizeStudyVisaInstitutions($items): array
+    {
+        return $this->normalizeNamedStudyVisaEntries($items, fn (array $entry) => [
+            'courses' => $this->normalizeStudyVisaCourses($entry['courses'] ?? []),
+        ]);
+    }
+
+    /**
+     * @param mixed $items
+     */
+    public function normalizeStudyVisaCourses($items): array
+    {
+        return $this->normalizeNamedStudyVisaEntries($items, fn (array $entry) => [
+            'durations' => $this->normalizeStudyVisaListItems($entry['durations'] ?? []),
+            'intakes' => $this->normalizeStudyVisaListItems($entry['intakes'] ?? []),
+        ]);
+    }
+
+    /**
+     * Trims names, drops blanks and keeps the first of any case-insensitive duplicates.
+     *
+     * @param mixed $items
+     */
+    private function normalizeNamedStudyVisaEntries($items, callable $children): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+
+        $result = [];
+        $seen = [];
+        foreach ($items as $item) {
+            $entry = is_array($item) ? $item : ['name' => $item];
+            $name = trim((string) ($entry['name'] ?? ''));
+            $key = mb_strtolower($name);
+            if ($name === '' || isset($seen[$key])) {
+                continue;
+            }
+
+            $seen[$key] = true;
+            $result[] = ['name' => $name] + $children($entry);
+        }
+
+        return $result;
     }
 
     /**

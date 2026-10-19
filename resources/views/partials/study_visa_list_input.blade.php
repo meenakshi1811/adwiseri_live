@@ -1,48 +1,29 @@
 @php
-    $studyVisaOptions = $studyVisaOptions ?? [];
-    $optionKey = $optionKey ?? '';
+    $useSelect = $useSelect ?? false;
     $inputName = $inputName ?? '';
-    $inputId = $inputId ?? ($inputName . '_' . uniqid());
-    $listId = $listId ?? ($inputId . '_options');
+    $inputId = $inputId ?? $inputName;
     $placeholder = $placeholder ?? '';
-    $options = $optionKey !== '' ? ($studyVisaOptions[$optionKey] ?? []) : [];
+    $prompt = $prompt ?? '';
     $value = $value ?? '';
-    $errorBag = $errorBag ?? $inputName;
+    $hint = $hint ?? null;
     $layout = $layout ?? 'row';
 @endphp
 
-@if ($layout === 'modal')
-    @if (count($options) > 0)
-        <input type="text" name="{{ $inputName }}" id="{{ $inputId }}" maxlength="255" list="{{ $listId }}"
-            class="form-control @error($errorBag) is-invalid @enderror"
-            value="{{ $value }}" placeholder="{{ $placeholder }}" autocomplete="off">
-        <datalist id="{{ $listId }}">
-            @foreach ($options as $option)
-                <option value="{{ $option }}"></option>
-            @endforeach
-        </datalist>
-    @else
-        <input type="text" name="{{ $inputName }}" id="{{ $inputId }}" maxlength="255"
-            class="form-control @error($errorBag) is-invalid @enderror"
-            value="{{ $value }}" placeholder="{{ $placeholder }}">
-        <div class="form-text">Build this list under Settings → Countries &amp; Categories.</div>
-    @endif
-    @error($errorBag)<span class="invalid-feedback"><strong>{{ $message }}</strong></span>@enderror
+@if ($useSelect)
+    {{-- Options come from the Settings catalogue via the study visa cascade script; the saved value is kept as an option. --}}
+    <select name="{{ $inputName }}" id="{{ $inputId }}" data-current="{{ $value }}"
+        class="form-control form-select @error($inputName) is-invalid @enderror">
+        <option value="">{{ $prompt }}</option>
+        @if ($value !== '')
+            <option value="{{ $value }}" selected>{{ $value }}</option>
+        @endif
+    </select>
 @else
-    @if (count($options) > 0)
-        <input type="text" name="{{ $inputName }}" id="{{ $inputId }}" maxlength="255" list="{{ $listId }}"
-            class="form-control @error($errorBag) is-invalid @enderror"
-            value="{{ $value }}" placeholder="{{ $placeholder }}" autocomplete="off">
-        <datalist id="{{ $listId }}">
-            @foreach ($options as $option)
-                <option value="{{ $option }}"></option>
-            @endforeach
-        </datalist>
-    @else
-        <input type="text" name="{{ $inputName }}" id="{{ $inputId }}" maxlength="255"
-            class="form-control @error($errorBag) is-invalid @enderror"
-            value="{{ $value }}" placeholder="{{ $placeholder }}">
-        <div class="form-text">Build this list under Settings → Countries &amp; Categories.</div>
-    @endif
-    @error($errorBag)<span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>@enderror
+    <input type="text" name="{{ $inputName }}" id="{{ $inputId }}" maxlength="255"
+        class="form-control @error($inputName) is-invalid @enderror"
+        value="{{ $value }}" placeholder="{{ $placeholder }}">
 @endif
+@if ($hint)
+    <div class="form-text">{{ $hint }}</div>
+@endif
+@error($inputName)<span class="invalid-feedback" @if ($layout !== 'modal') role="alert" @endif><strong>{{ $message }}</strong></span>@enderror

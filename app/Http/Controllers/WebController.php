@@ -8658,14 +8658,14 @@ class WebController extends Controller
         try {
             $validated = $request->validate([
                 'study_visa_lists' => 'required|array',
-                'study_visa_lists.course_names' => 'nullable|array',
-                'study_visa_lists.course_names.*' => 'string|max:255',
-                'study_visa_lists.course_durations' => 'nullable|array',
-                'study_visa_lists.course_durations.*' => 'string|max:255',
                 'study_visa_lists.institutions' => 'nullable|array',
-                'study_visa_lists.institutions.*' => 'string|max:255',
-                'study_visa_lists.intakes' => 'nullable|array',
-                'study_visa_lists.intakes.*' => 'string|max:255',
+                'study_visa_lists.institutions.*.name' => 'nullable|string|max:255',
+                'study_visa_lists.institutions.*.courses' => 'nullable|array',
+                'study_visa_lists.institutions.*.courses.*.name' => 'nullable|string|max:255',
+                'study_visa_lists.institutions.*.courses.*.durations' => 'nullable|array',
+                'study_visa_lists.institutions.*.courses.*.durations.*' => 'nullable|string|max:255',
+                'study_visa_lists.institutions.*.courses.*.intakes' => 'nullable|array',
+                'study_visa_lists.institutions.*.courses.*.intakes.*' => 'nullable|string|max:255',
             ]);
 
             $ccService = app(CountryCategorySettingsService::class);

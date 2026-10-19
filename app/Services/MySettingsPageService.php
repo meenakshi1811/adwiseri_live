@@ -117,12 +117,7 @@ class MySettingsPageService
             'ccDocumentLists' => $ccDocumentLists,
             'studyVisaLists' => $this->safe(
                 fn () => $ccService->resolveStudyVisaLists($subscriber),
-                [
-                    'course_names' => [],
-                    'course_durations' => [],
-                    'institutions' => [],
-                    'intakes' => [],
-                ]
+                $ccService->emptyStudyVisaLists()
             ),
             'autoSendDocumentChecklist' => $this->safe(
                 fn () => $ccService->autoSendDocumentChecklistEnabled($subscriber),
