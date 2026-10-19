@@ -6,12 +6,9 @@
 
 <div class="col-lg-10 column-client">
     <div class="client-dashboard">
-        <div class="mb-3 d-flex flex-wrap justify-content-between align-items-start gap-2 eb-page-header">
-            <div>
-                <h3 class="eb-page-title m-0">Email Broadcast</h3>
-                <p class="eb-page-subtitle mb-0">Send bulk emails to subscribers using the standard Adwiseri email format.</p>
-            </div>
-            <div class="d-flex flex-wrap gap-2 eb-page-actions">
+        <div class="client-btn d-flex justify-content-between align-items-center mb-2">
+            <h3 class="text-primary text-center flex-grow-1 text-center m-0">Email Broadcast</h3>
+            <div class="module-header-actions d-flex flex-wrap gap-2 eb-page-actions">
                 <button type="button"
                     class="btn text-white btn-sm"
                     style="background:#695EEE;"
@@ -22,6 +19,7 @@
                 </button>
             </div>
         </div>
+        <p class="eb-page-subtitle text-center mb-3">Send bulk emails to subscribers using the standard Adwiseri email format.</p>
 
         @include('partials.admin_communication_tabs', ['activeTab' => 'email_broadcast'])
 
