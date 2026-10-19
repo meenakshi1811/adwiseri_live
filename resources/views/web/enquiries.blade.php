@@ -68,6 +68,57 @@ $subscriberDisplayName = $subscriber->organization ?? $subscriber->name;
 
 @include('partials.client_module_tabs', ['activeTab' => 'enquiries'])
 
+@push('css')
+<style>
+    .enquiries-table-wrapper {
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .enquiries-leads-table {
+        table-layout: fixed;
+        width: 100% !important;
+        min-width: 960px;
+    }
+    .enquiries-leads-table.fl-table th,
+    .enquiries-leads-table.fl-table td {
+        padding: 8px 6px;
+        vertical-align: middle;
+    }
+    .enquiries-leads-table .enquiry-col-num {
+        width: 3.4rem;
+        max-width: 3.4rem;
+        min-width: 3rem;
+        padding-left: 4px !important;
+        padding-right: 4px !important;
+        white-space: nowrap;
+    }
+    .enquiries-leads-table .enquiry-col-cop {
+        width: 6.5rem;
+        max-width: 7rem;
+    }
+    .enquiries-leads-table .enquiry-col-date {
+        width: 8.75rem;
+        max-width: 9rem;
+        white-space: nowrap;
+        font-size: 12px;
+    }
+    .enquiries-leads-table .enquiry-col-action {
+        width: 5.5rem;
+        max-width: 5.5rem;
+    }
+    .enquiries-leads-table .enquiry-action-inner {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 2px;
+    }
+    .enquiries-table-wrapper .dataTables_wrapper {
+        max-width: 100%;
+    }
+</style>
+@endpush
+
 @if(session()->has('success'))
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -94,22 +145,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
 @if(count($enquiries) != 0)
 
-<div class="table-wrapper">
+<div class="table-wrapper enquiries-table-wrapper">
 
-<table class="fl-table table table-hover p-0 m-0" id="clientTable">
+<table class="fl-table table table-hover p-0 m-0 enquiries-leads-table" id="enquiriesTable">
 
 <thead>
 
 <tr>
 
-<th class="text-center">EnquiryID</th>
+<th class="text-center enquiry-col-num">EnquiryID</th>
 <th class="text-center">Client Name</th>
-<th class="text-center">COP</th>
+<th class="text-center enquiry-col-cop">COP</th>
 <th class="text-center">PVC</th>
 <th class="text-center">Contact No</th>
 <th class="text-center">Email</th>
-<th class="text-center">NOA</th>
-<th class="text-center">Created Date</th>
+<th class="text-center enquiry-col-num">NOA</th>
+<th class="text-center enquiry-col-date">Created Date</th>
 <th class="text-center">Source</th>
 <th class="text-center">Follow-up Status</th>
 <th class="text-center">Worked By</th>
@@ -117,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <th class="text-center">Followups</th>
 <th class="text-center">Convert to Client</th>
 <th class="text-center">Client Status</th>
-<th class="text-center">Action</th>
+<th class="text-center enquiry-col-action">Action</th>
 
 </tr>
 
@@ -129,13 +180,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <tr>
 
-<td class="text-center">{{ $enquiry->id }}</td>
+<td class="text-center enquiry-col-num">{{ $enquiry->id }}</td>
 
 <td class="text-center enquiry-client-name-cell">
 {{ $enquiry->full_name }}
 </td>
 
-<td class="text-center">
+<td class="text-center enquiry-col-cop">
 @php
 $countryPreferences = collect([
     $enquiry->country_pref_1,
@@ -161,13 +212,13 @@ $countryPreferences = collect([
 {{ $enquiry->email }}
 </td>
 
-<td class="text-center">
+<td class="text-center enquiry-col-num">
 
 {{ 1 + (!empty($enquiry->spouse_name) ? 1 : 0) + (int) ($enquiry->children_applying_count ?? 0) }}
 
 </td>
 
-<td class="text-center">
+<td class="text-center enquiry-col-date">
 {{ \Carbon\Carbon::parse($enquiry->created_at)->format('d-m-Y H:i:s') }}
 </td>
 
@@ -257,8 +308,8 @@ Yes
 
 </td>
 
-<td class="pb-5 text-center action-icon" style="display:flex;justify-content:center;align-items:center">
-
+<td class="text-center action-icon enquiry-col-action">
+<div class="enquiry-action-inner">
 <a href="{{ url('visa-enquiries/view/'.$enquiry->id) }}" title="View">
 <i class="fa-solid fa-eye text-info btn p-1 " style="font-size:14px"></i>
 </a>
@@ -270,7 +321,7 @@ Yes
 <a href="javascript:void(0)" onclick="deleteEnquiry({{ $enquiry->id }})" title="Delete">
 <i class="fa-solid fa-trash text-danger btn p-1" style="font-size:14px"></i>
 </a>
-
+</div>
 </td>
 
 </tr>
@@ -309,11 +360,30 @@ Yes
 
 @include('partials.lead_follow_up_history_modal')
 
-@endsection
-
-<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+@push('scripts')
 <script>
 const csrfToken = "{{ csrf_token() }}";
+
+$(document).ready(function () {
+    var $enquiriesTable = $('#enquiriesTable');
+    if ($enquiriesTable.length && $.fn.DataTable) {
+        if ($.fn.DataTable.isDataTable($enquiriesTable)) {
+            $enquiriesTable.DataTable().destroy();
+        }
+        $enquiriesTable.DataTable({
+            aaSorting: [],
+            scrollX: true,
+            autoWidth: false,
+            columnDefs: [
+                { targets: 0, width: '3.4rem', className: 'enquiry-col-num text-center' },
+                { targets: 6, width: '3.4rem', className: 'enquiry-col-num text-center' },
+                { targets: 2, width: '6.5rem', className: 'enquiry-col-cop text-center' },
+                { targets: 7, width: '8.75rem', className: 'enquiry-col-date text-center' },
+                { targets: 15, width: '5.5rem', className: 'enquiry-col-action text-center' }
+            ]
+        });
+    }
+});
 
 function setButtonState(button, isDisabled, label) {
     button.disabled = isDisabled;
@@ -635,3 +705,6 @@ function deleteEnquiry(id){
 
 }
 </script>
+@endpush
+
+@endsection
