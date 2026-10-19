@@ -814,11 +814,12 @@ class CountryCategorySettingsService
     }
 
     /**
-     * Study visa catalogue: each institution lists its courses, and each course its durations and intakes,
-     * so Add Application can offer Institution → Course → Course Duration → Intake as linked dropdowns.
-     * `unlinked` holds values saved by the older flat lists, shown in Settings so they can be re-entered.
+     * Study visa catalogue: each institution belongs to a country and lists its courses, and each course its
+     * durations and intakes, so Add Application can offer (Visa Country →) Institution → Course →
+     * Course Duration → Intake as linked dropdowns. Institutions saved before countries were added have an
+     * empty country. `unlinked` holds values saved by the older flat lists, shown in Settings for re-entry.
      *
-     * @return array{institutions: array<int, array{name: string, courses: array<int, array{name: string, durations: array<int, string>, intakes: array<int, string>}>}>, unlinked: array{course_names: array<int, string>, course_durations: array<int, string>, intakes: array<int, string>}}
+     * @return array{institutions: array<int, array{name: string, country: string, courses: array<int, array{name: string, durations: array<int, string>, intakes: array<int, string>}>}>, unlinked: array{course_names: array<int, string>, course_durations: array<int, string>, intakes: array<int, string>}}
      */
     public function resolveStudyVisaLists(User $subscriber): array
     {
@@ -850,7 +851,7 @@ class CountryCategorySettingsService
 
     /**
      * @param array<string, mixed> $lists
-     * @return array{institutions: array<int, array{name: string, courses: array<int, array{name: string, durations: array<int, string>, intakes: array<int, string>}>}>}
+     * @return array{institutions: array<int, array{name: string, country: string, courses: array<int, array{name: string, durations: array<int, string>, intakes: array<int, string>}>}>}
      */
     public function normalizeStudyVisaListsInput(array $lists): array
     {
@@ -860,15 +861,19 @@ class CountryCategorySettingsService
     }
 
     /**
-     * Older saves stored institutions as plain names; those come back as institutions with no courses yet.
+     * Older saves stored institutions as plain names, or without a country; those come back with an empty
+     * country and no courses yet. The same institution name may exist once per country.
      *
      * @param mixed $items
      */
     public function normalizeStudyVisaInstitutions($items): array
     {
+        $country = fn (array $entry) => trim((string) ($entry['country'] ?? ''));
+
         return $this->normalizeNamedStudyVisaEntries($items, fn (array $entry) => [
+            'country' => $country($entry),
             'courses' => $this->normalizeStudyVisaCourses($entry['courses'] ?? []),
-        ]);
+        ], $country);
     }
 
     /**
@@ -883,11 +888,12 @@ class CountryCategorySettingsService
     }
 
     /**
-     * Trims names, drops blanks and keeps the first of any case-insensitive duplicates.
+     * Trims names, drops blanks and keeps the first of any case-insensitive duplicates
+     * (within the same `$scope`, e.g. the same country).
      *
      * @param mixed $items
      */
-    private function normalizeNamedStudyVisaEntries($items, callable $children): array
+    private function normalizeNamedStudyVisaEntries($items, callable $children, ?callable $scope = null): array
     {
         if (!is_array($items)) {
             return [];
@@ -898,7 +904,7 @@ class CountryCategorySettingsService
         foreach ($items as $item) {
             $entry = is_array($item) ? $item : ['name' => $item];
             $name = trim((string) ($entry['name'] ?? ''));
-            $key = mb_strtolower($name);
+            $key = mb_strtolower(($scope ? $scope($entry) . '|' : '') . $name);
             if ($name === '' || isset($seen[$key])) {
                 continue;
             }

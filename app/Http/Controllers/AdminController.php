@@ -1676,7 +1676,26 @@ class AdminController extends Controller
         }
         $user = Auth::user();
         $page = "applications";
-        return view('admin.add_application', compact('application', 'job_roles', 'user', 'page', 'countries', 'subscriber'));
+        $studyVisaOptions = $ccService->resolveStudyVisaLists($subscriber);
+        return view('admin.add_application', compact('application', 'job_roles', 'user', 'page', 'countries', 'subscriber', 'studyVisaOptions'));
+    }
+
+    /**
+     * Study visa catalogue (Institution → Course → Duration / Intake) of the chosen client's subscriber,
+     * for the admin Add Application form.
+     */
+    public function get_study_visa_catalog(Request $request)
+    {
+        $client = Clients::find((int) $request->query('client_id'));
+        $subscriber = $client ? User::find($client->subscriber_id) : null;
+
+        if (!$subscriber) {
+            return response()->json(['institutions' => []]);
+        }
+
+        $lists = app(\App\Services\CountryCategorySettingsService::class)->resolveStudyVisaLists($subscriber);
+
+        return response()->json(['institutions' => $lists['institutions']]);
     }
 
     public function register_new_application(Request $request)

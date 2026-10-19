@@ -8,32 +8,30 @@
         return ($value === 'NA') ? '' : $value;
     };
 
-    // Institution → Course → Course Duration → Intake. With a Settings catalogue these are linked dropdowns,
-    // each shown once the previous one is chosen; without one they stay free-text boxes.
+    // Institution → Course → Course Duration → Intake: dropdowns filled only from the Settings catalogue,
+    // each shown once the previous one is chosen. `studyEmptyInstitutions` replaces the Institution
+    // message before a catalogue is loaded (e.g. "Select a client first" on the admin form).
     $studyCatalog = $studyVisaOptions['institutions'] ?? [];
-    $useStudySelects = count($studyCatalog) > 0;
+    $studyEmptyInstitutions = $studyEmptyInstitutions ?? '';
     $studySteps = [
-        ['field' => 'institution', 'label' => 'Institution', 'placeholder' => 'University / College', 'prompt' => 'Select Institution'],
-        ['field' => 'course_name', 'label' => 'Course', 'placeholder' => 'Course Name', 'prompt' => 'Select Course'],
-        ['field' => 'course_duration', 'label' => 'Course Duration', 'placeholder' => 'e.g. 12 months, 2 years', 'prompt' => 'Select Course Duration'],
-        ['field' => 'intake', 'label' => 'Intake', 'placeholder' => 'e.g. September 2025', 'prompt' => 'Select Intake'],
+        ['field' => 'institution', 'label' => 'Institution', 'prompt' => 'Select Institution'],
+        ['field' => 'course_name', 'label' => 'Course', 'prompt' => 'Select Course'],
+        ['field' => 'course_duration', 'label' => 'Course Duration', 'prompt' => 'Select Course Duration'],
+        ['field' => 'intake', 'label' => 'Intake', 'prompt' => 'Select Intake'],
     ];
-    $studyHint = $useStudySelects
-        ? 'Missing an option? Add it under Settings → Countries & Categories.'
-        : 'Build these lists under Settings → Countries & Categories.';
+    $studyHint = 'These lists come from Settings → Countries & Categories.';
 @endphp
 
 @if ($layout === 'modal')
-    <div class="js-study-visa-fields js-study-visa-cascade" style="display: none;" data-catalog="{{ json_encode($studyCatalog) }}">
+    <div class="js-study-visa-fields js-study-visa-cascade" style="display: none;" data-catalog="{{ json_encode($studyCatalog) }}"
+        data-empty-institutions="{{ $studyEmptyInstitutions }}">
         @foreach ($studySteps as $step)
             <div class="mb-3 js-study-step" data-field="{{ $step['field'] }}">
                 <label class="form-label" for="{{ $step['field'] }}_modal">{{ $step['label'] }}</label>
                 @include('partials.study_visa_list_input', [
                     'layout' => 'modal',
-                    'useSelect' => $useStudySelects,
                     'inputName' => $step['field'],
                     'inputId' => $step['field'] . '_modal',
-                    'placeholder' => $step['placeholder'],
                     'prompt' => $step['prompt'],
                     'value' => $fieldValue($step['field']),
                     'hint' => $loop->first ? $studyHint : null,
@@ -80,7 +78,8 @@
         </div>
     </div>
 @else
-    <div class="col-12 p-0 js-study-visa-fields js-study-visa-cascade" style="display: none;" data-catalog="{{ json_encode($studyCatalog) }}">
+    <div class="col-12 p-0 js-study-visa-fields js-study-visa-cascade" style="display: none;" data-catalog="{{ json_encode($studyCatalog) }}"
+        data-empty-institutions="{{ $studyEmptyInstitutions }}">
         <div class="row w-100 mx-0">
         @foreach ($studySteps as $step)
             <div class="col-12 p-0 js-study-step" data-field="{{ $step['field'] }}">
@@ -90,10 +89,8 @@
                     </div>
                     <div class="col-md-8 p-1">
                         @include('partials.study_visa_list_input', [
-                            'useSelect' => $useStudySelects,
                             'inputName' => $step['field'],
                             'inputId' => $step['field'],
-                            'placeholder' => $step['placeholder'],
                             'prompt' => $step['prompt'],
                             'value' => $fieldValue($step['field']),
                             'hint' => $loop->first ? $studyHint : null,

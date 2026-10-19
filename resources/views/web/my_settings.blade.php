@@ -1224,7 +1224,10 @@
                                 </button>
                             </div>
 
-                            @include('partials.settings_study_visa_lists', ['studyVisaLists' => $studyVisaLists ?? []])
+                            @include('partials.settings_study_visa_lists', [
+                                'studyVisaLists' => $studyVisaLists ?? [],
+                                'studyCountries' => $selectedCountries ?? collect(),
+                            ])
 
                             <div class="cc-documents-panel mt-4">
                                     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">

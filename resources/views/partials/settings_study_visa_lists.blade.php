@@ -1,6 +1,14 @@
 @php
     $studyVisaLists = $studyVisaLists ?? [];
     $studyInstitutions = $studyVisaLists['institutions'] ?? [];
+    // The subscriber's countries (Countries & Categories), plus any already used by a saved institution.
+    $studyCountries = collect($studyCountries ?? [])
+        ->merge(collect($studyInstitutions)->pluck('country'))
+        ->map(fn ($country) => trim((string) $country))
+        ->filter()
+        ->unique()
+        ->values()
+        ->all();
     $studyUnlinked = array_filter([
         'Courses' => $studyVisaLists['unlinked']['course_names'] ?? [],
         'Durations' => $studyVisaLists['unlinked']['course_durations'] ?? [],
@@ -8,6 +16,14 @@
     ]);
 @endphp
 <style>
+    #study-visa-lists-panel .study-visa-country-heading {
+        color: var(--adwiseri-primary, #695EEE);
+        font-weight: 600;
+        border-bottom: 1px solid #E5E8FF;
+        padding-bottom: 0.25rem;
+        margin: 1rem 0 0.75rem;
+    }
+
     #study-visa-lists-panel .study-visa-course {
         border-left: 3px solid #E5E8FF;
     }
@@ -27,14 +43,19 @@
     #study-visa-lists-panel .study-visa-chip .btn-close {
         font-size: 0.5rem;
     }
+
+    #study-visa-lists-panel .study-visa-country-select {
+        width: auto;
+        max-width: 220px;
+    }
 </style>
 <div class="cc-documents-panel mt-4" id="study-visa-lists-panel">
     <div class="mb-3">
         <div class="panel-title">Study Visa Application Fields</div>
         <div class="panel-subtitle mb-0">
-            Add each institution, the courses it offers, and each course's durations and intakes.
-            On <strong>Add Application</strong> (study visa types) staff choose Institution → Course → Course Duration → Intake,
-            and each list only shows what belongs to the previous choice.
+            For each country, add the institutions your clients apply to, the courses each one offers, and each course's
+            durations and intakes. On <strong>Add Application</strong> (study visa types) staff choose the Visa Country, then
+            Institution → Course → Course Duration → Intake, and each list only shows what belongs to the previous choice.
         </div>
     </div>
 
@@ -48,8 +69,23 @@
         </div>
     @endif
 
-    <div class="input-group input-group-sm mb-3" style="max-width: 520px;">
-        <input type="text" class="form-control" maxlength="255" placeholder="e.g. University of Example"
+    <div class="alert alert-warning small py-2" id="study-visa-unassigned-note" style="display: none;">
+        Some institutions have no country yet, so they don't appear on Add Application.
+        Choose a country for each one under <strong>No country assigned</strong> below, then save.
+    </div>
+
+    @if (count($studyCountries) === 0)
+        <p class="text-muted small">Select your countries under Countries &amp; Categories above first, then add institutions here.</p>
+    @endif
+
+    <div class="input-group input-group-sm mb-3" style="max-width: 720px;">
+        <select class="form-select" style="max-width: 220px;" aria-label="Institution country" data-add-country="institution">
+            <option value="">Select country</option>
+            @foreach ($studyCountries as $country)
+                <option value="{{ $country }}">{{ $country }}</option>
+            @endforeach
+        </select>
+        <input type="text" class="form-control" maxlength="255" placeholder="Institution, e.g. University of Example"
             aria-label="Institution name" data-add-input="institution" autocomplete="off">
         <button type="button" class="btn btn-outline-primary" data-action="add-institution">Add Institution</button>
     </div>
@@ -73,6 +109,8 @@
 
         const list = document.getElementById('study-visa-institutions');
         const emptyNote = document.getElementById('study-visa-institutions-empty');
+        const unassignedNote = document.getElementById('study-visa-unassigned-note');
+        const countries = @json($studyCountries);
         let institutions = @json($studyInstitutions);
 
         function el(tag, className, text) {
@@ -86,11 +124,28 @@
             return node;
         }
 
+        function same(a, b) {
+            return (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
+        }
+
         function hasName(items, value) {
-            const key = value.toLowerCase();
             return items.some(function (item) {
-                return (typeof item === 'string' ? item : item.name).toLowerCase() === key;
+                return same(typeof item === 'string' ? item : item.name, value);
             });
+        }
+
+        function hasInstitution(name, country, exceptIndex) {
+            return institutions.some(function (institution, index) {
+                return index !== exceptIndex && same(institution.name, name) && same(institution.country, country);
+            });
+        }
+
+        function warn(text) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({ icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' }, title: 'Oops!', text: text });
+            } else {
+                window.alert(text);
+            }
         }
 
         // Text box + button that adds a value; Enter in the box does the same.
@@ -112,6 +167,24 @@
             group.appendChild(input);
             group.appendChild(button);
             return group;
+        }
+
+        function countrySelect(institution, i) {
+            const select = el('select', 'form-select form-select-sm study-visa-country-select');
+            select.setAttribute('aria-label', 'Country of ' + institution.name);
+            select.dataset.i = i;
+            const choices = countries.slice();
+            if (institution.country && !choices.some(function (c) { return same(c, institution.country); })) {
+                choices.unshift(institution.country);
+            }
+            if (!institution.country) {
+                select.appendChild(new Option('Select country', ''));
+            }
+            choices.forEach(function (country) {
+                select.appendChild(new Option(country, country));
+            });
+            select.value = institution.country || '';
+            return select;
         }
 
         function valueList(title, values, kind, i, c) {
@@ -137,46 +210,82 @@
             return wrap;
         }
 
+        function institutionCard(institution, i) {
+            const card = el('div', 'border rounded p-3 mb-3 bg-white');
+            const header = el('div', 'd-flex flex-wrap justify-content-between align-items-center gap-2 mb-2');
+            header.appendChild(el('div', 'fw-semibold text-break', institution.name));
+            const tools = el('div', 'd-flex align-items-center gap-2');
+            tools.appendChild(countrySelect(institution, i));
+            const removeInstitution = el('button', 'btn btn-link btn-sm text-danger p-0', 'Remove');
+            removeInstitution.type = 'button';
+            Object.assign(removeInstitution.dataset, { action: 'remove-institution', i: i });
+            tools.appendChild(removeInstitution);
+            header.appendChild(tools);
+            card.appendChild(header);
+
+            institution.courses.forEach(function (course, c) {
+                const block = el('div', 'study-visa-course ps-3 mb-3');
+                const courseHeader = el('div', 'd-flex justify-content-between align-items-start gap-2');
+                courseHeader.appendChild(el('div', 'small fw-semibold text-break', course.name));
+                const removeCourse = el('button', 'btn-close');
+                removeCourse.type = 'button';
+                removeCourse.setAttribute('aria-label', 'Remove ' + course.name);
+                Object.assign(removeCourse.dataset, { action: 'remove-course', i: i, c: c });
+                courseHeader.appendChild(removeCourse);
+                block.appendChild(courseHeader);
+
+                const values = el('div', 'row g-3 mt-0');
+                values.appendChild(valueList('Course Durations', course.durations, 'durations', i, c));
+                values.appendChild(valueList('Intakes', course.intakes, 'intakes', i, c));
+                block.appendChild(values);
+                card.appendChild(block);
+            });
+
+            if (!institution.courses.length) {
+                card.appendChild(el('p', 'text-muted small mb-2', 'No courses yet.'));
+            }
+
+            const addCourse = addRow('Add a course, e.g. MSc Computer Science', 'Add Course', 'add-course', { i: i }, 'course-' + i);
+            addCourse.style.maxWidth = '520px';
+            card.appendChild(addCourse);
+            return card;
+        }
+
+        // Countries in the subscriber's order, then any others in use, then institutions without a country.
+        function countryGroups() {
+            const order = countries.slice();
+            institutions.forEach(function (institution) {
+                if (institution.country && !order.some(function (c) { return same(c, institution.country); })) {
+                    order.push(institution.country);
+                }
+            });
+            order.push('');
+
+            return order.map(function (country) {
+                return {
+                    country: country,
+                    indexes: institutions.reduce(function (found, institution, i) {
+                        if (same(institution.country, country)) {
+                            found.push(i);
+                        }
+                        return found;
+                    }, []),
+                };
+            }).filter(function (group) {
+                return group.indexes.length > 0;
+            });
+        }
+
         function render(focusKey) {
             list.innerHTML = '';
             emptyNote.style.display = institutions.length ? 'none' : '';
+            unassignedNote.style.display = institutions.some(function (institution) { return !institution.country; }) ? '' : 'none';
 
-            institutions.forEach(function (institution, i) {
-                const card = el('div', 'border rounded p-3 mb-3 bg-white');
-                const header = el('div', 'd-flex justify-content-between align-items-start gap-2 mb-2');
-                header.appendChild(el('div', 'fw-semibold text-break', institution.name));
-                const removeInstitution = el('button', 'btn btn-link btn-sm text-danger p-0', 'Remove');
-                removeInstitution.type = 'button';
-                Object.assign(removeInstitution.dataset, { action: 'remove-institution', i: i });
-                header.appendChild(removeInstitution);
-                card.appendChild(header);
-
-                institution.courses.forEach(function (course, c) {
-                    const block = el('div', 'study-visa-course ps-3 mb-3');
-                    const courseHeader = el('div', 'd-flex justify-content-between align-items-start gap-2');
-                    courseHeader.appendChild(el('div', 'small fw-semibold text-break', course.name));
-                    const removeCourse = el('button', 'btn-close');
-                    removeCourse.type = 'button';
-                    removeCourse.setAttribute('aria-label', 'Remove ' + course.name);
-                    Object.assign(removeCourse.dataset, { action: 'remove-course', i: i, c: c });
-                    courseHeader.appendChild(removeCourse);
-                    block.appendChild(courseHeader);
-
-                    const values = el('div', 'row g-3 mt-0');
-                    values.appendChild(valueList('Course Durations', course.durations, 'durations', i, c));
-                    values.appendChild(valueList('Intakes', course.intakes, 'intakes', i, c));
-                    block.appendChild(values);
-                    card.appendChild(block);
+            countryGroups().forEach(function (group) {
+                list.appendChild(el('div', 'study-visa-country-heading', group.country || 'No country assigned'));
+                group.indexes.forEach(function (i) {
+                    list.appendChild(institutionCard(institutions[i], i));
                 });
-
-                if (!institution.courses.length) {
-                    card.appendChild(el('p', 'text-muted small mb-2', 'No courses yet.'));
-                }
-
-                const addCourse = addRow('Add a course, e.g. MSc Computer Science', 'Add Course', 'add-course', { i: i }, 'course-' + i);
-                addCourse.style.maxWidth = '520px';
-                card.appendChild(addCourse);
-                list.appendChild(card);
             });
 
             if (focusKey) {
@@ -198,7 +307,30 @@
             const i = Number(button.dataset.i);
             const c = Number(button.dataset.c);
 
-            if (action === 'add-institution' || action === 'add-course' || action === 'add-value') {
+            if (action === 'add-institution') {
+                const input = inputFor(button);
+                const countryField = button.closest('.input-group').querySelector('[data-add-country]');
+                const name = (input.value || '').trim();
+                const country = countryField.value;
+                if (!country) {
+                    warn('Select the country this institution is in.');
+                    countryField.focus();
+                    return;
+                }
+                if (name === '') {
+                    input.focus();
+                    return;
+                }
+                if (!hasInstitution(name, country, -1)) {
+                    institutions.push({ name: name, country: country, courses: [] });
+                }
+                input.value = '';
+                input.focus();
+                render();
+                return;
+            }
+
+            if (action === 'add-course' || action === 'add-value') {
                 const input = inputFor(button);
                 const value = (input.value || '').trim();
                 if (value === '') {
@@ -206,30 +338,14 @@
                     return;
                 }
 
-                let target;
-                let entry;
-                if (action === 'add-institution') {
-                    target = institutions;
-                    entry = { name: value, courses: [] };
-                } else if (action === 'add-course') {
-                    target = institutions[i].courses;
-                    entry = { name: value, durations: [], intakes: [] };
-                } else {
-                    target = institutions[i].courses[c][button.dataset.kind];
-                    entry = value;
-                }
-
+                const target = action === 'add-course'
+                    ? institutions[i].courses
+                    : institutions[i].courses[c][button.dataset.kind];
                 if (!hasName(target, value)) {
-                    target.push(entry);
+                    target.push(action === 'add-course' ? { name: value, durations: [], intakes: [] } : value);
                 }
                 input.value = '';
-
-                if (action === 'add-institution') {
-                    input.focus();
-                    render();
-                } else {
-                    render(inputFor(button).dataset.focusKey);
-                }
+                render(input.dataset.focusKey);
                 return;
             }
 
@@ -239,6 +355,21 @@
                 institutions[i].courses.splice(c, 1);
             } else if (action === 'remove-value') {
                 institutions[i].courses[c][button.dataset.kind].splice(Number(button.dataset.v), 1);
+            }
+            render();
+        });
+
+        panel.addEventListener('change', function (event) {
+            const select = event.target.closest('.study-visa-country-select');
+            if (!select) {
+                return;
+            }
+
+            const i = Number(select.dataset.i);
+            if (select.value && hasInstitution(institutions[i].name, select.value, i)) {
+                warn(institutions[i].name + ' is already listed under ' + select.value + '.');
+            } else {
+                institutions[i].country = select.value;
             }
             render();
         });
@@ -285,12 +416,7 @@
                     });
                 })
                 .catch(function (error) {
-                    Swal.fire({
-                        icon: 'warning',
-                        customClass: { icon: 'adwiseri-oops-icon' },
-                        title: 'Oops!',
-                        text: error.message || 'Failed to save study visa lists.',
-                    });
+                    warn(error.message || 'Failed to save study visa lists.');
                 });
         });
 

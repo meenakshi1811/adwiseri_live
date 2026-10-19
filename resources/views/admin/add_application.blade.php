@@ -204,7 +204,7 @@
                                     </span>
                                 @enderror
                             </div>
-                            @include('web.partials.application_visa_detail_fields')
+                            @include('web.partials.application_visa_detail_fields', ['studyEmptyInstitutions' => 'Select a client first'])
                             <div class="col-md-4 p-1">
                                 <label>Application Start Date<span class="text-danger" style="font-size: 18px;">*</span></label>
                             </div>
@@ -330,14 +330,28 @@
           const clientEl = document.getElementById('client');
           const isClientSelect = clientEl && clientEl.tagName === 'SELECT';
 
+          // Institution / Course / Duration / Intake lists belong to the client's subscriber.
+          function loadStudyVisaCatalog(clientId, keepSavedValues) {
+              $.getJSON("{{ route('get_study_visa_catalog') }}", { client_id: clientId }, function (data) {
+                  if (typeof window.setStudyVisaCatalog === 'function') {
+                      window.setStudyVisaCatalog((data && data.institutions) || [], keepSavedValues);
+                  }
+              });
+          }
+
           $("#client").change(function(){
             var id = $(this).val();
 
             if (!id) {
                 $("#job_role").html('<option value="">Select Application Type</option>');
                 $("#visa_country").html('<option value="">Select Visa Country</option>');
+                if (typeof window.setStudyVisaCatalog === 'function') {
+                    window.setStudyVisaCatalog([], false, 'Select a client first');
+                }
                 return;
             }
+
+            loadStudyVisaCatalog(id, false);
 
             $.ajax({
                 url: 'fetch_visa_country/' + id,
@@ -372,6 +386,7 @@
           });
 
           if (isClientSelect && clientEl.value) {
+            loadStudyVisaCatalog(clientEl.value, true);
             $.ajax({
                 url: 'fetch_visa_country/' + clientEl.value,
                 method: 'GET',

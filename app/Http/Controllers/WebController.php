@@ -8660,6 +8660,7 @@ class WebController extends Controller
                 'study_visa_lists' => 'required|array',
                 'study_visa_lists.institutions' => 'nullable|array',
                 'study_visa_lists.institutions.*.name' => 'nullable|string|max:255',
+                'study_visa_lists.institutions.*.country' => 'nullable|string|max:255',
                 'study_visa_lists.institutions.*.courses' => 'nullable|array',
                 'study_visa_lists.institutions.*.courses.*.name' => 'nullable|string|max:255',
                 'study_visa_lists.institutions.*.courses.*.durations' => 'nullable|array',

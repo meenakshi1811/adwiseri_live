@@ -520,6 +520,7 @@ Route::get('/admin/application/{id}/document-list', [App\Http\Controllers\AdminC
 Route::get('/admin/application/{id}/document-list/download', [App\Http\Controllers\AdminController::class, 'download_application_document_list'])->name('admin.download_application_document_list')->middleware('admin_auth');
 Route::post('/get_job_role', [App\Http\Controllers\AdminController::class, 'get_job_role'])->name('get_job_role');
 Route::post('/get_cc_countries', [App\Http\Controllers\AdminController::class, 'get_cc_countries'])->name('get_cc_countries');
+Route::get('/get_study_visa_catalog', [App\Http\Controllers\AdminController::class, 'get_study_visa_catalog'])->name('get_study_visa_catalog')->middleware('admin_auth');
 Route::get('fetch_visa_country/{id?}', [App\Http\Controllers\AdminController::class, 'fetch_visa_country'])->name('fetch_visa_country');
 
 Route::get('/documents', [App\Http\Controllers\AdminController::class, 'documents'])->name('documents')->middleware('admin_auth');
