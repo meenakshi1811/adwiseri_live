@@ -116,7 +116,7 @@
             <div class="client-dashboard">
                 <div class="client-btn d-flex mb-2 ">
                     <form class="form-inline d-flex justify-content-between w-100">
-                        <h3 class="text-primary">Add New Document</h3>
+                        <h3 class="text-primary text-center w-100 my-4">Add New Document</h3>
                     </form>
                 </div>
                 <div class="col">

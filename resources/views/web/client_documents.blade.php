@@ -28,7 +28,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
 
                 <div style="display: {{ (old('client_id') || $errors->any()) ? 'block' : 'none' }};" class="col" id="new_document">
-                    <h5>Add New Document</h5>
+                    <h5 class="text-primary text-center my-4">Add New Document</h5>
                     <form id="registration_form" class="register-box login-box" method="POST" action="{{ route('upload_client_document') }}" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="local_time" class="localtime" />
