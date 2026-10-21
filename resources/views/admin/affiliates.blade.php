@@ -460,6 +460,64 @@
 
         }
 
+        // Key icon in the Actions column: set a new login password for the affiliate.
+        $(document).on('click', '.js-affiliate-password', function () {
+            var affiliateId = $(this).data('affiliate-id');
+            var affiliateName = $(this).data('affiliate-name');
+
+            Swal.fire({
+                title: 'Change Password',
+                html: '<p class="mb-2 small text-muted">Set a new login password for <strong class="js-affiliate-name"></strong>.</p>' +
+                    '<input type="password" id="affiliateNewPassword" class="swal2-input" placeholder="New password (min 8 characters)" autocomplete="new-password">' +
+                    '<input type="password" id="affiliateConfirmPassword" class="swal2-input" placeholder="Confirm new password" autocomplete="new-password">',
+                didOpen: function (popup) {
+                    popup.querySelector('.js-affiliate-name').textContent = affiliateName;
+                    popup.querySelector('#affiliateNewPassword').focus();
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Update Password',
+                showLoaderOnConfirm: true,
+                preConfirm: function () {
+                    var password = document.getElementById('affiliateNewPassword').value;
+                    var confirmation = document.getElementById('affiliateConfirmPassword').value;
+                    if (password.length < 8) {
+                        Swal.showValidationMessage('Password must be at least 8 characters.');
+                        return false;
+                    }
+                    if (password !== confirmation) {
+                        Swal.showValidationMessage('Passwords do not match.');
+                        return false;
+                    }
+
+                    return new Promise(function (resolve) {
+                        $.ajax({
+                            url: "{{ route('admin_change_affiliate_password') }}",
+                            type: 'POST',
+                            dataType: 'json',
+                            data: {
+                                _token: "{{ csrf_token() }}",
+                                affiliate_id: affiliateId,
+                                password: password,
+                                password_confirmation: confirmation,
+                            },
+                        }).done(resolve).fail(function (xhr) {
+                            var response = xhr.responseJSON || {};
+                            var errors = response.errors ? Object.values(response.errors).flat() : [];
+                            Swal.showValidationMessage(errors[0] || response.message || 'Could not update the password.');
+                            resolve(false);
+                        });
+                    });
+                },
+                allowOutsideClick: function () {
+                    return !Swal.isLoading();
+                },
+            }).then(function (result) {
+                if (result.isConfirmed && result.value) {
+                    Swal.fire({ icon: 'success', title: 'Success', text: result.value.message });
+                }
+            });
+        });
+
         function clickStatus(status) {
 
             $.ajax({

@@ -67,7 +67,8 @@
                     </div>
 
 
-                    <button type="submit" class="btn btn-primary form-control mt-2">Login</button>
+                    {{-- w-100: full width like the main and admin login screens (the site-wide .btn rule caps it at 140px). --}}
+                    <button type="submit" class="btn btn-primary form-control w-100">Login</button>
 
                     <p class="register-button mt-3 text-center">New here? <a style="color:#695EEE" href="{{ route('Affiliates.create') }}">Register Now</a>
                     </p>
@@ -80,15 +81,15 @@
         </div>
     </div>
     </main>
-    @if(session()->has('g-recaptcha-response'))
+    @error('g-recaptcha-response')
 <script>
 Swal.fire({
   icon: 'warning', customClass: { icon: 'adwiseri-oops-icon' },
   title: 'Oops!',
-  text: 'Please complete the reCAPTCHA to proceed.',
+  text: 'Please complete the reCAPTCHA again to proceed.',
 });
 </script>
-@endif
+    @enderror
   @if(session()->has('password_changed'))
   <script>
     Swal.fire({

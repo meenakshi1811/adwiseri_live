@@ -459,6 +459,7 @@ Route::get('/associatesReport', [App\Http\Controllers\ReportFilterController::cl
 Route::get('/manage_associates_report', [App\Http\Controllers\ReportFilterController::class, 'manage_associates_report'])->name('manage_associates_report')->middleware(['auth','check.device']);
 
 Route::get('/changeAffiliateStatus', [App\Http\Controllers\AdminController::class, 'changeAffiliateStatus'])->name('changeAffiliateStatus');
+Route::post('/admin/affiliates/change_password', [App\Http\Controllers\AdminController::class, 'change_affiliate_password'])->name('admin_change_affiliate_password')->middleware('admin_auth');
 
 Route::get('/affiliates_referrals', [App\Http\Controllers\AdminController::class, 'affiliates_referrals'])->name('affiliates_referrals');
 Route::get('/affiliates_wallet', [App\Http\Controllers\AdminController::class, 'affiliates_wallet'])->name('affiliates_wallet');

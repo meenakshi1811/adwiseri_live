@@ -4990,7 +4990,10 @@ class AdminController extends Controller
                     return !empty($comm) ? $comm->commission_earnt : '0';
                 })
                 ->addColumn('action', function ($row) {
-                    return '<input type="checkbox" onclick="clickStatus(\'' . $row->getAffiliate->id . '\')" ' . ($row->getAffiliate->status == 1 ? 'checked' : '') . '>';
+                    return '<input type="checkbox" onclick="clickStatus(\'' . $row->getAffiliate->id . '\')" ' . ($row->getAffiliate->status == 1 ? 'checked' : '') . '>'
+                        . ' <button type="button" class="btn btn-link p-0 ms-2 js-affiliate-password" title="Change password"'
+                        . ' data-affiliate-id="' . (int) $row->getAffiliate->id . '" data-affiliate-name="' . e($row->name) . '">'
+                        . '<i class="fa-solid fa-key"></i></button>';
                 })
                 ->addColumn('plan', function ($row) {
                     $plan = User::where('referral_code', $row->referral)->first();
@@ -5137,6 +5140,35 @@ class AdminController extends Controller
         $aff->save();
         return response()->json(['msg' => 'success']);
     }
+
+    /**
+     * Admin sets a new password for an affiliate. Affiliates sign in against their `affiliates` row, while the
+     * shared Forgot Password flow uses their `users` row, so both get the same hash.
+     */
+    public function change_affiliate_password(Request $request)
+    {
+        if (optional(Auth::user())->user_type !== 'admin') {
+            return response()->json(['success' => false, 'message' => 'Only administrators can change affiliate passwords.'], 403);
+        }
+
+        $validated = $request->validate([
+            'affiliate_id' => 'required|integer|exists:affiliates,id',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $affiliate = Affiliates::findOrFail($validated['affiliate_id']);
+        $hash = Hash::make($validated['password']);
+
+        $affiliate->password = $hash;
+        $affiliate->save();
+        User::where('email', $affiliate->email)->where('user_type', 'Affiliate')->update(['password' => $hash]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password updated for ' . $affiliate->name . '. They can now log in with the new password.',
+        ]);
+    }
+
     public function affiliates_referrals()
     {
         $user = $this->check_login();

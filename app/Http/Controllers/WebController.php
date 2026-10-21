@@ -2349,6 +2349,8 @@ class WebController extends Controller
         if (password_verify($old_password, $user->password)) {
             $user->password = Hash::make($request->password);
             $user->save();
+            // Keep the affiliate's `users` row (used by Forgot Password) on the same password.
+            User::where('email', $user->email)->where('user_type', 'Affiliate')->update(['password' => $user->password]);
             $activity = new Activities();
             $activity->subscriber_id = $subscriber->id;
             $activity->user_id = $user->id;
@@ -3918,12 +3920,15 @@ class WebController extends Controller
             if ($user->user_type == "Subscriber") {
                 $subscriber = $user;
             } else {
-                $subscriber = User::find($user->added_by);
+                // Affiliates have no parent subscriber; log the activity against their own account.
+                $subscriber = User::find($user->added_by) ?: $user;
             }
             $user->email_otp = null;
             $user->phone_otp = null;
             $user->password = Hash::make($request['password']);
             $user->save();
+            // Affiliates sign in against their `affiliates` row, which this shared reset would otherwise miss.
+            Affiliates::where('email', $user->email)->update(['password' => $user->password]);
             $activity = new Activities();
             $activity->subscriber_id = $subscriber->id;
             $activity->user_id = $user->id;
