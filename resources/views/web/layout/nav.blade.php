@@ -67,18 +67,26 @@
           </li> --}}
           <li class="nav-item dropdown">
                 <a class="nav-link active dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Use Cases</a>
+                @php
+                    // Subscriber categories, each with a one-line definition shown on hover.
+                    $useCases = [
+                        'General (All countries) Visa Consultants' => 'A Visa/Immigration Consultant, dealing in almost all countries and across all visa categories.',
+                        'Study Abroad (Student) Visa Consultants' => 'A consultant helping students with university/college admissions and student visas for studying abroad.',
+                        'Business / Work Visa Specialists' => 'A specialist in business, work-permit and employer-sponsored visas for professionals and skilled workers.',
+                        'PR / Immigration Advisories' => 'An advisory focused on permanent residency (PR), settlement and long-term immigration pathways.',
+                        'USA - Immigration Attorneys' => 'A licensed US immigration attorney handling US visas, green cards and related legal matters.',
+                        'UK - OISC (IAA) Advisors' => 'An immigration adviser regulated by the OISC, now the Immigration Advice Authority (IAA), advising on UK visas and immigration.',
+                        'Australia - MARA Advisors' => 'A registered migration agent (MARA) advising on Australian visas and migration.',
+                        'Canada - ICCRC Advisors' => 'A licensed Canadian immigration consultant (RCIC), regulated by the ICCRC, now the CICC, advising on Canadian visas and immigration.',
+                        'CBI - Citizenship By Investment Consultants' => 'A consultant helping investors obtain second citizenship or residency through government investment programs.',
+                        'Travel Agents (Visit Visa Specialists)' => 'A travel agency that also arranges visit/tourist visas alongside travel bookings.',
+                        'Immigration Law Firms' => 'A law firm whose lawyers provide legal advice and representation on immigration and visa matters.',
+                    ];
+                @endphp
                 <ul class="dropdown-menu use-cases-menu">
-                    <li><p class="dropdown-item mb-0">General (All countries) Visa Consultants</p></li>
-                    <li><p class="dropdown-item mb-0">Study Abroad (Student) Visa Consultants</p></li>
-                    <li><p class="dropdown-item mb-0">Business / Work Visa Specialists</p></li>
-                    <li><p class="dropdown-item mb-0">PR / Immigration Advisories</p></li>
-                    <li><p class="dropdown-item mb-0">USA - Immigration Attorneys</p></li>
-                    <li><p class="dropdown-item mb-0">UK - OISC (IAA) Advisors</p></li>
-                    <li><p class="dropdown-item mb-0">Australia - MARA Advisors</p></li>
-                    <li><p class="dropdown-item mb-0">Canada - ICCRC Advisors</p></li>
-                    <li><p class="dropdown-item mb-0">CBI - Citizenship By Investment Consultants</p></li>
-                    <li><p class="dropdown-item mb-0">Travel Agents (Visit Visa Specialists)</p></li>
-                    <li><p class="dropdown-item mb-0">Immigration Law Firms</p></li>
+                    @foreach ($useCases as $useCase => $definition)
+                        <li><p class="dropdown-item mb-0" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="right" title="{{ $definition }}">{{ $useCase }}</p></li>
+                    @endforeach
                 </ul>
           </li>
           {{-- <li class="nav-item">
@@ -117,5 +125,42 @@
     </div>
   </nav>
   <!-- Navbar END -->
+
+  <style>
+    .use-case-tooltip .tooltip-inner {
+      max-width: 280px;
+      text-align: left;
+      font-size: 13px;
+    }
+  </style>
+  <script>
+    // "Use Cases" menu: show each category's definition as a tooltip. Without Bootstrap's JS the
+    // browser still shows the plain title text.
+    document.addEventListener('DOMContentLoaded', function () {
+      if (!window.bootstrap || !window.bootstrap.Tooltip) {
+        return;
+      }
+
+      var tooltips = Array.prototype.map.call(
+        document.querySelectorAll('.use-cases-menu [data-bs-toggle="tooltip"]'),
+        function (item) {
+          return new bootstrap.Tooltip(item, {
+            container: 'body',
+            trigger: 'hover focus',
+            customClass: 'use-case-tooltip',
+          });
+        }
+      );
+
+      document.querySelectorAll('.use-cases-menu').forEach(function (menu) {
+        var dropdown = menu.closest('.dropdown');
+        if (dropdown) {
+          dropdown.addEventListener('hide.bs.dropdown', function () {
+            tooltips.forEach(function (tooltip) { tooltip.hide(); });
+          });
+        }
+      });
+    });
+  </script>
 
 
