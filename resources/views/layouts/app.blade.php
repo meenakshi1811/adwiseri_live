@@ -24,7 +24,7 @@
     <script src="{{ asset('web_assets/js/adwiseri-alerts.js') }}"></script>
     <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-alerts.css') }}">
     <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-responsive.css') }}">
-    <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-tabs.css') }}">
+    <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-tabs.css') }}?v=20261021a">
     <!-- Styles -->
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">

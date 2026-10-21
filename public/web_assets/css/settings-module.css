@@ -49,7 +49,7 @@
     margin-bottom: -2px !important;
     margin-left: 0;
     border-radius: var(--adwiseri-tab-radius, 10px) var(--adwiseri-tab-radius, 10px) 0 0 !important;
-    border: 1px solid var(--adwiseri-tab-border, #e2e6f0) !important;
+    border: 1px solid var(--adwiseri-tab-outline, #695eee) !important;
     border-bottom: 2px solid transparent !important;
 }
 

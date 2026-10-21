@@ -1,7 +1,7 @@
 @extends('admin.layout.main')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('web_assets/css/settings-module.css') }}">
+<link rel="stylesheet" href="{{ asset('web_assets/css/settings-module.css') }}?v=20261021a">
 @endpush
 
 <style>

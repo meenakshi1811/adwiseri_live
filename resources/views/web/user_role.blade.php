@@ -16,11 +16,11 @@
                     </p>
                 </div>
 
-              <div class="row m-0 pb-2">
-                <div class="col-6 border p-1 text-center top_modules" onclick="window.location.href = '{{ route('users') }}';">
+              <div class="row m-0 pb-2 module-tab-row">
+                <div class="col-6 border p-1 text-center tab-anchor top_modules" onclick="window.location.href = '{{ route('users') }}';">
                   Users
                 </div>
-                <div class="col-6 border p-1 text-center bg-info text-white">
+                <div class="col-6 border p-1 text-center tab-anchor bg-info text-white">
                   User Access Rights
                 </div>
               </div>

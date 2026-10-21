@@ -10,7 +10,7 @@
     integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
   <link rel="stylesheet" href="{{ asset('admin_assets/css/style.css') }}?v=20261017a">
   <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-responsive.css') }}">
-  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-tabs.css') }}">
+  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-tabs.css') }}?v=20261021a">
   <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-alerts.css') }}">
   {{-- <link rel="stylesheet" href="{{ asset('admin_assets/css/select2.min.css') }}"> --}}
 

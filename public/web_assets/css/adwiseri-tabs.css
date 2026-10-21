@@ -7,6 +7,8 @@
     --adwiseri-tab-radius: 10px;
     --adwiseri-tab-gap: 0.5rem;
     --adwiseri-tab-border: var(--adwiseri-secondary-border, #e2e6f0);
+    /* Outline of tabs that are not selected, matching the outlined (hollow) buttons */
+    --adwiseri-tab-outline: var(--adwiseri-primary, #695eee);
     --adwiseri-tab-min-height: var(--adwiseri-btn-min-height, 38px);
 }
 
@@ -80,7 +82,7 @@
     padding: var(--adwiseri-btn-padding-y, 0.45rem) 0.75rem !important;
     margin-bottom: -2px;
     border-radius: var(--adwiseri-tab-radius) var(--adwiseri-tab-radius) 0 0 !important;
-    border: 1px solid var(--adwiseri-tab-border) !important;
+    border: 1px solid var(--adwiseri-tab-outline) !important;
     border-bottom: 2px solid transparent !important;
     background-color: #fff;
     color: #333;
@@ -159,7 +161,7 @@
     margin-bottom: -2px;
     padding: var(--adwiseri-btn-padding-y, 0.45rem) 1rem !important;
     border-radius: var(--adwiseri-tab-radius) var(--adwiseri-tab-radius) 0 0 !important;
-    border: 1px solid var(--adwiseri-tab-border) !important;
+    border: 1px solid var(--adwiseri-tab-outline) !important;
     border-bottom: 2px solid transparent !important;
     background-color: #fff;
     color: var(--adwiseri-primary-deep, #4c3bb7);
@@ -168,7 +170,8 @@
 .nav-tabs .nav-link:hover {
     background-color: var(--adwiseri-secondary-wash, #eef1f8) !important;
     color: var(--adwiseri-primary, #695eee) !important;
-    border-color: var(--adwiseri-tab-border) !important;
+    border-color: var(--adwiseri-tab-outline) !important;
+    border-bottom-color: transparent !important;
 }
 
 .nav-tabs .nav-link.active,

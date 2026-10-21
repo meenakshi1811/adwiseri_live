@@ -3,14 +3,14 @@
 @section('main-section')
   
         <div class="col-lg-10 column-client">
-            <div class="row m-0 pb-2">
-                <div class="col-4 border p-1 text-center top_modules" style="cursor: pointer;" onclick="window.location.href = '{{ route('communication') }}';">
+            <div class="row m-0 pb-2 module-tab-row">
+                <div class="col-4 border p-1 text-center tab-anchor top_modules" style="cursor: pointer;" onclick="window.location.href = '{{ route('communication') }}';">
                   Communication
                 </div>
-                <div class="col-4 border p-1 text-center bg-info text-white top_modules" style="cursor: pointer;" onclick="window.location.href = '{{ route('meetings') }}';">
+                <div class="col-4 border p-1 text-center tab-anchor bg-info text-white top_modules" style="cursor: pointer;" onclick="window.location.href = '{{ route('meetings') }}';">
                   Meeting notes (Clients)
                 </div>
-                <div class="col-4 border p-1 text-center top_modules">
+                <div class="col-4 border p-1 text-center tab-anchor top_modules">
                   Messaging
                 </div>
               </div>

@@ -25,7 +25,8 @@
         font-size: 0.82rem;
         color: #64748b;
         background: transparent;
-        border: none;
+        /* Hollow outline on tabs that are not selected, as on every other module's tabs */
+        border: 1px solid var(--adwiseri-tab-outline, #695EEE);
         transition: all 0.2s ease;
         line-height: 1.3;
     }
@@ -44,6 +45,7 @@
 
     .comm-nav-tab.active {
         background: linear-gradient(135deg, #695EEE 0%, #8b7ff5 100%);
+        border-color: #695EEE;
         color: #fff;
         box-shadow: 0 6px 18px rgba(105, 94, 238, 0.28);
     }
