@@ -586,7 +586,9 @@ class SubscriberFilterController extends Controller
                 ->get();
             return response()->json(['data' => $clientByVisaCountry]);
         } elseif (request()->type === 'clientVisaChartFilterAvailability') {
-            $subscriberId = (int) request()->subid;
+            $subscriberId = $user->user_type === 'admin'
+                ? (int) request()->subid
+                : (int) $this->consultancySubscriberId($user);
             $availability = app(\App\Services\AnalyticsClientChartService::class)
                 ->visaDetailFilterAvailability($subscriberId);
 
@@ -594,16 +596,21 @@ class SubscriberFilterController extends Controller
         } elseif (in_array(request()->type, [
             'byClientUniversity',
             'byClientCourse',
+            'byClientCourseDuration',
             'byClientIntake',
             'byClientEmployer',
             'byClientJobRole',
         ], true)) {
-            $subscriberId = (int) request()->subid;
+            // Only admins pick the subscriber; everyone else sees their own consultancy's figures.
+            $subscriberId = $user->user_type === 'admin'
+                ? (int) request()->subid
+                : (int) $this->consultancySubscriberId($user);
             $chartService = app(\App\Services\AnalyticsClientChartService::class);
 
             $fieldMap = [
                 'byClientUniversity' => ['column' => 'institution', 'scope' => 'study'],
                 'byClientCourse' => ['column' => 'course_name', 'scope' => 'study'],
+                'byClientCourseDuration' => ['column' => 'course_duration', 'scope' => 'study'],
                 'byClientIntake' => ['column' => 'intake', 'scope' => 'study'],
                 'byClientEmployer' => ['column' => 'employer_name', 'scope' => 'work'],
                 'byClientJobRole' => ['column' => 'employment_role', 'scope' => 'work'],

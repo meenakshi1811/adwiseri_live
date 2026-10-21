@@ -20,7 +20,7 @@ class AnalyticsClientChartService
      */
     public function visaDetailFilterAvailability(int $subscriberId): array
     {
-        $keys = ['by_university', 'by_course', 'by_intake', 'by_employer', 'by_job_role'];
+        $keys = ['by_university', 'by_course', 'by_course_duration', 'by_intake', 'by_employer', 'by_job_role'];
 
         if ($subscriberId <= 0) {
             return array_fill_keys($keys, false);
@@ -31,6 +31,7 @@ class AnalyticsClientChartService
         return [
             'by_university' => $this->hasMeaningfulValues((clone $base), 'institution', 'study'),
             'by_course' => $this->hasMeaningfulValues((clone $base), 'course_name', 'study'),
+            'by_course_duration' => $this->hasMeaningfulValues((clone $base), 'course_duration', 'study'),
             'by_intake' => Schema::hasColumn('applications', 'intake')
                 ? $this->hasMeaningfulValues((clone $base), 'intake', 'study')
                 : $this->hasStudyIntakeFromStartDate(clone $base),
@@ -71,14 +72,105 @@ class AnalyticsClientChartService
             ->orderByDesc('total_clients')
             ->get();
 
-        return $rows
+        return $this->orderRows($rows
             ->filter(fn ($row) => (int) $row->total_clients > 0)
             ->map(fn ($row) => [
                 $column => (string) $row->{$column},
                 'total_clients' => (int) $row->total_clients,
             ])
             ->values()
-            ->all();
+            ->all(), $column);
+    }
+
+    /**
+     * Numeric categories read from low to high: intakes in date order, course durations shortest first.
+     * Other fields stay most-clients-first. Values that can't be read go last, alphabetically.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private function orderRows(array $rows, string $column): array
+    {
+        $sortKey = match ($column) {
+            'intake' => fn (string $label) => $this->intakeSortKey($label),
+            'course_duration' => fn (string $label) => $this->durationInMonths($label),
+            default => null,
+        };
+
+        if ($sortKey === null) {
+            return $rows;
+        }
+
+        usort($rows, function (array $a, array $b) use ($column, $sortKey) {
+            $keyA = $sortKey((string) $a[$column]);
+            $keyB = $sortKey((string) $b[$column]);
+
+            if ($keyA === null || $keyB === null) {
+                if ($keyA !== $keyB) {
+                    return $keyA === null ? 1 : -1;
+                }
+            } elseif ($keyA != $keyB) {
+                return $keyA <=> $keyB;
+            }
+
+            return strnatcasecmp((string) $a[$column], (string) $b[$column]);
+        });
+
+        return $rows;
+    }
+
+    /**
+     * "September 2026", "Sep 2026", "Fall 2026", "2026-09" or "09/2026" → 202609; a bare year sorts before its months.
+     */
+    private function intakeSortKey(string $label): ?int
+    {
+        $text = strtolower(trim($label));
+
+        if (preg_match('/\b(\d{1,2})[\/\-.]((?:19|20)\d{2})\b/', $text, $match)) {
+            return (int) $match[2] * 100 + min(12, (int) $match[1]);
+        }
+        if (preg_match('/\b((?:19|20)\d{2})[\/\-.](\d{1,2})\b/', $text, $match)) {
+            return (int) $match[1] * 100 + min(12, (int) $match[2]);
+        }
+        if (!preg_match('/\b((?:19|20)\d{2})\b/', $text, $year)) {
+            return null;
+        }
+
+        $months = [
+            'jan' => 1, 'feb' => 2, 'mar' => 3, 'apr' => 4, 'may' => 5, 'jun' => 6,
+            'jul' => 7, 'aug' => 8, 'sep' => 9, 'oct' => 10, 'nov' => 11, 'dec' => 12,
+            'winter' => 1, 'spring' => 3, 'summer' => 6, 'autumn' => 9, 'fall' => 9,
+        ];
+        foreach ($months as $word => $month) {
+            if (preg_match('/\b' . $word . '/', $text)) {
+                return (int) $year[1] * 100 + $month;
+            }
+        }
+
+        return (int) $year[1] * 100;
+    }
+
+    /**
+     * "12 months", "2 years", "1 year 6 months", "1.5 yrs", "16 weeks" → length in months.
+     */
+    private function durationInMonths(string $label): ?float
+    {
+        $monthsPerUnit = [
+            'year' => 12, 'yr' => 12, 'semester' => 6, 'quarter' => 3, 'term' => 4,
+            'month' => 1, 'mo' => 1, 'week' => 12 / 52, 'wk' => 12 / 52, 'day' => 12 / 365,
+        ];
+
+        $pattern = '/(\d+(?:\.\d+)?)\s*(years?|yrs?|semesters?|quarters?|terms?|months?|mos?|weeks?|wks?|days?)\b/';
+        if (!preg_match_all($pattern, strtolower($label), $matches, PREG_SET_ORDER)) {
+            return null;
+        }
+
+        $total = 0.0;
+        foreach ($matches as $match) {
+            $total += (float) $match[1] * $monthsPerUnit[rtrim($match[2], 's')];
+        }
+
+        return $total;
     }
 
     /**
@@ -120,11 +212,10 @@ class AnalyticsClientChartService
                 'intake' => $label,
                 'total_clients' => count($clientIds),
             ])
-            ->sortByDesc('total_clients')
             ->values()
             ->all();
 
-        return $rows;
+        return $this->orderRows($rows, 'intake');
     }
 
     private function hasMeaningfulValues(Builder $query, string $column, string $visaScope): bool

@@ -5,14 +5,16 @@
         web: [
             { key: 'by_university', text: 'By University', value: 'ByClientUniversity', apiType: 'byClientUniversity', labelField: 'institution' },
             { key: 'by_course', text: 'By Course', value: 'ByClientCourse', apiType: 'byClientCourse', labelField: 'course_name' },
-            { key: 'by_intake', text: 'By Intake', value: 'ByClientIntake', apiType: 'byClientIntake', labelField: 'intake' },
+            { key: 'by_course_duration', text: 'By Course Duration', value: 'ByClientCourseDuration', apiType: 'byClientCourseDuration', labelField: 'course_duration' },
+            { key: 'by_intake', text: 'By Course Intake', value: 'ByClientIntake', apiType: 'byClientIntake', labelField: 'intake' },
             { key: 'by_employer', text: 'By Employer', value: 'ByClientEmployer', apiType: 'byClientEmployer', labelField: 'employer_name' },
             { key: 'by_job_role', text: 'By Job Role', value: 'ByClientJobRole', apiType: 'byClientJobRole', labelField: 'employment_role' },
         ],
         admin: [
             { key: 'by_university', text: 'By University', value: 'By Client University', apiType: 'byClientUniversity', labelField: 'institution' },
             { key: 'by_course', text: 'By Course', value: 'By Client Course', apiType: 'byClientCourse', labelField: 'course_name' },
-            { key: 'by_intake', text: 'By Intake', value: 'By Client Intake', apiType: 'byClientIntake', labelField: 'intake' },
+            { key: 'by_course_duration', text: 'By Course Duration', value: 'By Client Course Duration', apiType: 'byClientCourseDuration', labelField: 'course_duration' },
+            { key: 'by_intake', text: 'By Course Intake', value: 'By Client Intake', apiType: 'byClientIntake', labelField: 'intake' },
             { key: 'by_employer', text: 'By Employer', value: 'By Client Employer', apiType: 'byClientEmployer', labelField: 'employer_name' },
             { key: 'by_job_role', text: 'By Job Role', value: 'By Client Job Role', apiType: 'byClientJobRole', labelField: 'employment_role' },
         ],
@@ -21,6 +23,7 @@
     window.clientVisaChartFilters = window.clientVisaChartFilters || {
         by_university: false,
         by_course: false,
+        by_course_duration: false,
         by_intake: false,
         by_employer: false,
         by_job_role: false,
@@ -47,6 +50,7 @@
             window.clientVisaChartFilters = {
                 by_university: false,
                 by_course: false,
+                by_course_duration: false,
                 by_intake: false,
                 by_employer: false,
                 by_job_role: false,
@@ -68,6 +72,7 @@
             window.clientVisaChartFilters = {
                 by_university: false,
                 by_course: false,
+                by_course_duration: false,
                 by_intake: false,
                 by_employer: false,
                 by_job_role: false,
@@ -106,7 +111,8 @@
 
                 $('#downloadPdf').prop('disabled', false).show();
 
-                var result = options.sortChartResult(data.data);
+                // Rows arrive in display order from the server (numeric categories low to high).
+                var result = Array.isArray(data.data) ? data.data : [];
                 var labels = [];
                 var numbers = [];
 

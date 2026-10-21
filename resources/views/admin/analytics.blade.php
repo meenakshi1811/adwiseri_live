@@ -1258,7 +1258,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
     <script>
     window.clientVisaChartFilters = @json($clientVisaChartFilters ?? []);
     </script>
-    <script src="{{ asset('web_assets/js/analytics-client-visa-charts.js') }}?v=20260814b"></script>
+    <script src="{{ asset('web_assets/js/analytics-client-visa-charts.js') }}?v=20261021a"></script>
 
     <script>
         function onChangeSub() {
@@ -2265,7 +2265,6 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                     title: title,
                     chartType: chartType,
                     checkIfDataIsEmpty: checkIfDataIsEmpty,
-                    sortChartResult: sortChartResult,
                     generateDistinctColors: generateDistinctColors,
                 });
                 return;
