@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use App\Services\DocumentChecklistMailService;
 use App\Services\ApplicationDuplicateService;
 use App\Services\ApplicationStatusSettingsService;
+use App\Services\CountryCategorySettingsService;
 use App\Support\ApplicationStatuses;
 
 
@@ -25,8 +26,12 @@ class ApplicationController extends Controller
     {
 
         $user = Auth::user();
+        $ccService = app(CountryCategorySettingsService::class);
         $client = Clients::find($request->client_id);
-        if (!$client) {
+
+        // Staff may only add applications for their own consultancy's clients.
+        if (!$client || ($user->user_type !== 'admin'
+            && (int) $client->subscriber_id !== (int) $ccService->resolveSubscriber($user)->id)) {
             return response()->json(['success' => false, 'message' => 'Client not found.'], 404);
         }
 
@@ -39,14 +44,14 @@ class ApplicationController extends Controller
         $statusFlow = $statusService->resolveFlow((int) $subscriber->id, $request->input('job_role'));
         $endDateRequired = $statusService->resolveEndDateRequired((int) $subscriber->id, $request->input('job_role'));
 
-        $request->validate([
+        $request->validate(array_merge([
             'job_status' => ['required', 'string', Rule::in($statusFlow)],
             'job_completion_date' => [
                 'nullable',
                 'date',
                 Rule::requiredIf(fn () => in_array($request->input('job_status'), $endDateRequired, true)),
             ],
-        ]);
+        ], $ccService->visaDetailValidationRules($request->input('job_role'))));
 
         if ($request->input('job_status') === ApplicationStatuses::CLOSED && !$request->boolean('closed_confirmed')) {
             return response()->json([
@@ -84,6 +89,7 @@ class ApplicationController extends Controller
         $application->application_status = $request['job_status'];
         $application->start_date = $request['job_open_date'];
         $application->end_date = $request['job_completion_date'];
+        $ccService->applyVisaDetailFields($application, $request['job_role'], $request->all());
         $application->save();
         $activity = new Activities();
         $activity->subscriber_id =  $subscriber->id;

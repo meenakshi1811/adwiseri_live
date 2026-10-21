@@ -614,7 +614,7 @@ Route::post('/update_contactus', [App\Http\Controllers\AdminController::class, '
 Route::get('/timezone_test', [App\Http\Controllers\WebController::class, 'timezone_test'])->name('timezone_test');
 
 
-Route::post('/addClientApplication', [App\Http\Controllers\ApplicationController::class, 'addClientApplication'])->name('addClientApplication');
+Route::post('/addClientApplication', [App\Http\Controllers\ApplicationController::class, 'addClientApplication'])->name('addClientApplication')->middleware('auth');
 
 Route::get('/getClient', [App\Http\Controllers\ApplicationController::class, 'getClient'])->name('getClient');
 Route::post('/addClientDependent', [App\Http\Controllers\ApplicationController::class, 'addClientDependent'])->name('addClientDependent');
