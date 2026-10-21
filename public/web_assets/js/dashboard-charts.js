@@ -630,6 +630,72 @@
     });
   }
 
+  function dashChartHosts(mainCol) {
+    return Array.prototype.slice.call(
+      mainCol.querySelectorAll('.dash-charts-row .dash-chart-canvas, .dash-charts-row .dash-chart-panel > div[id$="Chart"]')
+    );
+  }
+
+  function resetDashChartFill(mainCol) {
+    dashChartHosts(mainCol).forEach(function (host) {
+      host.style.removeProperty('height');
+      host.style.removeProperty('min-height');
+      host.style.removeProperty('max-height');
+      host.style.removeProperty('flex');
+    });
+  }
+
+  /*
+   * When a side column (usually the menu) is taller than the charts, give the spare height to the chart
+   * rows so the charts fill the centre column instead of leaving a blank area below them.
+   */
+  function fillDashChartRows(mainCol, targetHeight) {
+    var hosts = dashChartHosts(mainCol);
+    if (!hosts.length) {
+      return;
+    }
+
+    // The column itself may already be stretched to the row height, so measure where its content ends.
+    var colStyle = global.getComputedStyle(mainCol);
+    var contentBottom = 0;
+    Array.prototype.forEach.call(mainCol.children, function (child) {
+      var marginBottom = parseFloat(global.getComputedStyle(child).marginBottom) || 0;
+      contentBottom = Math.max(contentBottom, child.getBoundingClientRect().bottom + marginBottom);
+    });
+    var available = mainCol.getBoundingClientRect().top + targetHeight
+      - (parseFloat(colStyle.paddingBottom) || 0)
+      - (parseFloat(colStyle.borderBottomWidth) || 0);
+    var spare = Math.floor(available - contentBottom);
+    if (spare < 1) {
+      return;
+    }
+
+    // Charts sit two to a row; each row gets an equal share of the spare height.
+    var rowTops = {};
+    hosts.forEach(function (host) {
+      var cell = (host.closest('.dash-chart-panel') || host).parentElement;
+      rowTops[Math.round(cell.getBoundingClientRect().top)] = true;
+    });
+    var extra = Math.floor(spare / Object.keys(rowTops).length);
+    if (extra < 1) {
+      return;
+    }
+
+    // Measure every area before changing any: growing one would stretch its neighbours in the same row.
+    var heights = hosts.map(function (host) {
+      return Math.round(host.getBoundingClientRect().height) + extra;
+    });
+
+    hosts.forEach(function (host, index) {
+      host.style.setProperty('height', heights[index] + 'px', 'important');
+      host.style.setProperty('min-height', heights[index] + 'px', 'important');
+      host.style.setProperty('max-height', 'none', 'important');
+      // A fixed size: if the area could still flex-grow, the redrawn (taller) chart would feed back into
+      // the row height and the charts would overshoot the column.
+      host.style.setProperty('flex', '0 0 auto', 'important');
+    });
+  }
+
   function equalizeDashboardColumns() {
     equalizeDashStatCards();
 
@@ -651,6 +717,7 @@
       col.style.height = '';
       col.style.maxHeight = '';
     });
+    resetDashChartFill(mainCol);
 
     if (global.matchMedia('(max-width: 991px)').matches) {
       return;
@@ -664,6 +731,8 @@
     if (maxHeight < 1) {
       return;
     }
+
+    fillDashChartRows(mainCol, maxHeight);
 
     var chartsRow = mainCol.querySelector('.dash-charts-row');
     var multiChartGrid = chartsRow && /dash-charts-row--count-(4|5|6)/.test(chartsRow.className);
