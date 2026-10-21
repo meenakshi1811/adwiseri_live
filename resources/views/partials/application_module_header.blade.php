@@ -29,7 +29,7 @@
             @if(!$hasClients)
                 <a href="javascript:void(0)" @if($canWrite) onclick="showNoClientAlert(); return false;" @endif class="m-0">Add Document</a>
             @elseif($hasApplications)
-                <a href="javascript:void(0)" @if($canWrite) id="add_new" @endif class="m-0">Add Document</a>
+                <a href="javascript:void(0)" @if($canWrite) id="add_new" data-auto-open="add_document" @endif class="m-0">Add Document</a>
             @else
                 <a href="javascript:void(0)" @if($canWrite) id="add_new_zero" @endif class="m-0">Add Document</a>
             @endif
@@ -37,7 +37,7 @@
             @if(!$hasClients)
                 <a href="javascript:void(0)" onclick="showNoClientAlert(); return false;" class="m-0">Add Document</a>
             @elseif($hasApplications)
-                <a href="{{ route('client_documents') }}" class="m-0">Add Document</a>
+                <a href="{{ route('client_documents', ['open' => 'add_document']) }}" class="m-0">Add Document</a>
             @else
                 <a href="javascript:void(0)" @if($canWrite) id="add_new_zero" @endif class="m-0">Add Document</a>
             @endif
@@ -45,19 +45,19 @@
 
         @if($activeTab === 'management')
             @if(!$hasApplications)
-                <a href="javascript:void(0)" @if($canWrite) id="new_assign_zero" @endif class="m-0">New Assign</a>
+                <a href="javascript:void(0)" @if($canWrite) id="new_assign_zero" data-auto-open="new_assign" @endif class="m-0">New Assign</a>
             @elseif($unassignedCount > 0)
                 @if($hasSiteUsers)
-                    <a href="javascript:void(0)" @if($canWrite) id="new_assign" @endif class="m-0">New Assign</a>
+                    <a href="javascript:void(0)" @if($canWrite) id="new_assign" data-auto-open="new_assign" @endif class="m-0">New Assign</a>
                 @else
-                    <a href="javascript:void(0)" @if($canWrite) id="new_assign_usr" @endif class="m-0">New Assign</a>
+                    <a href="javascript:void(0)" @if($canWrite) id="new_assign_usr" data-auto-open="new_assign" @endif class="m-0">New Assign</a>
                 @endif
             @else
-                <a href="javascript:void(0)" @if($canWrite) id="new_assign_zero" @endif class="m-0">New Assign</a>
+                <a href="javascript:void(0)" @if($canWrite) id="new_assign_zero" data-auto-open="new_assign" @endif class="m-0">New Assign</a>
             @endif
         @else
             @if($hasApplications)
-                <a href="{{ route('user_applications') }}" class="m-0">New Assign</a>
+                <a href="{{ route('user_applications', ['open' => 'new_assign']) }}" class="m-0">New Assign</a>
             @else
                 <a href="javascript:void(0)" @if($canWrite) id="new_assign_zero" @endif class="m-0">New Assign</a>
             @endif

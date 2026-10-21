@@ -245,6 +245,7 @@ integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxV
 crossorigin="anonymous"></script>
 
 @include('partials.intl_phone_scripts')
+<script src="{{ asset('web_assets/js/auto-open-action.js') }}?v=20261021a"></script>
 
 
 <!--Start of Tawk.to Script-->
