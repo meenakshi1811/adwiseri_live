@@ -423,8 +423,9 @@
                     @if($isCurrentPlan)
                       @if(isset($subscriber) && \App\Services\SubscriptionTermPricing::isSubscriptionLapsed($subscriber))
                         <button class="subscribe-btn subscribe-btn--active" type="button">Lapsed</button>
-                      @elseif((new DateTime("now")) > (new DateTime($subscriber->membership_expiry_date)))
-                      <button class="subscribe-btn" @if($user->user_type == "Subscriber") onclick="window.location.href = '{{ route('upgrade_membership', $plan->plan_name) }}';" @endif>Renew</button>
+                      {{-- Expired, or within the last 60 days before expiry (SubscriptionTermPricing renewal window) --}}
+                      @elseif((new DateTime("now")) > (new DateTime($subscriber->membership_expiry_date)) || ($user->membership_type != "Trial" && \App\Services\SubscriptionTermPricing::isRenewalWindowOpen($subscriber)))
+                      <button class="subscribe-btn" @if($user->user_type == "Subscriber") onclick="window.location.href = '{{ route('upgrade_membership', $plan->plan_name) }}';" @endif>Renew Subscription</button>
                       @else
                         @if($user->membership_type == "Trial")
                         <button class="subscribe-btn" @if($user->user_type == "Subscriber") onclick="window.location.href = '{{ route('upgrade_membership', $plan->plan_name) }}';" @endif>Active</button>
