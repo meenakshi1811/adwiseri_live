@@ -433,10 +433,19 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 @include('partials.client_module_tabs', ['activeTab' => 'clients'])
                 @if(count($clients) != 0)
                 @include('partials.table_filter_toolbar', [
+                    'filterItems' => $clientHomeCountryFilters ?? [],
+                    'tableId' => 'clientTable',
+                    'filterAttribute' => 'data-home-country',
+                    'toolbarTitle' => 'Clients By Home Country',
+                    'totalCount' => count($clients),
+                    'inline' => false,
+                ])
+                @include('partials.table_filter_toolbar', [
                     'filterItems' => $clientVisaCountryFilters ?? [],
                     'tableId' => 'clientTable',
                     'toolbarTitle' => 'Clients by Visa (Destination) Country',
                     'totalCount' => count($clients),
+                    'inline' => false,
                 ])
                 <div class="table-wrapper">
                     <table class="fl-table table table-hover p-0 m-0" id="clientTable">
@@ -460,8 +469,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         @php
                             $clientVisaCountry = \App\Services\TableFilterCountService::clientVisaCountry($client);
                             $clientFilterKey = \App\Services\TableFilterCountService::keyFor($clientVisaCountry);
+                            $clientHomeCountryKey = \App\Services\TableFilterCountService::keyFor(\App\Services\TableFilterCountService::clientHomeCountry($client));
                         @endphp
-                        <tr data-filter-value="{{ $clientFilterKey }}">
+                        <tr data-filter-value="{{ $clientFilterKey }}" data-home-country="{{ $clientHomeCountryKey }}">
                             <td class="p-1">{{ $client->id }}</td>
 
                             <td class="p-1 text-center" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $client->name }}" style="position: relative;">@if(strlen($client->name) > 22){{ substr($client->name, 0, 22) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$client->name}} ({{$client->id}})</span> @else {{$client->name}} ({{$client->id}})@endif</td>

@@ -4,7 +4,16 @@
 @endphp
 <script>
 (function () {
+    // Active filters per table: { tableId: { rowAttribute: value } }. A table can have several toolbars
+    // (each filtering on its own row attribute); a row must match all of their selections.
     window.tableFilterStates = window.tableFilterStates || {};
+
+    function rowMatchesTableFilters(row, filters) {
+        return Object.keys(filters || {}).every(function (attr) {
+            var value = filters[attr];
+            return !value || (row.getAttribute(attr) || '') === value;
+        });
+    }
 
     function installTableFilterSearch() {
         if (window.tableFilterSearchInstalled) {
@@ -16,10 +25,9 @@
         }
 
         window.jQuery.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
-            var tableId = settings.nTable.id;
-            var activeFilter = window.tableFilterStates[tableId];
+            var filters = window.tableFilterStates[settings.nTable.id];
 
-            if (!activeFilter) {
+            if (!filters) {
                 return true;
             }
 
@@ -28,19 +36,15 @@
                 return false;
             }
 
-            var attr = activeFilter.attr || 'data-filter-value';
-            var rowValue = row.getAttribute(attr) || '';
-
-            return rowValue === activeFilter.value;
+            return rowMatchesTableFilters(row, filters);
         });
 
         window.tableFilterSearchInstalled = true;
     }
 
     function applyTableFilter(tableId, filterValue, filterAttr) {
-        window.tableFilterStates[tableId] = filterValue
-            ? { value: filterValue, attr: filterAttr }
-            : null;
+        var filters = window.tableFilterStates[tableId] = window.tableFilterStates[tableId] || {};
+        filters[filterAttr] = filterValue || '';
 
         var tableEl = document.getElementById(tableId);
         if (!tableEl) {
@@ -53,13 +57,7 @@
         }
 
         tableEl.querySelectorAll('tbody tr').forEach(function (row) {
-            if (!filterValue) {
-                row.style.display = '';
-                return;
-            }
-
-            var rowValue = row.getAttribute(filterAttr) || '';
-            row.style.display = rowValue === filterValue ? '' : 'none';
+            row.style.display = rowMatchesTableFilters(row, filters) ? '' : 'none';
         });
     }
 

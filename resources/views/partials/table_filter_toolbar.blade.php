@@ -9,7 +9,10 @@
     $totalCount = (int) ($totalCount ?? array_sum(array_column($filterItems, 'count')));
     $useMultiFilter = is_array($filterGroups) && count($filterGroups) > 1;
     $visibleFilterCount = count($filterItems) + ($showAllButton ? 1 : 0);
-    $inlineToolbar = !$useMultiFilter && $visibleFilterCount > 0 && $visibleFilterCount <= 4;
+    // Short lists sit on one line with their title; pass 'inline' => false to keep stacked toolbars alike.
+    $inlineToolbar = isset($inline)
+        ? (bool) $inline
+        : (!$useMultiFilter && $visibleFilterCount > 0 && $visibleFilterCount <= 4);
 @endphp
 
 @if($useMultiFilter)

@@ -65,6 +65,13 @@ class TableFilterCountService
         return $slug !== '' ? $slug : 'unspecified';
     }
 
+    public static function clientHomeCountry($client, string $emptyLabel = 'Unspecified'): string
+    {
+        $country = trim((string) ($client->country ?? ''));
+
+        return $country !== '' ? $country : $emptyLabel;
+    }
+
     public static function clientVisaCountry($client, string $emptyLabel = 'Unspecified'): string
     {
         if (!$client) {

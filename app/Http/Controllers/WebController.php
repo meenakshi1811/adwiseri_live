@@ -1570,6 +1570,10 @@ class WebController extends Controller
         $endDateRequiredByCategory = $statusService->resolveEndDateRequiredByCategory((int) $subscriber->id, $visaCategories);
         $applicationStatusFlow = $statusService->resolveFlow((int) $subscriber->id, null);
         $page = "clients";
+        $clientHomeCountryFilters = TableFilterCountService::countBy(
+            $clients,
+            fn ($client) => TableFilterCountService::clientHomeCountry($client)
+        );
         $clientVisaCountryFilters = TableFilterCountService::countBy(
             $clients,
             fn ($client) => TableFilterCountService::clientVisaCountry($client)
@@ -1583,6 +1587,7 @@ class WebController extends Controller
             'roles',
             'countries',
             'subscriber',
+            'clientHomeCountryFilters',
             'clientVisaCountryFilters',
             'statusFlowsByCategory',
             'endDateRequiredByCategory',
