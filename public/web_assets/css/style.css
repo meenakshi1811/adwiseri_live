@@ -1052,7 +1052,46 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .top-feature .key-features-heading {
     width: 100%;
-    margin-bottom: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+/*
+ * Key Features: the feature list sits centred (vertically and horizontally) beside the image, as two
+ * close, evenly spaced columns of icon + label instead of halves stretched across the whole width.
+ */
+.top-feature .feature-row {
+    align-items: center;
+}
+
+.top-feature .feature-text > .row {
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+    justify-content: center;
+    column-gap: 3.5rem;
+    row-gap: 1.75rem;
+    margin: 0;
+}
+
+.top-feature .feature-text > .row > [class*="col-"] {
+    width: auto;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    line-height: 1.3;
+}
+
+.top-feature .feature-text > .row > [class*="col-"] img {
+    flex: 0 0 auto;
+}
+
+@media (max-width: 767px) {
+    .top-feature .feature-text > .row {
+        grid-template-columns: max-content;
+        row-gap: 1rem;
+    }
 }
 
 /* .feature-img {
@@ -3750,6 +3789,8 @@ td {
 /*--- Privacy policy ---*/
 .p-policy {
     display: flex;
+    /* Keep the page title below the fixed menu bar (height published by nav.blade.php). */
+    padding-top: var(--site-nav-height, 84px);
 }
 
 .p-policy h1 {
