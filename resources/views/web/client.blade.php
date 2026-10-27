@@ -106,7 +106,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     @php
                     $encryptedId = encrypt($user->id);
                     @endphp
-                    <a href="{{ route('createLead', $encryptedId) }}" class="btn btn-primary btn-sm">
+                    <a href="{{ route('createLead', [$encryptedId, 'from' => 'clients']) }}" class="btn btn-primary btn-sm">
                     Add Enquiry
                     </a>
                       <a

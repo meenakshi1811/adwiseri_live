@@ -7,7 +7,60 @@
 
 <div class="col-lg-2"></div>
 
-<div class="col-lg-8 loginouter-box login-box">
+<div class="col-lg-8 loginouter-box login-box position-relative">
+@php
+    // Staff open this form from the Clients module; give them a way back. Public (QR code) visitors don't see it.
+    $enquiryCloseUrl = auth()->check()
+        ? (request('from') === 'clients' && !($isEdit ?? false) ? route('client') : route('enquiries'))
+        : null;
+@endphp
+@if($enquiryCloseUrl)
+<style>
+    /* Close button fixed just below the menu bar so the form can be closed from anywhere in it.
+       (Sticky positioning doesn't work here: the site sets overflow-x: hidden on html/body.) */
+    .login-box a.enquiry-form-close {
+        position: fixed;
+        top: calc(var(--site-nav-height, 84px) + 12px);
+        right: 16px;
+        z-index: 1020;
+        gap: 6px;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(105, 94, 238, 0.25);
+    }
+    /* Inside the card (narrow screens) show just the X so it covers less of the form */
+    .login-box a.enquiry-form-close.is-compact {
+        width: 40px;
+        padding: 0 !important;
+    }
+    .login-box a.enquiry-form-close.is-compact .enquiry-form-close-label {
+        display: none;
+    }
+</style>
+<a href="{{ $enquiryCloseUrl }}" class="btn btn-outline-primary enquiry-form-close" title="Close the form and go back"
+    aria-label="Close the form and go back"><i class="fa-solid fa-xmark"></i><span class="enquiry-form-close-label">Close</span></a>
+<script>
+    // Line the Close button up with the form card: just outside its right edge when there's room,
+    // otherwise inside its top-right corner (phones).
+    (function () {
+        var close = document.querySelector('.enquiry-form-close');
+        var card = close ? close.closest('.login-box') : null;
+        if (!card) {
+            return;
+        }
+        var place = function () {
+            close.classList.remove('is-compact');
+            var room = document.documentElement.clientWidth - card.getBoundingClientRect().right;
+            var outside = room >= close.offsetWidth + 24;
+            close.classList.toggle('is-compact', !outside);
+            var right = outside ? room - close.offsetWidth - 12 : room + 12;
+            close.style.right = Math.max(8, Math.round(right)) + 'px';
+        };
+        place();
+        window.addEventListener('resize', place);
+        window.addEventListener('load', place);
+    })();
+</script>
+@endif
 @if(session('success'))
 
 <div class="alert alert-success">
@@ -625,7 +678,22 @@ I agree to <a href="/privacy_policy" target="_blank">Privacy Policy</a> &amp; <a
 
 @endif
 
+@if($enquiryCloseUrl)
+<div class="d-flex gap-2 mt-4">
+    <a href="{{ $enquiryCloseUrl }}" class="btn btn-outline-primary">Back</a>
+    <button class="btn btn-primary flex-grow-1">{{ $isEdit ? 'Update Enquiry' : 'Submit Enquiry' }}</button>
+</div>
+<script>
+    // Escape closes the form like a pop-up.
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !document.querySelector('.modal.show, .swal2-container')) {
+            window.location.href = @json($enquiryCloseUrl);
+        }
+    });
+</script>
+@else
 <button class="btn btn-primary mt-4 w-100">{{ $isEdit ? 'Update Enquiry' : 'Submit Enquiry' }}</button>
+@endif
 
 </form>
 

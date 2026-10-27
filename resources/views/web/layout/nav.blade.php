@@ -134,6 +134,23 @@
     }
   </style>
   <script>
+    // The menu bar is fixed and its height changes with screen width (it wraps to two lines on some
+    // laptops). Publish it as --site-nav-height so pages can keep their content clear of it.
+    (function () {
+      var nav = document.querySelector('nav.navbar.fixed-top');
+      if (!nav) {
+        return;
+      }
+      var sync = function () {
+        document.documentElement.style.setProperty('--site-nav-height', nav.offsetHeight + 'px');
+      };
+      sync();
+      window.addEventListener('resize', sync);
+      if (window.ResizeObserver) {
+        new ResizeObserver(sync).observe(nav);
+      }
+    })();
+
     // "Use Cases" menu: show each category's definition as a tooltip. Without Bootstrap's JS the
     // browser still shows the plain title text.
     document.addEventListener('DOMContentLoaded', function () {

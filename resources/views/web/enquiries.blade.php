@@ -23,7 +23,7 @@ if (!empty($subscriber->organization_logo)) {
 $subscriberDisplayName = $subscriber->organization ?? $subscriber->name;
 @endphp
 <a href="{{ route('enquiries.create') }}" class="btn btn-primary btn-sm">Add Lead</a>
-<a href="{{ route('createLead', $encryptedId) }}" class="btn btn-outline-primary btn-sm">Full Enquiry Form</a>
+<a href="{{ route('createLead', [$encryptedId, 'from' => 'enquiries']) }}" class="btn btn-outline-primary btn-sm">Fill Enquiry Form</a>
 <a href="javascript:void(0)" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#qrModal">Get QR Code For Enquiry Form</a>
 </p>
 </div>
