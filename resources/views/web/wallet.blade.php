@@ -12,7 +12,7 @@
                     {{-- <a onclick="document.getElementById('update_box').style.display='flex';" class="btn btn-primary p-2 px-4 m-0">Add Amount</a> --}}
                 </div>
                 <div class="profile-detail">
-                    <div class="col-12 profile-data" style="border: 1px solid lightgrey;">
+                    <div class="col-12 profile-data module-summary-box">
                         {{-- <div class="row">
                             <div class="col-11"></div>
                             <div class="col-1 editss">
@@ -20,24 +20,24 @@
                             </div>
                         </div> --}}
                         <div class="row det-row">
-                            <div class="col-lg-8">
+                            <div class="col-lg-8 mx-auto">
                                 <div class="row">
-                                    <div class="col-6">
+                                    <div class="col-6 text-center">
                                         <p style="font-weight:550;font-size:18px;">Wallet Balance</p>
                                     </div>
                                     @if($expiry != null)
-                                    <div class="col-6">
+                                    <div class="col-6 text-center">
                                         <p style="font-size:18px;">Upgrade or Renew membership to View Balance.</p>
                                     </div>
                                     @else
-                                    <div class="col-6">
+                                    <div class="col-6 text-center">
                                         <p style="font-size:18px;">${{ $user->wallet }}</p>
                                     </div>
                                     @endif
-                                    <div class="col-6">
+                                    <div class="col-6 text-center">
                                         <p style="font-weight:550;font-size:18px;">Referral Code</p>
                                     </div>
-                                    <div class="col-6">
+                                    <div class="col-6 text-center">
                                         <p style="font-size:18px;">{{ $user->referral }}</p>
                                     </div>
                                 </div>
@@ -67,16 +67,16 @@
                     <table class="fl-table table table-hover p-0 m-0" id="userTable">
                         <thead>
                         <tr>
-                            <th class="p-1 text-center">Sr.No.</th>
+                            <th class="p-1 text-center wallet-col-sr">Sr.No.</th>
 
-                            <th class="p-1 text-center"> Wallet_TransID</th>
-                            <th class="p-1 text-center"> Subscriber(SUB_ID)</th>
-                            <th class="p-1 text-center">Transaction Amount (Cr/Dr) </th>
+                            <th class="p-1 text-center wallet-col-id"> Wallet_<wbr>TransID</th>
+                            <th class="p-1 text-center wallet-col-subscriber"> Subscriber(SUB_ID)</th>
+                            <th class="p-1 text-center wallet-col-amount">Transaction Amount (Cr/Dr) </th>
                             <th class="p-1 text-center"> Description</th>
                             {{-- <th class="p-1 text-start">Transaction Amount (USD) </th> --}}
-                            <th class="p-1 text-center"> Previous Balance (USD) </th>
-                            <th class="p-1 text-center"> New Balance (USD)</th>
-                            <th class="p-1 text-center">TransactionDate</th>
+                            <th class="p-1 text-center wallet-col-balance"> Previous Balance (USD) </th>
+                            <th class="p-1 text-center wallet-col-balance"> New Balance (USD)</th>
+                            <th class="p-1 text-center wallet-col-date">TransactionDate</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -89,8 +89,8 @@
                             @else
                             <td class="p-1 text-center">{{ $ref->getRefferedByUser ? $ref->getRefferedByUser->name .'('.$ref->getRefferedByUser->id.')' :''  }}</td>
                             @endif --}}
-                            <td class="p-1" style="position: relative;">@if(strlen($ref->user_name) > 15){{ substr($ref->user_name, 0, 15) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$ref->user_name}} ({{$ref->userid}})</span> @else {{$ref->user_name}} ({{$ref->userid}})@endif</td>
-                            <td class="p-1 text-center">
+                            <td class="p-1 text-center">{{ $ref->user_name }}&nbsp;({{ $ref->userid }})</td>
+                            <td class="p-1 text-center text-nowrap">
                                 @php
                                 $wallet_balance = round($ref->wallet_balance,2) ?? 0;
                                 $previous_balance = round($ref->previous_balance,2) ?? 0;
@@ -114,10 +114,10 @@
 
                             <td class="p-1 text-center">{{ round($ref->previous_balance,2) }}</td>
                             <td class="p-1 text-center">{{ round($ref->wallet_balance,2) }}</td>
-                            <td class="p-1 text-center">{{ date("d-m-Y H:i:s", strtotime($ref->created_at)) }}</td>
+                            <td class="p-1 text-center wallet-col-date">{{ date("d-m-Y H:i:s", strtotime($ref->created_at)) }}</td>
                         </tr>
                         @endforeach
-                        <tbody>
+                        </tbody>
                     </table>
                 </div>
                 <hr>
@@ -195,6 +195,37 @@
         <div class="col-lg-4"></div>
     </div>
 </div>
+<style>
+    /* Numeric columns stay narrow (their titles wrap) so Subscriber (SUB_ID) has room for the full name. */
+    #userTable .wallet-col-sr {
+        width: 3.5rem;
+    }
+
+    #userTable .wallet-col-id {
+        width: 4.5rem;
+    }
+
+    #userTable .wallet-col-amount {
+        width: 6.5rem;
+    }
+
+    #userTable .wallet-col-balance {
+        width: 5.5rem;
+    }
+
+    #userTable .wallet-col-date {
+        white-space: nowrap;
+    }
+
+    #userTable .wallet-col-subscriber {
+        width: 16rem;
+    }
+
+    /* DataTables' Bootstrap rows overflowed the wrapper by their gutter and showed a stray horizontal scrollbar. */
+    #userTable_wrapper > .row {
+        --bs-gutter-x: 0;
+    }
+</style>
 <script>
 
 </script>

@@ -17,7 +17,7 @@ use App\Models\User;
                       <i class="fa-solid fa-magnifying-glass"></i> --}}
                 </div>
                 <div class="profile-detail">
-                    <div class="col-12 profile-data" style="border: 1px solid lightgrey;">
+                    <div class="col-12 profile-data module-summary-box">
                         {{-- <div class="row">
                             <div class="col-11"></div>
                             <div class="col-1 editss">
@@ -25,18 +25,18 @@ use App\Models\User;
                             </div>
                         </div> --}}
                         <div class="row det-row">
-                            <div class="col-lg-12">
+                            <div class="col-lg-10 mx-auto">
                                 <div class="row">
-                                    <div class="col-5">
+                                    <div class="col-6 text-center">
                                         <p style="font-weight:550;font-size:18px;">Referral Code</p>
                                     </div>
-                                    <div class="col-7">
+                                    <div class="col-6 text-center">
                                         <p style="font-size:18px;">{{ $user->referral }}</p>
                                     </div>
-                                    <div class="col-5">
+                                    <div class="col-6 text-center">
                                         <p style="font-weight:550;font-size:18px;">Referral Link</p>
                                     </div>
-                                    <div class="col-7" style="word-wrap: break-word;">
+                                    <div class="col-6 text-center text-break">
                                         <p style="font-size:18px;">{{ route('user_register', $user->referral) }}</p>
                                     </div>
                                 </div>

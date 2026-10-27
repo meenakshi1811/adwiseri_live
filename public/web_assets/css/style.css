@@ -5455,3 +5455,14 @@ button.app-doc-action-icon:focus-visible {
     }
 }
 
+/* Summary box at the top of Wallet and Referrals: theme colour with white text. */
+.module-summary-box {
+    background: var(--adwiseri-primary, #695EEE);
+    border: 1px solid var(--adwiseri-primary, #695EEE);
+    border-radius: 8px;
+    color: #fff;
+}
+
+.module-summary-box p {
+    color: #fff;
+}
