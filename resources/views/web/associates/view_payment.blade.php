@@ -24,8 +24,75 @@
                 @endif
             </table>
         </div>
+
+        @if($invoicePayments->isNotEmpty())
+        <div class="col mt-4">
+            <h5 class="text-primary mb-3">Payment Entries for Invoice {{ $payment->associate_invoice_id ?: $payment->id }}</h5>
+            <div class="table-wrapper">
+                <table class="fl-table table table-hover m-0 associate-invoice-payments">
+                    <thead>
+                    <tr>
+                        <th class="text-center">Sr No.</th>
+                        <th class="text-center">Payment Date</th>
+                        <th class="text-center">Payment Mode</th>
+                        <th class="text-center">Paid</th>
+                        <th class="text-center">Outstanding After</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach($invoicePayments as $index => $entry)
+                    @php $isCurrentEntry = (int) $entry->id === (int) $payment->id; @endphp
+                    <tr @if($isCurrentEntry) class="is-current" aria-current="true" @endif>
+                        <td class="p-1 text-center">{{ $index + 1 }}</td>
+                        <td class="p-1 text-center">{{ $entry->payment_date ? \Carbon\Carbon::parse($entry->payment_date)->format('d-m-Y') : '-' }}</td>
+                        <td class="p-1 text-center">{{ $entry->payment_mode ?: '-' }}</td>
+                        <td class="p-1 text-center">{{ number_format((float) $entry->paying, 2) }}</td>
+                        <td class="p-1 text-center">{{ number_format((float) $entry->outstanding_after, 2) }}</td>
+                        <td class="p-1 text-center action-icon">
+                            @if($isCurrentEntry)
+                                <span class="badge rounded-pill associate-invoice-payments-viewing">Viewing</span>
+                            @else
+                                <a href="{{ route('view_associate_payment', $entry->id) }}" style="text-decoration:none;" data-bs-toggle="tooltip" data-bs-placement="top" title="View" aria-label="View payment {{ $index + 1 }}"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                    </tbody>
+                    <tfoot>
+                    <tr>
+                        <th colspan="3" class="text-end">Total</th>
+                        <th class="text-center">{{ number_format((float) $invoicePayments->sum('paying'), 2) }}</th>
+                        <th class="text-center">{{ number_format((float) $invoicePayments->last()->outstanding_after, 2) }}</th>
+                        <th></th>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        @endif
     </div>
 </div>
 </div>
+
+<style>
+    .associate-invoice-payments tr.is-current > td {
+        --bs-table-accent-bg: #EEEBFF;
+        font-weight: 600;
+    }
+
+    .associate-invoice-payments-viewing {
+        background: #695EEE;
+        font-weight: 600;
+    }
+</style>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        [].slice.call(document.querySelectorAll('.associate-invoice-payments [data-bs-toggle="tooltip"]')).forEach(function (el) {
+            new bootstrap.Tooltip(el);
+        });
+    });
+</script>
 
 @endsection()

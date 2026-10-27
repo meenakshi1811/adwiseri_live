@@ -1518,8 +1518,38 @@ class AssociateController extends Controller
         $payment = AssociatePayment::where('subscriber_id', $subscriber->id)->findOrFail($id);
         $associate = Associate::find($payment->associate_id);
         $invoice = AssociateInvoice::find($payment->associate_invoice_id);
+        $invoicePayments = $this->invoicePaymentEntries($subscriber, $payment, $invoice);
 
-        return view('web.associates.view_payment', compact('user', 'payment', 'associate', 'invoice', 'page'));
+        return view('web.associates.view_payment', compact('user', 'payment', 'associate', 'invoice', 'page', 'invoicePayments'));
+    }
+
+    /**
+     * Every payment recorded against the same invoice as $payment, oldest first, with the balance left after
+     * each one (worked out as on the Payments tab).
+     */
+    private function invoicePaymentEntries(User $subscriber, AssociatePayment $payment, ?AssociateInvoice $invoice)
+    {
+        $query = AssociatePayment::where('subscriber_id', $subscriber->id);
+
+        if ($payment->associate_invoice_id) {
+            $query->where('associate_invoice_id', $payment->associate_invoice_id);
+        } elseif ($payment->invoice_no) {
+            $query->whereNull('associate_invoice_id')->where('invoice_no', $payment->invoice_no);
+        } else {
+            $query->whereKey($payment->id);
+        }
+
+        $entries = $query->orderBy('created_at', 'asc')->orderBy('id', 'asc')->get();
+
+        $invoiceTotal = $invoice ? (float) $invoice->fees : (float) ($entries->max('fees') ?: $payment->fees);
+        $runningPaid = 0.0;
+
+        foreach ($entries as $entry) {
+            $runningPaid += (float) $entry->paying;
+            $entry->outstanding_after = round(max(0, $invoiceTotal - $runningPaid), 2);
+        }
+
+        return $entries;
     }
 
     public function delete_payment($id)
