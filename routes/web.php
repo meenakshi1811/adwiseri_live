@@ -316,6 +316,7 @@ Route::post('/share_report_chart', [App\Http\Controllers\WebController::class, '
 
 Route::get('/email_broadcast', [App\Http\Controllers\WebController::class, 'email_broadcast'])->name('email_broadcast')->middleware(['auth','check.device']);
 Route::get('/email-broadcast-log-data', [App\Http\Controllers\EmailBroadcastLogController::class, 'subscriberLogData'])->name('email_broadcast_log_data')->middleware(['auth','check.device']);
+Route::get('/email-broadcast-log-recipients', [App\Http\Controllers\EmailBroadcastLogController::class, 'subscriberRecipients'])->name('email_broadcast_log_recipients')->middleware(['auth','check.device']);
 Route::post('/send_email_broadcast', [App\Http\Controllers\WebController::class, 'send_email_broadcast'])->name('send_email_broadcast')->middleware(['auth','check.device']);
 Route::post('/upload_email_broadcast_image', [App\Http\Controllers\WebController::class, 'upload_email_broadcast_image'])->name('upload_email_broadcast_image')->middleware(['auth','check.device']);
 Route::get('/communications', [App\Http\Controllers\WebController::class, 'communications'])->name('communications')->middleware(['auth','check.device']);
@@ -489,6 +490,7 @@ Route::post('/offers_store', [App\Http\Controllers\AdminController::class, 'appl
 Route::get('/manage_report_communications', [App\Http\Controllers\AdminController::class, 'manage_report_communications'])->name('manage_report_communications')->middleware('admin_auth');
 Route::get('/admin_email_broadcast', [App\Http\Controllers\AdminController::class, 'admin_email_broadcast'])->name('admin_email_broadcast')->middleware('admin_auth');
 Route::get('/admin/email-broadcast-log-data', [App\Http\Controllers\EmailBroadcastLogController::class, 'adminLogData'])->name('admin_email_broadcast_log_data')->middleware('admin_auth');
+Route::get('/admin/email-broadcast-log-recipients', [App\Http\Controllers\EmailBroadcastLogController::class, 'adminRecipients'])->name('admin_email_broadcast_log_recipients')->middleware('admin_auth');
 Route::post('/admin_send_email_broadcast', [App\Http\Controllers\AdminController::class, 'admin_send_email_broadcast'])->name('admin_send_email_broadcast')->middleware('admin_auth');
 Route::post('/admin_upload_email_broadcast_image', [App\Http\Controllers\AdminController::class, 'admin_upload_email_broadcast_image'])->name('admin_upload_email_broadcast_image')->middleware('admin_auth');
 Route::get('/admin_messaging', [App\Http\Controllers\AdminController::class, 'admin_messaging'])->name('admin_messaging')->middleware('admin_auth');

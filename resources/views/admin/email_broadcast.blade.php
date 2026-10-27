@@ -243,5 +243,6 @@ Swal.fire({ icon: 'error', title: 'Unable to Send', text: @json(session('broadca
     'showSubscriberFilter' => true,
     'subscriberOptions' => $subscribers ?? collect(),
     'historyDataUrl' => route('admin_email_broadcast_log_data'),
+    'recipientsDataUrl' => route('admin_email_broadcast_log_recipients'),
 ])
 @endsection()

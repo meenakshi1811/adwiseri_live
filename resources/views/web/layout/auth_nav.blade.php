@@ -207,7 +207,7 @@ $hasAnalyticsAccess = $offerBenefitService->hasAnalyticsAccess($user);
 
 
                 @if($user->user_type == "admin" || ($communication_roles->read_only == 1 or $communication_roles->read_write_only == 1))
-                <a href="{{ route('messaging') }}" @if($page == "messaging" || $page == 'communications') style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
+                <a href="{{ route('messaging') }}" @if($page == "messaging" || $page == 'communications' || $page == 'email_broadcast') style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                     <span class="sidebar-menu-icon">
                     @include('partials.module_icon', ['module' => 'communications'])
                     </span>
