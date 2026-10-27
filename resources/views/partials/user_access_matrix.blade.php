@@ -13,7 +13,7 @@
             $moduleKey = strtolower($matrixRole['module']);
         @endphp
         <tr>
-            <td>{{ $matrixRole['module_label'] ?? $matrixRole['module'] }}</td>
+            <td class="text-center">{{ $matrixRole['module_label'] ?? $matrixRole['module'] }}</td>
             <td class="text-center">
                 <input type="checkbox" class="access-matrix-checkbox" data-module="{{ $matrixRole['module'] }}" {{ $matrixRole['read_only'] == 1 ? 'checked' : '' }} name="{{ $moduleKey }}_read_only" value="1" />
             </td>
