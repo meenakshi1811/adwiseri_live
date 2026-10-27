@@ -70,7 +70,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <select name="communication_type" class="form-control form-select @error('client') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
                                 <option value="">Select Communication Type</option>
                                 <option value="Call">Call</option>
-                                <option value="Email">Email</option>
+                                <option value="E-mail">E-mail</option>
                                 <option value="E-meet">E-meet</option>
                                 <option value="Office Visit">Office Visit</option>
                             </select>
