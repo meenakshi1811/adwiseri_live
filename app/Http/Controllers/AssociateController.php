@@ -20,6 +20,7 @@ use App\Models\Invoice_settings;
 use App\Services\InvoiceItemService;
 use App\Services\ApplicationVisibilityService;
 use App\Services\OfferBenefitService;
+use App\Services\PaymentReminderService;
 use App\Services\TableFilterCountService;
 use App\Support\BrandedMail;
 use App\Support\ApplicationStatuses;
@@ -1250,9 +1251,11 @@ class AssociateController extends Controller
             ->orderBy('id', 'asc')
             ->get();
 
-        $invoiceFees = AssociateInvoice::where('subscriber_id', $subscriber->id)
+        $invoices = AssociateInvoice::where('subscriber_id', $subscriber->id)
             ->whereIn('id', $payments->pluck('associate_invoice_id')->filter()->unique()->values()->all())
-            ->pluck('fees', 'id');
+            ->get(['id', 'fees', 'paid', 'status'])
+            ->keyBy('id');
+        $invoiceFees = $invoices->pluck('fees', 'id');
 
         $grouped = $payments->groupBy(function ($row) {
             return (string) ($row->associate_invoice_id ?: ($row->invoice_no ?: $row->id));
@@ -1285,6 +1288,13 @@ class AssociateController extends Controller
         $payments = $payments->sortByDesc('created_at')->values();
 
         $associates = $this->ownedAssociates($subscriber)->get()->keyBy('id');
+        foreach ($payments as $payment) {
+            $invoice = $payment->associate_invoice_id ? $invoices->get($payment->associate_invoice_id) : null;
+            $payment->invoice_outstanding = $invoice ? round($invoice->outstanding, 2) : null;
+            $payment->reminder_block = $this->paymentReminderBlock($invoice, $associates->get($payment->associate_id));
+        }
+        $canSendPaymentReminders = app(PaymentReminderService::class)->userCanSend($user, 'Associates');
+
         $paymentModeFilters = TableFilterCountService::countBy(
             $payments,
             fn ($payment) => trim((string) ($payment->payment_mode ?? '')) ?: 'Unspecified'
@@ -1301,8 +1311,70 @@ class AssociateController extends Controller
             'associates',
             'page',
             'paymentModeFilters',
-            'paymentOutstandingFilters'
+            'paymentOutstandingFilters',
+            'canSendPaymentReminders'
         ));
+    }
+
+    /**
+     * Why a payment reminder can't be sent for this invoice (shown on the disabled button), or null if it can.
+     */
+    private function paymentReminderBlock(?AssociateInvoice $invoice, ?Associate $associate): ?string
+    {
+        if (!$invoice) {
+            return 'No associate invoice is linked to this payment.';
+        }
+
+        if ($invoice->status === 'Cancelled') {
+            return 'Invoice cancelled - no reminder needed.';
+        }
+
+        if ($invoice->outstanding < 0.01 || $invoice->status === 'Paid') {
+            return 'Invoice cleared - no reminder needed.';
+        }
+
+        if (!$associate || trim((string) $associate->email) === '') {
+            return 'Associate email address missing - add it in the Associates module.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Associates > Payments "Send reminder": emails the associate the invoice's latest outstanding amount.
+     */
+    public function send_payment_reminder(Request $request, PaymentReminderService $paymentReminders)
+    {
+        $user = Auth::user();
+
+        if (!$paymentReminders->userCanSend($user, 'Associates')) {
+            return response()->json(['success' => false, 'message' => 'You do not have permission to send payment reminders.'], 403);
+        }
+
+        $this->validate($request, [
+            'associate_invoice_id' => 'required|integer',
+        ]);
+
+        $subscriber = $this->subscriber();
+        $invoice = AssociateInvoice::where('subscriber_id', $subscriber->id)->find($request->associate_invoice_id);
+
+        if (!$invoice) {
+            return response()->json(['success' => false, 'message' => 'Invoice not found.'], 404);
+        }
+
+        $associate = $this->ownedAssociates($subscriber)->find($invoice->associate_id);
+        $result = $paymentReminders->sendAssociateReminder($subscriber, $invoice, $associate);
+
+        if ($result['success']) {
+            $this->logActivity(
+                $subscriber,
+                'Payment Reminder Sent',
+                'Payment reminder for associate invoice ' . ($invoice->invoice_no ?: $invoice->id) . ' (' . $result['outstanding'] . ' outstanding) sent to ' . $result['recipient'] . ' by ' . $user->name . ' at ' . $request->local_time,
+                $request->local_time
+            );
+        }
+
+        return response()->json(collect($result)->except('status')->all(), $result['status']);
     }
 
     public function add_payment()

@@ -10,6 +10,7 @@ use App\Models\Invoice_settings;
 use App\Models\Activities;
 use App\Models\Applications;
 use App\Models\UserRoles;
+use App\Services\PaymentReminderService;
 use App\Services\TableFilterCountService;
 use App\Services\TaxSummaryService;
 use Auth;
@@ -95,6 +96,8 @@ class PaymentController extends Controller
             ->get();
 
         $this->annotatePaymentAmountDisplays($paymentAR, (int) $subscriber->id, 'ar');
+        $invoicePaymentGroups = $this->invoicePaymentGroups($paymentAR, (int) $subscriber->id);
+        $canSendPaymentReminders = app(PaymentReminderService::class)->userCanSend($user, 'Payments');
 
         $paymentAR = $paymentAR->sortByDesc('created_at')->values();
 
@@ -107,7 +110,7 @@ class PaymentController extends Controller
             fn ($payment) => $payment->payment_mode
         );
 
-        return view('web.payments', compact('user', 'page', 'paymentAR', 'paymentModeFilters', 'clients'));
+        return view('web.payments', compact('user', 'page', 'paymentAR', 'paymentModeFilters', 'clients', 'invoicePaymentGroups', 'canSendPaymentReminders'));
     }
 
 
@@ -168,7 +171,7 @@ class PaymentController extends Controller
             ]));
         });
 
-        foreach ($grouped as $group) {
+        foreach ($grouped as $groupKey => $group) {
             $sorted = $group->values();
             $invoiceNo = optional($sorted->first())->invoice_no;
             $invoiceTotal = $invoiceNo && isset($invoiceTotals[$invoiceNo])
@@ -188,8 +191,110 @@ class PaymentController extends Controller
                         . number_format($invoiceTotal, 2, '.', '');
                 $item->cumulative_paid = round($runningPaid, 2);
                 $item->outstanding_balance = round(max(0, $invoiceTotal - $runningPaid), 2);
+                $item->invoice_group_key = (string) $groupKey;
             }
         }
+    }
+
+    /**
+     * Per invoice (grouped as annotatePaymentAmountDisplays does): its payment entries for the "View payment
+     * entries" popup, and why a reminder can't be sent, if it can't. Expects the rows oldest first.
+     */
+    protected function invoicePaymentGroups($payments, int $subscriberId): array
+    {
+        $invoices = Internal_Invoices::where('subscriber_id', $subscriberId)
+            ->where('type', 'ar')
+            ->whereIn('invoice_no', $payments->pluck('invoice_no')->filter()->unique()->values()->all())
+            ->get(['invoice_no', 'status', 'to_email'])
+            ->keyBy('invoice_no');
+
+        $groups = [];
+
+        foreach ($payments->groupBy('invoice_group_key') as $key => $group) {
+            $first = $group->first();
+            $last = $group->last();
+            $invoice = $first->invoice_no ? $invoices->get($first->invoice_no) : null;
+            $outstanding = (float) $last->outstanding_balance;
+            $clientEmail = trim((string) optional($last->client)->email) ?: trim((string) optional($invoice)->to_email);
+
+            if (!$first->invoice_no) {
+                $reminderBlock = 'This payment record has no invoice number.';
+            } elseif (optional($invoice)->status === 'Cancelled') {
+                $reminderBlock = 'Invoice cancelled - no reminder needed.';
+            } elseif ($outstanding < 0.01 || optional($invoice)->status === 'Paid') {
+                $reminderBlock = 'Invoice cleared - no reminder needed.';
+            } elseif ($clientEmail === '') {
+                $reminderBlock = 'Client email address missing - add it in the Clients module.';
+            } else {
+                $reminderBlock = null;
+            }
+
+            if ($first->application) {
+                $appName = trim((string) ($first->application->application_name ?? ''));
+                $appCode = (string) ($first->application->application_id ?? '');
+                $service = $appName !== '' ? $appName . ' (' . $appCode . ')' : $appCode;
+            } else {
+                $service = (string) $first->service_description;
+            }
+
+            $groups[(string) $key] = [
+                'invoice_no' => (string) $first->invoice_no,
+                'client' => $first->client ? $first->client->name . ' (' . $first->client_id . ')' : '',
+                'service' => $service,
+                'total' => number_format((float) $last->invoice_total, 2, '.', ''),
+                'paid' => number_format((float) $last->cumulative_paid, 2, '.', ''),
+                'outstanding' => number_format($outstanding, 2, '.', ''),
+                'status' => optional($invoice)->status === 'Cancelled'
+                    ? 'Cancelled'
+                    : ($outstanding < 0.01 || optional($invoice)->status === 'Paid' ? 'Cleared' : 'Outstanding'),
+                'reminder_block' => $reminderBlock,
+                'entries' => $group->map(fn ($payment) => [
+                    'date' => $payment->payment_date ? Carbon::parse($payment->payment_date)->format('d-m-Y') : '-',
+                    'mode' => (string) ($payment->payment_mode ?: '-'),
+                    'paid' => number_format((float) $payment->paid_amount, 2, '.', ''),
+                    'balance' => number_format((float) $payment->outstanding_balance, 2, '.', ''),
+                ])->values()->all(),
+            ];
+        }
+
+        return $groups;
+    }
+
+    /**
+     * Payments (AR) "Send reminder": emails the client the invoice's latest outstanding amount.
+     */
+    public function send_payment_reminder(Request $request, PaymentReminderService $paymentReminders)
+    {
+        $user = auth()->user();
+
+        if (!$paymentReminders->userCanSend($user, 'Payments')) {
+            return response()->json(['success' => false, 'message' => 'You do not have permission to send payment reminders.'], 403);
+        }
+
+        $request->validate([
+            'invoice_no' => 'required|string|max:50',
+        ]);
+
+        $subscriber = $user->user_type == "Subscriber" ? $user : User::find($user->added_by);
+        if (!$subscriber) {
+            return response()->json(['success' => false, 'message' => 'Subscriber account not found.'], 404);
+        }
+
+        $result = $paymentReminders->sendArReminder($subscriber, (string) $request->invoice_no);
+
+        if ($result['success']) {
+            $activity = new Activities();
+            $activity->subscriber_id = $subscriber->id;
+            $activity->user_id = $user->id;
+            $activity->user_name = $user->name;
+            $activity->activity_name = "Payment Reminder Sent";
+            $activity->activity_detail = "Payment reminder for invoice " . $request->invoice_no . " (" . $result['outstanding'] . " outstanding) sent to " . $result['recipient'] . " by " . $user->name . " at " . $request->local_time;
+            $activity->activity_icon = "invoice.jpg";
+            $activity->local_time = $request->local_time;
+            $activity->save();
+        }
+
+        return response()->json(collect($result)->except('status')->all(), $result['status']);
     }
     public function check_login()
     {

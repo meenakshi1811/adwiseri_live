@@ -205,6 +205,7 @@ Route::post('/associate_invoice_details', [App\Http\Controllers\AssociateControl
 Route::post('/store_associate_payment', [App\Http\Controllers\AssociateController::class, 'store_payment'])->name('store_associate_payment')->middleware(['auth','check.device']);
 Route::get('/view_associate_payment/{id}', [App\Http\Controllers\AssociateController::class, 'view_payment'])->name('view_associate_payment')->middleware(['auth','check.device']);
 Route::get('/delete_associate_payment/{id}', [App\Http\Controllers\AssociateController::class, 'delete_payment'])->name('delete_associate_payment')->middleware(['auth','check.device']);
+Route::post('/send_associate_payment_reminder', [App\Http\Controllers\AssociateController::class, 'send_payment_reminder'])->name('send_associate_payment_reminder')->middleware(['auth','check.device']);
 /* --------------- End Associates module --------------- */
 
 Route::get('/contactus', [App\Http\Controllers\WebController::class, 'contactus'])->name('contactus');
@@ -248,6 +249,7 @@ Route::get('/add_ap_payments', [App\Http\Controllers\PaymentController::class, '
 
 
 Route::post('/payment_received', [App\Http\Controllers\PaymentController::class, 'payment_received'])->name('payment_received')->middleware(['auth','check.device']);
+Route::post('/send_payment_reminder', [App\Http\Controllers\PaymentController::class, 'send_payment_reminder'])->name('send_payment_reminder')->middleware(['auth','check.device']);
 
 Route::post('/advance_payment', [App\Http\Controllers\PaymentController::class, 'advance_payment'])->name('advance_payment')->middleware(['auth','check.device']);
 

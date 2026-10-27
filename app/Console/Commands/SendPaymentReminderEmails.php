@@ -4,14 +4,14 @@ namespace App\Console\Commands;
 
 use App\Mail\ApplicationReminderMail;
 use App\Mail\DocumentReminderMail;
-use App\Mail\PaymentReminderMail;
 use App\Models\ApplicationReminder;
 use App\Models\AssociateInvoice;
-use App\Models\Invoice_settings;
+use App\Models\Internal_Invoices;
 use App\Models\PaymentARs;
 use App\Models\PaymentReminderSetting;
 use App\Models\User;
 use App\Services\DocumentReminderService;
+use App\Services\PaymentReminderService;
 use App\Services\ReminderScheduleService;
 use App\Support\BrandedMail;
 use Carbon\Carbon;
@@ -26,7 +26,8 @@ class SendPaymentReminderEmails extends Command
 
     public function __construct(
         private ReminderScheduleService $scheduleService,
-        private DocumentReminderService $documentReminderService
+        private DocumentReminderService $documentReminderService,
+        private PaymentReminderService $paymentReminderService
     ) {
         parent::__construct();
     }
@@ -97,8 +98,7 @@ class SendPaymentReminderEmails extends Command
         callable $resolveRecipientEmail,
         bool $bccSubscriber
     ): int {
-        $invoiceSetting = Invoice_settings::where('user_id', $subscriber->id)->first();
-        $paymentLink = trim((string) ($invoiceSetting?->payment_link ?? ''));
+        $paymentLink = $this->paymentReminderService->settingsPaymentLink($subscriber);
         $sentCount = 0;
 
         foreach ($rows as $row) {
@@ -113,39 +113,22 @@ class SendPaymentReminderEmails extends Command
                 continue;
             }
 
-            $outstandingAmount = number_format((float) $row->outstanding_amount, 2, '.', '');
-            $serviceDescription = (string) ($row->service_description ?: '-');
-            $dueDate = $dueDateObject ? $dueDateObject->format('d-m-Y') : '-';
-            $clientName = (string) ($row->client_name ?? '-');
+            $payload = $this->paymentReminderService->payload($subscriber, [
+                'invoice_no' => $row->invoice_no,
+                'recipient_name' => $row->recipient_name ?? '-',
+                'outstanding_amount' => $row->outstanding_amount,
+                'service_description' => $row->service_description,
+                'due_date' => $dueDateObject,
+            ], $recipientEmail, $paymentLink);
 
-            $payload = [
-                'subscriber_name' => (string) $subscriber->name,
-                'client_first_name' => $this->scheduleService->firstName($clientName),
-                'client_name' => $clientName,
-                'name' => $clientName,
-                'currency_symbol' => $this->currencySymbol((string) $subscriber->currency),
-                'amount' => $outstandingAmount,
-                'outstanding_amount' => $outstandingAmount,
-                'invoice_no' => (string) $row->invoice_no,
-                'invoice_id' => (string) $row->invoice_no,
-                'service_description' => $serviceDescription,
-                'application_service' => $serviceDescription,
-                'payment_due_date' => $dueDate,
-                'due_date' => $dueDate,
-                'payment_link' => $paymentLink,
-                'recipient_email' => $recipientEmail,
-            ];
-
-            BrandedMail::sendWithAlertsArchive(
+            $sent = $this->deliver(
                 $recipientEmail,
-                fn () => new PaymentReminderMail($subscriber, $payload),
-                function ($mail) use ($bccSubscriber, $subscriber) {
-                    if ($bccSubscriber && !empty($subscriber->email)) {
-                        $mail->bcc($subscriber->email);
-                    }
-                }
+                fn () => $this->paymentReminderService->send($subscriber, $recipientEmail, $payload, $bccSubscriber),
+                'payment reminder for invoice ' . $row->invoice_no
             );
-            $sentCount++;
+            if ($sent) {
+                $sentCount++;
+            }
         }
 
         return $sentCount;
@@ -188,7 +171,7 @@ class SendPaymentReminderEmails extends Command
                     'recipient_email' => $recipientEmail,
                 ];
 
-                BrandedMail::sendWithAlertsArchive(
+                $sent = $this->deliver($recipientEmail, fn () => BrandedMail::sendWithAlertsArchive(
                     $recipientEmail,
                     fn () => new DocumentReminderMail($subscriber, $payload),
                     function ($mail) use ($setting, $subscriber) {
@@ -196,8 +179,10 @@ class SendPaymentReminderEmails extends Command
                             $mail->bcc($subscriber->email);
                         }
                     }
-                );
-                $sentCount++;
+                ), 'document reminder for application #' . $application->id);
+                if ($sent) {
+                    $sentCount++;
+                }
             }
 
             $setting->last_sent_at = now();
@@ -250,7 +235,7 @@ class SendPaymentReminderEmails extends Command
                 'recipient_email' => $recipientEmail,
             ];
 
-            BrandedMail::sendWithAlertsArchive(
+            $this->deliver($recipientEmail, fn () => BrandedMail::sendWithAlertsArchive(
                 $recipientEmail,
                 fn () => new ApplicationReminderMail($subscriber, $payload),
                 function ($mail) use ($reminder, $subscriber, $recipientEmail) {
@@ -258,7 +243,7 @@ class SendPaymentReminderEmails extends Command
                         $mail->bcc($subscriber->email);
                     }
                 }
-            );
+            ), 'application reminder #' . $reminder->id);
 
             $reminder->last_sent_at = now();
             $reminder->save();
@@ -267,26 +252,57 @@ class SendPaymentReminderEmails extends Command
         }
     }
 
+    /**
+     * What clients still owe: each Invoice (AR) total less everything paid against it in Payments (AR),
+     * plus stand-alone Payments (AR) records (no invoice) with a balance left.
+     *
+     * Payment rows only exist once a payment is recorded and each carries the full invoice total, so they
+     * can't be summed per invoice: an unpaid invoice has no rows at all, and part-payments would be overcounted.
+     */
     private function outstandingRowsForSubscriber(int $subscriberId, string $clientGroup)
     {
-        $query = PaymentARs::query()
+        $paidPerInvoice = PaymentARs::query()
+            ->where('subscriber_id', $subscriberId)
+            ->whereRaw('LOWER(type) = ?', ['ar'])
+            ->groupBy('invoice_no')
+            ->selectRaw('invoice_no, SUM(paid_amount) as paid_total');
+
+        $outstanding = '(internal_invoices.total - COALESCE(paid.paid_total, 0))';
+        $invoices = Internal_Invoices::query()
+            ->from('internal_invoices')
+            ->leftJoinSub($paidPerInvoice, 'paid', 'paid.invoice_no', '=', 'internal_invoices.invoice_no')
+            ->where('internal_invoices.subscriber_id', $subscriberId)
+            ->whereRaw('LOWER(internal_invoices.type) = ?', ['ar'])
+            ->where(function ($query) {
+                $query->whereNull('internal_invoices.status')->orWhereNotIn('internal_invoices.status', ['Paid', 'Cancelled']);
+            })
+            ->whereRaw($outstanding . ' > 0')
+            ->selectRaw('internal_invoices.invoice_no, internal_invoices.detail as service_description, internal_invoices.to_name as recipient_name, internal_invoices.to_email as client_email, internal_invoices.due_date, ' . $outstanding . ' as outstanding_amount');
+        $this->applyAmountThreshold($invoices, $clientGroup, $outstanding, false);
+
+        $standalonePayments = PaymentARs::query()
             ->from('payment_ar')
             ->join('clients', 'clients.id', '=', 'payment_ar.client_id')
-            ->leftJoin('internal_invoices', function ($join) use ($subscriberId) {
-                $join->on('internal_invoices.invoice_no', '=', 'payment_ar.invoice_no')
-                    ->where('internal_invoices.subscriber_id', '=', $subscriberId);
-            })
             ->where('payment_ar.subscriber_id', $subscriberId)
             ->whereRaw('LOWER(payment_ar.type) = ?', ['ar'])
-            ->groupBy('payment_ar.client_id', 'payment_ar.invoice_no', 'payment_ar.service_description', 'clients.name', 'clients.email', 'internal_invoices.due_date')
-            ->selectRaw('payment_ar.client_id, payment_ar.invoice_no, payment_ar.service_description, clients.name as client_name, clients.email as client_email, internal_invoices.due_date, SUM(payment_ar.amount - payment_ar.paid_amount) as outstanding_amount')
-            ->havingRaw('SUM(payment_ar.amount - payment_ar.paid_amount) > 0');
+            ->whereNotExists(function ($query) use ($subscriberId) {
+                $query->selectRaw('1')
+                    ->from('internal_invoices')
+                    ->whereColumn('internal_invoices.invoice_no', 'payment_ar.invoice_no')
+                    ->where('internal_invoices.subscriber_id', $subscriberId);
+            })
+            ->groupBy('payment_ar.invoice_no', 'payment_ar.service_description', 'clients.name', 'clients.email')
+            ->selectRaw('payment_ar.invoice_no, payment_ar.service_description, clients.name as recipient_name, clients.email as client_email, NULL as due_date, MAX(payment_ar.amount) - SUM(payment_ar.paid_amount) as outstanding_amount')
+            ->havingRaw('MAX(payment_ar.amount) - SUM(payment_ar.paid_amount) > 0');
+        $this->applyAmountThreshold($standalonePayments, $clientGroup, 'MAX(payment_ar.amount) - SUM(payment_ar.paid_amount)', true);
 
-        $this->applyAmountThreshold($query, $clientGroup, 'SUM(payment_ar.amount - payment_ar.paid_amount)', true);
-
-        return $query->get();
+        return $invoices->get()->concat($standalonePayments->get());
     }
 
+    /**
+     * Associate invoices with a balance left. The email goes to the associate, so it greets them and names
+     * the client in the service line.
+     */
     private function outstandingAssociateRowsForSubscriber(int $subscriberId, string $clientGroup)
     {
         $query = AssociateInvoice::query()
@@ -295,11 +311,37 @@ class SendPaymentReminderEmails extends Command
             ->where('associate_invoices.subscriber_id', $subscriberId)
             ->whereIn('associate_invoices.status', ['UnPaid', 'PartiallyPaid'])
             ->whereRaw('(associate_invoices.fees - associate_invoices.paid) > 0')
-            ->selectRaw('associate_invoices.invoice_no, associate_invoices.client_name, associate_invoices.service_provided as service_description, associate_invoices.due_date, associates.email as associate_email, (associate_invoices.fees - associate_invoices.paid) as outstanding_amount');
+            ->selectRaw('associate_invoices.invoice_no, associate_invoices.client_name, associate_invoices.service_provided, associate_invoices.due_date, associates.name as recipient_name, associates.email as associate_email, (associate_invoices.fees - associate_invoices.paid) as outstanding_amount');
 
         $this->applyAmountThreshold($query, $clientGroup, '(associate_invoices.fees - associate_invoices.paid)', false);
 
-        return $query->get();
+        return $query->get()->each(function ($row) {
+            $row->service_description = $this->paymentReminderService->associateServiceLabel($row->service_provided, $row->client_name);
+        });
+    }
+
+    /**
+     * Sends one reminder. A bad address or mail error is logged and skipped so it can't stop everyone else's
+     * reminders, or leave the run unrecorded so the next scheduler pass sends the same emails again.
+     */
+    private function deliver(string $recipientEmail, callable $send, string $context): bool
+    {
+        if (!filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
+            $this->warn('Skipped ' . $context . ': invalid email address "' . $recipientEmail . '".');
+
+            return false;
+        }
+
+        try {
+            $send();
+
+            return true;
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->warn('Failed ' . $context . ': ' . $exception->getMessage());
+
+            return false;
+        }
     }
 
     private function applyAmountThreshold($query, string $clientGroup, string $amountExpression, bool $useHaving = false): void
@@ -313,14 +355,5 @@ class SendPaymentReminderEmails extends Command
                 $query->whereRaw($amountExpression . ' > ?', [$threshold]);
             }
         }
-    }
-
-    private function currencySymbol(string $currency): string
-    {
-        if (preg_match('/\((.*?)\)/', $currency, $match)) {
-            return $match[1] ?? '';
-        }
-
-        return $currency;
     }
 }

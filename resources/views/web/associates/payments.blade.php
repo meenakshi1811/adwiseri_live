@@ -80,6 +80,16 @@
                         <td class="p-1 text-center action-icon">
                             <a href="{{ route('view_associate_payment', $payment->id) }}" style="text-decoration:none;" data-bs-toggle="tooltip" data-bs-placement="top" title="View"><i class="fa-solid fa-eye btn p-1 text-info" style="font-size:14px;"></i></a>
                             <i class="fa-solid fa-trash btn p-1 text-danger" style="font-size:14px;" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete" onclick="deletePayment({{ $payment->id }})"></i>
+                            @if($canSendPaymentReminders)
+                                @include('partials.payment_reminder_button', [
+                                    'reminderUrl' => route('send_associate_payment_reminder'),
+                                    'reminderParams' => ['associate_invoice_id' => $payment->associate_invoice_id],
+                                    'invoiceLabel' => $payment->associate_invoice_id ?: $payment->id,
+                                    'recipientLabel' => $assoc ? $assoc->name : '',
+                                    'outstanding' => number_format((float) ($payment->invoice_outstanding ?? $outstanding), 2, '.', ''),
+                                    'blockedReason' => $payment->reminder_block,
+                                ])
+                            @endif
                         </td>
                     </tr>
                     @endforeach

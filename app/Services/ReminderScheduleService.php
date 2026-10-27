@@ -8,11 +8,16 @@ use Carbon\Carbon;
 
 class ReminderScheduleService
 {
+    /**
+     * Reminders go out from 9:00 AM in the subscriber's timezone. Any scheduler run from then on qualifies
+     * (not only the 9:00 minute, which a late or skipped run would miss for the whole day);
+     * shouldRunForFrequency() keeps it to once per day/week/month/quarter.
+     */
     public function shouldRunAtScheduledTime(User $subscriber): bool
     {
         $now = now($this->resolveTimezone($subscriber));
 
-        return (int) $now->format('G') === 9 && (int) $now->format('i') === 0;
+        return (int) $now->format('G') >= 9;
     }
 
     public function shouldRunForFrequency(?Carbon $lastSentAt, string $frequency, User $subscriber): bool
