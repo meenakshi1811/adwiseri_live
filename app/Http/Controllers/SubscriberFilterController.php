@@ -104,6 +104,22 @@ class SubscriberFilterController extends Controller
         return $query;
     }
 
+    /**
+     * Country names to filter a chart by, or null for every country: the page sends "All", or nothing since
+     * its country picker was removed. "All" doesn't filter at all, so rows whose country isn't spelled exactly
+     * as in the countries list (or is blank) still count.
+     */
+    private function selectedCountryNames(): ?\Illuminate\Support\Collection
+    {
+        $country = request()->input('country');
+
+        if ($country === null || $country === '' || $country === 'All') {
+            return null;
+        }
+
+        return Countries::where('id', $country)->pluck('country_name');
+    }
+
     private function parseReportDate(?string $value, bool $isEndDate = false): Carbon
     {
         $value = trim((string) $value);
@@ -233,6 +249,14 @@ class SubscriberFilterController extends Controller
 
     public function subscribersReport()
     {
+        // The Analytics pages send the range as startDate/endDate, but some charts read start/end; accept either.
+        request()->merge([
+            'start' => request()->input('start', request()->input('startDate')),
+            'end' => request()->input('end', request()->input('endDate')),
+            'startDate' => request()->input('startDate', request()->input('start')),
+            'endDate' => request()->input('endDate', request()->input('end')),
+        ]);
+
         // This is for tabs
         $user = auth()->user();
         $startDate = $this->parseReportDate(request()->input('startDate'));
@@ -254,19 +278,19 @@ class SubscriberFilterController extends Controller
             return response()->json(['data' => $subscribersByCountry]);
         } elseif (request()->type == "bySubscriberCountryChart") {
 
-            $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
+            $country = $this->selectedCountryNames();
 
             if (!empty(request()->subid)) {
 
                 $subscribersByCountry = User::where('added_by', request()->subid)->where('user_type', 'Subscriber')
-                    ->whereIn('country', $country) // Use `whereIn` to handle both cases
+                    ->when($country, fn ($query) => $query->whereIn('country', $country))
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->select('country', DB::raw('COUNT(users.id) as No_of_Subscribers'))
                     ->groupBy('country')
                     ->get();
             } else {
                 $subscribersByCountry = User::where('user_type', 'Subscriber')
-                    ->whereIn('country', $country) // Use `whereIn` to handle both cases
+                    ->when($country, fn ($query) => $query->whereIn('country', $country))
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->select('country', DB::raw('COUNT(users.id) as No_of_Subscribers'))
                     ->groupBy('country')
@@ -2307,7 +2331,7 @@ class SubscriberFilterController extends Controller
         } elseif (request()->type == "byPaymentVisaCountryChart") {
             $startDate = $this->parseReportDate(request()->start);
             $endDate = $this->parseReportDate(request()->end, true);
-            $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
+            $country = $this->selectedCountryNames();
             if (!empty(request()->subid)) {
                 $data = PaymentARs::whereBetween('payment_ar.created_at', [$startDate, $endDate])
                     ->where('payment_ar.subscriber_id', request()->subid)
@@ -2391,7 +2415,7 @@ class SubscriberFilterController extends Controller
         } elseif (request()->type == "byPaymentApplicationTypeChart") {
             $startDate = $this->parseReportDate(request()->start);
             $endDate = $this->parseReportDate(request()->end, true);
-            $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
+            $country = $this->selectedCountryNames();
             if (!empty(request()->subid)) {
                 $data = PaymentARs::whereBetween('payment_ar.created_at', [$startDate, $endDate])
                     ->where('payment_ar.subscriber_id', request()->subid)
@@ -2523,7 +2547,7 @@ class SubscriberFilterController extends Controller
         } elseif (request()->type == "byPaymentVisaCountryChartAP") {
             $startDate = $this->parseReportDate(request()->start);
             $endDate = $this->parseReportDate(request()->end, true);
-            $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
+            $country = $this->selectedCountryNames();
             if (!empty(request()->subid)) {
                 $data = PaymentARs::whereBetween('payment_ar.created_at', [$startDate, $endDate])
                     ->where('payment_ar.subscriber_id', request()->subid)
@@ -2608,7 +2632,7 @@ class SubscriberFilterController extends Controller
         } elseif (request()->type == "byPaymentApplicationTypeChartAP") {
             $startDate = $this->parseReportDate(request()->start);
             $endDate = $this->parseReportDate(request()->end, true);
-            $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
+            $country = $this->selectedCountryNames();
             if (!empty(request()->subid)) {
                 $data = PaymentARs::whereBetween('payment_ar.created_at', [$startDate, $endDate])
                     ->where('payment_ar.subscriber_id', request()->subid)
@@ -3408,7 +3432,7 @@ class SubscriberFilterController extends Controller
         } elseif (request()->type == "byCounrtyDemoRequestChart") {
             $startDate = $this->parseReportDate(request()->start);
             $endDate = $this->parseReportDate(request()->end, true);
-            $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
+            $country = $this->selectedCountryNames();
 
             if (!empty(request()->subid)) {
                 $cd = Tickets::select(
@@ -3421,7 +3445,7 @@ class SubscriberFilterController extends Controller
             } else {
                 $data =   DB::table('demo_requests')->whereBetween('created_at', [$startDate, $endDate])
                     ->select('country', DB::raw('COUNT(id) as demo_request_count')) // Select specific columns
-                    ->whereIn('country', $country) // Filter by specific countries
+                    ->when($country, fn ($query) => $query->whereIn('country', $country))
                     ->groupBy('country') // Group by country
                     ->get();
             }
@@ -3430,7 +3454,7 @@ class SubscriberFilterController extends Controller
         } elseif (request()->type == "bytimelineDemoRequestChart") {
             $startDate = $this->parseReportDate(request()->start);
             $endDate = $this->parseReportDate(request()->end, true);
-            $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
+            $country = $this->selectedCountryNames();
 
             if (!empty(request()->subid)) {
                 $cd = Tickets::select(
@@ -3802,9 +3826,9 @@ class SubscriberFilterController extends Controller
                         'referrer.name as name', // Include referrer name
                         DB::raw('COUNT(referred.id) as count') // Count referred subscribers
                     )
-                    ->whereBetween('reffered.created_at', [$startDate, $endDate])
+                    ->whereBetween('referred.created_at', [$startDate, $endDate])
                     ->where('referrer.id', request()->subid)
-                    ->where('referred.user_type', 'subscriber')
+                    ->where('referred.user_type', 'Subscriber')
                     ->groupBy('referrer.name') // Group by referrer name to include it in the result
                     ->get();
             } else {
@@ -3863,99 +3887,62 @@ class SubscriberFilterController extends Controller
             $startDate = $this->parseReportDate(request()->start);
             $endDate = $this->parseReportDate(request()->end, true);
 
-            $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
+            $country = $this->selectedCountryNames();
 
             if (!empty(request()->subid)) {
 
-                $referrals = User::find(request()->subid);
-                $data = User::where('referral', $referrals->referral_code)
+                $affiliate = User::find(request()->subid);
+                $data = User::where('referral_code', optional($affiliate)->referral ?: '__none__')
                     ->where('user_type', 'Subscriber')
-                    ->whereIn('country', $country)
+                    ->when($country, fn ($query) => $query->whereIn('country', $country))
+                    ->whereBetween('created_at', [$startDate, $endDate])
                     ->groupBy('country') // Group by country
                     ->select('country', DB::raw('COUNT(*) as No_of_Affiliate')) // Select country and count referrals
                     ->get();
             } else {
                 $data = User::where('user_type', 'Affiliate')
-                    ->whereIn('country', $country) // Use `whereIn` to handle both cases
+                    ->when($country, fn ($query) => $query->whereIn('country', $country))
                     ->whereBetween('created_at', [$startDate, $endDate])
-                    ->select('country', DB::raw('COUNT(users.id) as No_of_Affiliate'))
-                    ->groupBy('country')
+                    ->select(DB::raw("COALESCE(NULLIF(TRIM(country), ''), 'Unspecified') as country"), DB::raw('COUNT(users.id) as No_of_Affiliate'))
+                    ->groupBy(DB::raw("COALESCE(NULLIF(TRIM(country), ''), 'Unspecified')"))
                     ->get();
             }
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byAffiliateSubscribedPlanChart") {
+            $startDate = $this->parseReportDate(request()->start);
+            $endDate = $this->parseReportDate(request()->end, true);
 
+            // Subscribers who signed up with an affiliate's referral code, grouped by their plan.
+            $affiliateCodes = User::where('user_type', 'Affiliate')
+                ->when(!empty(request()->subid), fn ($query) => $query->where('id', request()->subid))
+                ->whereNotNull('referral')
+                ->pluck('referral');
 
-            $country = (request()->input('country') == 'All') ? Countries::pluck('country_name') : Countries::where('id', [request()->input('country')])->pluck('country_name');
-
-            if (!empty(request()->subid)) {
-
-                $data = User::where('user_type', 'Affiliate')
-                    ->whereIn('country', $country) // Use `whereIn` to handle both cases
-                    ->whereBetween('users.created_at', [$startDate, $endDate])
-                    ->select(
-                        'membership',
-                        DB::raw('COUNT(id) as subscriber_count'),
-                        // DB::raw('MAX(referrals.referral_code) as referral_code'), // Use MAX or any other aggregate function
-                        // DB::raw('MAX(referrals.other_column) as other_column') // Apply aggregate function on other columns
-                    )
-                    ->groupBy('membership')
-                    ->get();
-                $referrals = User::find(request()->subid);
-                $data = User::join('referrals', 'users.referral', '=', 'referrals.referral_code') // Join referrals table
-                    ->where('users.user_type', 'Subscriber') // Ensure user is a Subscriber
-                    ->whereNotNull('users.referral_code') // Ensure the user has a referral code
-                    ->select(
-                        'users.membership',
-                        DB::raw('COUNT(users.id) as subscriber_count'),
-                        DB::raw('MAX(referrals.referral_code) as referral_code'), // Use MAX or any other aggregate function
-                        // DB::raw('MAX(referrals.other_column) as other_column') // Apply aggregate function on other columns
-                    )
-                    ->groupBy('users.membership') // Group by membership
-                    ->get();
-            } else {
-
-                $data = User::join('referrals', 'users.referral', '=', 'referrals.referral_code') // Join referrals table
-                    ->where('users.user_type', 'Subscriber') // Ensure user is a Subscriber
-                    ->whereNotNull('users.referral_code') // Ensure the user has a referral code
-                    ->select(
-                        'users.membership',
-                        DB::raw('COUNT(users.id) as subscriber_count'),
-                        DB::raw('MAX(referrals.referral_code) as referral_code'), // Use MAX or any other aggregate function
-                        // DB::raw('MAX(referrals.other_column) as other_column') // Apply aggregate function on other columns
-                    )
-                    ->groupBy('users.membership') // Group by membership
-                    ->get();
-            }
+            $data = User::where('user_type', 'Subscriber')
+                ->whereIn('referral_code', $affiliateCodes)
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->select('membership', DB::raw('COUNT(id) as subscriber_count'))
+                ->groupBy('membership')
+                ->get();
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byAffiliateCurrentWalletCreditsChart") {
             $startDate = $this->parseReportDate(request()->start);
             $endDate = $this->parseReportDate(request()->end, true);
 
-            if (!empty(request()->subid)) {
-                $referralsPerWalletBalance = DB::table('referrals')
-                    ->leftJoin('users', 'referrals.referral_code', '=', 'users.referral_code')
-                    ->select(
-                        'referrals.wallet_balance',
-                        DB::raw('COUNT(referrals.referral_code) as count')
-                    )
-                    ->where('subscriber_id', request()->subid)
-                    ->groupBy('referrals.wallet_balance')
-                    ->get();
-            } else {
-                $data = DB::table('referrals')
-                    ->leftJoin('users', 'referrals.referral_code', '=', 'users.referral') // Join referrals with users
-                    ->select(
-                        'users.name', // Select user name
-                        DB::raw('SUM(referrals.wallet_balance) as total_wallet_balance'), // Sum of user wallet balances
-                        DB::raw('COUNT(referrals.referral_code) as count') // Count the number of referrals
-                    )
-                    ->where('users.user_type', 'Affiliate') // Filter by user_type Affiliate
-                    ->groupBy('users.name') // Group by user name
-                    ->get();
-            }
+            $data = DB::table('referrals')
+                ->leftJoin('users', 'referrals.referral_code', '=', 'users.referral') // Join referrals with users
+                ->select(
+                    'users.name', // Select user name
+                    DB::raw('SUM(referrals.wallet_balance) as total_wallet_balance'), // Sum of user wallet balances
+                    DB::raw('COUNT(referrals.referral_code) as count') // Count the number of referrals
+                )
+                ->where('users.user_type', 'Affiliate') // Filter by user_type Affiliate
+                ->when(!empty(request()->subid), fn ($query) => $query->where('users.id', request()->subid))
+                ->whereBetween('referrals.created_at', [$startDate, $endDate])
+                ->groupBy('users.name') // Group by user name
+                ->get();
 
             return response()->json(['data' => $data]);
         }

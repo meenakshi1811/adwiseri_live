@@ -78,8 +78,8 @@
         <option value="Documents">Documents</option>
         <option value="Communications">Communications</option>
         <option value="Associates">Associates</option>
-        <option value="Invoices">Invoices(AR)</option>
-        <option value="Invoices_ap">Invoices(AP)</option>
+        <option value="Invoices">Invoices (AR)</option>
+        <option value="Invoices_ap">Invoices (AP)</option>
         <option value="Payments">Payments (AR)</option>
         <option value="PaymentsAP">Payments (AP)</option>
         <option value="Referrals">Referrals</option>
@@ -140,8 +140,8 @@
                     aria-label="Default select example">
                     <option value="All">All</option>
                     <option value="Raised">Raised</option>
-                    <option value="Partially_Paid">Partially_Paid</option>
-                    <option value="Fully_Paid">Fully_Paid</option>
+                    <option value="Partially_Paid">Partially Paid</option>
+                    <option value="Fully_Paid">Fully Paid</option>
                     <option value="Unpaid">Unpaid</option>
                     <option value="Cancelled">Cancelled</option>
 
@@ -1319,7 +1319,7 @@ window.clientVisaChartFilters = @json($clientVisaChartFilters ?? []);
                     value: "By Subscriber Country"
                 },
                 {
-                    text: "By Profile/Sub-category,",
+                    text: "By Profile/Sub-category",
                     value: "By Subscriber Category"
                 },
                 // {
@@ -1565,11 +1565,11 @@ window.clientVisaChartFilters = @json($clientVisaChartFilters ?? []);
                     value: "ByClientsTopDocs"
                 },
                 {
-                    text: "By Filesize (Top 50)",
+                    text: "By File Size (Top 50)",
                     value: "ByFilesizeDocs"
                 },
                 {
-                    text: "By Filetype",
+                    text: "By File Type",
                     value: "ByDocumentFiletype"
                 }, {
                     text: "By Year",
@@ -1943,7 +1943,7 @@ window.clientVisaChartFilters = @json($clientVisaChartFilters ?? []);
                     value: "By Affiliates No. of Subscribers Referred"
                 },
                 {
-                    text: "By Amount of Commissions Earnt",
+                    text: "By Amount of Commissions Earned",
                     value: "By Amount of Affiliates Commissions Earnt"
                 },
                 {
@@ -2468,8 +2468,8 @@ window.clientVisaChartFilters = @json($clientVisaChartFilters ?? []);
             'Users': 'Users',
             'Documents': 'Documents',
             'Communications': 'Communications',
-            'Invoices': 'Invoices(AR)',
-            'Invoices_ap': 'Invoices(AP)',
+            'Invoices': 'Invoices (AR)',
+            'Invoices_ap': 'Invoices (AP)',
             'Payments': 'Payments (AR)',
             'PaymentsAP': 'Payments (AP)',
             'Referrals': 'Referrals',
@@ -2512,7 +2512,7 @@ window.clientVisaChartFilters = @json($clientVisaChartFilters ?? []);
 
         let hasError = false;
         /* e.g. "Payments (AP) By Amount (Range) (01-01-2026 - 19-07-2026)" */
-        let title = selectedAttributeTitle + ' ' + selectedFilterTitle + (!selectedFilterTitle.includes('By Timeline (Duration)') && !selectedFilterTitle.includes('By Year') && !selectedFilterTitle.includes('By Transaction Year') && !selectedFilterTitle.includes('By Transaction Timeline') ? ' (' + startDate + ' - ' + endDate + ')' : '');
+        let title = selectedAttributeTitle + ' ' + selectedFilterTitle + (!selectedFilterTitle.includes('By Timeline (Duration)') && !selectedFilterTitle.includes('By Year') && !selectedFilterTitle.includes('By Transaction Year') && !selectedFilterTitle.includes('By Transaction Timeline') ? ' (' + startDate + ' To ' + endDate + ')' : '');
 
         if (!selectedAttribute) {
             // alert("Please Select Attribute");

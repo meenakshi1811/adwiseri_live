@@ -72,8 +72,8 @@
                     <option value="Users">Users</option>
                     <option value="Communications">Communications</option>
                     <option value="Associates">Associates</option>
-                    <option value="Invoices">Invoices(AR)</option>
-                    <option value="Invoices_ap">Invoices(AP)</option>
+                    <option value="Invoices">Invoices (AR)</option>
+                    <option value="Invoices_ap">Invoices (AP)</option>
                     <option value="Payments">Payments (AR)</option>
                     <option value="PaymentsAP">Payments (AP)</option>
                     <option value="Referrals">Referrals</option>
@@ -136,8 +136,8 @@
                     aria-label="Default select example">
                     <option value="All">All</option>
                     <option value="Raised">Raised</option>
-                    <option value="Partially_Paid">Partially_Paid</option>
-                    <option value="Fully_Paid">Fully_Paid</option>
+                    <option value="Partially_Paid">Partially Paid</option>
+                    <option value="Fully_Paid">Fully Paid</option>
                     <option value="Unpaid">Unpaid</option>
                     <option value="Cancelled">Cancelled</option>
 
@@ -1328,7 +1328,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                         value: "By Affiliates No. of Subscribers Referred"
                     },
                     {
-                        text: "By Amount of Commissions Earnt",
+                        text: "By Amount of Commissions Earned",
                         value: "By Amount of Affiliates Commissions Earnt"
                     },
                     {
@@ -1490,7 +1490,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                         value: "By Client Total No. of Applications"
                     },
                     {
-                        text: "By No. of Dependents",
+                        text: "By No. of Dependants",
                         value: "By No. of Dependents"
                     },
                     {
@@ -1590,7 +1590,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                         value: ""
                     },
                     {
-                        text: "By Application (top 20)",
+                        text: "By Application (Top 20)",
                         value: "By Application  (top 20)  Docs"
                     },
                     {
@@ -1602,7 +1602,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                         value: "By Docs Size (Top 50)"
                     },
                     {
-                        text: "By Filetype",
+                        text: "By File Type",
                         value: "By Document Filetype"
                     },
                     {
@@ -1739,7 +1739,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                         value: "By Payment Mode Payment Amount"
                     },
                     {
-                        text: " By Payment Status (Raised, Partially_Paid, Fully_Paid, Cancelled, Unpaid)",
+                        text: "By Payment Status (Raised, Partially Paid, Fully Paid, Cancelled, Unpaid)",
                         value: " By Payment Status (Raised, Partially_Paid, Fully_Paid, Cancelled, Unpaid)"
                     },
                     {
@@ -1892,7 +1892,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                         value: "By Affiliates No. of Subscribers Referred"
                     },
                     {
-                        text: "By Amount of Commissions Earnt",
+                        text: "By Amount of Commissions Earned",
                         value: "By Amount of Affiliates Commissions Earnt"
                     },
                     {
@@ -2140,7 +2140,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
             var endDate = (dateRangeParts[1] || '').trim();
 
             let hasError = false;
-            let title = selectedAttribute + ' : ' + selectedFilterTitle + (!selectedFilterTitle.includes('By Timeline (Duration)') && !selectedFilterTitle.includes('By Year') ? ' (' + startDate + ' - ' + endDate + ')' : '');
+            let title = selectedAttribute + ' : ' + selectedFilterTitle + (!selectedFilterTitle.includes('By Timeline (Duration)') && !selectedFilterTitle.includes('By Year') ? ' (' + startDate + ' To ' + endDate + ')' : '');
 
             if (!selectedAttribute) {
                 // alert("Please Select Attribute");
