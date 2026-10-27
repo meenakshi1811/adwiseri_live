@@ -6,9 +6,22 @@
  * data-auto-open="<action>"; once the page has loaded it is clicked automatically, so the tab
  * appears selected with its form already open. The parameter is then dropped from the address
  * bar so a refresh doesn't reopen the form.
+ *
+ * Clicking the already-selected tab returns to that tab's main screen (adwiseriShowTabMain).
  */
 (function (window, document) {
     'use strict';
+
+    // Selected tab clicked: close an open Add/Assign form via its Back button, otherwise reload the
+    // tab's own page.
+    window.adwiseriShowTabMain = function (url) {
+        var back = document.getElementById('back');
+        if (back && window.getComputedStyle(back).display !== 'none') {
+            back.click();
+            return;
+        }
+        window.location.href = url;
+    };
 
     var params = new URLSearchParams(window.location.search);
     var action = params.get('open');

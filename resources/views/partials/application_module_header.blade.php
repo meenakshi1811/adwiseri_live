@@ -73,7 +73,7 @@
 
 <div class="row m-0 pb-2 module-tab-row">
     <div class="col-3 border p-1 text-center tab-anchor {{ $activeTab === 'applications' ? 'bg-info text-white' : 'top_modules' }}"
-        @if($activeTab !== 'applications') onclick="window.location.href = '{{ route('applications') }}';" @endif>
+        @if($activeTab !== 'applications') onclick="window.location.href = '{{ route('applications') }}';" @else onclick="adwiseriShowTabMain('{{ route('applications') }}')" @endif>
         Applications
     </div>
     <div class="col-3 border p-1 text-center tab-anchor {{ $activeTab === 'documents' ? 'bg-info text-white' : 'top_modules' }}"
@@ -83,6 +83,8 @@
             @else
                 id="documents_zero" style="cursor:pointer;opacity:0.45;"
             @endif
+        @else
+            onclick="adwiseriShowTabMain('{{ route('client_documents') }}')"
         @endif>
         Documents
     </div>
@@ -93,12 +95,14 @@
             @else
                 id="management_zero" style="cursor:pointer;opacity:0.45;"
             @endif
+        @elseif($activeTab === 'management')
+            onclick="adwiseriShowTabMain('{{ route('user_applications') }}')"
         @endif>
         Application Management
     </div>
     @if($hasApplications)
     <div class="col-3 border p-1 text-center tab-anchor {{ $activeTab === 'tracking' ? 'bg-info text-white' : 'top_modules' }}"
-        @if($activeTab !== 'tracking') onclick="window.location.href = '{{ route('user_application_tracking') }}';" @endif>
+        @if($activeTab !== 'tracking') onclick="window.location.href = '{{ route('user_application_tracking') }}';" @else onclick="adwiseriShowTabMain('{{ route('user_application_tracking') }}')" @endif>
         Application Tracking
     </div>
     @else

@@ -211,17 +211,22 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             });
         });
 
+        // The staff filters belong to the assignments table, so they hide and show with it.
+        var $assignmentFilters = $('[data-table-id="clientTable"]');
+
         $("#new_assign").click(function(){
             $("#new_assign").css('display','none');
             $("#back").css('display','block');
             $("#new_assignment").css('display','block');
             $("#assignments").css('display','none');
+            $assignmentFilters.hide();
         });
         $("#back").click(function(){
             $("#new_assign").css('display','block');
             $("#back").css('display','none');
             $("#new_assignment").css('display','none');
             $("#assignments").css('display','block');
+            $assignmentFilters.show();
         });
           $("#client_id").change(function(){
             var id = $(this).val();

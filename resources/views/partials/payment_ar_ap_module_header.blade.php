@@ -31,11 +31,11 @@
 </div>
 <div class="module-tab-strip payment-module-tabs d-flex w-100 pb-2">
     <div class="flex-fill border p-1 text-center tab-anchor {{ $activeTab === 'ar' ? 'bg-info text-white' : 'top_modules' }}"
-        @if($activeTab !== 'ar') onclick="window.location.href = '{{ route('my_payments') }}';" @endif>
+        @if($activeTab !== 'ar') onclick="window.location.href = '{{ route('my_payments') }}';" @else onclick="adwiseriShowTabMain('{{ route('my_payments') }}')" @endif>
         {{ $arTabLabel }}
     </div>
     <div class="flex-fill border p-1 text-center tab-anchor {{ $activeTab === 'ap' ? 'bg-info text-white' : 'top_modules' }}"
-        @if($activeTab !== 'ap') onclick="window.location.href = '{{ route('payment_made') }}';" @endif>
+        @if($activeTab !== 'ap') onclick="window.location.href = '{{ route('payment_made') }}';" @else onclick="adwiseriShowTabMain('{{ route('payment_made') }}')" @endif>
         {{ $apTabLabel }}
     </div>
 </div>
