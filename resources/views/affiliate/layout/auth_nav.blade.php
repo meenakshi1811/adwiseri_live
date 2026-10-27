@@ -180,6 +180,12 @@
                                 </span>
                                 Settings
                             </a>
+                        <a href="{{ route('support_affiliate') }}" @if($page == "support") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
+                                <span class="sidebar-menu-icon">
+                                    <i class="{{ \App\Support\ModuleIcons::for('support') }}"></i>
+                                </span>
+                                Support
+                            </a>
                     @endif
                 </div>
             </div>

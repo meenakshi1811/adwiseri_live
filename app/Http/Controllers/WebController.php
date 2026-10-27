@@ -588,19 +588,19 @@ class WebController extends Controller
     public function check_login()
     {
         $user = Auth::user();
-        if( $user->status == 'true'){
-            if ($user) {
+        if ($user) {
+            if ($user->status == 'true') {
                 return $user;
-            } else {
-                $user = auth()->guard('affiliates')->user();
+            }
+        } else {
+            // Affiliates sign in on their own guard; use their linked user account.
+            $affiliate = auth()->guard('affiliates')->user();
+            if ($affiliate) {
+                $user = User::where('status', 'true')->where('email', $affiliate->email)->first();
                 if ($user) {
-                    $user = User::where('status', 'true')->where('email', $user->email)->first();
                     $user['type_user'] = 'affiliate';
                     return $user;
                 }
-                Auth::logout();
-                Session::flush();
-                return redirect()->route('login');
             }
         }
         Auth::logout();
