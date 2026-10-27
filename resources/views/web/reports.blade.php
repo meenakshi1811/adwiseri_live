@@ -1,6 +1,6 @@
 @extends('web.layout.main')
 
-<link rel="stylesheet" href="{{ asset('web_assets/css/reports-module.css') }}?v=20261019a">
+<link rel="stylesheet" href="{{ asset('web_assets/css/reports-module.css') }}?v=20261027b">
 <style>
     /* .dt-buttons {
     position: absolute !important;
@@ -80,7 +80,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         <div class="row">
             <div class="col-12">
 
-                <ul class="nav nav-tabs border" id="myTab" role="tablist">
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
                     @if ($user->user_type == 'admin')
                         @include('partials.report_tab_button', ['module' => 'subscribers', 'id' => 'subscribers-tab', 'label' => 'Subscribers', 'active' => true, 'onclick' => 'onClickSubscribers()', 'target' => '#subscribers'])
                     @endif
@@ -103,9 +103,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                         @include('partials.report_tab_button', ['module' => 'demo_request', 'id' => 'demo-request-tab', 'label' => 'Demo Request', 'active' => false, 'onclick' => 'onClickDemoRequest()', 'target' => '#demo-request'])
                     @endif
                 </ul>
-                <div class="tab-content pt-2 px-2"
-                    style="border-left: 1px #dee2e6 solid; border-right: 1px #dee2e6 solid; border-bottom: 1px #dee2e6 solid;"
-                    id="myTabContent">
+                @include('web.partials.settings_tab_row_lines_script', ['tablistId' => 'myTab'])
+                <div class="tab-content pt-2 px-2" id="myTabContent">
                     @if ($user->user_type == 'admin')
                     <div class="tab-pane fade show active" id="subscribers" role="tabpanel"
                         aria-labelledby="subscribers-tab">
@@ -465,8 +464,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                     <option value="byClient">By Client (Top 20)</option>
                                     {{-- <option value="Gender">By Gender</option> --}}
                                     <!-- <option value="bySubscriber">By Subscriber (Top 20) </option> -->
-                                    <option value="bySize">By FileSize (Top 50)</option>
-                                    <option value="byFiletype">By Filetype</option>
+                                    <option value="bySize">By File Size (Top 50)</option>
+                                    <option value="byFiletype">By File Type</option>
                                     <option value="byTimeLine">By Timeline (Duration)</option>
                                     <option value="yearly">By Year</option>
                                 </select>
@@ -525,7 +524,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                     
                                     <option value="byMeeting"> By Meeting Notes By Timeline</option>
                                     <option value="meetingNotes">By Meeting Notes Type</option>
-                                    <option value="messagesSentByUser">By Messages Sent ByUsers</option>
+                                    <option value="messagesSentByUser">By Messages Sent By Users</option>
                                     <option value="byMessages">By Messages</option>
                                     <option value="yearly">By Year</option>
                                 </select>
@@ -1157,7 +1156,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                     onchange="onchangeActivityReport(this.value,this.options[this.selectedIndex].text)">
                                     <option value="" selected>Select Attribute</option>
                                     <option value="byActivityType">By Activity Type</option>
-                                    <option value="byTime">By Timeline(Duration)</option>
+                                    <option value="byTime">By Timeline (Duration)</option>
                                     {{-- <option value="Gender">By Gender</option> --}}
                                     <option value="bySubscribers">By Top 10 Users</option>
                                 </select>
@@ -1213,7 +1212,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                     onchange="onChangeAffiliatesReport(this.value,this.options[this.selectedIndex].text)">
                                     <option selected>Select Attribute</option>
                                     <option value="subscribersReferred">By No. of Subscribers Referred</option>
-                                    <option value="earnedComission">By Amount of Commissions Earnt</option>
+                                    <option value="earnedComission">By Amount of Commissions Earned</option>
                                     <option value="country">By Country </option>
                                     <option value="subscriberType">By Subscriber Type </option>
                                     <option value="subscribedPlan">By Subscribed Plan </option>
@@ -1533,7 +1532,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         var result = getStartAndEndDate('Client');
 
         // This arrangement can be altered based on how we want the date's format to appear.
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
 
         deativeTabs();
         dataTable1 = true;
@@ -1554,7 +1553,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
-                    title: 'Report : Clients  (' + currentDate + ')', // Custom title for CSV
+                    title: 'Report : Clients (' + currentDate + ')', // Custom title for CSV
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -1563,7 +1562,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Report : Clients  (' + currentDate + ')', // Custom t
+                    title: 'Report : Clients (' + currentDate + ')', // Custom t
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -1825,7 +1824,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         var result = getStartAndEndDate('Client');
 
         // This arrangement can be altered based on how we want the date's format to appear.
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
 
         deativeTabs();
 
@@ -1842,7 +1841,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar reports-dt-toolbar--bold d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
-                    title: 'Report : Clients  (' + currentDate + ')', // Custom title for CSV
+                    title: 'Report : Clients (' + currentDate + ')', // Custom title for CSV
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -2022,7 +2021,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         }
         var result = getStartAndEndDate('Client');
         // This arrangement can be altered based on how we want the date's format to appear.
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
 
         let reportTitle = '';
         let ajaxType = type;
@@ -2042,7 +2041,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
-                    title: 'Report :  Clients ' + text + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
+                    title: 'Report : Clients ' + text + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
                     exportOptions: {
                         columns: ':visible',
                         modifier: {
@@ -2052,7 +2051,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Report :  Clients ' + text + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
+                    title: 'Report : Clients ' + text + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
                     exportOptions: {
                         columns: ':visible',
                         modifier: {
@@ -2062,7 +2061,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report :  Clients ' + text + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''),
+                    title: 'Report : Clients ' + text + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''),
                     orientation: 'landscape', // Makes table fit better
                     pageSize: 'A4',
                     customize: function(doc) {
@@ -2187,12 +2186,12 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     orderable: false,
                     searchable: false
                 }, {
-                    title: "Age Groups",
+                    title: "Age Group",
                     data: 'age_group',
                     name: 'age_group'
                 },
                 {
-                    title: "No of Clients",
+                    title: "No. of Clients",
                     data: 'count',
                     name: 'count'
                 }
@@ -2212,7 +2211,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     name: 'application_name'
                 },
                 {
-                    title: "No of Clients",
+                    title: "No. of Clients",
                     data: 'number_of_clients',
                     name: 'number_of_clients',
                     width: '50px',
@@ -2235,7 +2234,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     name: 'client_name'
                 },
                 {
-                    title: "No of Applications",
+                    title: "No. of Applications",
                     data: 'no_of_applications',
                     name: 'no_of_applications',
 
@@ -2256,7 +2255,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     name: 'payment_mode'
                 },
                 {
-                    title: "No of Clients",
+                    title: "No. of Clients",
                     data: 'number_of_payment',
                     name: 'number_of_payment'
                 }
@@ -2309,7 +2308,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     name: 'client_name'
                 },
                 {
-                    title: "No of Documents",
+                    title: "No. of Documents",
                     data: 'no_of_docs',
                     name: 'no_of_docs',
                     orderable: false,
@@ -2331,7 +2330,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     name: 'name'
                 },
                 {
-                    title: "No of Dependants",
+                    title: "No. of Dependants",
                     data: 'dependants_count',
                     name: 'dependants_count'
                 }
@@ -2352,7 +2351,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
                 },
                 {
-                    title: "No of Users",
+                    title: "No. of Users",
                     data: 'count',
                     name: 'count',
 
@@ -2393,7 +2392,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
         var result = getStartAndEndDate('Application');
         // This arrangement can be altered based on how we want the date's format to appear.
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
 
         deativeTabs();
         applicationTable1 = true;
@@ -2410,7 +2409,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar reports-dt-toolbar--bold d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             buttons: [{
                     extend: 'csv',
-                    title: 'Report : Applications  (' + currentDate + ')',
+                    title: 'Report : Applications (' + currentDate + ')',
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -2580,7 +2579,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         $('#reportApplications').show();
         var result = getStartAndEndDate('Application');
 
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
 
 
         let reportTitle = '';
@@ -2603,7 +2602,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     name: 'country'
                 },
                 {
-                    title: "No of Applications",
+                    title: "No. of Applications",
                     data: 'application_count',
                     name: 'application_count'
                 }
@@ -2623,7 +2622,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     name: 'status'
                 },
                 {
-                    title: "No of Applications",
+                    title: "No. of Applications",
                     data: 'application_count',
                     name: 'application_count'
                 }
@@ -2643,7 +2642,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     name: 'country'
                 },
                 {
-                    title: "No of Applications",
+                    title: "No. of Applications",
                     data: 'application_count',
                     name: 'application_count'
                 }
@@ -2663,7 +2662,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     name: 'application_name'
                 },
                 {
-                    title: "No of Applications",
+                    title: "No. of Applications",
                     data: 'application_count',
                     name: 'application_count'
                 }
@@ -2684,12 +2683,12 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     name: 'applicationName'
                 },
                 {
-                    title: "No of Single",
+                    title: "No. of Single",
                     data: 'single',
                     name: 'single'
                 },
                 {
-                    title: "No of Joint",
+                    title: "No. of Joint",
                     data: 'joint',
                     name: 'joint'
                 }
@@ -2709,7 +2708,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     name: 'payment_mode'
                 },
                 {
-                    title: "No of Applications",
+                    title: "No. of Applications",
                     data: 'application_count',
                     name: 'application_count'
                 }
@@ -2758,7 +2757,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     name: 'name'
                 },
                 {
-                    title: "No of Documents",
+                    title: "No. of Documents",
                     data: 'no_of_docs',
                     name: 'no_of_docs'
                 }
@@ -2781,7 +2780,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
                 },
                 {
-                    title: "No of Applications",
+                    title: "No. of Applications",
                     data: 'count',
                     name: 'count',
 
@@ -2832,7 +2831,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar reports-dt-toolbar--bold d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             buttons: [{
                     extend: 'csv',
-                    title: 'Report : Applications  ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
+                    title: 'Report : Applications ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
                     exportOptions: {
                         modifier: {
                             page: 'all'
@@ -2841,7 +2840,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Report : Applications  ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
+                    title: 'Report : Applications ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
                     exportOptions: {
                         modifier: {
                             page: 'all'
@@ -2850,7 +2849,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report : Applications  ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for PDF
+                    title: 'Report : Applications ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for PDF
                     orientation: 'landscape', // Makes table fit better
                     pageSize: 'A4',
                     customize: function(doc) {
@@ -2936,7 +2935,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
     function onClickUsers() {
         var result = getStartAndEndDate('User');
         // This arrangement can be altered based on how we want the date's format to appear.
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
         deativeTabs();
         userTable1 = true;
 
@@ -3118,7 +3117,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             $('#reportUserTable').empty(); // Remove existing columns and rows
         }
         let orders = [];
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
         $('#reportUsers').show();
 
         // Define common DataTable settings
@@ -3136,7 +3135,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             buttons: [{
                     extend: 'csv',
-                    title: 'Report : Users   ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
+                    title: 'Report : Users ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -3145,7 +3144,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Report : Users  ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
+                    title: 'Report : Users ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -3154,7 +3153,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report : Users  ' + selectedText + ' (' + currentDate + ')', // Custom title for Excel
+                    title: 'Report : Users ' + selectedText + ' (' + currentDate + ')', // Custom title for Excel
                     orientation: 'landscape', // Makes table fit better
                     pageSize: 'A4',
                     customize: function(doc) {
@@ -3268,7 +3267,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     orderable: false,
                     searchable: false
                 }, {
-                    title: "Age Groups",
+                    title: "Age Group",
                     data: 'age_group',
                     name: 'age_group'
                 },
@@ -3343,7 +3342,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
                 }, {
 
-                    title: "No of Users",
+                    title: "No. of Users",
                     data: 'total_users',
                     name: 'total_users'
                 }
@@ -3394,7 +3393,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
                 },
                 {
-                    title: "No of Users",
+                    title: "No. of Users",
                     data: 'count',
                     name: 'count',
 
@@ -3432,7 +3431,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
         // This arrangement can be altered based on how we want the date's format to appear.
         var result = getStartAndEndDate('Document');
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
 
         deativeTabs();
         Documents1 = true;
@@ -3449,7 +3448,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
-                    title: 'Report : Documents  (' + currentDate + ')', // Custom title for C
+                    title: 'Report : Documents (' + currentDate + ')', // Custom title for C
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -3458,7 +3457,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Report : Documents  (' + currentDate + ')', // Custom title for Exc
+                    title: 'Report : Documents (' + currentDate + ')', // Custom title for Exc
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -3467,7 +3466,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report : Documents  (' + currentDate + ')',
+                    title: 'Report : Documents (' + currentDate + ')',
                     orientation: 'landscape', // Makes table fit better
                     pageSize: 'A4',
                     customize: function(doc) {
@@ -3607,7 +3606,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         $('#documentsReportTitle').show();
         var result = getStartAndEndDate('Document');
         $('#reportDocuments').show();
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
         $('#documentsTable').show();
 
         let reportTitle = '';
@@ -3631,7 +3630,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     name: 'client'
                 },
                 {
-                    title: "Application Name  (ID)",
+                    title: "Application Name (ID)",
                     data: 'application',
                     name: 'application'
                 },
@@ -3698,7 +3697,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     name: 'docs_name'
                 },
                 {
-                    title: "Filesize",
+                    title: "File Size",
                     data: 'formatted_size',
                     name: 'formatted_size'
                 }
@@ -3743,7 +3742,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
                 },
                 {
-                    title: "No of Documents",
+                    title: "No. of Documents",
                     data: 'count',
                     name: 'count',
 
@@ -3792,7 +3791,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             buttons: [{
                     extend: 'csv',
-                    title: 'Report : Documents  ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
+                    title: 'Report : Documents ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
                     exportOptions: {
                         modifier: {
                             page: 'all'
@@ -3801,7 +3800,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Report : Documents  ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
+                    title: 'Report : Documents ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
                     exportOptions: {
                         modifier: {
                             page: 'all'
@@ -3810,7 +3809,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report : Documents  ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
+                    title: 'Report : Documents ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
                     orientation: 'landscape', // Makes table fit better
                     pageSize: 'A4',
                     customize: function(doc) {
@@ -3897,7 +3896,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
         var result = getStartAndEndDate('Communication');
         // This arrangement can be altered based on how we want the date's format to appear.
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
 
         deativeTabs();
         communicationTable1 = true;
@@ -3914,7 +3913,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
-                    title: 'Report :  Communications (' + currentDate + ')', // Custom title
+                    title: 'Report : Communications (' + currentDate + ')', // Custom title
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -3923,7 +3922,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Report :  Communications (' + currentDate + ')', // Custom title fo
+                    title: 'Report : Communications (' + currentDate + ')', // Custom title fo
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -3932,7 +3931,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report :  Communications (' + currentDate + ')',
+                    title: 'Report : Communications (' + currentDate + ')',
                     orientation: 'landscape', // Makes table fit better
                     pageSize: 'A4',
                     customize: function(doc) {
@@ -4068,7 +4067,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             $('#reportCommunicationsTable').empty();
         }
         var result = getStartAndEndDate('Communication');
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
         $('#reportCommunications').show();
         let dataTableSettings = {
             processing: true,
@@ -4286,7 +4285,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
                 },
                 {
-                    title: "No of Users",
+                    title: "No. of Users",
                     data: 'count',
                     name: 'count',
 
@@ -4323,7 +4322,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
         // This arrangement can be altered based on how we want the date's format to appear.
         var result = getStartAndEndDate('Invoice');
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
 
         deativeTabs();
         invoiceTable1 = true;
@@ -4340,7 +4339,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
-                    title: 'Report : Invoices  (' + currentDate + ')', // Custom title for CS
+                    title: 'Report : Invoices (' + currentDate + ')', // Custom title for CS
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -4349,7 +4348,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Report : Invoices  (' + currentDate + ')', // Custom title for Exce
+                    title: 'Report : Invoices (' + currentDate + ')', // Custom title for Exce
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -4358,7 +4357,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report : Invoices  (' + currentDate + ')', // Custom title for Exce
+                    title: 'Report : Invoices (' + currentDate + ')', // Custom title for Exce
                     orientation: 'landscape', // Makes table fit better
                     pageSize: 'A4',
                     customize: function(doc) {
@@ -4509,7 +4508,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
     // This arrangement can be altered based on how we want the date's format to appear.
     var result = getStartAndEndDate('Invoice');
-    let currentDate = `${result.startDate} - ${result.endDate}`;
+    let currentDate = `${result.startDate} To ${result.endDate}`;
 
     deativeTabs();
     invoiceAPTable1 = true;
@@ -4526,7 +4525,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
         "buttons": [{
                 extend: 'csv',
-                title: 'Report : Invoices  (' + currentDate + ')', // Custom title for CS
+                title: 'Report : Invoices (' + currentDate + ')', // Custom title for CS
                 exportOptions: {
                     modifier: {
                         page: 'all' // Export all data, not just the current page
@@ -4535,7 +4534,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             },
             {
                 extend: 'excel',
-                title: 'Report : Invoices  (' + currentDate + ')', // Custom title for Exce
+                title: 'Report : Invoices (' + currentDate + ')', // Custom title for Exce
                 exportOptions: {
                     modifier: {
                         page: 'all' // Export all data, not just the current page
@@ -4544,7 +4543,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             },
             {
                 extend: 'pdf',
-                title: 'Report : Invoices  (' + currentDate + ')', // Custom title for Exce
+                title: 'Report : Invoices (' + currentDate + ')', // Custom title for Exce
                 orientation: 'landscape', // Makes table fit better
                 pageSize: 'A4',
                 customize: function(doc) {
@@ -4708,7 +4707,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             $('#reportInvoiceTable').empty(); // Remove existing columns and rows
         }
         var result = getStartAndEndDate('Invoice');
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
         $('#reportInvoices').show();
         let dataTableSettings = {
             processing: true,
@@ -4724,7 +4723,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             buttons: [{
                     extend: 'csv',
-                    title: 'Report : Invoices  ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
+                    title: 'Report : Invoices ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -4733,7 +4732,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Report : Invoices  ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
+                    title: 'Report : Invoices ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -4742,7 +4741,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report : Invoices  ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
+                    title: 'Report : Invoices ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
                     orientation: 'landscape', // Makes table fit better
                     pageSize: 'A4',
                     customize: function(doc) {
@@ -4925,7 +4924,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
                 },
                 {
-                    title: "No of Invoices",
+                    title: "No. of Invoices",
                     data: 'count',
                     name: 'count',
 
@@ -4978,7 +4977,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             $('#reportInvoiceAPTable').empty(); // Remove existing columns and rows
         }
         var result = getStartAndEndDate('Invoice');
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
         $('#reportInvoicesAP').show();
         let dataTableSettings = {
             processing: true,
@@ -4994,7 +4993,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             buttons: [{
                     extend: 'csv',
-                    title: 'Report : Invoices  ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
+                    title: 'Report : Invoices ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for CSV
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -5003,7 +5002,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Report : Invoices  ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
+                    title: 'Report : Invoices ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -5012,7 +5011,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report : Invoices  ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
+                    title: 'Report : Invoices ' + selectedText + (!text.includes('By Timeline (Duration)') && !text.includes('By Year') ? ' (' + currentDate + ')' : ''), // Custom title for Excel
                     orientation: 'landscape', // Makes table fit better
                     pageSize: 'A4',
                     customize: function(doc) {
@@ -5195,7 +5194,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
                 },
                 {
-                    title: "No of Invoices",
+                    title: "No. of Invoices",
                     data: 'count',
                     name: 'count',
 
@@ -5236,7 +5235,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
         var result = getStartAndEndDate('PaymentAR');
         // This arrangement can be altered based on how we want the date's format to appear.
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
 
         deativeTabs();
         paymentsTable1 = true;
@@ -5256,7 +5255,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
-                    title: 'Report : Payments (AR)  (' + currentDate + ')', // Custom title for CS
+                    title: 'Report : Payments (AR) (' + currentDate + ')', // Custom title for CS
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -5265,7 +5264,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Report : Payments (AR)  (' + currentDate + ')', // Custom title for Exce
+                    title: 'Report : Payments (AR) (' + currentDate + ')', // Custom title for Exce
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -5274,7 +5273,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report : Payments (AR)  (' + currentDate + ')', // Custom title for Exce
+                    title: 'Report : Payments (AR) (' + currentDate + ')', // Custom title for Exce
                     orientation: 'landscape', // Makes table fit better
                     pageSize: 'A4',
                     customize: function(doc) {
@@ -5449,7 +5448,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         }
         var result = getStartAndEndDate('PaymentAR');
         // This arrangement can be altered based on how we want the date's format to appear.
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
         let columns = [];
         $('#reportPayments').show();
         let dataTableSettings = {
@@ -5761,7 +5760,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
                 },
                 {
-                    title: "No of Payments",
+                    title: "No. of Payments",
                     data: 'count',
                     name: 'count',
 
@@ -5784,7 +5783,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     name: 'year'
                 },
                 {
-                    title: "No of Payments",
+                    title: "No. of Payments",
                     data: 'count',
                     name: 'count'
                 }
@@ -5804,7 +5803,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
         var result = getStartAndEndDate('PaymentAP');
         // This arrangement can be altered based on how we want the date's format to appear.
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
 
         deativeTabs();
         paymentsAPTable1 = true;
@@ -5824,7 +5823,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
-                    title: 'Report : Payments (AP)   (' + currentDate + ')', // Custom title for CS
+                    title: 'Report : Payments (AP) (' + currentDate + ')', // Custom title for CS
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -5833,7 +5832,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Report : Payments (AP)   (' + currentDate + ')', // Custom title for Exce
+                    title: 'Report : Payments (AP) (' + currentDate + ')', // Custom title for Exce
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -5842,7 +5841,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report : Payments (AP)   (' + currentDate + ')', // Custom title for Exce
+                    title: 'Report : Payments (AP) (' + currentDate + ')', // Custom title for Exce
                     orientation: 'landscape', // Makes table fit better
                     pageSize: 'A4',
                     customize: function(doc) {
@@ -6017,7 +6016,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         }
         var result = getStartAndEndDate('PaymentAP');
         // This arrangement can be altered based on how we want the date's format to appear.
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
         let columns = [];
         $('#reportAPPayments').show();
         let dataTableSettings = {
@@ -6329,7 +6328,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
                 },
                 {
-                    title: "No of Payments",
+                    title: "No. of Payments",
                     data: 'count',
                     name: 'count',
 
@@ -6369,7 +6368,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
     function onClickReferrals() {
         var result = getStartAndEndDate('Referral');
-        let currentDate = `${result.startDate} - ${result.endDate}`
+        let currentDate = `${result.startDate} To ${result.endDate}`
         deativeTabs();
         refferalsTable1 = true;
         var refferalsTable = $('#refferalsTable1').DataTable({
@@ -6384,7 +6383,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
-                    title: 'Report : Referrals  (' + currentDate + ')', // Custom title for C
+                    title: 'Report : Referrals (' + currentDate + ')', // Custom title for C
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -6393,7 +6392,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Report : Referrals  (' + currentDate + ')', // Custom title for Exc
+                    title: 'Report : Referrals (' + currentDate + ')', // Custom title for Exc
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -6402,7 +6401,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report : Referrals  (' + currentDate + ')', // Custom title for Exc
+                    title: 'Report : Referrals (' + currentDate + ')', // Custom title for Exc
                     orientation: 'landscape', // Makes table fit better
                     pageSize: 'A4',
                     customize: function(doc) {
@@ -6551,7 +6550,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             return; // Exit the function
         }
         var result = getStartAndEndDate('Referral');
-        let currentDate = `${result.startDate} - ${result.endDate}`
+        let currentDate = `${result.startDate} To ${result.endDate}`
         $('#reportReferrals').show();
 
         let reportTitle = '';
@@ -6787,7 +6786,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
     function onClickWallets() {
 
         var result = getStartAndEndDate('Wallet');
-        let currentDate = `${result.startDate} - ${result.endDate}`
+        let currentDate = `${result.startDate} To ${result.endDate}`
 
         deativeTabs();
         walletsTable1 = true;
@@ -6823,7 +6822,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report : Wallet  (' + currentDate + ')', // Custom title for Exc
+                    title: 'Report : Wallet (' + currentDate + ')', // Custom title for Exc
                     orientation: 'landscape', // Makes table fit better
                     pageSize: 'A4',
                     customize: function(doc) {
@@ -6972,7 +6971,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             return; // Exit the function
         }
         var result = getStartAndEndDate('Wallet');
-        let currentDate = `${result.startDate} - ${result.endDate}`
+        let currentDate = `${result.startDate} To ${result.endDate}`
 
         // Ensure DataTable is properly destroyed and HTML table is cleared
         if ($.fn.DataTable.isDataTable('#reportWalletTable')) {
@@ -7103,7 +7102,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     orderable: false,
                     searchable: false
                 }, {
-                    title: "Amount(USD)",
+                    title: "Amount (USD)",
                     data: 'payment_amount_range',
                     name: 'payment_amount_range'
                 },
@@ -7152,7 +7151,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
                 },
                 {
-                    title: "No of Transactions",
+                    title: "No. of Transactions",
                     data: 'count',
                     name: 'count',
 
@@ -7194,7 +7193,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
     function onClickAffiliates() {
 
         var result = getStartAndEndDate('Affiliat');
-        let currentDate = `${result.startDate} - ${result.endDate}`
+        let currentDate = `${result.startDate} To ${result.endDate}`
 
         deativeTabs();
         Affiliates1 = true;
@@ -7211,7 +7210,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
-                    title: 'Report-Affiliates(' + currentDate + ')', // Custom title for
+                    title: 'Report : Affiliates (' + currentDate + ')', // Custom title for
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -7220,7 +7219,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Report-Affiliates(' + currentDate + ')', // Custom title for Ex
+                    title: 'Report : Affiliates (' + currentDate + ')', // Custom title for Ex
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -7229,7 +7228,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report-Affiliates(' + currentDate + ')', // Custom title for
+                    title: 'Report : Affiliates (' + currentDate + ')', // Custom title for
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -7312,7 +7311,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         let selectedText = text;
 
         var result = getStartAndEndDate('Affiliat');
-        let currentDate = `${result.startDate} - ${result.endDate}`
+        let currentDate = `${result.startDate} To ${result.endDate}`
         $('#reportAffiliates').show();
 
         let reportTitle = '';
@@ -7426,7 +7425,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: 'Blfrtip',
             buttons: [{
                     extend: 'csv',
-                    title: `Report-Affiliates ${selectedText}(${currentDate})`, // Custom title for CSV
+                    title: `Report : Affiliates ${selectedText} (${currentDate})`, // Custom title for CSV
                     exportOptions: {
                         modifier: {
                             page: 'all'
@@ -7435,7 +7434,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: `Report-Affiliates ${selectedText}(${currentDate})`, // Custom title for Excel
+                    title: `Report : Affiliates ${selectedText} (${currentDate})`, // Custom title for Excel
                     exportOptions: {
                         modifier: {
                             page: 'all'
@@ -7444,7 +7443,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: `Report-Affiliates ${selectedText}(${currentDate})`, // Custom title for PDF
+                    title: `Report : Affiliates ${selectedText} (${currentDate})`, // Custom title for PDF
                     exportOptions: {
                         modifier: {
                             page: 'all'
@@ -7476,7 +7475,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             startDate: '',
             endDate: ''
         };
-        let currentDate = `${result.startDate} - ${result.endDate}`
+        let currentDate = `${result.startDate} To ${result.endDate}`
 
         deativeTabs();
         SupportTickets1 = true;
@@ -7498,7 +7497,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
-                    title: 'Report-tickets(' + currentDate + ')', // Custom title for CSV
+                    title: 'Report : Support Tickets (' + currentDate + ')', // Custom title for CSV
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -7507,7 +7506,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Report-tickets(' + currentDate + ')', // Custom t
+                    title: 'Report : Support Tickets (' + currentDate + ')', // Custom t
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -7516,7 +7515,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report-tickets(' + currentDate + ')', // Custom
+                    title: 'Report : Support Tickets (' + currentDate + ')', // Custom
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -7594,7 +7593,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             startDate: '',
             endDate: ''
         };
-        let currentDate = `${result.startDate} - ${result.endDate}`
+        let currentDate = `${result.startDate} To ${result.endDate}`
         $('#reportSupport').show();
         let dataTableSettings = {
             processing: true,
@@ -7610,7 +7609,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip',
             "buttons": [{
                     extend: 'csv',
-                    title: `Report-Support Tickets ${selectedText}(${currentDate})`, // Custom title for CSV
+                    title: `Report : Support Tickets ${selectedText} (${currentDate})`, // Custom title for CSV
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -7619,7 +7618,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: `Report-Support Tickets ${selectedText}(${currentDate})`, // Custom title for Excel
+                    title: `Report : Support Tickets ${selectedText} (${currentDate})`, // Custom title for Excel
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -7628,7 +7627,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: `Report-Support Tickets ${selectedText}(${currentDate})`, // Custom title for PDF
+                    title: `Report : Support Tickets ${selectedText} (${currentDate})`, // Custom title for PDF
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -7725,7 +7724,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
     function onClickDemoRequest() {
 
         var result = getStartAndEndDate('Demo');
-        let currentDate = `${result.startDate} - ${result.endDate}`
+        let currentDate = `${result.startDate} To ${result.endDate}`
 
 
         deativeTabs();
@@ -7743,7 +7742,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
-                    title: 'Report-Subscribers(' + currentDate + ')', // Custom title for
+                    title: 'Report : Subscribers (' + currentDate + ')', // Custom title for
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -7752,7 +7751,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Report-Subscribers(' + currentDate + ')', // Custom title for E
+                    title: 'Report : Subscribers (' + currentDate + ')', // Custom title for E
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -7762,7 +7761,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 {
                     extend: 'pdfHtml5',
 
-                    title: 'Report-Subscribers(' + currentDate + ')', // Custom title for
+                    title: 'Report : Subscribers (' + currentDate + ')', // Custom title for
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -7833,7 +7832,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         // Ensure DataTable is properly destroyed and HTML table is cleared
 
         var result = getStartAndEndDate('Demo');
-        let currentDate = `${result.startDate} - ${result.endDate}`
+        let currentDate = `${result.startDate} To ${result.endDate}`
         $('#demoRequestTable').show();
         let dataTableSettings = {
             processing: true,
@@ -7845,7 +7844,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: 'Blfrtip',
             "buttons": [{
                     extend: 'csv',
-                    title: `Report-Demo Request ${selectedText}(${currentDate})`, // Custom title for CSV
+                    title: `Report : Demo Request ${selectedText} (${currentDate})`, // Custom title for CSV
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -7854,7 +7853,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: `Report-Demo Request ${selectedText}(${currentDate})`, // Custom title for Excel
+                    title: `Report : Demo Request ${selectedText} (${currentDate})`, // Custom title for Excel
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -7863,7 +7862,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: `Report-Demo Request ${selectedText}(${currentDate})`, // Custom title for PDF
+                    title: `Report : Demo Request ${selectedText} (${currentDate})`, // Custom title for PDF
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -7901,7 +7900,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         } else if (type == 'byCountry') {
             $('#clientReportTitle7').html('Demo Request ByCountry');
             dataTableSettings.columns = [{
-                    title: "Demo request Country",
+                    title: "Demo Request Country",
                     data: 'country',
                     name: 'country'
                 },
@@ -7934,7 +7933,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                     name: 'time_interval'
                 },
                 {
-                    title: "Total Ticket",
+                    title: "Total Tickets",
                     data: 'total_tickets',
                     name: 'total_tickets'
                 },
@@ -7957,7 +7956,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             startDate: '',
             endDate: ''
         };
-        let currentDate = `${result.startDate} - ${result.endDate}`
+        let currentDate = `${result.startDate} To ${result.endDate}`
 
         deativeTabs();
         ActivityLog1 = true;
@@ -7979,7 +7978,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
-                    title: 'Report-Activity log(' + currentDate + ')', // Custom title fo
+                    title: 'Report : Activity Log (' + currentDate + ')', // Custom title fo
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -7988,7 +7987,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Report-Activity log(' + currentDate + ')', // Custom title for
+                    title: 'Report : Activity Log (' + currentDate + ')', // Custom title for
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -7997,7 +7996,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report-Activity log(' + currentDate + ')', // Custom title fo
+                    title: 'Report : Activity Log (' + currentDate + ')', // Custom title fo
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -8063,7 +8062,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             startDate: '',
             endDate: ''
         };
-        let currentDate = `${result.startDate} - ${result.endDate}`
+        let currentDate = `${result.startDate} To ${result.endDate}`
         $('#reportActivity').show();
 
         let dataTableSettings = {
@@ -8080,7 +8079,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip',
             buttons: [{
                     extend: 'csv',
-                    title: `Report-Activity Log ${selectedText}(${currentDate})`, // Custom title for CSV
+                    title: `Report : Activity Log ${selectedText} (${currentDate})`, // Custom title for CSV
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -8089,7 +8088,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: `Report-Activity Log ${selectedText}(${currentDate})`, // Custom title for Excel
+                    title: `Report : Activity Log ${selectedText} (${currentDate})`, // Custom title for Excel
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -8098,7 +8097,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: `Report-Activity Log ${selectedText}(${currentDate})`, // Custom title for PDF
+                    title: `Report : Activity Log ${selectedText} (${currentDate})`, // Custom title for PDF
                     exportOptions: {
                         modifier: {
                             page: 'all' // Export all data, not just the current page
@@ -8158,7 +8157,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         } else if (type == 'bySubscribers') {
             $('#clientReportTitle8').html('Activities by Top 10 Users');
             dataTableSettings.columns = [{
-                    title: "UserName (ID)",
+                    title: "User Name (ID)",
                     data: 'user_name_id',
                     name: 'user_name_id',
                     orderable: false,
@@ -8424,7 +8423,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
 
     function onClickAssociates() {
         var result = getStartAndEndDate('Associate');
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
         deativeTabs();
         associatesTable1 = true;
 
@@ -8440,17 +8439,17 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"reports-dt-toolbar d-flex align-items-center"l<"reports-dt-btn-wrap"B>f>rtip',
             buttons: [{
                     extend: 'csv',
-                    title: 'Report : Associates  (' + currentDate + ')',
+                    title: 'Report : Associates (' + currentDate + ')',
                     exportOptions: { modifier: { page: 'all' } }
                 },
                 {
                     extend: 'excel',
-                    title: 'Report : Associates  (' + currentDate + ')',
+                    title: 'Report : Associates (' + currentDate + ')',
                     exportOptions: { modifier: { page: 'all' } }
                 },
                 {
                     extend: 'pdf',
-                    title: 'Report : Associates  (' + currentDate + ')',
+                    title: 'Report : Associates (' + currentDate + ')',
                     orientation: 'landscape',
                     pageSize: 'A4',
                     exportOptions: { modifier: { page: 'all' } }
@@ -8486,7 +8485,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         }
 
         var result = getStartAndEndDate('Associate');
-        let currentDate = `${result.startDate} - ${result.endDate}`;
+        let currentDate = `${result.startDate} To ${result.endDate}`;
         $('#reportAssociates').show();
 
         let reportTitle = '';

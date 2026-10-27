@@ -1,7 +1,10 @@
+{{-- Draws a baseline under each wrapped row of a nav-tabs list: $tablistId, the Settings tabs by default. --}}
 <script>
 (function () {
+    var tablistId = @json($tablistId ?? 'settingsTab');
+
     function drawSettingsTabRowLines() {
-        var tablist = document.getElementById('settingsTab');
+        var tablist = document.getElementById(tablistId);
         if (!tablist) {
             return;
         }
