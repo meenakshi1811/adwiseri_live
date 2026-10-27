@@ -163,7 +163,7 @@ class ApplicationController extends Controller
     public function manage_dependants()
     {
         $user = Auth::user();
-        $page = 'Dependents';
+        $page = 'clients';
         $subscribers = User::where('user_type', '=', 'Subscriber')->get();
         $dependents = Dependants::orderBy('created_at', 'desc')->get();
         $clients = Clients::get();
@@ -174,7 +174,7 @@ class ApplicationController extends Controller
 
         $subscriber = auth()->user()->user_type == 'Subscriber' ? auth()->id() : auth()->user()->added_by;
         $user = Auth::user();
-        $page = 'Dependents';
+        $page = 'clients';
         $clients = Clients::where('subscriber_id',$subscriber)->get();
         $dependents = Dependants::where('subscriber_id', $subscriber)->orderBy('created_at', 'desc')->get();
         return view('web.manage_dependant', compact('dependents', 'user', 'page','clients'));

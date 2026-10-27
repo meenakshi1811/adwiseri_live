@@ -9160,7 +9160,7 @@ class WebController extends Controller
             ->orderBy('name')
             ->get(['id', 'name']);
 
-        $page = "enquiries";
+        $page = "clients";
 
         return view('web.enquiries', compact(
             'user',
@@ -9451,7 +9451,7 @@ class WebController extends Controller
             return redirect()->back()->with('error', 'Enquiry not found.');
         }
         $user = $this->check_login();
-        $page = "visa-enquiries";
+        $page = "clients";
         return view('web.view_enquiries', compact('user','enquiry','page'));
     }
 
@@ -11004,7 +11004,7 @@ class WebController extends Controller
         $countries = $this->getSubscriberCountryOptions((int) $subscriber->id);
         $allCountries = Countries::orderBy('country_name', 'asc')->get();
         $visaCategories = $ccService->resolveVisaCategoryNames($subscriber);
-        $page = "enquiries";
+        $page = "clients";
 
         return view('web.add_lead', compact(
             'user',

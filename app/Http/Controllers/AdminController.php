@@ -3931,7 +3931,7 @@ class AdminController extends Controller
     {
         $user = Auth::user();
         if ($user) {
-            $page = "email_broadcast";
+            $page = "communication";
             $subscribers = User::where('user_type', '=', 'Subscriber')->orderBy('name')->get();
 
             return view("admin.email_broadcast", compact('user', 'page', 'subscribers'));
@@ -4115,7 +4115,7 @@ class AdminController extends Controller
     {
         $user = Auth::user();
         if ($id) {
-            $page = "communications";
+            $page = "communication";
             $message = Internal_communications::find($id);
             if ($message && $user) {
                 app(\App\Services\NotificationService::class)->markMessageRead($user, (int) $message->id);
