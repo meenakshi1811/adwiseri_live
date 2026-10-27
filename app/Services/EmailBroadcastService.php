@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Jobs\ProcessEmailBroadcastJob;
+use App\Models\Associate;
 use App\Models\Clients;
 use App\Models\Email_broadcasts;
 use App\Models\User;
@@ -108,6 +109,57 @@ class EmailBroadcastService
             $client = $query->first();
             if ($client) {
                 $this->addRecipient($resolved, $client->email, $client->name);
+            }
+        }
+
+        return array_values($resolved);
+    }
+
+    /**
+     * "External" picks: clients ("all" or client ids) and, when allowed, associates ("associate:all" or
+     * "associate:{id}"). Someone in both lists is emailed once.
+     */
+    public function resolveExternalRecipients(int $subscriberId, ?int $staffUserId, array $recipients, bool $includeAssociates): array
+    {
+        $clientPicks = [];
+        $associatePicks = [];
+
+        foreach ($recipients as $recipient) {
+            if (str_starts_with((string) $recipient, 'associate:')) {
+                $associatePicks[] = substr((string) $recipient, 10);
+            } else {
+                $clientPicks[] = $recipient;
+            }
+        }
+
+        $resolved = [];
+        $picked = $this->resolveClientRecipients($subscriberId, $staffUserId, $clientPicks);
+        if ($includeAssociates) {
+            $picked = array_merge($picked, $this->resolveAssociateRecipients($subscriberId, $associatePicks));
+        }
+
+        foreach ($picked as $recipient) {
+            $this->addRecipient($resolved, $recipient['email'], $recipient['name']);
+        }
+
+        return array_values($resolved);
+    }
+
+    public function resolveAssociateRecipients(int $subscriberId, array $recipients): array
+    {
+        $resolved = [];
+
+        foreach ($recipients as $recipient) {
+            if ($recipient === 'all') {
+                foreach (Associate::where('added_by', $subscriberId)->get() as $associate) {
+                    $this->addRecipient($resolved, $associate->email, $associate->name);
+                }
+                continue;
+            }
+
+            $associate = Associate::where('id', $recipient)->where('added_by', $subscriberId)->first();
+            if ($associate) {
+                $this->addRecipient($resolved, $associate->email, $associate->name);
             }
         }
 

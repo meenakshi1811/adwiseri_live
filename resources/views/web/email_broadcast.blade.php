@@ -8,12 +8,14 @@ $canSend = $user->user_type === 'Subscriber' || ($communication_roles && ($commu
 $oldCommunicateType = old('communicate_type');
 $staffCount = $staffMembers->count();
 $clientCount = $clients->count();
+$associates = $associates ?? collect();
+$associateCount = $associates->count();
 $defaultType = null;
 if (in_array($oldCommunicateType, ['internal', 'external'], true)) {
     $defaultType = $oldCommunicateType;
 } elseif ($staffCount > 0) {
     $defaultType = 'internal';
-} elseif ($clientCount > 0) {
+} elseif ($clientCount + $associateCount > 0) {
     $defaultType = 'external';
 }
 
@@ -62,7 +64,7 @@ $broadcastErrorMessage = session('broadcast_error');
                 </button>
             </div>
         </div>
-        <p class="eb-page-subtitle text-center mb-3">Send bulk emails to your staff or clients. The footer shows your organisation address, website, and email.</p>
+        <p class="eb-page-subtitle text-center mb-3">Send bulk emails to your staff, clients or associates. The footer shows your organisation address, website, and email.</p>
 
         @include('partials.communication_tabs', ['activeTab' => 'email_broadcast'])
 
@@ -96,7 +98,7 @@ $broadcastErrorMessage = session('broadcast_error');
                                         <i class="fa-solid fa-user-group"></i> External
                                     </button>
                                 </div>
-                                <div class="eb-form-hint">Internal sends to staff. External sends to clients.</div>
+                                <div class="eb-form-hint">Internal sends to staff. External sends to clients and/or associates.</div>
                                 @error('communicate_type')
                                 <span class="eb-error-text">{{ $message }}</span>
                                 @enderror
@@ -107,7 +109,7 @@ $broadcastErrorMessage = session('broadcast_error');
 
                                 <div class="eb-recipient-wrap" id="staff_recipients_dropdown">
                                     <div class="eb-recipient-trigger" data-panel="staff-panel">
-                                        <span class="eb-recipient-trigger-text">Choose recipients...</span>
+                                        <span class="eb-recipient-trigger-text" data-placeholder="Choose recipients...">Choose recipients...</span>
                                         <span>
                                             <span class="eb-recipient-badge">0 selected</span>
                                             <i class="fa-solid fa-chevron-down ms-2 text-muted" style="font-size:0.75rem;"></i>
@@ -151,7 +153,7 @@ $broadcastErrorMessage = session('broadcast_error');
 
                                 <div class="eb-recipient-wrap" id="client_recipients_dropdown">
                                     <div class="eb-recipient-trigger" data-panel="client-panel">
-                                        <span class="eb-recipient-trigger-text">Choose clients...</span>
+                                        <span class="eb-recipient-trigger-text" data-placeholder="Choose clients...">Choose clients...</span>
                                         <span>
                                             <span class="eb-recipient-badge">0 selected</span>
                                             <i class="fa-solid fa-chevron-down ms-2 text-muted" style="font-size:0.75rem;"></i>
@@ -180,6 +182,43 @@ $broadcastErrorMessage = session('broadcast_error');
                                 <span class="eb-error-text">{{ $message }}</span>
                                 @enderror
                             </div>
+
+                            @if($associateCount > 0)
+                            <div class="eb-form-group associate-recipient-section" style="display:none;">
+                                <label class="eb-form-label">Select Associate(s) <span class="required">*</span></label>
+
+                                <div class="eb-recipient-wrap" id="associate_recipients_dropdown">
+                                    <div class="eb-recipient-trigger" data-panel="associate-panel">
+                                        <span class="eb-recipient-trigger-text" data-placeholder="Choose associates...">Choose associates...</span>
+                                        <span>
+                                            <span class="eb-recipient-badge">0 selected</span>
+                                            <i class="fa-solid fa-chevron-down ms-2 text-muted" style="font-size:0.75rem;"></i>
+                                        </span>
+                                    </div>
+                                    <div class="eb-recipient-panel" id="associate-panel">
+                                        <div class="eb-recipient-search-wrap">
+                                            <input type="text" class="eb-recipient-search" placeholder="Search associates..." data-target="associate-panel">
+                                        </div>
+                                        <div class="eb-recipient-list">
+                                            <label class="eb-recipient-option">
+                                                <input type="checkbox" id="selectAllAssociates">
+                                                <strong>Select All</strong>
+                                            </label>
+                                            <label class="eb-recipient-option"><input type="checkbox" class="associate-recipient" name="recipients[]" value="associate:all"> All Associates</label>
+                                            @foreach($associates as $associate)
+                                            <label class="eb-recipient-option" data-search="{{ strtolower($associate->name . ' ' . $associate->organization) }}">
+                                                <input type="checkbox" class="associate-recipient" name="recipients[]" value="associate:{{ $associate->id }}">
+                                                {{ $associate->name }}
+                                                @if(trim((string) $associate->organization) !== '')
+                                                <span class="text-muted">({{ $associate->organization }})</span>
+                                                @endif
+                                            </label>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
 
                             <div class="eb-form-group">
                                 <label class="eb-form-label" for="broadcast_subject">Email Subject <span class="required">*</span></label>
@@ -245,17 +284,24 @@ document.addEventListener('DOMContentLoaded', function () {
     const typeButtons = document.querySelectorAll('.eb-type-btn');
     const staffSection = document.querySelector('.recipient-section');
     const clientSection = document.querySelector('.client-recipient-section');
+    const associateSection = document.querySelector('.associate-recipient-section');
     const bodyField = document.getElementById('broadcast_body');
     const bodyCount = document.getElementById('body_char_count');
     const staffCount = {{ (int) $staffCount }};
     const clientCount = {{ (int) $clientCount }};
+    const associateCount = {{ (int) $associateCount }};
+    const externalRecipients = '.client-recipient, .associate-recipient';
 
-    function showNoRecipientsAlert() {
+    function showNoRecipientsAlert(type) {
+        const messages = {
+            internal: 'No staff found in the system',
+            external: 'No clients or associates found in the system'
+        };
         Swal.fire({
             icon: 'warning',
             customClass: { icon: 'adwiseri-oops-icon' },
             title: 'Oops!',
-            text: 'No clients found in the system'
+            text: messages[type] || 'No staff, clients or associates found in the system'
         });
     }
 
@@ -264,9 +310,16 @@ document.addEventListener('DOMContentLoaded', function () {
             return staffCount > 0;
         }
         if (type === 'external') {
-            return clientCount > 0;
+            return clientCount + associateCount > 0;
         }
         return false;
+    }
+
+    function setExternalSectionsVisible(visible) {
+        clientSection.style.display = visible && clientCount > 0 ? 'block' : 'none';
+        if (associateSection) {
+            associateSection.style.display = visible ? 'block' : 'none';
+        }
     }
 
     function setCommunicateType(type) {
@@ -275,29 +328,32 @@ document.addEventListener('DOMContentLoaded', function () {
             btn.classList.toggle('active', btn.dataset.type === type);
         });
 
-        document.querySelectorAll('.staff-recipient, .client-recipient').forEach(function (checkbox) {
+        document.querySelectorAll('.staff-recipient, ' + externalRecipients).forEach(function (checkbox) {
             checkbox.checked = false;
             checkbox.disabled = true;
             checkbox.removeAttribute('name');
         });
+        document.querySelectorAll('#selectAllStaff, #selectAllClients, #selectAllAssociates').forEach(function (checkbox) {
+            checkbox.checked = false;
+        });
 
         if (type === 'internal') {
             staffSection.style.display = 'block';
-            clientSection.style.display = 'none';
+            setExternalSectionsVisible(false);
             document.querySelectorAll('.staff-recipient').forEach(function (checkbox) {
                 checkbox.disabled = false;
                 checkbox.setAttribute('name', 'recipients[]');
             });
         } else if (type === 'external') {
             staffSection.style.display = 'none';
-            clientSection.style.display = 'block';
-            document.querySelectorAll('.client-recipient').forEach(function (checkbox) {
+            setExternalSectionsVisible(true);
+            document.querySelectorAll(externalRecipients).forEach(function (checkbox) {
                 checkbox.disabled = false;
                 checkbox.setAttribute('name', 'recipients[]');
             });
         } else {
             staffSection.style.display = 'none';
-            clientSection.style.display = 'none';
+            setExternalSectionsVisible(false);
         }
 
         updateRecipientTriggers();
@@ -308,7 +364,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (this.disabled) return;
             const type = this.dataset.type;
             if (!hasRecipientsForType(type)) {
-                showNoRecipientsAlert();
+                showNoRecipientsAlert(type);
                 return;
             }
             setCommunicateType(type);
@@ -330,7 +386,7 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 trigger.classList.remove('has-selection');
                 badge.textContent = '0 selected';
-                text.textContent = wrap.id === 'staff_recipients_dropdown' ? 'Choose recipients...' : 'Choose clients...';
+                text.textContent = text.dataset.placeholder || 'Choose recipients...';
             }
         });
     }
@@ -385,8 +441,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     bindSelectAll('selectAllStaff', 'staff-recipient');
     bindSelectAll('selectAllClients', 'client-recipient');
+    bindSelectAll('selectAllAssociates', 'associate-recipient');
 
-    document.querySelectorAll('.staff-recipient, .client-recipient').forEach(function (checkbox) {
+    document.querySelectorAll('.staff-recipient, ' + externalRecipients).forEach(function (checkbox) {
         checkbox.addEventListener('change', updateRecipientTriggers);
     });
 
@@ -425,8 +482,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function countSelectedRecipients() {
         const type = typeInput.value;
-        const selector = type === 'internal' ? '.staff-recipient' : '.client-recipient';
-        return document.querySelectorAll(selector + ':checked:not(:disabled)').length;
+        const selector = type === 'internal' ? '.staff-recipient' : externalRecipients;
+        return Array.from(document.querySelectorAll(selector)).filter(function (checkbox) {
+            return checkbox.checked && !checkbox.disabled;
+        }).length;
     }
 
     function showBatchConfirmAlert(recipientCount, onConfirm) {
@@ -467,11 +526,23 @@ document.addEventListener('DOMContentLoaded', function () {
             const type = typeInput.value;
             if (!hasRecipientsForType(type)) {
                 e.preventDefault();
-                showNoRecipientsAlert();
+                showNoRecipientsAlert(type);
                 return;
             }
 
             const recipientCount = countSelectedRecipients();
+            if (recipientCount === 0) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'warning',
+                    customClass: { icon: 'adwiseri-oops-icon' },
+                    title: 'Oops!',
+                    text: type === 'internal'
+                        ? 'Please select at least one staff member.'
+                        : 'Please select at least one client or associate.'
+                });
+                return;
+            }
             const limits = window.emailBroadcastLimits || {};
             const maxRecipients = limits.maxRecipients || 0;
             const usage = window.emailBroadcastUsage || {};
@@ -513,12 +584,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    if (staffCount < 1 && clientCount < 1) {
+    if (staffCount < 1 && clientCount + associateCount < 1) {
         showNoRecipientsAlert();
         typeButtons.forEach(function (btn) { btn.disabled = true; });
         typeInput.value = '';
         staffSection.style.display = 'none';
-        clientSection.style.display = 'none';
+        setExternalSectionsVisible(false);
     } else {
         const usage = window.emailBroadcastUsage || {};
         if ((usage.limit || 0) <= 0 || (usage.remaining || 0) <= 0) {
@@ -536,7 +607,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             typeInput.value = '';
             staffSection.style.display = 'none';
-            clientSection.style.display = 'none';
+            setExternalSectionsVisible(false);
             typeButtons.forEach(function (btn) { btn.classList.remove('active'); });
         }
     }
@@ -559,7 +630,7 @@ Swal.fire({
   icon: 'warning',
   customClass: { icon: 'adwiseri-oops-icon' },
   title: 'Oops!',
-  text: 'No clients found in the system'
+  text: @json(session('no_broadcast_recipients'))
 });
 </script>
 @endif

@@ -6789,6 +6789,9 @@ class WebController extends Controller
             $staffMembers = User::where('added_by', $subscriber->id)->where('user_type', 'User')->orderBy('name')->get();
             $clients = Clients::where('user_id', $user->id)->orderBy('name')->get();
         }
+        $associates = $this->canBroadcastToAssociates($user)
+            ? \App\Models\Associate::where('added_by', $subscriber->id)->orderBy('name')->get()
+            : collect();
 
         $page = "email_broadcast";
         $subscriberFooter = \App\Support\BrandedMail::subscriberFooterContext($subscriber);
@@ -6802,7 +6805,22 @@ class WebController extends Controller
             'body_max' => 50000,
         ];
 
-        return view('web.email_broadcast', compact('user', 'page', 'staffMembers', 'clients', 'subscriber', 'subscriberFooter', 'broadcastLimits', 'broadcastUsage'));
+        return view('web.email_broadcast', compact('user', 'page', 'staffMembers', 'clients', 'associates', 'subscriber', 'subscriberFooter', 'broadcastLimits', 'broadcastUsage'));
+    }
+
+    /**
+     * Associates appear as External broadcast recipients for the subscriber and for staff who can open the
+     * Associates module.
+     */
+    private function canBroadcastToAssociates($user): bool
+    {
+        if ($user->user_type === 'Subscriber') {
+            return true;
+        }
+
+        $associateRoles = UserRoles::where('user_id', $user->id)->where('module', 'Associates')->first();
+
+        return $associateRoles && ($associateRoles->read_only == 1 || $associateRoles->read_write_only == 1);
     }
 
     public function send_email_broadcast(Request $request, EmailBroadcastService $emailBroadcastService)
@@ -6843,7 +6861,7 @@ class WebController extends Controller
         if ($communicateType === 'internal') {
             $hasStaff = User::where('added_by', $subscriber->id)->where('user_type', 'User')->exists();
             if (!$hasStaff) {
-                return back()->with('no_broadcast_recipients', 'No clients found in the system')->withInput();
+                return back()->with('no_broadcast_recipients', 'No staff found in the system')->withInput();
             }
             $resolvedRecipients = $emailBroadcastService->resolveStaffRecipients($subscriber->id, $selectedRecipients);
         } else {
@@ -6851,10 +6869,13 @@ class WebController extends Controller
             if ($staffUserId) {
                 $clientQuery->where('user_id', $staffUserId);
             }
-            if (!$clientQuery->exists()) {
-                return back()->with('no_broadcast_recipients', 'No clients found in the system')->withInput();
+            $includeAssociates = $this->canBroadcastToAssociates($user);
+            $hasAssociates = $includeAssociates
+                && \App\Models\Associate::where('added_by', $subscriber->id)->exists();
+            if (!$clientQuery->exists() && !$hasAssociates) {
+                return back()->with('no_broadcast_recipients', 'No clients or associates found in the system')->withInput();
             }
-            $resolvedRecipients = $emailBroadcastService->resolveClientRecipients($subscriber->id, $staffUserId, $selectedRecipients);
+            $resolvedRecipients = $emailBroadcastService->resolveExternalRecipients($subscriber->id, $staffUserId, $selectedRecipients, $includeAssociates);
         }
 
         $result = $emailBroadcastService->queueBroadcast(

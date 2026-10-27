@@ -80,7 +80,7 @@
             @if($maxRecipients > 0)
                 Up to {{ number_format($maxRecipients) }} recipients per broadcast
             @else
-                No fixed maximum — all selected staff or clients with a valid email
+                No fixed maximum — all selected staff, clients or associates with a valid email
             @endif
         </div>
     </div>
