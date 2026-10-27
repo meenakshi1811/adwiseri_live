@@ -75,10 +75,23 @@ $subscriberDisplayName = $subscriber->organization ?? $subscriber->name;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
+    /* Columns size to their content; the wrapper scrolls sideways when the table is wider than the screen.
+       (A fixed layout split the width evenly, so phone numbers, emails and buttons spilled into other columns.) */
     .enquiries-leads-table {
-        table-layout: fixed;
+        table-layout: auto;
         width: 100% !important;
-        min-width: 960px;
+    }
+    .enquiries-leads-table .enquiry-col-phone,
+    .enquiries-leads-table .enquiry-col-nowrap {
+        white-space: nowrap;
+    }
+    .enquiries-leads-table .enquiry-col-email {
+        min-width: 13.5rem;
+        max-width: 16rem;
+        overflow-wrap: anywhere;
+    }
+    .enquiries-leads-table .form-select-sm {
+        min-width: 8.5rem;
     }
     .enquiries-leads-table.fl-table th,
     .enquiries-leads-table.fl-table td {
@@ -153,14 +166,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <tr>
 
-<th class="text-center enquiry-col-num">EnquiryID</th>
+<th class="text-center enquiry-col-num">ID</th>
 <th class="text-center">Client Name</th>
 <th class="text-center enquiry-col-cop">COP</th>
 <th class="text-center">PVC</th>
-<th class="text-center">Contact No</th>
+<th class="text-center">Phone</th>
 <th class="text-center">Email</th>
 <th class="text-center enquiry-col-num">NOA</th>
-<th class="text-center enquiry-col-date">Created Date</th>
+<th class="text-center enquiry-col-date">Created</th>
 <th class="text-center">Source</th>
 <th class="text-center">Follow-up Status</th>
 <th class="text-center">Worked By</th>
@@ -379,7 +392,11 @@ $(document).ready(function () {
                 { targets: 6, width: '3.4rem', className: 'enquiry-col-num text-center' },
                 { targets: 2, width: '6.5rem', className: 'enquiry-col-cop text-center' },
                 { targets: 7, width: '8.75rem', className: 'enquiry-col-date text-center' },
-                { targets: 15, width: '5.5rem', className: 'enquiry-col-action text-center' }
+                { targets: 15, width: '5.5rem', className: 'enquiry-col-action text-center' },
+                { targets: 4, className: 'enquiry-col-phone text-center' },
+                { targets: 5, className: 'enquiry-col-email text-center' },
+                { targets: 11, className: 'enquiry-col-date text-center' },
+                { targets: [12, 13], className: 'enquiry-col-nowrap text-center' }
             ]
         });
     }
