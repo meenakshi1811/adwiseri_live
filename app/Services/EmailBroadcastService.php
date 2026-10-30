@@ -23,6 +23,31 @@ class EmailBroadcastService
         'hr_accountant' => ['HR Executive', 'Accounts Team Member'],
     ];
 
+    /**
+     * Team keys ("advisors", "sales_team", ...) a staff member with this designation belongs to.
+     *
+     * @return array<int, string>
+     */
+    public static function staffTeamsFor(?string $designation): array
+    {
+        $designation = strtolower(trim((string) $designation));
+
+        return array_keys(array_filter(
+            self::STAFF_GROUP_DESIGNATIONS,
+            fn (array $designations) => in_array($designation, array_map('strtolower', $designations), true)
+        ));
+    }
+
+    /**
+     * Staff who can receive a broadcast: active accounts only (deactivated staff are left out).
+     */
+    private function activeStaffQuery(int $subscriberId)
+    {
+        return User::where('added_by', $subscriberId)
+            ->where('user_type', 'User')
+            ->where('status', 'true');
+    }
+
     public function generateBroadcastId(): string
     {
         $characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -43,9 +68,7 @@ class EmailBroadcastService
 
         foreach ($recipients as $recipient) {
             if ($recipient === 'all') {
-                $staffMembers = User::where('added_by', $subscriberId)
-                    ->where('user_type', 'User')
-                    ->get();
+                $staffMembers = $this->activeStaffQuery($subscriberId)->get();
 
                 foreach ($staffMembers as $staff) {
                     $this->addRecipient($resolved, $staff->email, $staff->name);
@@ -55,7 +78,7 @@ class EmailBroadcastService
 
             if (str_starts_with((string) $recipient, 'group:')) {
                 $group = substr((string) $recipient, 6);
-                $query = User::where('added_by', $subscriberId)->where('user_type', 'User');
+                $query = $this->activeStaffQuery($subscriberId);
 
                 if ($group === 'all') {
                     $staffMembers = $query->get();
@@ -71,9 +94,8 @@ class EmailBroadcastService
                 continue;
             }
 
-            $staff = User::where('id', $recipient)
-                ->where('added_by', $subscriberId)
-                ->where('user_type', 'User')
+            $staff = $this->activeStaffQuery($subscriberId)
+                ->where('id', $recipient)
                 ->first();
 
             if ($staff) {

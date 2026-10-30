@@ -10,6 +10,26 @@ $staffCount = $staffMembers->count();
 $clientCount = $clients->count();
 $associates = $associates ?? collect();
 $associateCount = $associates->count();
+// External broadcasts go to one group at a time: clients or associates.
+$externalGroups = array_filter(['clients' => $clientCount, 'associates' => $associateCount]);
+$defaultExternalGroup = isset($externalGroups[old('external_group')]) ? old('external_group') : array_key_first($externalGroups);
+// "All Staff" and the teams only tick their members. Counts are distinct email addresses, as the broadcast
+// emails each address once and skips people without one.
+$emailCount = fn ($people) => $people->map(fn ($person) => strtolower(trim((string) $person->email)))->filter()->unique()->count();
+$staffTeamsById = $staffMembers->mapWithKeys(fn ($staff) => [$staff->id => \App\Services\EmailBroadcastService::staffTeamsFor($staff->designation)]);
+$staffTeams = collect([
+    'branch_manager' => 'Branch Manager',
+    'advisors' => 'Advisors',
+    'sales_team' => 'Sales Team',
+    'support_team' => 'Support Team',
+    'hr_accountant' => 'HR / Accountant',
+])->map(fn ($label, $key) => [
+    'label' => $label,
+    'count' => $emailCount($staffMembers->filter(fn ($staff) => in_array($key, $staffTeamsById[$staff->id], true))),
+]);
+$reachableStaff = $emailCount($staffMembers);
+$reachableClients = $emailCount($clients);
+$reachableAssociates = $emailCount($associates);
 $defaultType = null;
 if (in_array($oldCommunicateType, ['internal', 'external'], true)) {
     $defaultType = $oldCommunicateType;
@@ -98,7 +118,7 @@ $broadcastErrorMessage = session('broadcast_error');
                                         <i class="fa-solid fa-user-group"></i> External
                                     </button>
                                 </div>
-                                <div class="eb-form-hint">Internal sends to staff. External sends to clients and/or associates.</div>
+                                <div class="eb-form-hint">Internal sends to staff. External sends to clients or associates.</div>
                                 @error('communicate_type')
                                 <span class="eb-error-text">{{ $message }}</span>
                                 @enderror
@@ -121,29 +141,40 @@ $broadcastErrorMessage = session('broadcast_error');
                                         </div>
                                         <div class="eb-recipient-list">
                                             <label class="eb-recipient-option">
-                                                <input type="checkbox" id="selectAllStaff">
+                                                <input type="checkbox" id="selectAllStaff" class="eb-select-all">
                                                 <strong>Select All</strong>
                                             </label>
                                             <div class="eb-recipient-group-title">Teams</div>
-                                            <label class="eb-recipient-option"><input type="checkbox" class="staff-recipient" name="recipients[]" value="all"> All Staff</label>
-                                            <label class="eb-recipient-option"><input type="checkbox" class="staff-recipient" name="recipients[]" value="group:branch_manager"> Branch Manager</label>
-                                            <label class="eb-recipient-option"><input type="checkbox" class="staff-recipient" name="recipients[]" value="group:advisors"> Advisors</label>
-                                            <label class="eb-recipient-option"><input type="checkbox" class="staff-recipient" name="recipients[]" value="group:sales_team"> Sales Team</label>
-                                            <label class="eb-recipient-option"><input type="checkbox" class="staff-recipient" name="recipients[]" value="group:support_team"> Support Team</label>
-                                            <label class="eb-recipient-option"><input type="checkbox" class="staff-recipient" name="recipients[]" value="group:hr_accountant"> HR / Accountant</label>
+                                            <label class="eb-recipient-option{{ $reachableStaff ? '' : ' is-unavailable' }}"><input type="checkbox" class="staff-recipient eb-shortcut{{ $reachableStaff ? '' : ' eb-unavailable' }}" name="recipients[]" value="all" data-shortcut="all"> All Staff <span class="eb-recipient-count">({{ $reachableStaff }})</span></label>
+                                            @foreach($staffTeams as $teamKey => $team)
+                                            <label class="eb-recipient-option{{ $team['count'] ? '' : ' is-unavailable' }}"><input type="checkbox" class="staff-recipient eb-shortcut{{ $team['count'] ? '' : ' eb-unavailable' }}" name="recipients[]" value="group:{{ $teamKey }}" data-shortcut="{{ $teamKey }}"> {{ $team['label'] }} <span class="eb-recipient-count">({{ $team['count'] }})</span></label>
+                                            @endforeach
                                             @if($staffMembers->count())
                                             <div class="eb-recipient-group-title">Individual Staff</div>
                                             @foreach($staffMembers as $staff)
-                                            <label class="eb-recipient-option" data-search="{{ strtolower($staff->name) }}">
-                                                <input type="checkbox" class="staff-recipient" name="recipients[]" value="{{ $staff->id }}">
-                                                {{ $staff->name }}
-                                            </label>
+                                            @include('partials.email_broadcast_recipient_option', ['class' => 'staff-recipient', 'value' => $staff->id, 'email' => $staff->email, 'label' => $staff->name, 'groups' => implode(' ', $staffTeamsById[$staff->id])])
                                             @endforeach
                                             @endif
                                         </div>
                                     </div>
                                 </div>
                                 @error('recipients')
+                                <span class="eb-error-text">{{ $message }}</span>
+                                @enderror
+                            </div>
+
+                            <div class="eb-form-group external-group-section" style="display:none;">
+                                <label class="eb-form-label" for="external_group">Select Group <span class="required">*</span></label>
+                                <select id="external_group" name="external_group" class="eb-select" @if(!$canSend) disabled @endif>
+                                    @if($clientCount > 0)
+                                    <option value="clients" {{ $defaultExternalGroup === 'clients' ? 'selected' : '' }}>Clients ({{ $reachableClients }})</option>
+                                    @endif
+                                    @if($associateCount > 0)
+                                    <option value="associates" {{ $defaultExternalGroup === 'associates' ? 'selected' : '' }}>Associates ({{ $reachableAssociates }})</option>
+                                    @endif
+                                </select>
+                                <div class="eb-form-hint">Clients and associates are emailed separately: one group per broadcast.</div>
+                                @error('external_group')
                                 <span class="eb-error-text">{{ $message }}</span>
                                 @enderror
                             </div>
@@ -165,15 +196,12 @@ $broadcastErrorMessage = session('broadcast_error');
                                         </div>
                                         <div class="eb-recipient-list">
                                             <label class="eb-recipient-option">
-                                                <input type="checkbox" id="selectAllClients">
+                                                <input type="checkbox" id="selectAllClients" class="eb-select-all">
                                                 <strong>Select All</strong>
                                             </label>
-                                            <label class="eb-recipient-option"><input type="checkbox" class="client-recipient" name="recipients[]" value="all"> All Clients</label>
+                                            <label class="eb-recipient-option{{ $reachableClients ? '' : ' is-unavailable' }}"><input type="checkbox" class="client-recipient eb-shortcut{{ $reachableClients ? '' : ' eb-unavailable' }}" name="recipients[]" value="all" data-shortcut="all"> All Clients <span class="eb-recipient-count">({{ $reachableClients }})</span></label>
                                             @foreach($clients as $client)
-                                            <label class="eb-recipient-option" data-search="{{ strtolower($client->name) }}">
-                                                <input type="checkbox" class="client-recipient" name="recipients[]" value="{{ $client->id }}">
-                                                {{ $client->name }}
-                                            </label>
+                                            @include('partials.email_broadcast_recipient_option', ['class' => 'client-recipient', 'value' => $client->id, 'email' => $client->email, 'label' => $client->name])
                                             @endforeach
                                         </div>
                                     </div>
@@ -201,18 +229,12 @@ $broadcastErrorMessage = session('broadcast_error');
                                         </div>
                                         <div class="eb-recipient-list">
                                             <label class="eb-recipient-option">
-                                                <input type="checkbox" id="selectAllAssociates">
+                                                <input type="checkbox" id="selectAllAssociates" class="eb-select-all">
                                                 <strong>Select All</strong>
                                             </label>
-                                            <label class="eb-recipient-option"><input type="checkbox" class="associate-recipient" name="recipients[]" value="associate:all"> All Associates</label>
+                                            <label class="eb-recipient-option{{ $reachableAssociates ? '' : ' is-unavailable' }}"><input type="checkbox" class="associate-recipient eb-shortcut{{ $reachableAssociates ? '' : ' eb-unavailable' }}" name="recipients[]" value="associate:all" data-shortcut="all"> All Associates <span class="eb-recipient-count">({{ $reachableAssociates }})</span></label>
                                             @foreach($associates as $associate)
-                                            <label class="eb-recipient-option" data-search="{{ strtolower($associate->name . ' ' . $associate->organization) }}">
-                                                <input type="checkbox" class="associate-recipient" name="recipients[]" value="associate:{{ $associate->id }}">
-                                                {{ $associate->name }}
-                                                @if(trim((string) $associate->organization) !== '')
-                                                <span class="text-muted">({{ $associate->organization }})</span>
-                                                @endif
-                                            </label>
+                                            @include('partials.email_broadcast_recipient_option', ['class' => 'associate-recipient', 'value' => 'associate:' . $associate->id, 'email' => $associate->email, 'label' => $associate->name, 'note' => $associate->organization])
                                             @endforeach
                                         </div>
                                     </div>
@@ -283,6 +305,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const typeInput = document.getElementById('communicate_type');
     const typeButtons = document.querySelectorAll('.eb-type-btn');
     const staffSection = document.querySelector('.recipient-section');
+    const groupSection = document.querySelector('.external-group-section');
+    const groupSelect = document.getElementById('external_group');
     const clientSection = document.querySelector('.client-recipient-section');
     const associateSection = document.querySelector('.associate-recipient-section');
     const bodyField = document.getElementById('broadcast_body');
@@ -290,11 +314,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const staffCount = {{ (int) $staffCount }};
     const clientCount = {{ (int) $clientCount }};
     const associateCount = {{ (int) $associateCount }};
-    const externalRecipients = '.client-recipient, .associate-recipient';
+    const canSend = @json($canSend);
 
     function showNoRecipientsAlert(type) {
         const messages = {
-            internal: 'No staff found in the system',
+            internal: 'No active staff found in the system',
             external: 'No clients or associates found in the system'
         };
         Swal.fire({
@@ -315,11 +339,54 @@ document.addEventListener('DOMContentLoaded', function () {
         return false;
     }
 
-    function setExternalSectionsVisible(visible) {
-        clientSection.style.display = visible && clientCount > 0 ? 'block' : 'none';
-        if (associateSection) {
-            associateSection.style.display = visible ? 'block' : 'none';
+    function externalGroup() {
+        return groupSelect ? groupSelect.value : '';
+    }
+
+    // The list being used: staff for Internal, otherwise the chosen External group (clients or associates).
+    function activeSection() {
+        if (typeInput.value === 'internal') {
+            return staffSection;
         }
+        if (typeInput.value === 'external') {
+            return externalGroup() === 'associates' ? associateSection : clientSection;
+        }
+        return null;
+    }
+
+    // Shows only the list in use; the others are cleared and left out of the form.
+    function showRecipientSections() {
+        const active = activeSection();
+
+        [staffSection, clientSection, associateSection].forEach(function (section) {
+            if (!section) return;
+            const isActive = section === active;
+            section.style.display = isActive ? 'block' : 'none';
+
+            section.querySelectorAll('.eb-person, .eb-shortcut').forEach(function (checkbox) {
+                checkbox.checked = false;
+                checkbox.disabled = !isActive || checkbox.classList.contains('eb-unavailable');
+                if (checkbox.disabled) {
+                    checkbox.removeAttribute('name');
+                } else {
+                    checkbox.setAttribute('name', 'recipients[]');
+                }
+            });
+
+            const selectAll = section.querySelector('.eb-select-all');
+            if (selectAll) {
+                selectAll.checked = false;
+                selectAll.disabled = !isActive || !section.querySelector('.eb-person:not(.eb-unavailable)');
+            }
+        });
+
+        if (groupSection) {
+            const isExternal = typeInput.value === 'external';
+            groupSection.style.display = isExternal ? 'block' : 'none';
+            groupSelect.disabled = !isExternal || !canSend;
+        }
+
+        updateRecipientTriggers();
     }
 
     function setCommunicateType(type) {
@@ -328,35 +395,11 @@ document.addEventListener('DOMContentLoaded', function () {
             btn.classList.toggle('active', btn.dataset.type === type);
         });
 
-        document.querySelectorAll('.staff-recipient, ' + externalRecipients).forEach(function (checkbox) {
-            checkbox.checked = false;
-            checkbox.disabled = true;
-            checkbox.removeAttribute('name');
-        });
-        document.querySelectorAll('#selectAllStaff, #selectAllClients, #selectAllAssociates').forEach(function (checkbox) {
-            checkbox.checked = false;
-        });
+        showRecipientSections();
+    }
 
-        if (type === 'internal') {
-            staffSection.style.display = 'block';
-            setExternalSectionsVisible(false);
-            document.querySelectorAll('.staff-recipient').forEach(function (checkbox) {
-                checkbox.disabled = false;
-                checkbox.setAttribute('name', 'recipients[]');
-            });
-        } else if (type === 'external') {
-            staffSection.style.display = 'none';
-            setExternalSectionsVisible(true);
-            document.querySelectorAll(externalRecipients).forEach(function (checkbox) {
-                checkbox.disabled = false;
-                checkbox.setAttribute('name', 'recipients[]');
-            });
-        } else {
-            staffSection.style.display = 'none';
-            setExternalSectionsVisible(false);
-        }
-
-        updateRecipientTriggers();
+    if (groupSelect) {
+        groupSelect.addEventListener('change', showRecipientSections);
     }
 
     typeButtons.forEach(function (btn) {
@@ -371,18 +414,29 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // People ticked in a list, once per email address (as the server sends them). "Select All", "All ..." and
+    // the teams only tick people, so they never count themselves.
+    function countPeople(scope) {
+        const emails = new Set();
+        scope.querySelectorAll('.eb-person').forEach(function (checkbox) {
+            if (checkbox.checked && !checkbox.disabled) {
+                emails.add(checkbox.dataset.email);
+            }
+        });
+        return emails.size;
+    }
+
     function updateRecipientTriggers() {
         document.querySelectorAll('.eb-recipient-wrap').forEach(function (wrap) {
             const trigger = wrap.querySelector('.eb-recipient-trigger');
-            const checkboxes = wrap.querySelectorAll('input[type="checkbox"]:not([id^="selectAll"])');
-            const checked = Array.from(checkboxes).filter(function (cb) { return cb.checked && !cb.disabled; });
+            const count = countPeople(wrap);
             const badge = trigger.querySelector('.eb-recipient-badge');
             const text = trigger.querySelector('.eb-recipient-trigger-text');
 
-            if (checked.length > 0) {
+            if (count > 0) {
                 trigger.classList.add('has-selection');
-                badge.textContent = checked.length + ' selected';
-                text.textContent = checked.length === 1 ? '1 recipient selected' : checked.length + ' recipients selected';
+                badge.textContent = count + ' selected';
+                text.textContent = count === 1 ? '1 recipient selected' : count + ' recipients selected';
             } else {
                 trigger.classList.remove('has-selection');
                 badge.textContent = '0 selected';
@@ -428,23 +482,52 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    function bindSelectAll(selectAllId, className) {
-        const selectAll = document.getElementById(selectAllId);
-        if (!selectAll) return;
-        selectAll.addEventListener('change', function () {
-            document.querySelectorAll('.' + className).forEach(function (checkbox) {
-                if (!checkbox.disabled) checkbox.checked = this.checked;
-            }, this);
-            updateRecipientTriggers();
-        });
+    function coversPerson(shortcut, person) {
+        const key = shortcut.dataset.shortcut;
+        return key === 'all' || (person.dataset.groups || '').split(' ').indexOf(key) !== -1;
     }
 
-    bindSelectAll('selectAllStaff', 'staff-recipient');
-    bindSelectAll('selectAllClients', 'client-recipient');
-    bindSelectAll('selectAllAssociates', 'associate-recipient');
+    // "Select All", "All ..." and the teams tick or untick their people. Unticking someone also unticks every
+    // option that covers them, so the options sent with the form always match the people ticked.
+    document.querySelectorAll('.eb-recipient-panel').forEach(function (panel) {
+        const people = Array.from(panel.querySelectorAll('.eb-person'));
+        const shortcuts = Array.from(panel.querySelectorAll('.eb-shortcut'));
+        const selectAll = panel.querySelector('.eb-select-all');
 
-    document.querySelectorAll('.staff-recipient, ' + externalRecipients).forEach(function (checkbox) {
-        checkbox.addEventListener('change', updateRecipientTriggers);
+        function sync() {
+            const usable = people.filter(function (person) { return !person.disabled; });
+            shortcuts.forEach(function (shortcut) {
+                if (shortcut.checked && usable.some(function (person) { return coversPerson(shortcut, person) && !person.checked; })) {
+                    shortcut.checked = false;
+                }
+            });
+            if (selectAll) {
+                selectAll.checked = usable.length > 0 && usable.every(function (person) { return person.checked; });
+            }
+            updateRecipientTriggers();
+        }
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function () {
+                people.concat(shortcuts).forEach(function (checkbox) {
+                    if (!checkbox.disabled) checkbox.checked = selectAll.checked;
+                });
+                sync();
+            });
+        }
+
+        shortcuts.forEach(function (shortcut) {
+            shortcut.addEventListener('change', function () {
+                people.forEach(function (person) {
+                    if (!person.disabled && coversPerson(shortcut, person)) person.checked = shortcut.checked;
+                });
+                sync();
+            });
+        });
+
+        people.forEach(function (person) {
+            person.addEventListener('change', sync);
+        });
     });
 
     if (bodyField && bodyCount && typeof window.jQuery === 'undefined') {
@@ -481,11 +564,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function countSelectedRecipients() {
-        const type = typeInput.value;
-        const selector = type === 'internal' ? '.staff-recipient' : externalRecipients;
-        return Array.from(document.querySelectorAll(selector)).filter(function (checkbox) {
-            return checkbox.checked && !checkbox.disabled;
-        }).length;
+        const section = activeSection();
+        return section ? countPeople(section) : 0;
     }
 
     function showBatchConfirmAlert(recipientCount, onConfirm) {
@@ -539,7 +619,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     title: 'Oops!',
                     text: type === 'internal'
                         ? 'Please select at least one staff member.'
-                        : 'Please select at least one client or associate.'
+                        : (externalGroup() === 'associates' ? 'Please select at least one associate.' : 'Please select at least one client.')
                 });
                 return;
             }
@@ -588,8 +668,7 @@ document.addEventListener('DOMContentLoaded', function () {
         showNoRecipientsAlert();
         typeButtons.forEach(function (btn) { btn.disabled = true; });
         typeInput.value = '';
-        staffSection.style.display = 'none';
-        setExternalSectionsVisible(false);
+        showRecipientSections();
     } else {
         const usage = window.emailBroadcastUsage || {};
         if ((usage.limit || 0) <= 0 || (usage.remaining || 0) <= 0) {
@@ -606,8 +685,7 @@ document.addEventListener('DOMContentLoaded', function () {
             setCommunicateType(initialType);
         } else {
             typeInput.value = '';
-            staffSection.style.display = 'none';
-            setExternalSectionsVisible(false);
+            showRecipientSections();
             typeButtons.forEach(function (btn) { btn.classList.remove('active'); });
         }
     }

@@ -54,10 +54,10 @@
                                                 <input type="checkbox" id="selectAllSubscribers">
                                                 <strong>Select All</strong>
                                             </label>
-                                            <label class="eb-recipient-option"><input type="checkbox" class="subscriber-recipient" name="recipients[]" value="all"> All Subscribers</label>
+                                            <label class="eb-recipient-option"><input type="checkbox" class="subscriber-recipient subscriber-all" name="recipients[]" value="all"> All Subscribers <span class="eb-recipient-count">({{ $subscribers->map(fn ($subscriber) => strtolower(trim((string) $subscriber->email)))->filter()->unique()->count() }})</span></label>
                                             @foreach($subscribers as $subscriber)
                                             <label class="eb-recipient-option" data-search="{{ strtolower($subscriber->name . ' ' . $subscriber->email) }}">
-                                                <input type="checkbox" class="subscriber-recipient" name="recipients[]" value="{{ $subscriber->id }}">
+                                                <input type="checkbox" class="subscriber-recipient subscriber-person" name="recipients[]" value="{{ $subscriber->id }}" data-email="{{ strtolower(trim((string) $subscriber->email)) }}">
                                                 <span>{{ $subscriber->name }} <small class="text-muted">({{ $subscriber->email }})</small></span>
                                             </label>
                                             @endforeach
@@ -162,15 +162,19 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateRecipientTrigger() {
         const wrap = document.getElementById('subscriber_recipients_dropdown');
         const trigger = wrap.querySelector('.eb-recipient-trigger');
-        const checkboxes = wrap.querySelectorAll('.subscriber-recipient');
-        const checked = Array.from(checkboxes).filter(function (cb) { return cb.checked; });
+        // Subscribers ticked, once per email address; "Select All" and "All Subscribers" aren't recipients.
+        const emails = new Set();
+        wrap.querySelectorAll('.subscriber-person').forEach(function (cb) {
+            if (cb.checked && cb.dataset.email) emails.add(cb.dataset.email);
+        });
+        const count = emails.size;
         const badge = trigger.querySelector('.eb-recipient-badge');
         const text = trigger.querySelector('.eb-recipient-trigger-text');
 
-        if (checked.length > 0) {
+        if (count > 0) {
             trigger.classList.add('has-selection');
-            badge.textContent = checked.length + ' selected';
-            text.textContent = checked.length === 1 ? '1 subscriber selected' : checked.length + ' subscribers selected';
+            badge.textContent = count + ' selected';
+            text.textContent = count === 1 ? '1 subscriber selected' : count + ' subscribers selected';
         } else {
             trigger.classList.remove('has-selection');
             badge.textContent = '0 selected';
@@ -222,8 +226,25 @@ document.addEventListener('DOMContentLoaded', function () {
         updateRecipientTrigger();
     });
 
-    document.querySelectorAll('.subscriber-recipient').forEach(function (checkbox) {
-        checkbox.addEventListener('change', updateRecipientTrigger);
+    // "All Subscribers" ticks everyone; unticking someone unticks it (and Select All) so the form matches.
+    const allSubscribers = document.querySelector('.subscriber-all');
+    const selectAllSubscribers = document.getElementById('selectAllSubscribers');
+    const subscriberPeople = Array.from(document.querySelectorAll('.subscriber-person'));
+
+    allSubscribers.addEventListener('change', function () {
+        subscriberPeople.forEach(function (checkbox) { checkbox.checked = allSubscribers.checked; });
+        if (!allSubscribers.checked) selectAllSubscribers.checked = false;
+        updateRecipientTrigger();
+    });
+
+    subscriberPeople.forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            if (!checkbox.checked) {
+                allSubscribers.checked = false;
+                selectAllSubscribers.checked = false;
+            }
+            updateRecipientTrigger();
+        });
     });
 });
 </script>

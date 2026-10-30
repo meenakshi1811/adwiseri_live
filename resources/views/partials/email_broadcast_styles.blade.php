@@ -227,6 +227,24 @@
         display: none;
     }
 
+    .eb-recipient-option.is-unavailable,
+    .eb-recipient-option.is-unavailable input[type="checkbox"] {
+        color: #94a3b8;
+        cursor: not-allowed;
+    }
+
+    .eb-recipient-note {
+        margin-left: auto;
+        font-size: 0.72rem;
+        color: #94a3b8;
+        white-space: nowrap;
+    }
+
+    .eb-recipient-count {
+        color: #94a3b8;
+        font-size: 0.8rem;
+    }
+
     .eb-input,
     .eb-select,
     .eb-textarea {

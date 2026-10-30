@@ -6782,13 +6782,13 @@ class WebController extends Controller
 
         if ($user->user_type == "Subscriber") {
             $subscriber = $user;
-            $staffMembers = User::where('added_by', $subscriber->id)->where('user_type', 'User')->orderBy('name')->get();
             $clients = Clients::where('subscriber_id', $subscriber->id)->orderBy('name')->get();
         } else {
             $subscriber = User::find($user->added_by);
-            $staffMembers = User::where('added_by', $subscriber->id)->where('user_type', 'User')->orderBy('name')->get();
             $clients = Clients::where('user_id', $user->id)->orderBy('name')->get();
         }
+        // Deactivated staff don't receive broadcasts, so they aren't offered (or counted) either.
+        $staffMembers = User::where('added_by', $subscriber->id)->where('user_type', 'User')->where('status', 'true')->orderBy('name')->get();
         $associates = $this->canBroadcastToAssociates($user)
             ? \App\Models\Associate::where('added_by', $subscriber->id)->orderBy('name')->get()
             : collect();
@@ -6841,6 +6841,7 @@ class WebController extends Controller
 
         $this->validate($request, [
             'communicate_type' => 'required|in:internal,external',
+            'external_group' => 'nullable|required_if:communicate_type,external|in:clients,associates',
             'recipients' => 'required|array|min:1',
             'recipients.*' => 'required|string',
             'subject' => 'required|string|max:200',
@@ -6859,21 +6860,33 @@ class WebController extends Controller
         $communicateType = $request->communicate_type;
 
         if ($communicateType === 'internal') {
-            $hasStaff = User::where('added_by', $subscriber->id)->where('user_type', 'User')->exists();
+            $hasStaff = User::where('added_by', $subscriber->id)->where('user_type', 'User')->where('status', 'true')->exists();
             if (!$hasStaff) {
-                return back()->with('no_broadcast_recipients', 'No staff found in the system')->withInput();
+                return back()->with('no_broadcast_recipients', 'No active staff found in the system')->withInput();
             }
             $resolvedRecipients = $emailBroadcastService->resolveStaffRecipients($subscriber->id, $selectedRecipients);
         } else {
-            $clientQuery = Clients::where('subscriber_id', $subscriber->id);
-            if ($staffUserId) {
-                $clientQuery->where('user_id', $staffUserId);
+            // Clients and associates are emailed separately: only picks from the chosen group are used.
+            $toAssociates = $request->external_group === 'associates';
+            $selectedRecipients = array_values(array_filter(
+                $selectedRecipients,
+                fn ($recipient) => str_starts_with((string) $recipient, 'associate:') === $toAssociates
+            ));
+
+            if ($toAssociates) {
+                $includeAssociates = $this->canBroadcastToAssociates($user);
+                $hasRecipients = $includeAssociates
+                    && \App\Models\Associate::where('added_by', $subscriber->id)->exists();
+            } else {
+                $includeAssociates = false;
+                $clientQuery = Clients::where('subscriber_id', $subscriber->id);
+                if ($staffUserId) {
+                    $clientQuery->where('user_id', $staffUserId);
+                }
+                $hasRecipients = $clientQuery->exists();
             }
-            $includeAssociates = $this->canBroadcastToAssociates($user);
-            $hasAssociates = $includeAssociates
-                && \App\Models\Associate::where('added_by', $subscriber->id)->exists();
-            if (!$clientQuery->exists() && !$hasAssociates) {
-                return back()->with('no_broadcast_recipients', 'No clients or associates found in the system')->withInput();
+            if (!$hasRecipients) {
+                return back()->with('no_broadcast_recipients', $toAssociates ? 'No associates found in the system' : 'No clients found in the system')->withInput();
             }
             $resolvedRecipients = $emailBroadcastService->resolveExternalRecipients($subscriber->id, $staffUserId, $selectedRecipients, $includeAssociates);
         }
