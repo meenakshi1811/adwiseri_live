@@ -36,8 +36,8 @@ class PaymentReminderMail extends Mailable
             '<p>Sincerely,<br>{{subscriber_name}}</p>';
 
         $subjectTemplate = $template?->subject ?: $defaultSubject;
-        $bodyTemplate = $template?->body ?: $defaultBody;
         $resolvedPayload = $this->withDynamicAliases($this->payload);
+        [$bodyTemplate, $resolvedPayload] = $this->withInvoiceClientLine($template?->body ?: $defaultBody, $resolvedPayload);
 
         $subject = BrandedMail::replacePlaceholders($subjectTemplate, $resolvedPayload);
         $content = $this->removeEmptyPaymentLinkLine(
@@ -45,6 +45,9 @@ class PaymentReminderMail extends Mailable
         );
 
         $headerTitle = 'Outstanding Payment Reminder';
+        // The reminder comes from the subscriber, so the footer carries their name and contact details.
+        $footerMode = 'subscriber';
+        $subscriberFooter = BrandedMail::subscriberFooterContext($this->subscriber);
 
         $subscriberName = trim((string) ($this->subscriber->name ?? ''));
         $subscriberEmail = trim((string) ($this->subscriber->email ?? ''));
@@ -54,7 +57,7 @@ class PaymentReminderMail extends Mailable
                 BrandedMail::alertsFromAddress(),
                 BrandedMail::alertsFromName($subscriberName !== '' ? $subscriberName : 'Subscriber')
             )
-            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle'));
+            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle', 'footerMode', 'subscriberFooter'));
 
         if ($subscriberEmail !== '') {
             BrandedMail::applySubscriberReplyTo($mail, $subscriberEmail, $subscriberName);
@@ -63,6 +66,40 @@ class PaymentReminderMail extends Mailable
         }
 
         return $mail;
+    }
+
+    /**
+     * Reminders sent to an associate name the client the invoice is for on its own line, just above
+     * Application/Service. A template that places {{invoice_client_name}} itself is left alone; one without the
+     * Application/Service label gets the client added to the service value instead.
+     */
+    private function withInvoiceClientLine(string $bodyTemplate, array $data): array
+    {
+        $clientName = trim((string) ($data['invoice_client_name'] ?? ''));
+
+        if ($clientName === '' || preg_match('/{{\s*invoice_client_name\s*}}/i', $bodyTemplate)) {
+            return [$bodyTemplate, $data];
+        }
+
+        $clientLine = '<strong>Client :</strong> ' . e($clientName) . '<br>';
+        $withLine = preg_replace_callback(
+            '/<strong>\s*Application\s*\/\s*Service\s*:?\s*<\/strong>/i',
+            fn ($match) => $clientLine . $match[0],
+            $bodyTemplate,
+            1,
+            $count
+        );
+
+        if ($count > 0) {
+            return [$withLine, $data];
+        }
+
+        $service = trim((string) ($data['application_service'] ?? ''));
+        $service = ($service !== '' && $service !== '-' ? $service . ' - ' : '') . 'Client: ' . $clientName;
+        $data['application_service'] = $service;
+        $data['service_description'] = $service;
+
+        return [$bodyTemplate, $data];
     }
 
     private function removeEmptyPaymentLinkLine(string $content): string

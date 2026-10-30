@@ -47,7 +47,8 @@ class PaymentReminderService
 
     /**
      * Placeholder values for PaymentReminderMail. $details: invoice_no, recipient_name, outstanding_amount,
-     * service_description, due_date.
+     * service_description, due_date, and invoice_client_name when the email goes to someone other than the
+     * client (an associate), so the client is named on its own line.
      */
     public function payload(User $subscriber, array $details, string $recipientEmail, string $paymentLink): array
     {
@@ -69,6 +70,7 @@ class PaymentReminderService
             'invoice_id' => $invoiceNo,
             'service_description' => $serviceDescription,
             'application_service' => $serviceDescription,
+            'invoice_client_name' => trim((string) ($details['invoice_client_name'] ?? '')),
             'payment_due_date' => $dueDate,
             'due_date' => $dueDate,
             'payment_link' => $paymentLink,
@@ -103,22 +105,6 @@ class PaymentReminderService
         }
 
         return $currency;
-    }
-
-    /**
-     * Service line for an associate invoice reminder; it names the client because the email is addressed
-     * to the associate.
-     */
-    public function associateServiceLabel(?string $service, ?string $clientName): string
-    {
-        $service = trim((string) $service);
-        $clientName = trim((string) $clientName);
-
-        if ($clientName === '') {
-            return $service;
-        }
-
-        return ($service !== '' ? $service . ' - ' : '') . 'Client: ' . $clientName;
     }
 
     /**
@@ -232,10 +218,8 @@ class PaymentReminderService
                 'invoice_no' => $invoice->invoice_no ?: $invoice->id,
                 'recipient_name' => trim((string) ($associate->name ?? '')),
                 'outstanding_amount' => $outstanding,
-                'service_description' => $this->associateServiceLabel(
-                    $invoice->application_name ?: ($invoice->services ?: $invoice->service_provided),
-                    $invoice->client_name
-                ),
+                'service_description' => $invoice->application_name ?: ($invoice->services ?: $invoice->service_provided),
+                'invoice_client_name' => $invoice->client_name,
                 'due_date' => $invoice->due_date,
             ],
             $this->settingsPaymentLink($subscriber),

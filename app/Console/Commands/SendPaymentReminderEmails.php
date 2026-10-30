@@ -118,6 +118,7 @@ class SendPaymentReminderEmails extends Command
                 'recipient_name' => $row->recipient_name ?? '-',
                 'outstanding_amount' => $row->outstanding_amount,
                 'service_description' => $row->service_description,
+                'invoice_client_name' => $row->invoice_client_name ?? '',
                 'due_date' => $dueDateObject,
             ], $recipientEmail, $paymentLink);
 
@@ -301,7 +302,7 @@ class SendPaymentReminderEmails extends Command
 
     /**
      * Associate invoices with a balance left. The email goes to the associate, so it greets them and names
-     * the client in the service line.
+     * the client on a line of its own.
      */
     private function outstandingAssociateRowsForSubscriber(int $subscriberId, string $clientGroup)
     {
@@ -311,13 +312,11 @@ class SendPaymentReminderEmails extends Command
             ->where('associate_invoices.subscriber_id', $subscriberId)
             ->whereIn('associate_invoices.status', ['UnPaid', 'PartiallyPaid'])
             ->whereRaw('(associate_invoices.fees - associate_invoices.paid) > 0')
-            ->selectRaw('associate_invoices.invoice_no, associate_invoices.client_name, associate_invoices.service_provided, associate_invoices.due_date, associates.name as recipient_name, associates.email as associate_email, (associate_invoices.fees - associate_invoices.paid) as outstanding_amount');
+            ->selectRaw("associate_invoices.invoice_no, associate_invoices.client_name as invoice_client_name, COALESCE(NULLIF(associate_invoices.application_name, ''), NULLIF(associate_invoices.services, ''), associate_invoices.service_provided) as service_description, associate_invoices.due_date, associates.name as recipient_name, associates.email as associate_email, (associate_invoices.fees - associate_invoices.paid) as outstanding_amount");
 
         $this->applyAmountThreshold($query, $clientGroup, '(associate_invoices.fees - associate_invoices.paid)', false);
 
-        return $query->get()->each(function ($row) {
-            $row->service_description = $this->paymentReminderService->associateServiceLabel($row->service_provided, $row->client_name);
-        });
+        return $query->get();
     }
 
     /**
