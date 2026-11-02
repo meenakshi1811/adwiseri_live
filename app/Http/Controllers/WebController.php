@@ -4081,10 +4081,13 @@ class WebController extends Controller
             $myplan = Membership::where('plan_name', '=', $subscriber->membership)->first();
             $effectiveLimits = app(OfferBenefitService::class)->effectiveLimitsForDisplay($subscriber);
             $subscriptionTerm = app(OfferBenefitService::class)->subscriptionTermForDisplay($subscriber, $myplan);
+            // "Paid (USD)": what the latest subscription purchase actually cost, beside the plan's list price.
+            $latestPurchase = Internal_Invoices::latestSubscriptionPurchase((int) $subscriber->id);
+            $paidAmount = $latestPurchase ? (float) $latestPurchase->total : null;
 
             $membership = Membership::get();
             $page = "user_membership";
-            return view('web.user_membership', compact('user', 'membership', 'page', 'myplan', 'subscriber', 'effectiveLimits', 'subscriptionTerm'));
+            return view('web.user_membership', compact('user', 'membership', 'page', 'myplan', 'subscriber', 'effectiveLimits', 'subscriptionTerm', 'paidAmount'));
         } else {
             return back();
         }

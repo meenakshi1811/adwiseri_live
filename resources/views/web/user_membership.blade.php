@@ -191,7 +191,12 @@ $effectiveLimits = $effectiveLimits ?? app(\App\Services\OfferBenefitService::cl
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">Price (USD)</span>
                                         <span class="subscription-detail-separator">:</span>
-                                        <span class="subscription-detail-value">{{ $plan_amount }}</span>
+                                        <span class="subscription-detail-value">{{ number_format((float) $plan_amount, 2) }}</span>
+                                    </div>
+                                    <div class="subscription-detail-row">
+                                        <span class="subscription-detail-label">Paid (USD)</span>
+                                        <span class="subscription-detail-separator">:</span>
+                                        <span class="subscription-detail-value">{{ isset($paidAmount) ? number_format((float) $paidAmount, 2) : '-' }}</span>
                                     </div>
                                     <div class="subscription-detail-row">
                                         <span class="subscription-detail-label">Validity</span>

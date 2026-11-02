@@ -156,6 +156,22 @@ class Internal_Invoices extends Model
         return self::itemsLookLikeSubscriptionPackage($lineItems);
     }
 
+    /**
+     * The subscriber's most recent subscription purchase (signup, renewal, upgrade, or added by admin). Its total
+     * is what they were actually charged, after multi-year savings and any wallet credit.
+     */
+    public static function latestSubscriptionPurchase(int $subscriberId): ?self
+    {
+        return static::query()
+            ->where('subscriber_id', $subscriberId)
+            ->where('type', 'ap')
+            ->where(fn ($query) => $query->whereNull('status')->orWhere('status', '!=', 'Cancelled'))
+            ->orderByDesc('id')
+            ->limit(25)
+            ->get()
+            ->first(fn (self $invoice) => $invoice->isSubscriptionApInvoice());
+    }
+
     public function isSubscriptionApInvoice(): bool
     {
         return strtolower((string) $this->type) === 'ap'
