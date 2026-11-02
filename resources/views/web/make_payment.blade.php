@@ -22,7 +22,7 @@
                             <div class="well well-sm" style="margin-bottom: 20px;">
                                 <p class="mb-1"><strong>Plan:</strong> {{ $data['plan_name'] ?? '' }}</p>
                                 <p class="mb-1"><strong>Term:</strong> {{ \App\Services\SubscriptionTermPricing::label((int) ($data['plan_duration'] ?? 1)) }}</p>
-                                <p class="mb-0"><strong>Amount due:</strong> ${{ number_format($amount, 0) }} USD</p>
+                                <p class="mb-0"><strong>Amount due:</strong> ${{ number_format($amount, 2) }} USD</p>
                             </div>
                             @endif
             
@@ -85,7 +85,7 @@
             
                                 <div class="row">
                                     <div class="col-xs-12">
-                                        <button class="btn btn-primary btn-lg btn-block" type="submit" id="pay_btn">Pay Now (${{$amount}})</button>
+                                        <button class="btn btn-primary btn-lg btn-block" type="submit" id="pay_btn">Pay Now (${{ number_format($amount, 2) }})</button>
                                     </div>
                                 </div>
                                     

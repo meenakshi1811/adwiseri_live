@@ -38,12 +38,24 @@ class SubscriptionTermPricing
         return self::isAllowedDuration($duration) ? $duration : 1;
     }
 
+    /**
+     * Price for the term after its multi-year discount, to the cent (495.99 stays 495.99; it is not rounded
+     * to whole dollars).
+     */
     public static function calculate(float $pricePerYear, int $duration): float
     {
         $duration = self::normalizeDuration($duration);
         $multiplier = self::TERM_MULTIPLIERS[$duration];
 
-        return round($pricePerYear * $duration * $multiplier);
+        return round($pricePerYear * $duration * $multiplier, 2);
+    }
+
+    /**
+     * A USD amount in whole cents for Stripe (495.99 => 49599; plain "* 100" can give 49598.999...).
+     */
+    public static function toCents(float $amount): int
+    {
+        return (int) round($amount * 100);
     }
 
     public static function label(int $duration): string

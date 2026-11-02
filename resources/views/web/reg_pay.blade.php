@@ -33,7 +33,8 @@
                             <div class="col-sm-5"><strong>Plan</strong></div>
                             <div class="col-sm-7">{{ $membership->plan_name ?? '' }}</div>
                         </div>
-                        <form method="GET" action="{{ route('reg_pay') }}" class="row g-2 align-items-end mb-2">
+                        {{-- The term belongs to the payment form (form="payment-form"), so the chosen term is what gets charged. --}}
+                        <div class="row g-2 align-items-center mb-2">
                             <div class="col-sm-5">
                                 <label for="duration" class="form-label mb-1"><strong>Subscription Term</strong></label>
                             </div>
@@ -43,15 +44,13 @@
                                     'id' => 'duration',
                                     'selected' => $duration ?? 1,
                                     'required' => true,
+                                    'form' => 'payment-form',
                                 ])
                             </div>
-                            <div class="col-12 text-end">
-                                <button type="submit" class="btn btn-outline-primary btn-sm">Update total</button>
-                            </div>
-                        </form>
+                        </div>
                         <div class="row">
                             <div class="col-sm-5"><strong>Total (USD)</strong></div>
-                            <div class="col-sm-7"><span id="reg_pay_total">${{ number_format($amount, 0) }}</span></div>
+                            <div class="col-sm-7"><span id="reg_pay_total">${{ number_format($amount, 2) }}</span></div>
                         </div>
                         <small class="text-muted d-block mt-2">Long-term signup is available for new subscribers — choose 1, 2, 3, 4, or 5 years.</small>
                     </div>
@@ -89,7 +88,7 @@
                         </div>
 
                         <div class="d-grid">
-                            <button class="btn btn-primary btn-lg" type="submit" id="pay_btn">Pay Now (${{ number_format($amount, 0) }})</button>
+                            <button class="btn btn-primary btn-lg" type="submit" id="pay_btn">Pay Now (<span id="pay_btn_amount">${{ number_format($amount, 2) }}</span>)</button>
                         </div>
 
                     </form>
@@ -103,6 +102,21 @@
 <script>
 $(function () {
     var $form = $(".require-validation");
+
+    // The total follows the chosen term straight away (same prices the server charges, to the cent).
+    var termAmounts = @json(\App\Services\SubscriptionTermPricing::amountsByDuration((float) $membership->price_per_year));
+
+    function formatUsd(amount) {
+        return '$' + Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    $('#duration').on('change', function () {
+        var amount = termAmounts[$(this).val()];
+        if (amount === undefined) {
+            return;
+        }
+        $('#reg_pay_total, #pay_btn_amount').text(formatUsd(amount));
+    });
 
     $form.on('submit', function (e) {
         var $inputs = $form.find('.required input'),

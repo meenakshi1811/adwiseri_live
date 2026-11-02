@@ -188,7 +188,7 @@ class StripeController extends Controller
         Stripe\Stripe::setApiKey(env('STRIPE_SECRET'));
 
         Stripe\Charge::create ([
-                "amount" => $amount * 100,
+                "amount" => \App\Services\SubscriptionTermPricing::toCents((float) $amount),
                 "currency" => "usd",
                 "source" => $request->stripeToken,
                 "description" => "Test payment from adwiseri.com."
@@ -379,14 +379,21 @@ class StripeController extends Controller
 
         $data = session('reg_data');
         $plan = $data['membership'];
+        // The term is picked on the payment page itself and sent with the payment.
+        if ($request->filled('duration')) {
+            $data['duration'] = $request->input('duration');
+        }
         $duration = \App\Services\SubscriptionTermPricing::normalizeDuration((int) ($data['duration'] ?? 1));
         $membership = Membership::where('plan_name','=',$plan)->first();
         $amount = \App\Services\SubscriptionTermPricing::calculate((float) $membership->price_per_year, $duration);
+        $data['duration'] = $duration;
+        $data['amount'] = $amount;
+        Session::put('reg_data', $data);
         try{
         Stripe\Stripe::setApiKey(env('STRIPE_SECRET'));
 
         Stripe\Charge::create ([
-                "amount" => $amount * 100,
+                "amount" => \App\Services\SubscriptionTermPricing::toCents((float) $amount),
                 "currency" => "usd",
                 "source" => $request->stripeToken,
                 "description" => "Test payment from adwiseri.com."

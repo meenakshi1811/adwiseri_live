@@ -4511,7 +4511,7 @@ class WebController extends Controller
                     $discount = min((float) $wallet_amount, (float) $plan_amount);
                     $previousWalletBalance = (float) $user->wallet;
                     $walletDebitAmount = (float) $plan_amount;
-                    $new_wallet = max(0, (float) $user->wallet - $plan_amount);
+                    $new_wallet = max(0, round((float) $user->wallet - $plan_amount, 2));
                     $user->membership = $membership->plan_name;
                     $user->membership_type = "Subscription";
                     SubscriptionTermPricing::applyMembershipDates(
@@ -4636,7 +4636,7 @@ class WebController extends Controller
                         $membership->plan_name
                     );
                     $wallet_amount = SubscriptionTermPricing::walletCreditForSubscriptionPayment($user, $purchaseCategory);
-                    $plan_price = $plan_amount - $wallet_amount;
+                    $plan_price = round($plan_amount - $wallet_amount, 2); // to the cent, e.g. 495.99 - 12.30 = 483.69
                     $data['wallet_amount'] = $wallet_amount;
                     $data['plan_amount'] = $plan_amount;
                     $data['plan_price'] = $plan_price;
@@ -4685,7 +4685,7 @@ class WebController extends Controller
                 $wallet_amount = SubscriptionTermPricing::walletCreditForSubscriptionPayment($user, $purchaseCategory);
                 $discount = min((float) $wallet_amount, (float) $plan_amount);
                 $previousWalletBalance = (float) $user->wallet;
-                $new_wallet = max(0, (float) $user->wallet - $plan_amount);
+                $new_wallet = max(0, round((float) $user->wallet - $plan_amount, 2));
                 $user->membership = $membership->plan_name;
                 $user->membership_type = "Subscription";
                 SubscriptionTermPricing::applyMembershipDates(

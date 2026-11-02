@@ -50,8 +50,8 @@
                                 <p class="text-dark" style="font-size: 16px;">Amount (USD)</p>
                             </div>
                             <div class="col-md-6">
-                                <input type="number" id="plan_amount" style="display: none;" name="plan_amount" value="{{ $membership->price_per_year }}" />
-                                <p class="text-dark" id="plan_amt" style="font-size: 16px;">$ {{ $membership->price_per_year }}</p>
+                                <input type="hidden" id="plan_amount" name="plan_amount" value="{{ $membership->price_per_year }}" />
+                                <p class="text-dark" id="plan_amt" style="font-size: 16px;">$ {{ number_format((float) $membership->price_per_year, 2) }}</p>
                             </div>
                         </div>
                         @if(!$expired)
@@ -61,7 +61,7 @@
                             </div>
                             <div class="col-md-6">
                                 <input type="hidden" name="wallet_amount" id="wallet_amount" value="{{ $user->wallet }}" />
-                                <p class="text-dark" style="font-size: 16px;" id="wallet_amt">{{ $user->wallet }}</p>
+                                <p class="text-dark" style="font-size: 16px;" id="wallet_amt">$ {{ number_format((float) $user->wallet, 2) }}</p>
                             </div>
                         </div>
                         @endif
@@ -70,8 +70,8 @@
                                 <p class="text-dark" style="font-size: 16px;">Payable (USD)</p>
                             </div>
                             <div class="col-md-6">
-                                <input type="number" id="payable_amount" style="display: none;" name="plan_price" value="{{ $membership->price_per_year }}" />
-                                <p class="text-dark" id="payable_amt" style="font-size: 16px;">{{ $membership->price_per_year }} </p>
+                                <input type="hidden" id="payable_amount" name="plan_price" value="{{ $membership->price_per_year }}" />
+                                <p class="text-dark" id="payable_amt" style="font-size: 16px;">$ {{ number_format((float) $membership->price_per_year, 2) }}</p>
                             </div>
                         </div>
                         <!-- <div class="row mb-2">
@@ -143,22 +143,27 @@
             var termAmounts = @json(\App\Services\SubscriptionTermPricing::amountsByDuration((float) $membership->price_per_year));
             var wallet = document.getElementById('wallet_amount');
 
+            function formatUsd(amount) {
+                return '$ ' + Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
             function updatePayableAmount(duration) {
                 var amount = termAmounts[duration] || termAmounts[1] || 0;
 
                 $("#plan_amount").attr('value', amount);
-                $("#plan_amt").html(amount);
+                $("#plan_amt").text(formatUsd(amount));
 
                 var payable = amount;
                 if (wallet) {
-                    payable = amount - $("#wallet_amount").val();
+                    // Work in cents so 495.99 - 12.30 shows 483.69, not 483.69000000000005.
+                    payable = Math.round(amount * 100 - Number($("#wallet_amount").val() || 0) * 100) / 100;
                     if (payable <= 0) {
                         payable = 0;
                     }
                 }
 
                 $("#payable_amount").attr('value', payable);
-                $("#payable_amt").html(payable);
+                $("#payable_amt").text(formatUsd(payable));
             }
 
             updatePayableAmount($("#plan_duration").val() || 1);
