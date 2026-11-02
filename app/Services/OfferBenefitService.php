@@ -2306,11 +2306,10 @@ class OfferBenefitService
         $baseEndLabel = $baseExpiry ? $baseExpiry->format('d-m-Y') : '-';
         $effectiveEndLabel = $actualExpiry ? $actualExpiry->format('d-m-Y') : $baseEndLabel;
 
-        $baseValidityLabel = $this->validityLabelFromDays($planValidityDays);
-        $effectiveValidityDays = ($start && $actualExpiry)
-            ? max(1, $start->diffInDays($actualExpiry))
-            : $planValidityDays;
-        $effectiveValidityLabel = $this->validityLabelFromDays($effectiveValidityDays);
+        $baseValidityLabel = $this->validityLabelFromDays($planValidityDays, $start);
+        $effectiveValidityLabel = ($start && $actualExpiry && $actualExpiry->gt($start))
+            ? $this->validityLabelBetween($start, $actualExpiry)
+            : $baseValidityLabel;
 
         $termExtended = $baseExpiry && $actualExpiry && $actualExpiry->gt($baseExpiry);
 
@@ -2327,15 +2326,49 @@ class OfferBenefitService
         ];
     }
 
-    private function validityLabelFromDays(int $days): string
+    /**
+     * Validity from a plan's length in days: whole 365-day multiples are years; anything else is laid out on
+     * the calendar from $from (today when unknown) and labelled like validityLabelBetween().
+     */
+    private function validityLabelFromDays(int $days, ?Carbon $from = null): string
     {
-        $years = (int) floor($days / 365);
+        $days = max(1, $days);
 
-        if ($years >= 1 && ($days % 365) === 0) {
-            return $years . ' ' . ($years === 1 ? 'Year' : 'Years');
+        if ($days >= 365 && $days % 365 === 0) {
+            return $this->countLabel(intdiv($days, 365), 'Year');
         }
 
-        return $days . ' Days';
+        $from = ($from ?? Carbon::today())->copy()->startOfDay();
+
+        return $this->validityLabelBetween($from, $from->copy()->addDays($days));
+    }
+
+    /**
+     * Validity between two dates, by the calendar: "2 Years" for whole years, "245 Days" under a year, and
+     * otherwise years, months and days ("1 Year 3 Months 12 Days"; parts that are zero are left out).
+     */
+    private function validityLabelBetween(Carbon $from, Carbon $to): string
+    {
+        $interval = $from->diff($to);
+
+        if ($interval->y < 1) {
+            return $this->countLabel(max(1, (int) $from->diffInDays($to)), 'Day');
+        }
+
+        $parts = [$this->countLabel($interval->y, 'Year')];
+        if ($interval->m > 0) {
+            $parts[] = $this->countLabel($interval->m, 'Month');
+        }
+        if ($interval->d > 0) {
+            $parts[] = $this->countLabel($interval->d, 'Day');
+        }
+
+        return implode(' ', $parts);
+    }
+
+    private function countLabel(int $count, string $unit): string
+    {
+        return $count . ' ' . $unit . ($count === 1 ? '' : 's');
     }
 
     private function formatClientLimitAmount(User $subscriber, float $multiplier): string
