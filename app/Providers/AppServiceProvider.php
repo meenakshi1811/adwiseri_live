@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Support\BrandedMail;
+use App\Support\EmailAddress;
 use App\Support\PhoneNumber;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Event;
@@ -79,6 +80,16 @@ class AppServiceProvider extends ServiceProvider
 
         Validator::replacer('phone_intl', function ($message, $attribute) {
             return 'Please enter a valid contact number (digits only, up to 10 digits after country code).';
+        });
+
+        // Stricter than Laravel's "email": the address must be one the mailer can actually send to
+        // (no spaces, no "name@gmail" without a domain ending), so auto-emails don't fail later.
+        Validator::extend('valid_email', function ($attribute, $value) {
+            return is_string($value) && EmailAddress::isValidRecipient($value);
+        });
+
+        Validator::replacer('valid_email', function ($message, $attribute) {
+            return 'Please enter a valid email address, e.g. name@example.com.';
         });
     }
 }

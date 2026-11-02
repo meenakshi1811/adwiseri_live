@@ -738,7 +738,7 @@ class WebController extends Controller
             [
                 'name' => 'required|string|max:255',
                 'phone' => 'required|phone_intl|unique:demo_requests',
-                'email' => 'required|string|email|max:255|unique:demo_requests',
+                'email' => 'required|string|valid_email|max:255|unique:demo_requests',
                 'country' => 'required|string|max:255',
                 'company_name' => 'required|string|max:255',
                 'job_title' => 'required|string|max:255',
@@ -789,7 +789,7 @@ class WebController extends Controller
     public function email_subscription(Request $request)
     {
         $validated = $this->validate($request, [
-            'email' => 'required|email|max:255',
+            'email' => 'required|valid_email|max:255',
         ]);
 
         $email = strtolower(trim((string) $validated['email']));
@@ -905,7 +905,7 @@ class WebController extends Controller
             [
                 'name' => 'required|string|max:255',
                 'phone' => 'required|phone_intl|unique:users',
-                'email' => 'required|string|email|max:255|unique:users',
+                'email' => 'required|string|valid_email|max:255|unique:users',
                 'category' => 'required|string|max:255',
                 'subcategory' => 'required|string|max:255',
                 'password' => 'required|string|min:8|confirmed',
@@ -1753,7 +1753,7 @@ class WebController extends Controller
             [
                 'name' => 'required|string|min:3|max:255',
                 'phone' => 'required|phone_intl|unique:users',
-                'email' => 'required|email|max:255|unique:users',
+                'email' => 'required|valid_email|max:255|unique:users',
                 'dob' => 'required|date',
                 'designation' => 'required|string|max:255',
                 'country' => 'required',
@@ -1835,7 +1835,7 @@ class WebController extends Controller
             [
                 'name' => 'required|string|min:3|max:255',
                 'phone' => 'required|phone_intl|unique:clients',
-                'email' => 'required|email|max:255|unique:clients',
+                'email' => 'required|valid_email|max:255|unique:clients',
                 'nationality' => 'required',
                 'alternate_no' => 'nullable|phone_intl',
                 'passport_no' => 'nullable|regex:/^[A-Z0-9]{6,14}$/',
@@ -2137,6 +2137,9 @@ class WebController extends Controller
                 $activity->save();
                 return redirect()->route('login');
             } elseif (isset($request->profile)) {
+                $this->validate($request, [
+                    'email' => 'required|valid_email|max:255|unique:affiliates,email,' . $user->id,
+                ]);
                 $country = Countries::find($request->country);
                 $user_update->name = $request['name'];
                 $user_update->email = $request['email'];
@@ -2395,7 +2398,7 @@ class WebController extends Controller
                     $request->validate([
                         'name' => 'required|string|min:3|max:255',
                         'phone' => 'required|phone_intl',
-                        'email' => 'required|email|max:255',
+                        'email' => 'required|valid_email|max:255',
                         'alternate_no' => 'nullable|phone_intl',
                         'passport_no' => 'nullable|regex:/^[A-Z0-9]{6,14}$/',
                         'country' => 'required',
@@ -2627,7 +2630,7 @@ class WebController extends Controller
             'case_notes' => 'nullable|string|max:1500',
             'line_manager_name' => 'nullable|string|max:150',
             'line_manager_phone' => 'nullable|phone_intl',
-            'line_manager_email' => 'nullable|email|max:150',
+            'line_manager_email' => 'nullable|valid_email|max:150',
             'office_hours' => 'nullable|string|max:150',
             'complaint_handling_details' => 'nullable|string|max:1500',
             'oisc_registration_number' => 'nullable|required_if:letter_type,oisc_iaa|string|max:100',
@@ -3678,7 +3681,7 @@ class WebController extends Controller
         }
 
         $request->validate([
-            'recipient_email' => 'nullable|email|max:255',
+            'recipient_email' => 'nullable|valid_email|max:255',
             'custom_message' => 'nullable|string|max:2000',
         ]);
 
@@ -6176,7 +6179,7 @@ class WebController extends Controller
         $request->validate([
             'name' => 'required|string|min:3|max:100',
             'phone' => 'required|phone_intl',
-            'email' => 'required|email|max:255',
+            'email' => 'required|valid_email|max:255',
             'country' => 'required|string|max:255',
             'city' => 'nullable|string|max:255',
             'message' => 'required|string|min:10|max:2000',
@@ -7995,7 +7998,7 @@ class WebController extends Controller
             $validated = $req->validate([
                 'name' => 'required',
                 'phone' => 'required|phone_intl|unique:affiliates',
-                'email' => 'required|email|unique:affiliates,email',
+                'email' => 'required|valid_email|unique:affiliates,email',
                 'type' => 'required',
                 'country' => 'required',
                 'city' => 'required',
@@ -8005,7 +8008,7 @@ class WebController extends Controller
             $validated = $req->validate([
                 'name' => 'required',
                 'phone' => 'required|phone_intl|unique:affiliates',
-                'email' => 'required|email|unique:affiliates,email',
+                'email' => 'required|valid_email|unique:affiliates,email',
                 'type' => 'required',
                 'country' => 'required',
                 'city' => 'required',
@@ -9560,7 +9563,7 @@ class WebController extends Controller
     {
         $request->validate([
             'full_name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
+            'email' => 'required|valid_email|max:255',
             'contact_no' => 'required|phone_intl',
             'dob' => ['nullable', function ($attribute, $value, $fail) {
                 $normalizedDob = $this->normalizeDateValue($value);
@@ -9981,7 +9984,7 @@ class WebController extends Controller
         try {
             $request->validate([
                 'client_id' => 'required|exists:clients,id',
-                'client_email' => 'nullable|email',
+                'client_email' => 'nullable|valid_email',
                 'appointment_date' => 'required|date|after_or_equal:today',
                 'appointment_time' => 'required|date_format:H:i',
                 'remarks' => 'required|string|max:500',
@@ -11076,7 +11079,7 @@ class WebController extends Controller
 
         $request->validate([
             'full_name' => 'required|string|min:3|max:255',
-            'email' => 'required|email|max:255',
+            'email' => 'required|valid_email|max:255',
             'contact_no' => 'required|phone_intl',
             'country' => 'required|string|max:255',
             'country_pref' => 'required|array|min:1',

@@ -527,7 +527,7 @@ class AdminController extends Controller
         }
 
         $validated = $request->validate([
-            'email' => 'required|email|max:255',
+            'email' => 'required|valid_email|max:255',
         ]);
 
         try {
@@ -682,7 +682,7 @@ class AdminController extends Controller
                 [
                     'name' => 'required|string|min:3|max:100',
                     'phone' => 'required|phone_intl|unique:users',
-                    'email' => 'required|string|email|max:255|unique:users',
+                    'email' => 'required|string|valid_email|max:255|unique:users',
                     'category' => 'required|string|max:255',
                     'subcategory' => 'required|string|max:255',
                     'organization' => 'required|string|max:255',
@@ -1093,7 +1093,7 @@ class AdminController extends Controller
                 [
                     'name' => 'required|string|max:255',
                     'phone' => 'required|phone_intl|unique:users',
-                    'email' => 'required|string|email|max:255|unique:users',
+                    'email' => 'required|string|valid_email|max:255|unique:users',
                     'dob' => ['required'],
                     'designation' => 'required|string|max:255',
                     'country' => 'required|string|max:255',
@@ -1521,7 +1521,7 @@ class AdminController extends Controller
                 [
                     'name' => 'required|string|min:3|max:255',
                     'phone' => 'required|phone_intl|unique:users',
-                    'email' => 'required|email|max:255|unique:users',
+                    'email' => 'required|valid_email|max:255|unique:users',
                     'nationality' => 'required',
                     'alternate_no' => 'nullable|phone_intl',
                     'passport_no' => 'nullable|regex:/^[A-Z0-9]{6,14}$/',
@@ -3220,7 +3220,7 @@ class AdminController extends Controller
                     $request->validate([
                         'contact_no' => 'required|phone_intl',
                         'alternate_no' => 'nullable|phone_intl',
-                        'email' => 'required|email|max:255',
+                        'email' => 'required|valid_email|max:255',
                         'location' => 'required|string|max:500',
                         'website' => 'nullable|url|max:255',
                     ]);

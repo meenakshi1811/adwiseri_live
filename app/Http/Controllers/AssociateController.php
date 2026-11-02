@@ -244,7 +244,7 @@ class AssociateController extends Controller
         $this->validate($request, [
             'name' => 'required|string|min:3|max:255',
             'phone' => 'required|string|max:50',
-            'email' => 'required|email|max:255|unique:associates,email',
+            'email' => 'required|valid_email|max:255|unique:associates,email',
             'organization' => 'nullable|string|max:255',
             'country' => 'required',
             'state' => 'required',
@@ -313,7 +313,7 @@ class AssociateController extends Controller
         $this->validate($request, [
             'name' => 'required|string|min:3|max:255',
             'phone' => 'required|string|max:50',
-            'email' => 'required|email|max:255|unique:associates,email,' . $associate->id,
+            'email' => 'required|valid_email|max:255|unique:associates,email,' . $associate->id,
             'organization' => 'nullable|string|max:255',
             'country' => 'required',
             'state' => 'required',

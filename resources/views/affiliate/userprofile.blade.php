@@ -201,7 +201,7 @@
                 </div>
                 <div class="mb-4">
                     <input name="email" minlength="3" maxlength="100" value="{{ $user->email }}"
-                        required type="text" class="form-control" id="exampleInputEmail1"
+                        required type="email" class="form-control" id="exampleInputEmail1"
                         aria-describedby="emailHelp" placeholder="email">
                 </div>
 

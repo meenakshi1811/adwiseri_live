@@ -88,7 +88,7 @@ class VisaEnquiryController extends Controller
     {
         $request->validate([
             'full_name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
+            'email' => 'required|valid_email|max:255',
             'contact_no' => 'required|phone_intl',
             'dob' => ['nullable', function ($attribute, $value, $fail) {
                 $normalizedDob = $this->normalizeDateValue($value);

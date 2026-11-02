@@ -87,7 +87,7 @@ class AdminStaffController extends Controller
             'id' => 'required|exists:users,id',
             'name' => 'required|string|max:255',
             'phone' => ['required', 'phone_intl', Rule::unique('users', 'phone')->ignore($staffUser->id)],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($staffUser->id)],
+            'email' => ['required', 'string', 'valid_email', 'max:255', Rule::unique('users', 'email')->ignore($staffUser->id)],
             'dob' => 'required|date',
             'designation' => 'required|string|max:255',
             'country' => 'required',
@@ -155,7 +155,7 @@ class AdminStaffController extends Controller
             [
                 'name' => 'required|string|max:255',
                 'phone' => 'required|phone_intl|unique:users',
-                'email' => 'required|string|email|max:255|unique:users',
+                'email' => 'required|string|valid_email|max:255|unique:users',
                 'dob' => 'required',
                 'designation' => 'required|string|max:255',
                 'country' => 'required',
