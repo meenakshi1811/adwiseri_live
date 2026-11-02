@@ -245,6 +245,32 @@
         font-size: 0.8rem;
     }
 
+    .eb-textarea.eb-marketing-emails {
+        min-height: 130px;
+        font-size: 0.85rem;
+    }
+
+    .eb-marketing-summary {
+        margin-top: 0.4rem;
+        font-size: 0.82rem;
+        color: #334155;
+        word-break: break-word;
+    }
+
+    .eb-marketing-summary .eb-marketing-ok {
+        color: #15803d;
+        font-weight: 600;
+    }
+
+    .eb-marketing-summary .eb-marketing-warn {
+        color: #b45309;
+    }
+
+    .eb-marketing-summary .eb-marketing-over {
+        color: #b91c1c;
+        font-weight: 600;
+    }
+
     .eb-input,
     .eb-select,
     .eb-textarea {

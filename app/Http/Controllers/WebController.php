@@ -6804,8 +6804,9 @@ class WebController extends Controller
             'subject_max' => 200,
             'body_max' => 50000,
         ];
+        $marketingUsage = app(EmailBroadcastService::class)->marketingUsageToday((int) $subscriber->id);
 
-        return view('web.email_broadcast', compact('user', 'page', 'staffMembers', 'clients', 'associates', 'subscriber', 'subscriberFooter', 'broadcastLimits', 'broadcastUsage'));
+        return view('web.email_broadcast', compact('user', 'page', 'staffMembers', 'clients', 'associates', 'subscriber', 'subscriberFooter', 'broadcastLimits', 'broadcastUsage', 'marketingUsage'));
     }
 
     /**
@@ -6839,13 +6840,19 @@ class WebController extends Controller
             return back()->with('broadcast_error', 'You do not have permission to send email broadcasts.');
         }
 
+        // "Marketing - Potential Clients" sends to a pasted email list instead of picked recipients.
+        $isMarketing = $request->communicate_type === 'external' && $request->external_group === 'marketing';
+
         $this->validate($request, [
             'communicate_type' => 'required|in:internal,external',
-            'external_group' => 'nullable|required_if:communicate_type,external|in:clients,associates',
-            'recipients' => 'required|array|min:1',
+            'external_group' => 'nullable|required_if:communicate_type,external|in:clients,associates,marketing',
+            'recipients' => $isMarketing ? 'nullable|array' : 'required|array|min:1',
             'recipients.*' => 'required|string',
+            'marketing_emails' => $isMarketing ? 'required|string|max:500000' : 'nullable',
             'subject' => 'required|string|max:200',
             'body' => 'required|string|min:3|max:50000',
+        ], [
+            'marketing_emails.required' => 'Please enter the email addresses of your potential clients.',
         ]);
 
         if ($user->user_type == "Subscriber") {
@@ -6856,10 +6863,28 @@ class WebController extends Controller
             $staffUserId = $user->id;
         }
 
-        $selectedRecipients = array_values(array_unique($request->recipients));
+        $selectedRecipients = array_values(array_unique((array) $request->recipients));
         $communicateType = $request->communicate_type;
+        $skippedEmails = 0;
 
-        if ($communicateType === 'internal') {
+        if ($isMarketing) {
+            $emailList = $emailBroadcastService->parseEmailList((string) $request->marketing_emails);
+            if ($emailList['valid'] === []) {
+                return back()->with('broadcast_error', 'None of the entries is a valid email address. Please check the list and try again.')->withInput();
+            }
+
+            $marketingUsage = $emailBroadcastService->marketingUsageToday((int) $subscriber->id);
+            if (count($emailList['valid']) > $marketingUsage['remaining']) {
+                return back()->with('broadcast_error', 'Marketing emails are limited to ' . number_format($marketingUsage['limit'])
+                    . ' per day. You have ' . number_format($marketingUsage['remaining']) . ' left today, but this list has '
+                    . number_format(count($emailList['valid'])) . ' email addresses. Please shorten the list or send the rest tomorrow.')->withInput();
+            }
+
+            $communicateType = 'marketing';
+            $selectedRecipients = ['marketing'];
+            $skippedEmails = count($emailList['invalid']);
+            $resolvedRecipients = array_map(fn ($email) => ['email' => $email, 'name' => ''], $emailList['valid']);
+        } elseif ($communicateType === 'internal') {
             $hasStaff = User::where('added_by', $subscriber->id)->where('user_type', 'User')->where('status', 'true')->exists();
             if (!$hasStaff) {
                 return back()->with('no_broadcast_recipients', 'No active staff found in the system')->withInput();
@@ -6920,6 +6945,7 @@ class WebController extends Controller
         $activity->save();
 
         $message = 'Email broadcast queued successfully for ' . $result['total_recipients'] . ' recipient(s). '
+            . ($skippedEmails > 0 ? $skippedEmails . ' invalid email address(es) were skipped. ' : '')
             . 'Emails will be sent in the background (Ref: ' . $result['broadcast_id'] . ').';
 
         return back()->with('broadcast_sent', $message);

@@ -7,6 +7,7 @@ use App\Models\Associate;
 use App\Models\Clients;
 use App\Models\Email_broadcasts;
 use App\Models\User;
+use App\Support\EmailAddress;
 use Illuminate\Support\Facades\Log;
 
 class EmailBroadcastService
@@ -36,6 +37,60 @@ class EmailBroadcastService
             self::STAFF_GROUP_DESIGNATIONS,
             fn (array $designations) => in_array($designation, array_map('strtolower', $designations), true)
         ));
+    }
+
+    /**
+     * Splits a pasted list of emails (separated by commas, semicolons, new lines or spaces; "Name <email>" is
+     * fine too) into unique valid addresses and the entries that aren't valid addresses.
+     *
+     * @return array{valid: array<int, string>, invalid: array<int, string>}
+     */
+    public function parseEmailList(string $list): array
+    {
+        $valid = [];
+        $invalid = [];
+
+        foreach (preg_split('/[,;\r\n]+/', $list) as $entry) {
+            $entry = trim($entry);
+            if ($entry === '') {
+                continue;
+            }
+
+            $candidates = preg_match('/<([^<>]+)>/', $entry, $match) ? [$match[1]] : preg_split('/\s+/', $entry);
+
+            foreach ($candidates as $candidate) {
+                $candidate = trim($candidate, " \t\"'<>");
+                if ($candidate === '') {
+                    continue;
+                }
+
+                if (EmailAddress::isValidRecipient($candidate)) {
+                    $valid[strtolower($candidate)] ??= $candidate;
+                } else {
+                    $invalid[$candidate] = $candidate;
+                }
+            }
+        }
+
+        return ['valid' => array_values($valid), 'invalid' => array_values($invalid)];
+    }
+
+    /**
+     * Today's "Marketing - Potential Clients" allowance for a subscriber (all their users together).
+     *
+     * @return array{limit:int,used:int,remaining:int}
+     */
+    public function marketingUsageToday(int $subscriberId): array
+    {
+        $limit = max(0, (int) config('mail.broadcast_marketing_daily_limit', 5000));
+        $used = (int) Email_broadcasts::query()
+            ->where('subscriber_id', $subscriberId)
+            ->where('communicate_type', 'marketing')
+            ->whereNotIn('status', ['failed', 'cancelled'])
+            ->where('created_at', '>=', now()->startOfDay())
+            ->sum('total_recipients');
+
+        return ['limit' => $limit, 'used' => $used, 'remaining' => max(0, $limit - $used)];
     }
 
     /**

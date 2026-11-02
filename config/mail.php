@@ -175,4 +175,7 @@ return [
     'broadcast_chunk_delay_seconds' => env('MAIL_BROADCAST_CHUNK_DELAY', 2),
     'broadcast_max_recipients' => env('MAIL_BROADCAST_MAX_RECIPIENTS', 0),
 
+    // Emails a subscriber may send per day to pasted "Marketing - Potential Clients" lists.
+    'broadcast_marketing_daily_limit' => env('MAIL_BROADCAST_MARKETING_DAILY_LIMIT', 5000),
+
 ];

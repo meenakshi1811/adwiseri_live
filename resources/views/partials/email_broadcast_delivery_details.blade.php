@@ -85,6 +85,15 @@
         </div>
     </div>
 </div>
+@isset($marketingUsage)
+<div class="eb-info-item">
+    <div class="eb-info-icon"><i class="fa-solid fa-bullhorn"></i></div>
+    <div>
+        <div class="eb-info-label">Marketing - Potential Clients</div>
+        <div class="eb-info-value">Up to {{ number_format((int) $marketingUsage['limit']) }} emails per day · {{ number_format((int) $marketingUsage['remaining']) }} left today</div>
+    </div>
+</div>
+@endisset
 <div class="eb-info-item">
     <div class="eb-info-icon"><i class="fa-solid fa-layer-group"></i></div>
     <div>

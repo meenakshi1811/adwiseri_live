@@ -132,6 +132,8 @@ class EmailBroadcastLogService
                 $groups[] = self::ALL_RECIPIENTS_LABELS[$broadcast->communicate_type] ?? 'All';
             } elseif ($label === 'associate:all') {
                 $groups[] = 'All Associates';
+            } elseif ($label === 'marketing') {
+                $groups[] = 'Marketing - Potential Clients';
             } elseif (isset(self::STAFF_GROUP_LABELS[$label])) {
                 $groups[] = self::STAFF_GROUP_LABELS[$label];
             }

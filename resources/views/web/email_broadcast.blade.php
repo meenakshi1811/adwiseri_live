@@ -10,9 +10,11 @@ $staffCount = $staffMembers->count();
 $clientCount = $clients->count();
 $associates = $associates ?? collect();
 $associateCount = $associates->count();
-// External broadcasts go to one group at a time: clients or associates.
-$externalGroups = array_filter(['clients' => $clientCount, 'associates' => $associateCount]);
+// External broadcasts go to one group at a time: clients, associates, or a pasted list of potential clients
+// ("marketing", always available, up to the daily limit).
+$externalGroups = array_filter(['clients' => $clientCount, 'associates' => $associateCount]) + ['marketing' => 1];
 $defaultExternalGroup = isset($externalGroups[old('external_group')]) ? old('external_group') : array_key_first($externalGroups);
+$marketingUsage = $marketingUsage ?? ['limit' => 0, 'used' => 0, 'remaining' => 0];
 // "All Staff" and the teams only tick their members. Counts are distinct email addresses, as the broadcast
 // emails each address once and skips people without one.
 $emailCount = fn ($people) => $people->map(fn ($person) => strtolower(trim((string) $person->email)))->filter()->unique()->count();
@@ -33,10 +35,8 @@ $reachableAssociates = $emailCount($associates);
 $defaultType = null;
 if (in_array($oldCommunicateType, ['internal', 'external'], true)) {
     $defaultType = $oldCommunicateType;
-} elseif ($staffCount > 0) {
-    $defaultType = 'internal';
-} elseif ($clientCount + $associateCount > 0) {
-    $defaultType = 'external';
+} else {
+    $defaultType = $staffCount > 0 ? 'internal' : 'external';
 }
 
 $emailBroadcastUsage = $broadcastUsage ?? [
@@ -84,7 +84,7 @@ $broadcastErrorMessage = session('broadcast_error');
                 </button>
             </div>
         </div>
-        <p class="eb-page-subtitle text-center mb-3">Send bulk emails to your staff, clients or associates. The footer shows your organisation address, website, and email.</p>
+        <p class="eb-page-subtitle text-center mb-3">Send bulk emails to your staff, clients, associates or potential clients. The footer shows your organisation address, website, and email.</p>
 
         @include('partials.communication_tabs', ['activeTab' => 'email_broadcast'])
 
@@ -118,7 +118,7 @@ $broadcastErrorMessage = session('broadcast_error');
                                         <i class="fa-solid fa-user-group"></i> External
                                     </button>
                                 </div>
-                                <div class="eb-form-hint">Internal sends to staff. External sends to clients or associates.</div>
+                                <div class="eb-form-hint">Internal sends to staff. External sends to clients, associates or potential clients.</div>
                                 @error('communicate_type')
                                 <span class="eb-error-text">{{ $message }}</span>
                                 @enderror
@@ -172,8 +172,9 @@ $broadcastErrorMessage = session('broadcast_error');
                                     @if($associateCount > 0)
                                     <option value="associates" {{ $defaultExternalGroup === 'associates' ? 'selected' : '' }}>Associates ({{ $reachableAssociates }})</option>
                                     @endif
+                                    <option value="marketing" {{ $defaultExternalGroup === 'marketing' ? 'selected' : '' }}>Marketing - Potential Clients</option>
                                 </select>
-                                <div class="eb-form-hint">Clients and associates are emailed separately: one group per broadcast.</div>
+                                <div class="eb-form-hint">Each group is emailed separately: one group per broadcast.</div>
                                 @error('external_group')
                                 <span class="eb-error-text">{{ $message }}</span>
                                 @enderror
@@ -242,6 +243,19 @@ $broadcastErrorMessage = session('broadcast_error');
                             </div>
                             @endif
 
+                            <div class="eb-form-group marketing-recipient-section" style="display:none;">
+                                <label class="eb-form-label" for="marketing_emails">Potential Clients' Email Addresses <span class="required">*</span></label>
+                                <textarea id="marketing_emails" class="eb-textarea eb-marketing-emails" name="marketing_emails" rows="5" placeholder="e.g. name@example.com, another@example.com" disabled>{{ old('marketing_emails') }}</textarea>
+                                <div class="eb-form-hint">
+                                    Separate addresses with commas (or put one per line). Duplicates are removed.
+                                    Up to {{ number_format($marketingUsage['limit']) }} emails per day; <span id="marketing_remaining" data-remaining="{{ (int) $marketingUsage['remaining'] }}">{{ number_format($marketingUsage['remaining']) }}</span> left today.
+                                </div>
+                                <div class="eb-marketing-summary" id="marketing_summary" aria-live="polite"></div>
+                                @error('marketing_emails')
+                                <span class="eb-error-text">{{ $message }}</span>
+                                @enderror
+                            </div>
+
                             <div class="eb-form-group">
                                 <label class="eb-form-label" for="broadcast_subject">Email Subject <span class="required">*</span></label>
                                 <input type="text" id="broadcast_subject" class="eb-input" name="subject" value="{{ old('subject') }}" maxlength="200" placeholder="Enter a clear, concise subject line" required @if(!$canSend) disabled @endif>
@@ -309,23 +323,22 @@ document.addEventListener('DOMContentLoaded', function () {
     const groupSelect = document.getElementById('external_group');
     const clientSection = document.querySelector('.client-recipient-section');
     const associateSection = document.querySelector('.associate-recipient-section');
+    const marketingSection = document.querySelector('.marketing-recipient-section');
+    const marketingField = document.getElementById('marketing_emails');
+    const marketingSummary = document.getElementById('marketing_summary');
+    const marketingRemaining = parseInt(document.getElementById('marketing_remaining').dataset.remaining, 10) || 0;
     const bodyField = document.getElementById('broadcast_body');
     const bodyCount = document.getElementById('body_char_count');
     const staffCount = {{ (int) $staffCount }};
-    const clientCount = {{ (int) $clientCount }};
-    const associateCount = {{ (int) $associateCount }};
     const canSend = @json($canSend);
 
-    function showNoRecipientsAlert(type) {
-        const messages = {
-            internal: 'No active staff found in the system',
-            external: 'No clients or associates found in the system'
-        };
+    // Only Internal can run out of recipients; External always has the marketing list.
+    function showNoRecipientsAlert() {
         Swal.fire({
             icon: 'warning',
             customClass: { icon: 'adwiseri-oops-icon' },
             title: 'Oops!',
-            text: messages[type] || 'No staff, clients or associates found in the system'
+            text: 'No active staff found in the system'
         });
     }
 
@@ -333,30 +346,95 @@ document.addEventListener('DOMContentLoaded', function () {
         if (type === 'internal') {
             return staffCount > 0;
         }
-        if (type === 'external') {
-            return clientCount + associateCount > 0;
-        }
-        return false;
+        // External always has "Marketing - Potential Clients", even without clients or associates.
+        return type === 'external';
     }
 
     function externalGroup() {
         return groupSelect ? groupSelect.value : '';
     }
 
-    // The list being used: staff for Internal, otherwise the chosen External group (clients or associates).
+    // The list being used: staff for Internal, otherwise the chosen External group.
     function activeSection() {
         if (typeInput.value === 'internal') {
             return staffSection;
         }
         if (typeInput.value === 'external') {
-            return externalGroup() === 'associates' ? associateSection : clientSection;
+            return { associates: associateSection, marketing: marketingSection }[externalGroup()] || clientSection;
         }
         return null;
+    }
+
+    // Same rules as EmailBroadcastService::parseEmailList: commas, semicolons, new lines or spaces separate
+    // entries, "Name <email>" is accepted, and addresses are counted once whatever their case.
+    function parseEmailList(text) {
+        const valid = new Map();
+        const invalid = new Set();
+        // The site-wide email check (form-validation.js), so the list agrees with every other email field.
+        const isValidEmail = window.AdwiseriFormValidation && window.AdwiseriFormValidation.isValidEmail
+            ? window.AdwiseriFormValidation.isValidEmail
+            : function (value) { return /^[^\s@,;]+@[^\s@,;]+\.[A-Za-z]{2,}$/.test(value); };
+
+        String(text || '').split(/[,;\r\n]+/).forEach(function (entry) {
+            entry = entry.trim();
+            if (!entry) return;
+            const bracketed = entry.match(/<([^<>]+)>/);
+            (bracketed ? [bracketed[1]] : entry.split(/\s+/)).forEach(function (candidate) {
+                candidate = candidate.replace(/^[\s"'<>]+|[\s"'<>]+$/g, '');
+                if (!candidate) return;
+                if (isValidEmail(candidate)) {
+                    if (!valid.has(candidate.toLowerCase())) valid.set(candidate.toLowerCase(), candidate);
+                } else {
+                    invalid.add(candidate);
+                }
+            });
+        });
+
+        return { valid: Array.from(valid.values()), invalid: Array.from(invalid) };
+    }
+
+    function escapeText(value) {
+        const div = document.createElement('div');
+        div.textContent = value;
+        return div.innerHTML;
+    }
+
+    function updateMarketingSummary() {
+        if (!marketingSummary) return;
+        const list = parseEmailList(marketingField.value);
+        if (!list.valid.length && !list.invalid.length) {
+            marketingSummary.innerHTML = '';
+            return;
+        }
+
+        const parts = [];
+        const validText = list.valid.length.toLocaleString() + ' valid email' + (list.valid.length === 1 ? '' : 's');
+        parts.push(list.valid.length > marketingRemaining
+            ? '<span class="eb-marketing-over">' + validText + ': over today\'s limit by ' + (list.valid.length - marketingRemaining).toLocaleString() + '</span>'
+            : '<span class="eb-marketing-ok">' + validText + '</span>');
+        if (list.invalid.length) {
+            const shown = list.invalid.slice(0, 5).map(escapeText).join(', ');
+            parts.push('<span class="eb-marketing-warn">' + list.invalid.length.toLocaleString() + ' not valid (will be skipped): '
+                + shown + (list.invalid.length > 5 ? ', …' : '') + '</span>');
+        }
+        marketingSummary.innerHTML = parts.join(' · ');
+    }
+
+    if (marketingField) {
+        marketingField.addEventListener('input', updateMarketingSummary);
+        updateMarketingSummary();
     }
 
     // Shows only the list in use; the others are cleared and left out of the form.
     function showRecipientSections() {
         const active = activeSection();
+
+        if (marketingSection) {
+            const isMarketing = marketingSection === active;
+            marketingSection.style.display = isMarketing ? 'block' : 'none';
+            // A disabled field isn't submitted, so the pasted list only goes with a marketing broadcast.
+            marketingField.disabled = !isMarketing || !canSend;
+        }
 
         [staffSection, clientSection, associateSection].forEach(function (section) {
             if (!section) return;
@@ -407,7 +485,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (this.disabled) return;
             const type = this.dataset.type;
             if (!hasRecipientsForType(type)) {
-                showNoRecipientsAlert(type);
+                showNoRecipientsAlert();
                 return;
             }
             setCommunicateType(type);
@@ -565,6 +643,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function countSelectedRecipients() {
         const section = activeSection();
+        if (section && section === marketingSection) {
+            return parseEmailList(marketingField.value).valid.length;
+        }
         return section ? countPeople(section) : 0;
     }
 
@@ -574,6 +655,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const chunkDelay = limits.chunkDelaySeconds || 2;
         const batchCount = Math.ceil(recipientCount / chunkSize);
         let message = 'You selected ' + recipientCount.toLocaleString() + ' recipient(s).';
+
+        if (activeSection() === marketingSection) {
+            const skipped = parseEmailList(marketingField.value).invalid.length;
+            if (skipped > 0) {
+                message += ' ' + skipped.toLocaleString() + ' entr' + (skipped === 1 ? 'y is not a valid email address and will be skipped.' : 'ies are not valid email addresses and will be skipped.');
+            }
+        }
 
         if (batchCount > 1) {
             message += ' They will be sent in ' + batchCount.toLocaleString()
@@ -606,7 +694,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const type = typeInput.value;
             if (!hasRecipientsForType(type)) {
                 e.preventDefault();
-                showNoRecipientsAlert(type);
+                showNoRecipientsAlert();
                 return;
             }
 
@@ -619,7 +707,23 @@ document.addEventListener('DOMContentLoaded', function () {
                     title: 'Oops!',
                     text: type === 'internal'
                         ? 'Please select at least one staff member.'
-                        : (externalGroup() === 'associates' ? 'Please select at least one associate.' : 'Please select at least one client.')
+                        : ({
+                            associates: 'Please select at least one associate.',
+                            marketing: 'Please enter at least one valid email address.'
+                        }[externalGroup()] || 'Please select at least one client.')
+                });
+                return;
+            }
+
+            if (activeSection() === marketingSection && recipientCount > marketingRemaining) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'warning',
+                    customClass: { icon: 'adwiseri-oops-icon' },
+                    title: 'Daily Limit Reached',
+                    text: 'Marketing emails are limited to {{ number_format($marketingUsage['limit']) }} per day. You have '
+                        + marketingRemaining.toLocaleString() + ' left today, but this list has ' + recipientCount.toLocaleString()
+                        + ' email addresses. Please shorten the list or send the rest tomorrow.'
                 });
                 return;
             }
@@ -664,30 +768,25 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    if (staffCount < 1 && clientCount + associateCount < 1) {
-        showNoRecipientsAlert();
-        typeButtons.forEach(function (btn) { btn.disabled = true; });
+    const usage = window.emailBroadcastUsage || {};
+    if ((usage.limit || 0) <= 0 || (usage.remaining || 0) <= 0) {
+        showPlanLimitAlert(
+            (usage.limit || 0) <= 0
+                ? planLimitMessage(0)
+                : 'You have used all ' + (usage.limit || 0).toLocaleString() + ' email broadcasts allowed on your '
+                    + (usage.plan_name || 'plan') + ' plan for the current subscription term. Please upgrade your plan to send more.'
+        );
+    }
+
+    // There is always someone to write to: External offers "Marketing - Potential Clients" even with no
+    // staff, clients or associates.
+    const initialType = typeInput.value;
+    if (initialType && hasRecipientsForType(initialType)) {
+        setCommunicateType(initialType);
+    } else {
         typeInput.value = '';
         showRecipientSections();
-    } else {
-        const usage = window.emailBroadcastUsage || {};
-        if ((usage.limit || 0) <= 0 || (usage.remaining || 0) <= 0) {
-            showPlanLimitAlert(
-                (usage.limit || 0) <= 0
-                    ? planLimitMessage(0)
-                    : 'You have used all ' + (usage.limit || 0).toLocaleString() + ' email broadcasts allowed on your '
-                        + (usage.plan_name || 'plan') + ' plan for the current subscription term. Please upgrade your plan to send more.'
-            );
-        }
-
-        const initialType = typeInput.value;
-        if (initialType && hasRecipientsForType(initialType)) {
-            setCommunicateType(initialType);
-        } else {
-            typeInput.value = '';
-            showRecipientSections();
-            typeButtons.forEach(function (btn) { btn.classList.remove('active'); });
-        }
+        typeButtons.forEach(function (btn) { btn.classList.remove('active'); });
     }
 });
 </script>
