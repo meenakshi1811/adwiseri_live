@@ -59,7 +59,12 @@
                 ? $document->logo_path
                 : public_path($document->logo_path);
             if (file_exists($candidate)) {
-                $logoPath = $candidate;
+                // Printed from the browser, so use the logo's web URL when it lives under public/.
+                $publicRoot = rtrim(str_replace('\\', '/', public_path()), '/');
+                $normalized = str_replace('\\', '/', $candidate);
+                $logoPath = str_starts_with($normalized, $publicRoot . '/')
+                    ? asset(ltrim(substr($normalized, strlen($publicRoot)), '/'))
+                    : $candidate;
             }
         }
         $hasSubscriberLogo = !empty($logoPath);

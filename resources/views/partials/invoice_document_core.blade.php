@@ -54,6 +54,14 @@
         }
     } else {
         $billName = $invoice->to_name ?? '-';
+        // Subscription invoices from adwiseri.com keep the vendor name in to_name (it drives the AP
+        // lists), so Bill To has to come from the subscriber being billed.
+        if ($invoice->isSubscriptionApInvoice()) {
+            $billedSubscriber = \App\Models\User::find($invoice->subscriber_id);
+            if ($billedSubscriber) {
+                $billName = trim((string) ($billedSubscriber->organization ?: $billedSubscriber->name)) ?: $billName;
+            }
+        }
         $billEmail = trim((string) ($invoice->to_email ?? ''));
         $billAddress = trim((string) ($invoice->to_address ?? ''));
         $billCity = trim((string) ($invoice->to_city ?? ''));
@@ -87,6 +95,14 @@
                 $qrPath = $qrDiskPath;
                 $qrUrl = asset('web_assets/users/user' . $qrSubscriberId . '/' . $qrFilename);
             }
+        }
+
+        // A subscription invoice is a bill from adwiseri.com, settled at checkout: the subscriber's
+        // own payment link / QR (meant for their clients) must not appear on it.
+        if ($invoice->isSubscriptionApInvoice()) {
+            $paymentLink = '';
+            $qrPath = null;
+            $qrUrl = null;
         }
 
         $invoiceNote = $snapshotService->resolvedInvoiceNote($invoice, $invoiceSetting ?? null);

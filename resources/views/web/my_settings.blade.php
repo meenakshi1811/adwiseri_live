@@ -1855,6 +1855,11 @@
                                     $selectedModules = is_array($selectedModules) ? $selectedModules : [];
                                     $reportDefaultEmail = trim((string) (optional($reportSetting)->emails ?? $user->email ?? ''));
                                 @endphp
+                                <div class="form-check mb-1 pb-1 border-bottom">
+                                    <input type="checkbox" class="form-check-input" id="report-modules-all"
+                                        {{ count($reportModules) && count(array_diff(array_keys($reportModules), $selectedModules)) === 0 ? 'checked' : '' }}>
+                                    <label class="form-check-label fw-bold" for="report-modules-all">All Key Modules</label>
+                                </div>
                                 @foreach ($reportModules as $moduleKey => $moduleLabel)
                                     <div class="form-check">
                                         <input type="checkbox" name="modules[]" value="{{ $moduleKey }}" class="form-check-input report-module-checkbox"
@@ -1863,6 +1868,21 @@
                                     </div>
                                 @endforeach
                                 <div class="invalid-feedback d-block" id="reports-modules-error" style="display:none;"></div>
+                                <script>
+                                    (function () {
+                                        var all = document.getElementById('report-modules-all');
+                                        if (!all) { return; }
+                                        var boxes = function () { return document.querySelectorAll('#reports-settings-form .report-module-checkbox'); };
+                                        all.addEventListener('change', function () {
+                                            boxes().forEach(function (box) { box.checked = all.checked; });
+                                        });
+                                        document.addEventListener('change', function (event) {
+                                            if (event.target.classList && event.target.classList.contains('report-module-checkbox')) {
+                                                all.checked = Array.prototype.every.call(boxes(), function (box) { return box.checked; });
+                                            }
+                                        });
+                                    })();
+                                </script>
                             </div>
                         </div>
 

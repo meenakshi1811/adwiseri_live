@@ -323,8 +323,7 @@ class WebController extends Controller
         $internalInvoice->type = 'ap';
         $internalInvoice->due_date = date('Y-m-d');
         $internalInvoice->token = $this->generateInternalInvoiceToken();
-        $actingUser = Auth::user() ?: $subscriber;
-        app(InvoiceAuditService::class)->markCreated($internalInvoice, $actingUser);
+        app(InvoiceAuditService::class)->markCreatedBySystem($internalInvoice, $company);
         $internalInvoice->save();
 
         PaymentARs::create([
@@ -7060,22 +7059,29 @@ class WebController extends Controller
                         return $recipient !== 'admin';
                     }));
 
-                    if (in_array('all user', $sendto)) {
-                        $siteusers = User::where('added_by', '=', $subscriber->id)->get();
-                        foreach ($siteusers as $suser) {
-                            array_push($receiver_id, $suser->id);
-                            array_push($receiver_name, $suser->name);
-                        }
-                        $all_user_index = array_search('all user', $sendto);
-                        array_splice($sendto, $all_user_index, 1);
-                    } else {
-                        if (count($sendto)) {
-                            foreach ($sendto as $uid) {
-                                $suser = User::find($uid);
-                                array_push($receiver_id, $suser->id);
-                                array_push($receiver_name, $suser->name);
-                            }
-                        }
+                    // Only the subscriber's own team can receive a message: their staff, plus the
+                    // subscriber themselves when a staff member is sending. Never the sender.
+                    $allowedRecipients = User::where('added_by', '=', $subscriber->id)
+                        ->orWhere('id', '=', $subscriber->id)
+                        ->get()
+                        ->reject(fn ($candidate) => (int) $candidate->id === (int) $user->id)
+                        ->keyBy('id');
+
+                    $picked = in_array('all user', $sendto, true)
+                        ? $allowedRecipients->where('id', '!=', $subscriber->id)
+                        : $allowedRecipients->only(array_map('intval', array_filter($sendto, 'is_numeric')));
+
+                    foreach ($picked as $suser) {
+                        array_push($receiver_id, $suser->id);
+                        array_push($receiver_name, $suser->name);
+                    }
+
+                    if (count($receiver_id) === 0) {
+                        $noRecipientMessage = $user->user_type == "Subscriber" && $allowedRecipients->isEmpty()
+                            ? 'There is no staff to send this message to. Add staff (Users) first.'
+                            : 'Please choose at least one recipient.';
+
+                        return back()->withInput()->withErrors(['sendto' => $noRecipientMessage]);
                     }
 
                     // Save the message
@@ -10898,9 +10904,11 @@ class WebController extends Controller
                 ? \App\Services\AffiliateReportSettingService::DEFAULT_MODULES
                 : [
                     'clients',
+                    'users',
                     'applications',
                     'invoices',
                     'payments',
+                    'associates',
                     'referrals',
                     'wallets',
                 ];

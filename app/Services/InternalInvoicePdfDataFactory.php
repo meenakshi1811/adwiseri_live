@@ -11,6 +11,7 @@ class InternalInvoicePdfDataFactory
     public static function make(Internal_Invoices $internalInvoice, User $subscriber, User $company): object
     {
         $invoiceSetting = Invoice_settings::forUser((int) $subscriber->id);
+        $isSubscriptionInvoice = $internalInvoice->isSubscriptionApInvoice();
 
         return (object) [
             'invoice_no' => $internalInvoice->invoice_no,
@@ -22,12 +23,14 @@ class InternalInvoicePdfDataFactory
             'discount' => $internalInvoice->discount,
             'tax' => $internalInvoice->tax,
             'tax_label' => $internalInvoice->tax_label ?? $invoiceSetting?->tax_label,
-            'payment_link' => $internalInvoice->payment_link ?? $invoiceSetting?->payment_link,
-            'payment_qr_code' => $internalInvoice->payment_qr_code ?? $invoiceSetting?->payment_qr_code,
+            // Subscription fees are always paid in advance at checkout, so adwiseri's invoice carries
+            // no payment link or QR (and never the subscriber's own, which is meant for their clients).
+            'payment_link' => $isSubscriptionInvoice ? null : ($internalInvoice->payment_link ?? $invoiceSetting?->payment_link),
+            'payment_qr_code' => $isSubscriptionInvoice ? null : ($internalInvoice->payment_qr_code ?? $invoiceSetting?->payment_qr_code),
             'invoice_note' => $internalInvoice->invoice_note,
             'total' => $internalInvoice->total,
             'currency' => 'USD',
-            'name' => $subscriber->name,
+            'name' => trim((string) ($subscriber->organization ?: $subscriber->name)),
             'to_email' => $internalInvoice->to_email ?? $subscriber->email,
             'to_address' => $internalInvoice->to_address ?? $subscriber->address_line,
             'to_city' => $internalInvoice->to_city ?? $subscriber->city,

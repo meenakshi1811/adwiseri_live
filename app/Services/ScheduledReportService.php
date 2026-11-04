@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Affiliates;
 use App\Models\Applications;
+use App\Models\Associate;
 use App\Models\Clients;
 use App\Models\Internal_Invoices;
 use App\Models\PaymentARs;
@@ -516,6 +517,24 @@ class ScheduledReportService
             $data[] = ['title' => 'Clients', 'rows' => $rows];
         }
 
+        if (in_array('users', $modules)) {
+            $rows = User::where('added_by', $subscriberId)
+                ->where('user_type', 'User')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->select($this->resolveReportColumns('users', [
+                    'id' => ['id'],
+                    'name' => ['name'],
+                    'email' => ['email'],
+                    'phone' => ['phone'],
+                    'designation' => ['designation'],
+                    'status' => ['status'],
+                    'created_at' => ['created_at'],
+                ]))
+                ->orderBy('created_at', 'desc')
+                ->get()->toArray();
+            $data[] = ['title' => 'Users', 'rows' => $rows];
+        }
+
         if (in_array('applications', $modules)) {
             $rows = Applications::where('subscriber_id', $subscriberId)
                 ->whereBetween('created_at', [$startDate, $endDate])
@@ -548,6 +567,24 @@ class ScheduledReportService
                 ->orderBy('created_at', 'desc')
                 ->get()->toArray();
             $data[] = ['title' => 'Payments', 'rows' => $rows];
+        }
+
+        if (in_array('associates', $modules) && Schema::hasTable('associates')) {
+            $rows = Associate::where('added_by', $subscriberId)
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->select($this->resolveReportColumns('associates', [
+                    'id' => ['id'],
+                    'associate_code' => ['associate_code'],
+                    'name' => ['name'],
+                    'email' => ['email'],
+                    'phone' => ['phone'],
+                    'organization' => ['organization'],
+                    'country' => ['country'],
+                    'created_at' => ['created_at'],
+                ]))
+                ->orderBy('created_at', 'desc')
+                ->get()->toArray();
+            $data[] = ['title' => 'Associates', 'rows' => $rows];
         }
 
         if (in_array('referrals', $modules)) {

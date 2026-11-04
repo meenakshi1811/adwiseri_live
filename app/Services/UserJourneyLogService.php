@@ -528,7 +528,7 @@ class UserJourneyLogService
             }
         }
 
-        return collect(array_values($deduped))
+        return $this->dropRedundantSubscriptionRows(array_values($deduped))
             ->sortByDesc(function ($row) {
                 if (empty($row['created_at'])) {
                     return 0;
@@ -537,6 +537,62 @@ class UserJourneyLogService
                 return Carbon::parse($row['created_at'])->timestamp;
             })
             ->map(fn ($row) => $this->formatSubscriptionHistoryOutputRow($row))
+            ->values();
+    }
+
+    /**
+     * One purchase can be recorded in several places (activity log, invoice, account record), and some
+     * of those carry no plan. Drop a row without a plan when the same subscriber has a row with a plan
+     * for the same event on the same day, and keep only one Signup per subscriber: the earliest one
+     * that has a plan, from the most reliable source.
+     *
+     * @param  array<int, array>  $rows
+     */
+    private function dropRedundantSubscriptionRows(array $rows): Collection
+    {
+        $dayKey = function (array $row): string {
+            return (int) ($row['subscriber_id'] ?? 0) . '|'
+                . (string) ($row['event_category'] ?? 'unknown') . '|'
+                . (!empty($row['created_at']) ? Carbon::parse($row['created_at'])->format('Y-m-d') : 'unknown');
+        };
+        $hasPlan = fn (array $row): bool => trim((string) ($row['plan'] ?? '-')) !== '-'
+            && trim((string) ($row['plan'] ?? '')) !== '';
+
+        $daysWithPlan = [];
+        foreach ($rows as $row) {
+            if ($hasPlan($row)) {
+                $daysWithPlan[$dayKey($row)] = true;
+            }
+        }
+
+        $rows = array_values(array_filter($rows, function (array $row) use ($dayKey, $hasPlan, $daysWithPlan) {
+            return $hasPlan($row) || !isset($daysWithPlan[$dayKey($row)]);
+        }));
+
+        $signups = [];
+        foreach ($rows as $index => $row) {
+            if (($row['event_category'] ?? null) !== 'signup') {
+                continue;
+            }
+
+            $subscriberId = (int) ($row['subscriber_id'] ?? 0);
+            $rank = [
+                $hasPlan($row) ? 0 : 1,
+                !empty($row['created_at']) ? Carbon::parse($row['created_at'])->timestamp : PHP_INT_MAX,
+                (int) ($row['source_priority'] ?? 99),
+            ];
+
+            if (!isset($signups[$subscriberId]) || $rank < $signups[$subscriberId]['rank']) {
+                $signups[$subscriberId] = ['index' => $index, 'rank' => $rank];
+            }
+        }
+
+        $keepSignup = array_flip(array_column($signups, 'index'));
+
+        return collect($rows)
+            ->filter(function (array $row, int $index) use ($keepSignup) {
+                return ($row['event_category'] ?? null) !== 'signup' || isset($keepSignup[$index]);
+            })
             ->values();
     }
 

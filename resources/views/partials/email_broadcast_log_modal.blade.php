@@ -161,6 +161,7 @@
                                 <th class="text-center">SUB_ID</th>
                                 @endif
                                 <th class="text-center">Broadcast Name</th>
+                                <th class="text-center">Sent To</th>
                                 <th class="text-center">No. of Recipients</th>
                                 <th class="text-center">Emails Sent</th>
                                 <th class="text-center">Sent By</th>
@@ -185,7 +186,7 @@
     var recipientsUrl = {!! $ebLogRecipientsDataUrlJson !!};
     var showSubscriberFilter = {!! $ebLogShowSubscriberFilterJson !!};
     // The hidden created_at column that DateTime sorts on.
-    var sortColumnIndex = showSubscriberFilter ? 7 : 6;
+    var sortColumnIndex = showSubscriberFilter ? 8 : 7;
     var historyTable = null;
     var modalInitialized = false;
     var logGeneration = 0;
@@ -402,6 +403,7 @@
 
         columns.push(
             { data: 'broadcast_name', className: 'text-center', defaultContent: '-', render: renderText },
+            { data: 'sent_to', className: 'text-center eb-log-col-sender', defaultContent: '-', render: renderText },
             {
                 data: 'recipients',
                 className: 'text-center eb-log-col-num',

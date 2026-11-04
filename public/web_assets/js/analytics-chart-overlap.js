@@ -135,7 +135,7 @@
                 xTicks.maxTicksLimit = count > 24 ? 14 : (count > 18 ? 16 : undefined);
                 xTicks.font = Object.assign({}, xTicks.font || {}, {
                     size: count > 16 ? 8 : (count > 10 ? 9 : 10),
-                    weight: '600'
+                    weight: 'normal'
                 });
 
                 if (isCategory) {
@@ -180,7 +180,7 @@
                         return formatted;
                     };
                 }
-                yTicks.font = Object.assign({}, yTicks.font || {}, { size: 10, weight: '600' });
+                yTicks.font = Object.assign({}, yTicks.font || {}, { size: 10, weight: 'normal' });
             }
         });
     }
@@ -212,7 +212,7 @@
         datalabels.rotation = 0;
         datalabels.font = Object.assign({}, datalabels.font || {}, {
             size: count > 10 ? 9 : 11,
-            weight: '700'
+            weight: 'normal'
         });
         datalabels.formatter = function (value, context) {
             var formatted = value;
@@ -260,7 +260,7 @@
         labels.padding = count > 12 ? 4 : 6;
         labels.font = Object.assign({}, labels.font || {}, {
             size: count > 12 ? 9 : 10,
-            weight: '500'
+            weight: 'normal'
         });
 
         if (typeof originalGenerate === 'function') {

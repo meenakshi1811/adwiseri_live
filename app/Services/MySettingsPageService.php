@@ -188,9 +188,11 @@ class MySettingsPageService
     {
         $modules = [
             'clients' => 'Clients',
+            'users' => 'Users',
             'applications' => 'Applications',
             'invoices' => 'Invoices',
             'payments' => 'Payments',
+            'associates' => 'Associates',
             'referrals' => 'Referrals',
             'wallets' => 'Wallets',
         ];

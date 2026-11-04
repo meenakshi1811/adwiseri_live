@@ -568,7 +568,7 @@
         xTicks.color = '#000000';
         xTicks.font = Object.assign({}, xTicks.font || {}, {
             size: pointCount > 16 ? 8 : (pointCount > 10 ? 9 : 10),
-            weight: '600'
+            weight: 'normal'
         });
         xTicks.callback = function (value) {
             var label = labels[value] !== undefined ? labels[value] : value;
@@ -649,7 +649,7 @@
                 clip: false,
                 font: {
                     size: pointCount > 10 ? 9 : 11,
-                    weight: '700'
+                    weight: 'normal'
                 },
                 formatter: function (value) {
                     return (value && typeof value === 'object') ? value.y : value;
@@ -664,7 +664,7 @@
                 offset: 4,
                 rotation: 0,
                 clip: false,
-                font: { size: 10, weight: '700' },
+                font: { size: 10, weight: 'normal' },
                 formatter: function (value) {
                     return (value && typeof value === 'object') ? value.y : value;
                 }

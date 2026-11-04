@@ -215,8 +215,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
     <!-- Adds Area / Scatter / Bubble / Gauge on top of Chart.js. Must load after chart.js. -->
-    <script src="{{ asset('web_assets/js/adwiseri-chart-types.js') }}?v=20260814b"></script>
-    <script src="{{ asset('web_assets/js/analytics-chart-overlap.js') }}?v=20260814b"></script>
+    <script src="{{ asset('web_assets/js/adwiseri-chart-types.js') }}?v=20261104a"></script>
+    <script src="{{ asset('web_assets/js/analytics-chart-overlap.js') }}?v=20261104a"></script>
 <script>
 /* Leave breathing room between the first/last category and the chart edges. */
 Chart.defaults.scales.category.offset = true;
@@ -860,7 +860,7 @@ function cleanAnalyticsDataLabels(config) {
         rotation: rotateVertical ? -90 : 0,
         font: {
             size: rotateVertical ? 9 : (count > 10 ? 10 : 12),
-            weight: '700'
+            weight: 'normal'
         },
         color: '#000000',
         formatter: function (value, context) {
@@ -931,13 +931,13 @@ function cleanAnalyticsAxes(config) {
     xTicks.color = '#000000';
     xTicks.font = Object.assign({}, xTicks.font || {}, {
         size: count > 12 ? 8 : (count > 6 ? 9 : 10),
-        weight: '600'
+        weight: 'normal'
     });
 
     y.beginAtZero = true;
     yTicks.precision = typeof yTicks.precision === 'number' ? yTicks.precision : 0;
     yTicks.color = '#000000';
-    yTicks.font = Object.assign({}, yTicks.font || {}, { size: 10, weight: '600' });
+    yTicks.font = Object.assign({}, yTicks.font || {}, { size: 10, weight: 'normal' });
     if (config._formatByteValues) {
         yTicks.callback = function (value) {
             return formatBytes(Number(value) || 0, Number(value) >= 1048576 ? 1 : 0);
@@ -1074,7 +1074,7 @@ function enableAnalyticsLegend(config) {
             color: '#000000',
             font: {
                 size: count > 12 ? 10 : 11,
-                weight: '500'
+                weight: 'normal'
             },
             generateLabels: function (chart) {
                 return buildAnalyticsLegendItems(chart);
@@ -2398,7 +2398,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -2581,7 +2581,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -2764,7 +2764,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -2947,7 +2947,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -3126,7 +3126,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -3303,7 +3303,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -3483,7 +3483,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -3661,7 +3661,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -3838,7 +3838,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -4017,7 +4017,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -4206,7 +4206,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -4394,7 +4394,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -4582,7 +4582,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -4762,7 +4762,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -4957,7 +4957,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -5143,7 +5143,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -5323,7 +5323,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -5503,7 +5503,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -5680,7 +5680,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -5859,7 +5859,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -6039,7 +6039,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -6189,7 +6189,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                         align: 'top',
                                         formatter: (value) => value,
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -6352,7 +6352,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -6525,7 +6525,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -6705,7 +6705,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -6886,7 +6886,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -7064,7 +7064,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -7241,7 +7241,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                         }),
                                         font: {
                                             size: 12,
-                                            weight: 600
+                                            weight: 'normal'
                                         },
                                         color: 'black',
                                         offset: 8
@@ -7419,7 +7419,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -7592,7 +7592,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -7772,7 +7772,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -7921,7 +7921,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return formattedValue; // Return formatted size for data label
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -8053,7 +8053,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                         align: 'top',
 
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -8217,7 +8217,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -8369,7 +8369,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -8541,7 +8541,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -8723,7 +8723,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -8903,7 +8903,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -9084,7 +9084,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -9264,7 +9264,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -9444,7 +9444,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -9647,7 +9647,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -9823,7 +9823,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -10000,7 +10000,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -10178,7 +10178,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -10355,7 +10355,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -10543,7 +10543,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -10731,7 +10731,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -10907,7 +10907,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -11095,7 +11095,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -11283,7 +11283,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -11470,7 +11470,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -11657,7 +11657,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -11842,7 +11842,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -12020,7 +12020,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -12198,7 +12198,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -12375,7 +12375,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -12552,7 +12552,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -12732,7 +12732,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -12910,7 +12910,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -13087,7 +13087,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -13264,7 +13264,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -13449,7 +13449,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -13627,7 +13627,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -13805,7 +13805,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -13985,7 +13985,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -14163,7 +14163,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -14322,7 +14322,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -14480,7 +14480,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -14656,7 +14656,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -14831,7 +14831,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -15009,7 +15009,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -15187,7 +15187,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -15365,7 +15365,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -15542,7 +15542,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -15721,7 +15721,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -15895,7 +15895,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -16072,7 +16072,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -16255,7 +16255,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -16420,7 +16420,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -16585,7 +16585,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -16750,7 +16750,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -16930,7 +16930,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -17108,7 +17108,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -17282,7 +17282,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -17460,7 +17460,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }
@@ -17637,7 +17637,7 @@ if (Chart.defaults.plugins && Chart.defaults.plugins.datalabels) {
                                             return value;
                                         },
                                         font: {
-                                            weight: 'bold'
+                                            weight: 'normal'
                                         },
                                         color: 'black'
                                     }

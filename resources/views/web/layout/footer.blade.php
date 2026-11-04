@@ -124,9 +124,13 @@
       if ($planCarousel.length) {
           var planCount = $planCarousel.children(".plan-card").length;
           if (planCount > 3) {
+              // Show every plan side by side on wide screens (up to 5); slide only when they don't all fit.
+              var fitsAll = function (shown) {
+                  return { items: Math.min(shown, planCount), loop: planCount > shown, nav: planCount > shown, autoplay: planCount > shown };
+              };
               $planCarousel.owlCarousel({
     items: 4,
-    margin: 15,
+    margin: 12,
     loop: true,
     nav: true,
     dots: true,
@@ -134,10 +138,11 @@
     autoplayTimeout: 12000,
     // smartSpeed: 5000, // Smooth sliding
     responsive: {
-        0: { items: 1 },
-        576: { items: 2 },
-        768: { items: 3 },
-        992: { items: 4 }
+        0: fitsAll(1),
+        576: fitsAll(2),
+        768: fitsAll(3),
+        992: fitsAll(4),
+        1200: fitsAll(5)
     }
     });
           } else {

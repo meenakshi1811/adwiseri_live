@@ -16,6 +16,10 @@ class InvoiceAuditService
 
     public function resolveCreatedByDisplay(Internal_Invoices $invoice): string
     {
+        // Subscription invoices are raised automatically by adwiseri.com, never by a person.
+        if ($invoice->isSubscriptionApInvoice()) {
+            return Internal_Invoices::ADWISERI_VENDOR_NAME;
+        }
         $user = $this->findAuditUser($invoice->created_by)
             ?? $this->findAuditUser($invoice->user_id)
             ?? $this->findAuditUser($invoice->subscriber_id);
@@ -60,6 +64,16 @@ class InvoiceAuditService
         if ($user) {
             $this->markCreated($invoice, $user);
         }
+    }
+
+    /**
+     * Automated invoice (subscription fees): recorded as created by adwiseri.com, not by whoever
+     * happens to be logged in when the signup or payment is processed.
+     */
+    public function markCreatedBySystem(Internal_Invoices $invoice, ?User $platformUser = null): void
+    {
+        $invoice->created_by = $platformUser ? $platformUser->id : null;
+        $invoice->created_by_name = Internal_Invoices::ADWISERI_VENDOR_NAME;
     }
 
     public function markCreated(Internal_Invoices $invoice, User $user): void

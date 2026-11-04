@@ -53,7 +53,8 @@
 <body>
     @php
         $issuerLogo = \App\Support\InvoiceIssuerLogo::resolve($invoice, $u ?? null);
-        $logoPath = $issuerLogo['disk_path'];
+        // Opened in the browser to print, so the logo needs its web URL (a disk path only works in PDFs).
+        $logoPath = $issuerLogo['url'] ?: $issuerLogo['disk_path'];
         $hasSubscriberLogo = !empty($logoPath);
         $qrSubscriberId = $invoice->subscriber_id ?: ($issuerLogo['owner_user_id'] ?? ($invoice->user_id ?? 1));
         $forPdf = false;

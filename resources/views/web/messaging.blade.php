@@ -1,4 +1,4 @@
-﻿@extends('web.layout.main')
+@extends('web.layout.main')
 
 @section('main-section')
 @php
@@ -166,6 +166,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
               <div class="col mt-3 p-2 messaging" style="border: 2px solid lightgrey; border-radius:7px;">
                 <h4 class="text-center pb-3">Send Message</h4>
+                @php $noMessageRecipients = $user->user_type == "Subscriber" && !($siteusers && $siteusers->count()); @endphp
                 <form id="message_form" class="form-control" method="POST" action="{{route('communicate')}}" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="local_time" class="localtime" />
@@ -178,7 +179,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         <select id="recipientsId" name="sendto[]" class="form-select" multiple data-placeholder="Select Recipient(s)">
                             <option value="__all__">Select All</option>
                             @if($user->user_type == "Subscriber")
+                            @if($siteusers && $siteusers->count())
                             <option value="all user">All User(Staff)</option>
+                            @endif
                             @else
                             <option value="{{$user->added_by}}">Subscriber</option>
                             @endif
@@ -192,6 +195,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         @error('sendto')
                         <span class="text-danger">{{$message}}</span>
                         @enderror
+                        @if($noMessageRecipients)
+                        <span class="text-danger d-block mt-1">There is no staff to send messages to yet. Add staff (Users) first.</span>
+                        @endif
                       </div>
                     </div>
 
@@ -212,7 +218,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     <div class="msg-row">
                       <div class="msg-label"></div>
                       <div class="msg-field">
-                          <input class="btn btn-primary" type="submit" value="Send" />
+                          <input class="btn btn-primary" type="submit" value="Send" @if($noMessageRecipients) disabled title="Add staff first" @endif />
                       </div>
                     </div>
                 </form>

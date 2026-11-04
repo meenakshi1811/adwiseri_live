@@ -1,5 +1,33 @@
 @once
 <style>
+    /* Links inside an invoice (payment link, footer contacts) are plain text links, not the
+       purple link-buttons the content column gives other links. */
+    .column-client .invoice-doc-payment a,
+    .column-client .invoice-doc-footer-contact a,
+    .column-client .invoice-doc-payment a:hover,
+    .column-client .invoice-doc-footer-contact a:hover {
+        display: inline !important;
+        background: none !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        min-height: 0 !important;
+        font-size: inherit !important;
+        font-weight: inherit !important;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+    }
+
+    .column-client .invoice-doc-payment a {
+        color: #4C3BB7 !important;
+        text-decoration: underline !important;
+    }
+
+    .column-client .invoice-doc-footer-contact a {
+        color: #6b7280 !important;
+        text-decoration: none !important;
+    }
     .invoice-doc-section-title {
         font-size: 11px;
         letter-spacing: .5px;

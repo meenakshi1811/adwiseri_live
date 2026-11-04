@@ -106,8 +106,7 @@ class StripeController extends Controller
         $internalInvoice->type = 'ap';
         $internalInvoice->due_date = date("Y-m-d");
         $internalInvoice->token = $this->generateInternalInvoiceToken();
-        $actingUser = Auth::user() ?: $subscriber;
-        app(InvoiceAuditService::class)->markCreated($internalInvoice, $actingUser);
+        app(InvoiceAuditService::class)->markCreatedBySystem($internalInvoice, $company);
         $internalInvoice->save();
 
         PaymentARs::create([
@@ -194,30 +193,13 @@ class StripeController extends Controller
                 "description" => "Test payment from adwiseri.com."
         ]);
         }
-        catch(Stripe_CardError $e) {
-          $error = $e->getMessage();
-        return back()->with('errors', $error);
-        } catch (Stripe_InvalidRequestError $e) {
-          // Invalid parameters were supplied to Stripe's API
-          $error = $e->getMessage();
-        return back()->with('errors', $error);
-        } catch (Stripe_AuthenticationError $e) {
-          // Authentication with Stripe's API failed
-          $error = $e->getMessage();
-        return back()->with('errors', $error);
-        } catch (Stripe_ApiConnectionError $e) {
-          // Network communication with Stripe failed
-          $error = $e->getMessage();
-        return back()->with('errors', $error);
-        } catch (Stripe_Error $e) {
-          // Display a very generic error to the user, and maybe send
-          // yourself an email
-          $error = $e->getMessage();
-        return back()->with('errors', $error);
-        } catch (Exception $e) {
-          // Something else happened, completely unrelated to Stripe
-          $error = $e->getMessage();
-        return back()->with('errors', $error);
+        catch (\Stripe\Exception\CardException $e) {
+            // Card declined: nothing has been saved yet, so just show the reason.
+            return back()->with('errors', $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::warning('Stripe payment failed.', ['user_id' => optional(Auth::user())->id, 'error' => $e->getMessage()]);
+
+            return back()->with('errors', 'The payment could not be processed. Please try again or use another card.');
         }
 
         Session::flash('success', 'Payment successful!');
@@ -399,30 +381,13 @@ class StripeController extends Controller
                 "description" => "Test payment from adwiseri.com."
         ]);
         }
-        catch(Stripe_CardError $e) {
-          $error = $e->getMessage();
-        return back()->with('errors', $error);
-        } catch (Stripe_InvalidRequestError $e) {
-          // Invalid parameters were supplied to Stripe's API
-          $error = $e->getMessage();
-        return back()->with('errors', $error);
-        } catch (Stripe_AuthenticationError $e) {
-          // Authentication with Stripe's API failed
-          $error = $e->getMessage();
-        return back()->with('errors', $error);
-        } catch (Stripe_ApiConnectionError $e) {
-          // Network communication with Stripe failed
-          $error = $e->getMessage();
-        return back()->with('errors', $error);
-        } catch (Stripe_Error $e) {
-          // Display a very generic error to the user, and maybe send
-          // yourself an email
-          $error = $e->getMessage();
-        return back()->with('errors', $error);
-        } catch (Exception $e) {
-          // Something else happened, completely unrelated to Stripe
-          $error = $e->getMessage();
-        return back()->with('errors', $error);
+        catch (\Stripe\Exception\CardException $e) {
+            // Card declined: nothing has been saved yet, so just show the reason.
+            return back()->with('errors', $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::warning('Stripe payment failed.', ['user_id' => optional(Auth::user())->id, 'error' => $e->getMessage()]);
+
+            return back()->with('errors', 'The payment could not be processed. Please try again or use another card.');
         }
 
         Session::flash('success', 'Payment successful!');

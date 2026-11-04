@@ -86,6 +86,7 @@ class EmailBroadcastLogService
         $row = [
             'id' => $broadcast->broadcast_id,
             'broadcast_name' => trim((string) $broadcast->subject) !== '' ? $broadcast->subject : '-',
+            'sent_to' => $this->sentToLabel($broadcast),
             'recipients' => (int) $broadcast->total_recipients,
             'recipient_groups' => $this->recipientGroups($broadcast),
             'recipient_preview' => array_slice($this->recipientList($broadcast), 0, self::RECIPIENT_PREVIEW_LIMIT),
@@ -100,6 +101,43 @@ class EmailBroadcastLogService
         }
 
         return $row;
+    }
+
+    /**
+     * Who the broadcast went to: Staff, Subscribers, Marketing, or Clients and/or Associates
+     * (worked out from the picks saved with the broadcast).
+     */
+    private function sentToLabel(Email_broadcasts $broadcast): string
+    {
+        switch ((string) $broadcast->communicate_type) {
+            case 'internal':
+                return 'Staff';
+            case 'subscribers':
+                return 'Subscribers';
+            case 'marketing':
+                return 'Marketing';
+        }
+
+        $types = [];
+
+        foreach ((array) ($broadcast->recipient_labels ?? []) as $label) {
+            $label = (string) $label;
+
+            if ($label === 'marketing') {
+                $types['Marketing'] = true;
+            } elseif (str_starts_with($label, 'associate:')) {
+                $types['Associates'] = true;
+            } elseif ($label !== '') {
+                $types['Clients'] = true;
+            }
+        }
+
+        // Older broadcasts were saved without their picks; external sends were always to clients.
+        if ($types === []) {
+            return $broadcast->communicate_type === 'external' ? 'Clients' : '-';
+        }
+
+        return implode(' / ', array_keys($types));
     }
 
     /**
