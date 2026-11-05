@@ -166,9 +166,8 @@ $broadcastErrorMessage = session('broadcast_error');
                             <div class="eb-form-group external-group-section" style="display:none;">
                                 <label class="eb-form-label" for="external_group">Select Group <span class="required">*</span></label>
                                 <select id="external_group" name="external_group" class="eb-select" @if(!$canSend) disabled @endif>
-                                    @if($clientCount > 0)
+                                    {{-- Always listed: picking it with no clients shows the "No clients" message. --}}
                                     <option value="clients" {{ $defaultExternalGroup === 'clients' ? 'selected' : '' }}>Clients ({{ $reachableClients }})</option>
-                                    @endif
                                     @if($associateCount > 0)
                                     <option value="associates" {{ $defaultExternalGroup === 'associates' ? 'selected' : '' }}>Associates ({{ $reachableAssociates }})</option>
                                     @endif
@@ -330,6 +329,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const bodyField = document.getElementById('broadcast_body');
     const bodyCount = document.getElementById('body_char_count');
     const staffCount = {{ (int) $staffCount }};
+    const clientCount = {{ (int) $clientCount }};
     const canSend = @json($canSend);
 
     // Only Internal can run out of recipients; External always has the marketing list.
@@ -477,7 +477,23 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (groupSelect) {
-        groupSelect.addEventListener('change', showRecipientSections);
+        // A new consultancy with no clients can still use External (e.g. Marketing - Potential Clients);
+        // the "No clients" message only appears when Clients is explicitly chosen.
+        let lastGroup = groupSelect.value;
+        groupSelect.addEventListener('change', function () {
+            if (groupSelect.value === 'clients' && clientCount === 0) {
+                groupSelect.value = lastGroup;
+                Swal.fire({
+                    icon: 'warning',
+                    customClass: { icon: 'adwiseri-oops-icon' },
+                    title: 'Oops!',
+                    text: 'No clients found in the system'
+                });
+                return;
+            }
+            lastGroup = groupSelect.value;
+            showRecipientSections();
+        });
     }
 
     typeButtons.forEach(function (btn) {
