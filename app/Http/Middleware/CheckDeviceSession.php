@@ -30,6 +30,14 @@ class CheckDeviceSession
 
                 return redirect()->route('login')->withErrors(['message' => $message]);
             }
+
+            // Registration page 2 can't be skipped: until a subscriber completes it, app pages lead there.
+            if (Auth::user()->needsRegistrationDetails()
+                && !$request->routeIs('moredetails', 'update_user')
+                && !$request->expectsJson()
+                && !$request->ajax()) {
+                return redirect()->route('moredetails');
+            }
         }
 
         return $next($request);

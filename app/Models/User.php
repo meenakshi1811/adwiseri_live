@@ -149,4 +149,13 @@ class User extends Authenticatable
         $this->attributes['name'] = ucwords(strtolower($value));
     }
 
+    /**
+     * A subscriber who hasn't completed registration page 2 (organisation, designation, address, ...).
+     * Page 2 saves the organisation, so an empty one means it was skipped.
+     */
+    public function needsRegistrationDetails(): bool
+    {
+        return $this->user_type === 'Subscriber' && trim((string) $this->organization) === '';
+    }
+
 }

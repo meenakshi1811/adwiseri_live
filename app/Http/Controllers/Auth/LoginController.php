@@ -101,6 +101,11 @@ class LoginController extends Controller
                 auth()->user()
             );
 
+            // Registration page 2 is required: send subscribers who skipped it (e.g. left at OTP) there first.
+            if (auth()->user()->needsRegistrationDetails()) {
+                return redirect()->route('moredetails');
+            }
+
             return redirect()->route('userprofile'); // Ensure the route exists
         }
 
