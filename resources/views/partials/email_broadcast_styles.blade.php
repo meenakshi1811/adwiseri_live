@@ -36,6 +36,25 @@
         gap: 0.6rem;
     }
 
+    /* EB Log sits at the right end of the Compose Broadcast header. */
+    .eb-card-header .eb-log-btn {
+        /* Negative vertical margins: the button doesn't make this header taller than Delivery Details'. */
+        margin: -0.3rem 0 -0.3rem auto;
+        min-height: 0;
+        padding: 0.3rem 0.85rem;
+        background: #fff;
+        color: #695EEE;
+        border: 1px solid #fff;
+        font-weight: 600;
+    }
+
+    .eb-card-header .eb-log-btn:hover,
+    .eb-card-header .eb-log-btn:focus {
+        background: #F3F2FF;
+        color: #4C3BB7;
+        border-color: #F3F2FF;
+    }
+
     .eb-card-body {
         padding: 1.35rem;
     }

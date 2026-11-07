@@ -8,16 +8,6 @@
     <div class="client-dashboard">
         <div class="client-btn d-flex justify-content-between align-items-center mb-2">
             <h3 class="text-primary text-center flex-grow-1 text-center m-0">Email Broadcast</h3>
-            <div class="module-header-actions d-flex flex-wrap gap-2 eb-page-actions">
-                <button type="button"
-                    class="btn text-white btn-sm"
-                    style="background:#695EEE;"
-                    data-bs-toggle="modal"
-                    data-bs-target="#emailBroadcastLogModal"
-                    onclick="if(typeof initEmailBroadcastLogModal === 'function'){ initEmailBroadcastLogModal(); }">
-                    EB Log
-                </button>
-            </div>
         </div>
         <p class="eb-page-subtitle text-center mb-3">Send bulk emails to subscribers using the standard Adwiseri email format.</p>
 
@@ -29,6 +19,14 @@
                     <div class="eb-card-header">
                         <i class="fa-solid fa-envelope-open-text"></i>
                         Compose Broadcast
+                        {{-- In the header's empty right end, so it doesn't take a row above the page. --}}
+                        <button type="button"
+                            class="btn btn-sm eb-log-btn"
+                            data-bs-toggle="modal"
+                            data-bs-target="#emailBroadcastLogModal"
+                            onclick="if(typeof initEmailBroadcastLogModal === 'function'){ initEmailBroadcastLogModal(); }">
+                            EB Log
+                        </button>
                     </div>
                     <div class="eb-card-body">
                         <form id="email_broadcast_form" method="POST" action="{{ route('admin_send_email_broadcast') }}">

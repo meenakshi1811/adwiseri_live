@@ -74,15 +74,6 @@ $broadcastErrorMessage = session('broadcast_error');
     <div class="client-dashboard">
         <div class="client-btn d-flex justify-content-between align-items-center mb-2">
             <h3 class="text-primary text-center flex-grow-1 text-center m-0">Email Broadcast</h3>
-            <div class="module-header-actions d-flex flex-wrap gap-2 eb-page-actions">
-                <button type="button"
-                    class="btn btn-outline-primary btn-sm"
-                    data-bs-toggle="modal"
-                    data-bs-target="#emailBroadcastLogModal"
-                    onclick="if(typeof initEmailBroadcastLogModal === 'function'){ initEmailBroadcastLogModal(); }">
-                    EB Log
-                </button>
-            </div>
         </div>
         <p class="eb-page-subtitle text-center mb-3">Send bulk emails to your staff, clients, associates or potential clients. The footer shows your organisation address, website, and email.</p>
 
@@ -94,6 +85,14 @@ $broadcastErrorMessage = session('broadcast_error');
                     <div class="eb-card-header">
                         <i class="fa-solid fa-envelope-open-text"></i>
                         Compose Broadcast
+                        {{-- In the header's empty right end, so it doesn't take a row above the page. --}}
+                        <button type="button"
+                            class="btn btn-sm eb-log-btn"
+                            data-bs-toggle="modal"
+                            data-bs-target="#emailBroadcastLogModal"
+                            onclick="if(typeof initEmailBroadcastLogModal === 'function'){ initEmailBroadcastLogModal(); }">
+                            EB Log
+                        </button>
                     </div>
                     <div class="eb-card-body">
                         @if(!$canSend)
