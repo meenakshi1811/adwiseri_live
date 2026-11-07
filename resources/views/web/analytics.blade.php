@@ -218,8 +218,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 <!-- Adds Area / Scatter / Bubble / Gauge on top of Chart.js. Must load after chart.js. -->
-<script src="{{ asset('web_assets/js/adwiseri-chart-types.js') }}?v=20261104a"></script>
-<script src="{{ asset('web_assets/js/analytics-chart-overlap.js') }}?v=20261104a"></script>
+<script src="{{ asset('web_assets/js/adwiseri-chart-types.js') }}?v=20261107a"></script>
+<script src="{{ asset('web_assets/js/analytics-chart-overlap.js') }}?v=20261107a"></script>
 <script>
 /* Leave breathing room between the first/last category and the chart edges. */
 Chart.defaults.scales.category.offset = true;

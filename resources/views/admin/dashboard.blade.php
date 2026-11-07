@@ -75,8 +75,8 @@
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
-    <script src="{{ asset('web_assets/js/adwiseri-chart-types.js') }}?v=20260814b"></script>
-    <script src="{{ asset('web_assets/js/analytics-chart-overlap.js') }}?v=20260814b"></script>
+    <script src="{{ asset('web_assets/js/adwiseri-chart-types.js') }}?v=20261107a"></script>
+    <script src="{{ asset('web_assets/js/analytics-chart-overlap.js') }}?v=20261107a"></script>
     <script>
         window.__DASHBOARD_CHARTS__ = @json($charts ?? []);
     </script>

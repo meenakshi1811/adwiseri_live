@@ -561,8 +561,9 @@
             : function (text) { return text; };
 
         xTicks.stepSize = 1;
-        xTicks.autoSkip = pointCount > 18;
-        xTicks.maxTicksLimit = pointCount > 24 ? 14 : (pointCount > 18 ? 16 : undefined);
+        // Every point keeps its name on the axis (no skipping).
+        xTicks.autoSkip = false;
+        xTicks.maxTicksLimit = undefined;
         xTicks.maxRotation = pointCount > 14 ? 90 : (pointCount > 8 ? 75 : 45);
         xTicks.minRotation = pointCount > 14 ? 70 : (pointCount > 8 ? 50 : 0);
         xTicks.color = '#000000';

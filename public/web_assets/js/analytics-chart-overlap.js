@@ -131,8 +131,9 @@
 
                 xTicks.maxRotation = count > 14 ? 90 : (count > 8 ? 75 : (count > 4 ? 60 : 45));
                 xTicks.minRotation = count > 14 ? 70 : (count > 8 ? 50 : (count > 4 ? 35 : 0));
-                xTicks.autoSkip = count > 18;
-                xTicks.maxTicksLimit = count > 24 ? 14 : (count > 18 ? 16 : undefined);
+                // Show every category name: skipping left points (and legend colours) without a name.
+                xTicks.autoSkip = false;
+                xTicks.maxTicksLimit = undefined;
                 xTicks.font = Object.assign({}, xTicks.font || {}, {
                     size: count > 16 ? 8 : (count > 10 ? 9 : 10),
                     weight: 'normal'
@@ -305,9 +306,87 @@
         }
     }
 
+    var axisLabelTip = null;
+
+    function hideAxisLabelTip() {
+        if (axisLabelTip) {
+            axisLabelTip.style.display = 'none';
+        }
+    }
+
+    function showAxisLabelTip(text, pageX, pageY) {
+        if (!axisLabelTip) {
+            axisLabelTip = document.createElement('div');
+            axisLabelTip.className = 'adwiseri-axis-label-tip';
+            axisLabelTip.style.cssText = 'position:absolute;z-index:2000;pointer-events:none;max-width:320px;'
+                + 'padding:6px 9px;border-radius:6px;background:rgba(15,23,42,0.94);color:#fff;'
+                + 'font-size:12px;line-height:1.35;white-space:normal;box-shadow:0 4px 14px rgba(0,0,0,0.18);';
+            document.body.appendChild(axisLabelTip);
+        }
+        axisLabelTip.textContent = text;
+        axisLabelTip.style.left = (pageX + 12) + 'px';
+        axisLabelTip.style.top = (pageY + 12) + 'px';
+        axisLabelTip.style.display = 'block';
+    }
+
+    /*
+     * X-axis names are shortened to fit; pointing at one shows its full name, like the tooltips on the points.
+     * The labels sit below the plot area, so the nearest tick to the pointer names the label under it.
+     */
+    var axisLabelHoverPlugin = {
+        id: 'adwiseriAxisLabelHover',
+        afterEvent: function (chart, args) {
+            var event = args.event;
+            var scale = chart.scales && chart.scales.x;
+            var labels = (chart.data && chart.data.labels) || [];
+
+            if (!event || event.type === 'mouseout' || !scale || !scale.ticks || !scale.ticks.length || !chart.chartArea) {
+                hideAxisLabelTip();
+                return;
+            }
+            if (event.type !== 'mousemove' || event.y <= chart.chartArea.bottom || event.y > scale.bottom + 4) {
+                hideAxisLabelTip();
+                return;
+            }
+
+            var best = -1;
+            var bestDistance = Infinity;
+            scale.ticks.forEach(function (tick, index) {
+                var distance = Math.abs(scale.getPixelForTick(index) - event.x);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    best = index;
+                }
+            });
+
+            var spacing = scale.ticks.length > 1
+                ? Math.abs(scale.getPixelForTick(1) - scale.getPixelForTick(0))
+                : scale.width;
+            if (best < 0 || bestDistance > Math.max(8, spacing / 2)) {
+                hideAxisLabelTip();
+                return;
+            }
+
+            var tick = scale.ticks[best];
+            var full = labels[tick.value] !== undefined ? labels[tick.value] : tick.label;
+            full = Array.isArray(full) ? full.join(' ') : String(full == null ? '' : full).trim();
+            if (!full) {
+                hideAxisLabelTip();
+                return;
+            }
+
+            var rect = chart.canvas.getBoundingClientRect();
+            showAxisLabelTip(full, rect.left + window.pageXOffset + event.x, rect.top + window.pageYOffset + event.y);
+        }
+    };
+
     function enhance(config) {
         if (!config || !config.options) {
             return config;
+        }
+
+        if (!isRadial(config)) {
+            config.plugins = (config.plugins || []).concat([axisLabelHoverPlugin]);
         }
 
         var count = pointCount(config);
