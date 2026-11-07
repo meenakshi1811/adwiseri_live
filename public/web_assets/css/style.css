@@ -4010,6 +4010,44 @@ td {
   transform: translateX(3px);
 }
 
+/*
+ * Affiliate Program on the landing page: plain page background like the other sections, with the
+ * label, heading, text and button in the theme colour.
+ */
+.Affiliates-banner {
+  background: transparent;
+  color: var(--adwiseri-primary-deep, #4C3BB7);
+}
+
+.Affiliates-banner::before,
+.Affiliates-banner .affiliate-banner-glow {
+  display: none;
+}
+
+.Affiliates-banner .affiliate-eyebrow {
+  color: var(--adwiseri-primary, #695EEE);
+}
+
+.Affiliates-banner .affiliate-title {
+  color: var(--adwiseri-primary-deep, #4C3BB7);
+}
+
+.Affiliates-banner .affiliate-subtitle {
+  color: var(--adwiseri-primary-deep, #4C3BB7);
+}
+
+.Affiliates-banner .affiliate-cta-btn {
+  background: var(--adwiseri-primary, #695EEE);
+  color: #fff !important;
+  box-shadow: 0 10px 24px rgba(105, 94, 238, 0.25);
+}
+
+.Affiliates-banner .affiliate-cta-btn:hover,
+.Affiliates-banner .affiliate-cta-btn:focus {
+  background: var(--adwiseri-primary-hover, #564BB0);
+  color: #fff !important;
+}
+
 @media (max-width: 560px) {
   .Affiliates-banner {
     padding: 2.75rem 1.15rem;

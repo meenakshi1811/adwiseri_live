@@ -2,7 +2,7 @@
 @guest
 <footer class="text-light py-4">
     <div class="container-fluid">
-      <div class="row align-items-start">
+      <div class="row align-items-start justify-content-between">
         <!-- Logo and Address -->
         <div class="col-md-4 mb-4 footer-brand-col">
           <a class="footer-brand" href="{{ route('/') }}">
@@ -47,6 +47,8 @@
         </ul>
         </div>
 
+        {{-- Follow Us (social links) hidden until the channels are set up. --}}
+        @if(false)
         <!-- Social Links -->
         <div class="col-md-4 mb-4 text-center socail-media">
           <h5>Follow Us</h5>
@@ -63,6 +65,7 @@
             {{-- <p>Country</p> --}}
         </div>
         </div>
+        @endif
       </div>
 
       <!-- Bottom Footer -->
