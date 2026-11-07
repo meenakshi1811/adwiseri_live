@@ -269,8 +269,10 @@
                 @foreach($price_plans as $plan)
                 @php
                     $isFreePlan = ($plan->price_per_year == 0) || in_array($plan->plan_name, ['Free', 'Free Plan'], true);
-                    $isPopular = stripos((string) $plan->plan_name, '+') !== false
-                        || strcasecmp((string) $plan->plan_name, 'Adwiseri+') === 0;
+                    // "Most Popular" is hidden until there are real sign-up numbers; set to true to show it again.
+                    $showPopularBadge = false;
+                    $isPopular = $showPopularBadge && (stripos((string) $plan->plan_name, '+') !== false
+                        || strcasecmp((string) $plan->plan_name, 'Adwiseri+') === 0);
                 @endphp
                 @if(empty($myplan) )
                 <div class="plan-card{{ $isPopular ? ' plan-card--popular' : '' }}">
@@ -289,7 +291,7 @@
                         <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                         <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
                         <li><span class="plan-feat-label">Messages</span><span class="plan-feat-value">{{ $plan->messaging }}</span></li>
-                        <li><span class="plan-feat-label">Email Broadcasts</span><span class="plan-feat-value">@if((int) ($plan->email_broadcast_limit ?? 0) > 0){{ number_format((int) $plan->email_broadcast_limit) }} / Year@else<i class="fa fa-times icon-circle text-danger"></i>@endif</span></li>
+                        <li><span class="plan-feat-label">Emails</span><span class="plan-feat-value">{{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . ' / Year' : '0' }}</span></li>
                         <li><span class="plan-feat-label">Reports</span><span class="plan-feat-value">{{ $plan->reports }}</span></li>
                         <li>
                             <span class="plan-feat-label">Invoicing</span>
@@ -368,7 +370,7 @@
                         <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                         <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
                         <li><span class="plan-feat-label">Messages</span><span class="plan-feat-value">{{ $plan->messaging }}</span></li>
-                        <li><span class="plan-feat-label">Email Broadcasts</span><span class="plan-feat-value">@if((int) ($plan->email_broadcast_limit ?? 0) > 0){{ number_format((int) $plan->email_broadcast_limit) }} / Year@else<i class="fa fa-times icon-circle text-danger"></i>@endif</span></li>
+                        <li><span class="plan-feat-label">Emails</span><span class="plan-feat-value">{{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . ' / Year' : '0' }}</span></li>
                         <li><span class="plan-feat-label">Reports</span><span class="plan-feat-value">{{ $plan->reports }}</span></li>
                         <li>
                             <span class="plan-feat-label">Invoicing</span>

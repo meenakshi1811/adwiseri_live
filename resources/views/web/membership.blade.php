@@ -44,7 +44,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     <li>Client Limit: {{ $plan->client_limit }}</li>
                     <li>User License: {{ $plan->no_of_users }}</li>
                     <li>Messages: {{ $plan->messaging }}</li>
-                    <li>Email Broadcasts: {{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "Not included" }}</li>
+                    <li>Emails: {{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "0" }}</li>
                     <li>Reports: {{ $plan->reports }}</li>
                     <li>Invoicing:
                         @if($plan->invoicing == 'Yes')
@@ -117,7 +117,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     <li>Client Limit: {{ $plan->client_limit }}</li>
                     <li>User License: {{ $plan->no_of_users }}</li>
                     <li>Messages: {{ $plan->messaging }}</li>
-                    <li>Email Broadcasts: {{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "Not included" }}</li>
+                    <li>Emails: {{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "0" }}</li>
                     <li>Reports: {{ $plan->reports }}</li>
                     <li>Invoicing:
                         @if($plan->invoicing == 'Yes')
