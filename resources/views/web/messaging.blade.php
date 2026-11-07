@@ -235,8 +235,15 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 $(document).ready(function () {
     const $recipients = $('#recipientsId');
     const allOptionValue = '__all__';
+    const allStaffValue = 'all user';
+    const hasAllStaffOption = $recipients.find('option[value="' + allStaffValue + '"]').length > 0;
 
     function getAllOptionValues() {
+        // "All User(Staff)" already covers every staff member, so Select All picks just that.
+        if (hasAllStaffOption) {
+            return [allStaffValue];
+        }
+
         const values = [];
         $recipients.find('option').each(function () {
             const val = $(this).val();
@@ -254,11 +261,38 @@ $(document).ready(function () {
         closeOnSelect: false
     });
 
+    // While "All User(Staff)" is selected the individual staff names are locked (cleared and greyed out);
+    // they open again once it is removed.
+    function syncStaffLock() {
+        if (!hasAllStaffOption) {
+            return;
+        }
+
+        const selected = $recipients.val() || [];
+        const locked = selected.indexOf(allStaffValue) !== -1;
+
+        $recipients.find('option').each(function () {
+            const val = $(this).val();
+            if (val !== allOptionValue && val !== allStaffValue) {
+                $(this).prop('disabled', locked);
+            }
+        });
+
+        if (locked && selected.length > 1) {
+            $recipients.val([allStaffValue]);
+        }
+
+        $recipients.trigger('change.select2');
+    }
+
     $recipients.on('select2:select', function (e) {
         if (e.params.data.id === allOptionValue) {
             $(this).val(getAllOptionValues()).trigger('change');
         }
     });
+
+    $recipients.on('change', syncStaffLock);
+    syncStaffLock();
 
     $('#message_form').on('submit', function (e) {
         let selected = $recipients.val() || [];
