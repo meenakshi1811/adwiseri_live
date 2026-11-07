@@ -26,7 +26,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     </style>
   <div class="membership-page">
         <img src="{{ asset('web_assets/images/membership.png') }}" width="1519" height="440" alt="">
-        <h1>Subscription Plans</h1>
+        <h1>Subscription</h1>
     </div>
 
     <div class="container-fluid member-mainbox mt-5 mb-5">

@@ -5546,3 +5546,8 @@ button.app-doc-action-icon:focus-visible {
 .module-summary-box p {
     color: #fff;
 }
+
+/* "Price Plans" / "Upgrade Plan" heading on the Membership and Renewal pages, in the theme colour like the home page. */
+.member-mainbox > h1 {
+    color: var(--adwiseri-primary-deep, #4C3BB7);
+}
