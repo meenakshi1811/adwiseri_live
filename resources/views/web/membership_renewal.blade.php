@@ -54,17 +54,17 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     <div class="plan-card">
                         <h3 class="plan-title">{{ $plan->plan_name }}</h3>
                         <ul class="plan-features">
-                            <li>Client Limit: {{ $plan->client_limit }}</li>
-                            <li>User License: {{ $plan->no_of_users }}</li>
-                            <li>Messages: {{ $plan->messaging }}</li>
-                            <li>Emails: {{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "0" }}</li>
-                            <li>Reports: {{ $plan->reports }}</li>
-                            <li>Invoicing: {!! $plan->invoicing === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                            <li>Analytics: {!! $plan->analytics === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                            <li>Multi-Device Support: {!! $plan->multi_device_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                            <li>Secure Environment: {!! $plan->secure_environment === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                            <li>Multi-Currency Support: {!! $plan->multi_currency_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                            <li>Validity: {{ $plan->validity }} Days</li>
+                            <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
+                            <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
+                            <li><span class="plan-feat-label">Messages</span><span class="plan-feat-value">{{ $plan->messaging }}</span></li>
+                            <li><span class="plan-feat-label">Emails</span><span class="plan-feat-value">{{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "0" }}</span></li>
+                            <li><span class="plan-feat-label">Reports</span><span class="plan-feat-value">{{ $plan->reports }}</span></li>
+                            <li><span class="plan-feat-label">Invoicing</span><span class="plan-feat-value">{!! $plan->invoicing === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                            <li><span class="plan-feat-label">Analytics</span><span class="plan-feat-value">{!! $plan->analytics === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                            <li><span class="plan-feat-label">Multi-Device Support</span><span class="plan-feat-value">{!! $plan->multi_device_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                            <li><span class="plan-feat-label">Secure Environment</span><span class="plan-feat-value">{!! $plan->secure_environment === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                            <li><span class="plan-feat-label">Multi-Currency Support</span><span class="plan-feat-value">{!! $plan->multi_currency_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                            <li><span class="plan-feat-label">Validity</span><span class="plan-feat-value">{{ $plan->validity }} Days</span></li>
                         </ul>
                         <h5 class="plan-price">{{ $plan->price_per_year != 0 ? 'USD '.$plan->price_per_year : 'Free' }}</h5>
                         <button class="subscribe-btn subscribe-btn--active" type="button">Lapsed</button>
@@ -74,17 +74,17 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     <div class="plan-card">
                         <h3 class="plan-title">{{ $plan->plan_name }}</h3>
                         <ul class="plan-features">
-                            <li>Client Limit: {{ $plan->client_limit }}</li>
-                            <li>User License: {{ $plan->no_of_users }}</li>
-                            <li>Messages: {{ $plan->messaging }}</li>
-                            <li>Emails: {{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "0" }}</li>
-                            <li>Reports: {{ $plan->reports }}</li>
-                            <li>Invoicing: {!! $plan->invoicing === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                            <li>Analytics: {!! $plan->analytics === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                            <li>Multi-Device Support: {!! $plan->multi_device_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                            <li>Secure Environment: {!! $plan->secure_environment === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                            <li>Multi-Currency Support: {!! $plan->multi_currency_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                            <li>Validity: {{ $plan->validity }} Days</li>
+                            <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
+                            <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
+                            <li><span class="plan-feat-label">Messages</span><span class="plan-feat-value">{{ $plan->messaging }}</span></li>
+                            <li><span class="plan-feat-label">Emails</span><span class="plan-feat-value">{{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "0" }}</span></li>
+                            <li><span class="plan-feat-label">Reports</span><span class="plan-feat-value">{{ $plan->reports }}</span></li>
+                            <li><span class="plan-feat-label">Invoicing</span><span class="plan-feat-value">{!! $plan->invoicing === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                            <li><span class="plan-feat-label">Analytics</span><span class="plan-feat-value">{!! $plan->analytics === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                            <li><span class="plan-feat-label">Multi-Device Support</span><span class="plan-feat-value">{!! $plan->multi_device_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                            <li><span class="plan-feat-label">Secure Environment</span><span class="plan-feat-value">{!! $plan->secure_environment === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                            <li><span class="plan-feat-label">Multi-Currency Support</span><span class="plan-feat-value">{!! $plan->multi_currency_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                            <li><span class="plan-feat-label">Validity</span><span class="plan-feat-value">{{ $plan->validity }} Days</span></li>
                         </ul>
                         <h5 class="plan-price">{{ $plan->price_per_year != 0 ? 'USD '.$plan->price_per_year : 'Free' }}</h5>
                         <button class="subscribe-btn" onclick="window.location.href = '{{ route('upgrade_membership', $plan->plan_name) }}';">Renew</button>
@@ -95,17 +95,17 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 <div class="plan-card">
                     <h3 class="plan-title">{{ $plan->plan_name }}</h3>
                     <ul class="plan-features">
-                        <li>Client Limit: {{ $plan->client_limit }}</li>
-                        <li>User License: {{ $plan->no_of_users }}</li>
-                        <li>Messages: {{ $plan->messaging }}</li>
-                        <li>Emails: {{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "0" }}</li>
-                        <li>Reports: {{ $plan->reports }}</li>
-                        <li>Invoicing: {!! $plan->invoicing === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                        <li>Analytics: {!! $plan->analytics === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                        <li>Multi-Device Support: {!! $plan->multi_device_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                        <li>Secure Environment: {!! $plan->secure_environment === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                        <li>Multi-Currency Support: {!! $plan->multi_currency_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                        <li>Validity: {{ $plan->validity }} Days</li>
+                        <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
+                        <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
+                        <li><span class="plan-feat-label">Messages</span><span class="plan-feat-value">{{ $plan->messaging }}</span></li>
+                        <li><span class="plan-feat-label">Emails</span><span class="plan-feat-value">{{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "0" }}</span></li>
+                        <li><span class="plan-feat-label">Reports</span><span class="plan-feat-value">{{ $plan->reports }}</span></li>
+                        <li><span class="plan-feat-label">Invoicing</span><span class="plan-feat-value">{!! $plan->invoicing === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                        <li><span class="plan-feat-label">Analytics</span><span class="plan-feat-value">{!! $plan->analytics === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                        <li><span class="plan-feat-label">Multi-Device Support</span><span class="plan-feat-value">{!! $plan->multi_device_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                        <li><span class="plan-feat-label">Secure Environment</span><span class="plan-feat-value">{!! $plan->secure_environment === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                        <li><span class="plan-feat-label">Multi-Currency Support</span><span class="plan-feat-value">{!! $plan->multi_currency_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                        <li><span class="plan-feat-label">Validity</span><span class="plan-feat-value">{{ $plan->validity }} Days</span></li>
                     </ul>
                     <h5 class="plan-price">{{ $plan->price_per_year != 0 ? 'USD '.$plan->price_per_year : 'Free' }}</h5>
                     <button class="subscribe-btn" onclick="window.location.href = '{{ route('upgrade_membership', $plan->plan_name) }}';">Upgrade</button>
@@ -114,17 +114,17 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 <div class="plan-card">
                     <h3 class="plan-title">{{ $plan->plan_name }}</h3>
                     <ul class="plan-features">
-                        <li>Client Limit: {{ $plan->client_limit }}</li>
-                        <li>User License: {{ $plan->no_of_users }}</li>
-                        <li>Messages: {{ $plan->messaging }}</li>
-                        <li>Emails: {{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "0" }}</li>
-                        <li>Reports: {{ $plan->reports }}</li>
-                        <li>Invoicing: {!! $plan->invoicing === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                        <li>Analytics: {!! $plan->analytics === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                        <li>Multi-Device Support: {!! $plan->multi_device_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                        <li>Secure Environment: {!! $plan->secure_environment === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                        <li>Multi-Currency Support: {!! $plan->multi_currency_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</li>
-                        <li>Validity: {{ $plan->validity }} Days</li>
+                        <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
+                        <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
+                        <li><span class="plan-feat-label">Messages</span><span class="plan-feat-value">{{ $plan->messaging }}</span></li>
+                        <li><span class="plan-feat-label">Emails</span><span class="plan-feat-value">{{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "0" }}</span></li>
+                        <li><span class="plan-feat-label">Reports</span><span class="plan-feat-value">{{ $plan->reports }}</span></li>
+                        <li><span class="plan-feat-label">Invoicing</span><span class="plan-feat-value">{!! $plan->invoicing === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                        <li><span class="plan-feat-label">Analytics</span><span class="plan-feat-value">{!! $plan->analytics === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                        <li><span class="plan-feat-label">Multi-Device Support</span><span class="plan-feat-value">{!! $plan->multi_device_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                        <li><span class="plan-feat-label">Secure Environment</span><span class="plan-feat-value">{!! $plan->secure_environment === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                        <li><span class="plan-feat-label">Multi-Currency Support</span><span class="plan-feat-value">{!! $plan->multi_currency_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
+                        <li><span class="plan-feat-label">Validity</span><span class="plan-feat-value">{{ $plan->validity }} Days</span></li>
                     </ul>
                     <h5 class="plan-price">{{ $plan->price_per_year != 0 ? 'USD '.$plan->price_per_year : 'Free' }}</h5>
                     @if(count($total_users) > $plan->no_of_users || count($total_clients) > $plan->client_limit)

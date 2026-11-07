@@ -41,49 +41,37 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 <h3 class="plan-title">{{ $plan->plan_name }}
                     </h3>
                 <ul class="plan-features">
-                    <li>Client Limit: {{ $plan->client_limit }}</li>
-                    <li>User License: {{ $plan->no_of_users }}</li>
-                    <li>Messages: {{ $plan->messaging }}</li>
-                    <li>Emails: {{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "0" }}</li>
-                    <li>Reports: {{ $plan->reports }}</li>
-                    <li>Invoicing:
-                        @if($plan->invoicing == 'Yes')
+                    <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
+                    <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
+                    <li><span class="plan-feat-label">Messages</span><span class="plan-feat-value">{{ $plan->messaging }}</span></li>
+                    <li><span class="plan-feat-label">Emails</span><span class="plan-feat-value">{{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "0" }}</span></li>
+                    <li><span class="plan-feat-label">Reports</span><span class="plan-feat-value">{{ $plan->reports }}</span></li>
+                    <li><span class="plan-feat-label">Invoicing</span><span class="plan-feat-value">@if($plan->invoicing == 'Yes')
                             <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
-                        @endif
-                    </li>
-                    <li>Analytics:
-                        @if($plan->analytics === 'Yes')
+                        @endif</span></li>
+                    <li><span class="plan-feat-label">Analytics</span><span class="plan-feat-value">@if($plan->analytics === 'Yes')
                             <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
-                        @endif
-                    </li>
-                    <li>Multi-Device Support:
-                        @if($plan->multi_device_support === 'Yes')
+                        @endif</span></li>
+                    <li><span class="plan-feat-label">Multi-Device Support</span><span class="plan-feat-value">@if($plan->multi_device_support === 'Yes')
                             <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
-                        @endif
-                    </li>
-                    <li>Secure Environment:
-                        @if($plan->secure_environment === 'Yes')
+                        @endif</span></li>
+                    <li><span class="plan-feat-label">Secure Environment</span><span class="plan-feat-value">@if($plan->secure_environment === 'Yes')
                             <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
-                        @endif
-                    </li>
-                    <li>Multi-Currency Support:
-                        @if($plan->multi_currency_support === 'Yes')
+                        @endif</span></li>
+                    <li><span class="plan-feat-label">Multi-Currency Support</span><span class="plan-feat-value">@if($plan->multi_currency_support === 'Yes')
                             <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
-                        @endif
-                    </li>
-                    <li>Validity: {{ $plan->validity }} Days
-
-                    </li>
+                        @endif</span></li>
+                    <li><span class="plan-feat-label">Validity</span><span class="plan-feat-value">{{ $plan->validity }} Days</span></li>
 
 
                 </ul>
@@ -114,49 +102,37 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 <h3 class="plan-title">{{ $plan->plan_name }}
                     </h3>
                 <ul class="plan-features">
-                    <li>Client Limit: {{ $plan->client_limit }}</li>
-                    <li>User License: {{ $plan->no_of_users }}</li>
-                    <li>Messages: {{ $plan->messaging }}</li>
-                    <li>Emails: {{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "0" }}</li>
-                    <li>Reports: {{ $plan->reports }}</li>
-                    <li>Invoicing:
-                        @if($plan->invoicing == 'Yes')
+                    <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
+                    <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
+                    <li><span class="plan-feat-label">Messages</span><span class="plan-feat-value">{{ $plan->messaging }}</span></li>
+                    <li><span class="plan-feat-label">Emails</span><span class="plan-feat-value">{{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "0" }}</span></li>
+                    <li><span class="plan-feat-label">Reports</span><span class="plan-feat-value">{{ $plan->reports }}</span></li>
+                    <li><span class="plan-feat-label">Invoicing</span><span class="plan-feat-value">@if($plan->invoicing == 'Yes')
                             <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
-                        @endif
-                    </li>
-                    <li>Analytics:
-                        @if($plan->analytics === 'Yes')
+                        @endif</span></li>
+                    <li><span class="plan-feat-label">Analytics</span><span class="plan-feat-value">@if($plan->analytics === 'Yes')
                             <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
-                        @endif
-                    </li>
-                    <li>Multi-Device Support:
-                        @if($plan->multi_device_support === 'Yes')
+                        @endif</span></li>
+                    <li><span class="plan-feat-label">Multi-Device Support</span><span class="plan-feat-value">@if($plan->multi_device_support === 'Yes')
                             <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
-                        @endif
-                    </li>
-                    <li>Secure Environment:
-                        @if($plan->secure_environment === 'Yes')
+                        @endif</span></li>
+                    <li><span class="plan-feat-label">Secure Environment</span><span class="plan-feat-value">@if($plan->secure_environment === 'Yes')
                             <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
-                        @endif
-                    </li>
-                    <li>Multi-Currency Support:
-                        @if($plan->multi_currency_support === 'Yes')
+                        @endif</span></li>
+                    <li><span class="plan-feat-label">Multi-Currency Support</span><span class="plan-feat-value">@if($plan->multi_currency_support === 'Yes')
                             <i class="fa fa-check icon-circle plan-check"></i>
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
-                        @endif
-                    </li>
-                    <li>Validity: {{ $plan->validity }} Days
-
-                    </li>
+                        @endif</span></li>
+                    <li><span class="plan-feat-label">Validity</span><span class="plan-feat-value">{{ $plan->validity }} Days</span></li>
 
 
                 </ul>
