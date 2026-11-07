@@ -89,6 +89,9 @@
         width: 12%;
         min-width: 9rem;
         white-space: nowrap;
+    }
+    /* Smaller text for the dates only; the heading stays like the other column titles. */
+    #appointmentRecordsTable td.appointment-col-sent-on {
         font-size: 13px;
     }
 
@@ -1039,12 +1042,12 @@
                             </div>
                             <div class="col-6">
                                 <select id="serviceCountry" name="country" class="form-control form-select">
-                                    <option value="NA">NA</option>
+                                    <option value="NA">NA (Not Applicable)</option>
                                     @foreach(($serviceCountryOptions ?? collect()) as $countryName)
                                         <option value="{{ $countryName }}">{{ $countryName }}</option>
                                     @endforeach
                                 </select>
-                                <small class="text-muted d-block mt-1">From your saved Countries &amp; Categories countries (plus NA).</small>
+                                <small class="text-muted d-block mt-1">From your saved Countries &amp; Categories countries (plus &quot;NA&quot;).</small>
                             </div>
                         </div>
                         <div class="row p-1 mb-3 align-items-center">
@@ -1058,7 +1061,7 @@
                                         <option value="{{ $serviceNameOption }}">{{ $serviceNameOption }}</option>
                                     @endforeach
                                 </select>
-                                <small class="text-muted d-block mt-1">Consultation plus your saved Countries &amp; Categories visa categories.</small>
+                                <small class="text-muted d-block mt-1">&quot;Consultation&quot; plus your saved Countries &amp; Categories visa categories.</small>
                             </div>
                         </div>
                         <div class="row p-1 mb-3 align-items-center">

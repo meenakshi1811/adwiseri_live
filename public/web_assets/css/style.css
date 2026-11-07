@@ -448,6 +448,15 @@ textarea {
     /*background-color: lightgray;*/
 }
 
+/* "Use Cases" opens a dropdown, so it is an a[role="button"] and picked up the button text size and
+   weight; keep it in line with the other menu links. */
+.navbar .navbar-nav .nav-link[role="button"] {
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    min-height: 0;
+}
+
 .top_modules {
     cursor: pointer;
     transition: background-color 0.2s ease, color 0.2s ease;

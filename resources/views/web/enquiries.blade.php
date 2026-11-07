@@ -114,6 +114,9 @@ $subscriberDisplayName = $subscriber->organization ?? $subscriber->name;
         width: 8.75rem;
         max-width: 9rem;
         white-space: nowrap;
+    }
+    /* Smaller text for the timestamps only; the headings stay like the other column titles. */
+    .enquiries-leads-table td.enquiry-col-date {
         font-size: 12px;
     }
     .enquiries-leads-table .enquiry-col-action {

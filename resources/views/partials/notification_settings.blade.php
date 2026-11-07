@@ -22,7 +22,7 @@
             @endforeach
         </div>
 
-        <div class="adw-notif-pref-actions">
+        <div class="adw-notif-pref-actions justify-content-center">
             <button type="button" class="btn btn-outline-secondary btn-select-all" id="notif-select-all">Select all</button>
             <button type="button" class="btn btn-outline-secondary btn-clear-all" id="notif-clear-all">Clear all</button>
             <button type="submit" class="btn btn-primary" id="save-notification-preferences">
