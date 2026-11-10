@@ -38,8 +38,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             @foreach($membership as $plan)
             @if(empty($myplan))
             <div class="plan-card">
-                <h3 class="plan-title">{{ $plan->plan_name }}
-                    </h3>
+                <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">USD {{ $plan->price_per_year + 0 }}</span></h3>
                 <ul class="plan-features">
                     <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                     <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
@@ -75,7 +74,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
 
                 </ul>
-                <h5 class="plan-price"> {{ ($plan->price_per_year != 0 ) ? 'USD '.$plan->price_per_year  : 'Free'}}</h5>
                 {{-- <button class="subscribe-btn"
                     @if(isset($user))
                         onclick="window.location.href = '{{ route('membership') }}';"
@@ -99,8 +97,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             @endif
 
             <div class="plan-card">
-                <h3 class="plan-title">{{ $plan->plan_name }}
-                    </h3>
+                <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">USD {{ $plan->price_per_year + 0 }}</span></h3>
                 <ul class="plan-features">
                     <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                     <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
@@ -136,7 +133,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
 
 
                 </ul>
-                <h5 class="plan-price"> {{ ($plan->price_per_year != 0 ) ? 'USD '.$plan->price_per_year  : 'Free'}}</h5>
                 {{-- <button class="subscribe-btn"
                     @if(isset($user))
                         onclick="window.location.href = '{{ route('membership') }}';"

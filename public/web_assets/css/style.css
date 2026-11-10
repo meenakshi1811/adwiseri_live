@@ -1455,7 +1455,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     top: 50%;
     transform: translateY(-50%);
     pointer-events: all;
-    background-color: var(--adwiseri-primary-light, #8B75EE);
+    background-color: var(--adwiseri-primary, #695EEE);
     color: #fff;
     border: none;
     border-radius: 50%;
@@ -5547,7 +5547,21 @@ button.app-doc-action-icon:focus-visible {
     color: #fff;
 }
 
-/* "Price Plans" / "Upgrade Plan" heading on the Membership and Renewal pages, in the theme colour like the home page. */
+/* "Price Plans" / "Upgrade Plan" heading on the Membership and Renewal pages, in the theme colour. */
 .member-mainbox > h1 {
-    color: var(--adwiseri-primary-deep, #4C3BB7);
+    color: var(--adwiseri-primary, #695EEE);
+}
+
+/* Price sits in the coloured card header, under the plan name (Membership and Renewal pages). */
+.plan-title .plan-title-price {
+    display: block;
+    margin-top: 4px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+
+/* Room above the plan pages' banner so its title ("Subscription") is clear of the top menu. */
+.membership-page {
+    margin-top: 3rem;
 }

@@ -52,7 +52,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             @if($isCurrentPlan)
                 @if(isset($subscriber) && \App\Services\SubscriptionTermPricing::isSubscriptionLapsed($subscriber))
                     <div class="plan-card">
-                        <h3 class="plan-title">{{ $plan->plan_name }}</h3>
+                        <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">USD {{ $plan->price_per_year + 0 }}</span></h3>
                         <ul class="plan-features">
                             <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                             <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
@@ -66,13 +66,12 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <li><span class="plan-feat-label">Multi-Currency Support</span><span class="plan-feat-value">{!! $plan->multi_currency_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
                             <li><span class="plan-feat-label">Validity</span><span class="plan-feat-value">{{ $plan->validity }} Days</span></li>
                         </ul>
-                        <h5 class="plan-price">{{ $plan->price_per_year != 0 ? 'USD '.$plan->price_per_year : 'Free' }}</h5>
                         <button class="subscribe-btn subscribe-btn--active" type="button">Lapsed</button>
                     </div>
                 @elseif($today->between($renewStart, $renewEnd))
                     {{-- Show current plan with "Renew" button only in renewal window --}}
                     <div class="plan-card">
-                        <h3 class="plan-title">{{ $plan->plan_name }}</h3>
+                        <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">USD {{ $plan->price_per_year + 0 }}</span></h3>
                         <ul class="plan-features">
                             <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                             <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
@@ -86,14 +85,13 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <li><span class="plan-feat-label">Multi-Currency Support</span><span class="plan-feat-value">{!! $plan->multi_currency_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
                             <li><span class="plan-feat-label">Validity</span><span class="plan-feat-value">{{ $plan->validity }} Days</span></li>
                         </ul>
-                        <h5 class="plan-price">{{ $plan->price_per_year != 0 ? 'USD '.$plan->price_per_year : 'Free' }}</h5>
                         <button class="subscribe-btn" onclick="window.location.href = '{{ route('upgrade_membership', $plan->plan_name) }}';">Renew</button>
                     </div>
                 @endif
             @elseif($isHigherPlan)
                 {{-- Show upgrade plans that are more expensive than current --}}
                 <div class="plan-card">
-                    <h3 class="plan-title">{{ $plan->plan_name }}</h3>
+                    <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">USD {{ $plan->price_per_year + 0 }}</span></h3>
                     <ul class="plan-features">
                         <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                         <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
@@ -107,12 +105,11 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         <li><span class="plan-feat-label">Multi-Currency Support</span><span class="plan-feat-value">{!! $plan->multi_currency_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
                         <li><span class="plan-feat-label">Validity</span><span class="plan-feat-value">{{ $plan->validity }} Days</span></li>
                     </ul>
-                    <h5 class="plan-price">{{ $plan->price_per_year != 0 ? 'USD '.$plan->price_per_year : 'Free' }}</h5>
                     <button class="subscribe-btn" onclick="window.location.href = '{{ route('upgrade_membership', $plan->plan_name) }}';">Upgrade</button>
                 </div>
             @elseif($isLowerPlan && $inRenewalWindow && $plan->plan_name !== 'Free')
                 <div class="plan-card">
-                    <h3 class="plan-title">{{ $plan->plan_name }}</h3>
+                    <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">USD {{ $plan->price_per_year + 0 }}</span></h3>
                     <ul class="plan-features">
                         <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                         <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
@@ -126,7 +123,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         <li><span class="plan-feat-label">Multi-Currency Support</span><span class="plan-feat-value">{!! $plan->multi_currency_support === 'Yes' ? '<i class="fa fa-check plan-check"></i>' : '<i class="fa fa-times text-danger"></i>' !!}</span></li>
                         <li><span class="plan-feat-label">Validity</span><span class="plan-feat-value">{{ $plan->validity }} Days</span></li>
                     </ul>
-                    <h5 class="plan-price">{{ $plan->price_per_year != 0 ? 'USD '.$plan->price_per_year : 'Free' }}</h5>
                     @if(count($total_users) > $plan->no_of_users || count($total_clients) > $plan->client_limit)
                         <button class="subscribe-btn" onclick="Swal.fire({ icon: 'warning', title: 'User/Client Limit', text: 'This plan\'s user/client limit is lower than your current number of users and clients.' });">Downgrade</button>
                     @else
