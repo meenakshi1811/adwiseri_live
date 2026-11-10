@@ -127,10 +127,31 @@
   <!-- Navbar END -->
 
   <style>
+    /* Use Cases definitions: theme purple instead of Bootstrap's black, with a thin white edge so the
+       tooltip stands apart from the purple menu beside it. */
+    .use-case-tooltip {
+      --bs-tooltip-bg: #695EEE;
+      --bs-tooltip-opacity: 1;
+    }
+
     .use-case-tooltip .tooltip-inner {
       max-width: 280px;
       text-align: left;
       font-size: 13px;
+      background-color: #695EEE;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      box-shadow: 0 6px 18px rgba(20, 16, 60, 0.28);
+    }
+
+    .use-case-tooltip.bs-tooltip-end .tooltip-arrow::before,
+    .use-case-tooltip.bs-tooltip-auto[data-popper-placement^="right"] .tooltip-arrow::before {
+      border-right-color: #695EEE;
+    }
+
+    .use-case-tooltip.bs-tooltip-start .tooltip-arrow::before,
+    .use-case-tooltip.bs-tooltip-auto[data-popper-placement^="left"] .tooltip-arrow::before {
+      border-left-color: #695EEE;
     }
   </style>
   <script>
