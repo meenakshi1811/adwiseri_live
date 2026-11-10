@@ -3,9 +3,10 @@
 @section('main-section')
 
 <style>
+    /* Short banner so the whole form fits on screen without scrolling. */
     .banner {
     width: 100%;
-    height: 450px;
+    height: clamp(100px, 14vh, 180px);
     overflow: hidden;
     }
 
@@ -16,6 +17,20 @@
     object-position: center; /* Center the image */
     }
 
+    /* Compact single-column form so it fits on screen with the banner. */
+    .contact-form h1 {
+    font-size: clamp(26px, 3vw, 34px);
+    }
+    .contact-form .form-box {
+    max-width: 600px;
+    padding: 22px 30px;
+    }
+    .contact-form .form-box .form-control {
+    padding: 8px 14px;
+    }
+    .contact-form .form-box .form-check p {
+    margin-bottom: 0;
+    }
 </style>
 
   <div class="contactbanner banner">
@@ -23,22 +38,21 @@
   </div>
 
   <div class="container contact-form mb-5">
-    <h1 class="mb-5 mt-5">Contact Us</h1>
+    <h1 class="mb-2 mt-3">Contact Us</h1>
     <div class="row contact-row">
-        <div class="col-lg-1"></div>
-        <div class="col-lg-10 form-box">
+        <div class="col-md-8 col-lg-6 mx-auto form-box">
             <form method="post" action="{{ route('post_contact') }}" id="contact_us">
                 @csrf
                 <input type="hidden" name="local_time" class="localtime" />
 
-                <div class="row mb-4">
-                    <div class="col-md-6">
+                <div class="row g-2 mb-2">
+                    <div class="col-12">
                         <input type="text" minlength="3" maxlength="100" name="name"
                                @if($user) value="{{$user->name}}" @endif
                                class="form-control"
                                placeholder="Enter Your Name" required>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-12">
                         <input type="tel" name="phone"
                                @if($user) value="{{$user->phone}}" @endif
                                class="form-control"
@@ -46,8 +60,8 @@
                     </div>
                 </div>
 
-                <div class="row mb-4">
-                    <div class="col-md-6">
+                <div class="row g-2 mb-2">
+                    <div class="col-12">
                         <select style="font-size: 14px;" name="country"
                                 class="form-control form-select" required>
                             <option value="">Select Your Country</option>
@@ -58,7 +72,7 @@
                             ])
                         </select>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-12">
                         <input type="text" minlength="3" maxlength="100" name="city"
                                @if($user) value="{{$user->city}}" @endif
                                class="form-control"
@@ -66,20 +80,20 @@
                     </div>
                 </div>
 
-                <div class="row mb-4">
-                    <div class="col-md-6">
+                <div class="row g-2 mb-2">
+                    <div class="col-12">
                         <input type="email" minlength="3" maxlength="100" name="email"
                                @if($user) value="{{$user->email}}" @endif
                                class="form-control"
                                placeholder="Enter a Valid Email Address" required>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-12">
                         <textarea class="form-control" name="message"
-                                  rows="4" placeholder="Enter Your Message" required></textarea>
+                                  rows="3" placeholder="Enter Your Message" required></textarea>
                     </div>
                 </div>
 
-                <div class="form-group mb-4">
+                <div class="form-group mb-2">
                     {!! NoCaptcha::renderJs() !!}
                     {!! NoCaptcha::display() !!}
                     {{-- @error('g-recaptcha-response')
@@ -89,7 +103,7 @@
                     @enderror --}}
                 </div>
 
-                <div class="form-check mb-4">
+                <div class="form-check mb-3">
                     <input class="form-check-input @error('terms') is-invalid @enderror"
                            name="terms" type="checkbox"
                          data-error="Please check this box to proceed."
@@ -119,7 +133,6 @@
                 </div>
             </form>
         </div>
-        <div class="col-lg-1"></div>
     </div>
 </div>
 
