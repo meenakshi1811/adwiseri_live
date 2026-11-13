@@ -10,17 +10,18 @@
             })
         </script>
     @endif
-    <main class="py-4" style="padding-top:4.5rem!important;">
-    <div class="container mt-5 mb-5">
+    {{-- Single-column form, centred vertically in the space under the menu (like Contact Us). --}}
+    <main class="py-4 d-flex align-items-center" style="min-height: 100vh; padding-top: calc(var(--site-nav-height, 72px) + 1rem) !important;">
+    <div class="container my-4">
         <div class="row justify-content-center">
-            <div class="col-lg-8 loginouter-box">
+            <div class="col-md-8 col-lg-6 col-xl-5 loginouter-box" style="max-width: 600px;">
                 <form id="loginform" class="login-box" method="POST" action="{{ route('Affiliates.store') }}">
                     @csrf
                     <input type="hidden" name="local_time" class="localtime" />
-                    <h3 class="mb-5 text-center">Affiliate - Registration</h3>
+                    <h3 class="mb-3 text-center">Affiliate - Registration</h3>
 
                     <div class="row">
-                        <div class="col-md-6 mb-4">
+                        <div class="col-12 mb-2">
                             <input type="text" name="name" required
                                 class="form-control @error('name') is-invalid @enderror" placeholder="Name"
                                 value="{{ old('name') }}">
@@ -30,7 +31,7 @@
                                 </span>
                             @enderror
                         </div>
-                        <div class="col-md-6 mb-4">
+                        <div class="col-12 mb-2">
                             <input type="tel" name="phone" required
                                 class="form-control @error('phone') is-invalid @enderror" placeholder="Phone"
                                 value="{{ old('phone') }}">
@@ -43,7 +44,7 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 mb-4">
+                        <div class="col-12 mb-2">
                             <input type="email" name="email" required
                                 class="form-control @error('email') is-invalid @enderror" placeholder="Email"
                                 value="{{ old('email') }}">
@@ -53,7 +54,7 @@
                                 </span>
                             @enderror
                         </div>
-                        <div class="col-md-6 mb-4">
+                        <div class="col-12 mb-2">
                             <input type="password" name="password" required
                                 class="form-control @error('password') is-invalid @enderror" placeholder="Password"
                                 value="{{ old('password') }}">
@@ -66,7 +67,7 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 mb-4">
+                        <div class="col-12 mb-2">
                             <select name="type" class="form-select">
                                 <option value="" {{ old('type') == '' ? 'selected' : '' }}>Select Type</option>
                                 <option value="Individual" {{ old('type') == 'Individual' ? 'selected' : '' }}>Individual
@@ -81,7 +82,7 @@
                                 </span>
                             @enderror
                         </div>
-                        <div class="col-md-6 mb-4">
+                        <div class="col-12 mb-2">
                             <select name="country" id="country" required class="form-select">
                                 <option value="" {{ old('country') == '' ? 'selected' : '' }}>Country</option>
                                 @include('partials.country_select_options_by_name', [
@@ -98,7 +99,7 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 mb-4">
+                        <div class="col-12 mb-2">
                             <input type="text" name="city" required
                                 class="form-control @error('city') is-invalid @enderror" placeholder="City/Town"
                                 value="{{ old('city') }}">
@@ -108,7 +109,7 @@
                                 </span>
                             @enderror
                         </div>
-                        <div class="col-md-6 mb-4">
+                        <div class="col-12 mb-2">
                             {!! NoCaptcha::renderJs() !!}
                             {!! NoCaptcha::display() !!}
                             {{-- @error('g-recaptcha-response') --}}
