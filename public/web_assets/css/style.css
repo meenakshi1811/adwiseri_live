@@ -1219,7 +1219,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     font-weight: 700;
     font-size: clamp(28px, 4vw, 42px);
     margin: 0 0 8px;
-    color: var(--adwiseri-primary-deep, #4C3BB7);
+    color: var(--adwiseri-primary, #695EEE);
     letter-spacing: -0.02em;
 }
 
@@ -1347,7 +1347,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .plan-feat-value {
     font-weight: 700;
-    color: #2c2f3a;
+    color: var(--adwiseri-primary-deep, #4C3BB7);
     text-align: right;
     white-space: nowrap;
 }
@@ -5547,16 +5547,20 @@ button.app-doc-action-icon:focus-visible {
     color: #fff;
 }
 
-/* "Price Plans" / "Upgrade Plan" heading on the Membership and Renewal pages, in the theme colour. */
-.member-mainbox > h1 {
-    color: var(--adwiseri-primary, #695EEE);
+
+/* Price sits in the coloured card header under the plan name, at 70% of the name's size (all plan pages). */
+.plan-card .plan-title {
+    font-size: 20px;
+    /* The landing page's plans sit inside .top-feature, whose h4 rule (weight 500, 40px lines) is meant
+       for the feature names; keep plan headers the same on every page. */
+    font-weight: 700;
+    line-height: 1.2;
 }
 
-/* Price sits in the coloured card header, under the plan name (Membership and Renewal pages). */
 .plan-title .plan-title-price {
     display: block;
-    margin-top: 4px;
-    font-size: 22px;
+    margin-top: 2px;
+    font-size: 0.7em;
     font-weight: 700;
     letter-spacing: 0;
 }
@@ -5564,4 +5568,16 @@ button.app-doc-action-icon:focus-visible {
 /* Room above the plan pages' banner so its title ("Subscription") is clear of the top menu. */
 .membership-page {
     margin-top: 3rem;
+}
+
+/*
+ * Key Features: the image takes the left third and the feature list the right two-thirds, so a heading
+ * centred on the whole page sat well left of the list. On desktop, centre it over the list column.
+ */
+@media (min-width: 992px) {
+    .top-feature .key-features-heading {
+        width: 66.666667%;
+        margin-left: 33.333333%;
+        text-align: center;
+    }
 }

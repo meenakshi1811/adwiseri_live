@@ -20,7 +20,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             background-color: #F5F5F5;
         }
         .plan-title {
-            font-size:20px !important;
+            font-size:20px;
             /* font-weight: 500; */
         }
     </style>
@@ -30,7 +30,12 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     </div>
 
     <div class="container-fluid member-mainbox mt-5 mb-5">
-        <h1 class="text-center mb-4">@if(isset($user) && isset($myplan)) Upgrade Plan @else Price Plans @endif</h1>
+        <div class="plans-section-head text-center mb-4">
+            <h1>@if(isset($user) && isset($myplan)) Upgrade Plan @else Price Plans @endif</h1>
+            @if(!(isset($user) && isset($myplan)))
+            <p class="plans-section-sub">Choose the plan that fits your practice — upgrade anytime.</p>
+            @endif
+        </div>
         @if(isset($user) && isset($myplan))
         <p class="text-center text-muted mb-4">Your current plan and available upgrades. Downgrades are only available at renewal.</p>
         @endif
@@ -38,7 +43,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             @foreach($membership as $plan)
             @if(empty($myplan))
             <div class="plan-card">
-                <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">USD {{ $plan->price_per_year + 0 }}</span></h3>
+                <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">${{ $plan->price_per_year + 0 }}</span></h3>
                 <ul class="plan-features">
                     <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                     <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
@@ -97,7 +102,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             @endif
 
             <div class="plan-card">
-                <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">USD {{ $plan->price_per_year + 0 }}</span></h3>
+                <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">${{ $plan->price_per_year + 0 }}</span></h3>
                 <ul class="plan-features">
                     <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                     <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>

@@ -20,7 +20,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             background-color: #F5F5F5;
         }
         .plan-title {
-            font-size:20px !important;
+            font-size:20px;
             /* font-weight: 500; */
         }
     </style>
@@ -30,7 +30,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
     </div>
 
     <div class="container-fluid member-mainbox mt-5 mb-5">
-        <h1 class="text-center mb-4">Price Plans</h1>
+        <div class="plans-section-head text-center mb-3">
+            <h1>Price Plans</h1>
+        </div>
         <p class="text-center text-muted mb-4">Renew, upgrade, or downgrade at checkout — choose a 1, 2, 3, 4, or 5 year term with multi-year savings. Downgrades are only available during renewal.</p>
         <div class="owl-carousel owl-theme" id="subscription-plan">
         @php
@@ -52,7 +54,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             @if($isCurrentPlan)
                 @if(isset($subscriber) && \App\Services\SubscriptionTermPricing::isSubscriptionLapsed($subscriber))
                     <div class="plan-card">
-                        <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">USD {{ $plan->price_per_year + 0 }}</span></h3>
+                        <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">${{ $plan->price_per_year + 0 }}</span></h3>
                         <ul class="plan-features">
                             <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                             <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
@@ -71,7 +73,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 @elseif($today->between($renewStart, $renewEnd))
                     {{-- Show current plan with "Renew" button only in renewal window --}}
                     <div class="plan-card">
-                        <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">USD {{ $plan->price_per_year + 0 }}</span></h3>
+                        <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">${{ $plan->price_per_year + 0 }}</span></h3>
                         <ul class="plan-features">
                             <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                             <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
@@ -91,7 +93,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             @elseif($isHigherPlan)
                 {{-- Show upgrade plans that are more expensive than current --}}
                 <div class="plan-card">
-                    <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">USD {{ $plan->price_per_year + 0 }}</span></h3>
+                    <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">${{ $plan->price_per_year + 0 }}</span></h3>
                     <ul class="plan-features">
                         <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                         <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
@@ -109,7 +111,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                 </div>
             @elseif($isLowerPlan && $inRenewalWindow && $plan->plan_name !== 'Free')
                 <div class="plan-card">
-                    <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">USD {{ $plan->price_per_year + 0 }}</span></h3>
+                    <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">${{ $plan->price_per_year + 0 }}</span></h3>
                     <ul class="plan-features">
                         <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                         <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>

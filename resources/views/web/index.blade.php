@@ -279,14 +279,7 @@
                     @if($isPopular)
                         <span class="plan-badge">Most Popular</span>
                     @endif
-                    <h4 class="plan-title">{{ $plan->plan_name }}</h4>
-                    <div class="plan-price-block">
-                        @if($isFreePlan)
-                            <h5 class="plan-price">$0/{{ $plan->validity ?? 30 }} Days</h5>
-                        @else
-                            <h5 class="plan-price">${{ $plan->price_per_year }}/Year</h5>
-                        @endif
-                    </div>
+                    <h4 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">${{ $plan->price_per_year + 0 }}</span></h4>
                     <ul class="plan-features">
                         <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                         <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
@@ -358,14 +351,7 @@
                     @if($isPopular)
                         <span class="plan-badge">Most Popular</span>
                     @endif
-                    <h4 class="plan-title">{{ $plan->plan_name }}</h4>
-                    <div class="plan-price-block">
-                        @if($isFreePlan)
-                            <h5 class="plan-price">$0/{{ $plan->validity ?? 30 }} Days</h5>
-                        @else
-                            <h5 class="plan-price">${{ $plan->price_per_year }}/Year</h5>
-                        @endif
-                    </div>
+                    <h4 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">${{ $plan->price_per_year + 0 }}</span></h4>
                     <ul class="plan-features">
                         <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                         <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
