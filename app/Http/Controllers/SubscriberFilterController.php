@@ -916,7 +916,9 @@ class SubscriberFilterController extends Controller
             $applicationByVisaCountry = $query->whereBetween('created_at', [$startDate, $endDate])
                 ->whereNotNull('visa_country')  // Ensures visa_country is not null
                 ->groupBy('visa_country')  // Group by visa_country
-                ->select('visa_country', DB::raw('COUNT(DISTINCT client_id) as total_clients')) // Count distinct clients per visa_country
+                // Applications module: count applications (a client with 3 applications to Dominica counts 3). The
+                // field keeps the name total_clients because the Analytics pages read it.
+                ->select('visa_country', DB::raw('COUNT(*) as total_clients'))
                 ->get();
             return response()->json(['data' => $applicationByVisaCountry]);
         } elseif (request()->type == "byApplicationCountryChart") {
@@ -927,7 +929,8 @@ class SubscriberFilterController extends Controller
             $applicationByHomeCountry = $query->whereBetween('created_at', [$startDate, $endDate])
                 ->whereNotNull('application_country')  // Ensures visa_country is not null
                 ->groupBy('application_country')  // Group by visa_country
-                ->select('application_country', DB::raw('COUNT(DISTINCT client_id) as total_clients')) // Count distinct clients per visa_country
+                // Applications module: count applications, not distinct clients (see the visa country chart above).
+                ->select('application_country', DB::raw('COUNT(*) as total_clients'))
                 ->get();
             return response()->json(['data' => $applicationByHomeCountry]);
         } elseif (request()->type == "byApplicationType") {

@@ -64,7 +64,7 @@ class DashboardPreferenceService
         'clients' => [
             'label' => 'Clients',
             'filters' => [
-                'by_destination_country' => 'By Destination Country',
+                'by_destination_country' => 'By Destination (Visa) Country',
                 'by_home_country' => 'By Home Country',
                 'by_outstanding_payment' => 'By Outstanding Payment',
                 'by_nationality' => 'By Nationality',
