@@ -52,7 +52,7 @@
                     @forelse($subscribers as $subscriber)
                         <label class="d-block mb-1 admin-notif-recipient-option">
                             <input type="checkbox" class="notif-subscriber-checkbox me-2" name="sendto[]" value="{{ $subscriber->id }}" {{ in_array((string) $subscriber->id, array_map('strval', old('sendto', [])), true) ? 'checked' : '' }} />
-                            {{ $subscriber->name }}({{ $subscriber->id }})
+                            {{ $subscriber->name }} ({{ $subscriber->id }})
                         </label>
                     @empty
                         <p class="text-muted small mb-0">No subscribers found.</p>
@@ -74,12 +74,12 @@
                         @php
                             $parentSubscriber = $subscriberLookup->get($staffUser->added_by);
                             $subscriberLabel = $parentSubscriber
-                                ? $parentSubscriber->name . '(' . $parentSubscriber->id . ')'
+                                ? $parentSubscriber->name . ' (' . $parentSubscriber->id . ')'
                                 : 'N/A';
                         @endphp
                         <label class="d-block mb-1 admin-notif-recipient-option">
                             <input type="checkbox" class="notif-user-checkbox me-2" name="sendto[]" value="{{ $staffUser->id }}" {{ in_array((string) $staffUser->id, array_map('strval', old('sendto', [])), true) ? 'checked' : '' }} />
-                            {{ $subscriberLabel }} - {{ $staffUser->name }}({{ $staffUser->id }})
+                            {{ $subscriberLabel }} - {{ $staffUser->name }} ({{ $staffUser->id }})
                         </label>
                     @empty
                         <p class="text-muted small mb-0">No users found.</p>

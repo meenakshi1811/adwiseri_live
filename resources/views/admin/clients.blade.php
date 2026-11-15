@@ -432,8 +432,8 @@
                     <thead>
                         <tr>
                             <th class="text-center">Sr No.</th>
-                            <th class="text-center">Client(ID)</th>
-                            <th class="text-center">Client Name(Sub_ID)</th>
+                            <th class="text-center">Client (ID)</th>
+                            <th class="text-center">Client Name (Sub_ID)</th>
                             <th class="text-center">Email</th>
                             <th class="text-center">Phone</th>
                             <th class="text-center">Country</th>
@@ -452,9 +452,9 @@
                                     @if (strlen($client->name) > 15)
                                         {{ substr($client->name, 0, 15) }}...
                                         <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';"
-                                            style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{ $client->name . '(' . $client->subscriber_id . ')' }}</span>
+                                            style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{ $client->name . ' (' . $client->subscriber_id . ')' }}</span>
                                     @else
-                                        {{ $client->name . '(' . $client->subscriber_id . ')' }}
+                                        {{ $client->name . ' (' . $client->subscriber_id . ')' }}
                                     @endif
                                 </td>
                                 <td data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $client->email }}" class="text-center" style="position: relative;">
@@ -737,7 +737,7 @@ window.onclick = function (event) {
                             data.clients.forEach(function(client) {
                                 // Add each client as an option in the dropdown
                                 options += '<option value="' + client.id + '">' + client
-                                    .name +'('+client.subscriber.name +')'+'</option>';
+                                    .name +' ('+client.subscriber.name +')'+'</option>';
                             });
                             $("#clients").html(
                             options); // Update the clients dropdown with the new options

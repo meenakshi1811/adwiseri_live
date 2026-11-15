@@ -226,7 +226,7 @@
                                         <option value="">Select Subscriber</option>
                                         @foreach ($subscribers as $sub)
                                             <option {{ old('subscriber') == $sub->id ? 'selected' : '' }}
-                                                value="{{ $sub->id }}">{{ $sub->name . '(' . $sub->id . ')' }}
+                                                value="{{ $sub->id }}">{{ $sub->name . ' (' . $sub->id . ')' }}
                                             </option>
                                         @endforeach
                                     </select>

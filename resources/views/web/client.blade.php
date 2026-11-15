@@ -452,7 +452,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         <thead>
                         <tr>
                             <th class="p-1 text-center">Sr No.</th>
-                            <!-- <th class="p-1 text-center">Client Name(Sub_ID)</th> -->
+                            <!-- <th class="p-1 text-center">Client Name (Sub_ID)</th> -->
                             <th class="p-1 text-center">Client Name (ID)</th>
                             <th class="p-1 text-center">Phone No</th>
                             <th class="p-1 text-center">Email</th>
@@ -705,7 +705,7 @@ window.onclick = function (event) {
                             data.clients.forEach(function(client) {
                                 // Add each client as an option in the dropdown
                                 options += '<option value="' + client.id + '">' + client
-                                    .name +'('+client.subscriber.name +')'+'</option>';
+                                    .name +' ('+client.subscriber.name +')'+'</option>';
                             });
                             $("#clients").html(
                             options); // Update the clients dropdown with the new options

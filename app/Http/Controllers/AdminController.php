@@ -993,11 +993,11 @@ class AdminController extends Controller
             })
             ->editColumn('name',function ($row) {
                 // Format the `start_date` for better readability
-                return $row->name.'('.$row->id.')';
+                return $row->name.' ('.$row->id.')';
             })
             ->editColumn('subscriber', function ($row) {
                 // Format the `start_date` for better readability
-                return $row->owner ? $row->owner->name.'('.$row->added_by.')' :'';
+                return $row->owner ? $row->owner->name.' ('.$row->added_by.')' :'';
             })
             ->editColumn('end_date', function ($row) {
                 // Format the `end_date`
@@ -1322,10 +1322,10 @@ class AdminController extends Controller
             return DataTables::of($clients)
                 ->addIndexColumn()
                 ->editColumn('name', function ($row) {
-                    return $row->name . '(' . $row->id . ')';
+                    return $row->name . ' (' . $row->id . ')';
                 })
                 ->editColumn('subscriber', function ($row) {
-                    return $row->subscriber ? $row->subscriber->name . '(' . $row->subscriber->id . ')' : '';
+                    return $row->subscriber ? $row->subscriber->name . ' (' . $row->subscriber->id . ')' : '';
                 })
                 ->addColumn('noa', function ($row) {
                     return $row->dependants ? $row->dependants()->count() : 0;
@@ -1410,7 +1410,7 @@ class AdminController extends Controller
             })
             ->editColumn('client_id', function ($row) {
                 // Format the `start_date` for better readability
-                return $row->client_id ? $row->client->name . '(' . $row->client->id . ')' :'';
+                return $row->client_id ? $row->client->name . ' (' . $row->client->id . ')' :'';
             })
             ->editColumn('application_id', function ($row) {
                 // Format the `start_date` for better readability
@@ -1626,11 +1626,11 @@ class AdminController extends Controller
             })
             ->editColumn('subscriber_id', function ($row) {
                 // Format the `start_date` for better readability
-                return $row->subscriber ? $row->subscriber->name.'('.$row->subscriber_id.')' : '';
+                return $row->subscriber ? $row->subscriber->name.' ('.$row->subscriber_id.')' : '';
             })
             ->editColumn('client_id', function ($row) {
                 // Format the `start_date` for better readability
-                return $row->client ? $row->client->name.'('.$row->client_id.')' : '';
+                return $row->client ? $row->client->name.' ('.$row->client_id.')' : '';
             })
             ->editColumn('start_date', function ($row) {
                 // Format the `start_date` for better readability
@@ -2284,7 +2284,7 @@ class AdminController extends Controller
             ->addIndexColumn()
             ->editColumn('client', function ($row) {
                 // Format the `created_at` column
-                return $row->client ? $row->client->name.'('.$row->client_id.')' : '';
+                return $row->client ? $row->client->name.' ('.$row->client_id.')' : '';
             })->editColumn('service_provider', function ($row) {
                 if ($row->type !== 'ap' || empty($row->service_provider)) {
                     return $row->service_provider;
@@ -2359,7 +2359,7 @@ class AdminController extends Controller
         return DataTables::of($invoices)
             ->addIndexColumn()
             ->editColumn('to_name', function ($row) {
-                return $row->to_name . '(' . $row->subscriber_id . ')';
+                return $row->to_name . ' (' . $row->subscriber_id . ')';
             })
             ->editColumn('due_date', function ($row) {
                 return date("d-m-Y", strtotime($row->due_date));
@@ -2776,10 +2776,10 @@ class AdminController extends Controller
         return  DataTables::of($referrals)
             ->editColumn('referral_by', function ($row) {
                 $user = User::where('referral',$row->referral_code)->first();
-                return $user ? $user->name.'('.$user->id.')' :'';
+                return $user ? $user->name.' ('.$user->id.')' :'';
             })
             ->editColumn('referral_to', function ($row) {
-                return  $row->user ?  $row->user->name.'('.$row->userid.')' :'';
+                return  $row->user ?  $row->user->name.' ('.$row->userid.')' :'';
             })
             ->addColumn('sub_category', function ($row) {
                 return $row->user ? ($row->user->sub_category ?? '') : '';
@@ -2986,10 +2986,10 @@ class AdminController extends Controller
                 return DataTables::of($tickets)
                     ->addIndexColumn()
                     ->editColumn('subscriber', function ($row) {
-                       return $row->subscriber ? $row->subscriber->name.'('.$row->subscriber_id.')' :'';
+                       return $row->subscriber ? $row->subscriber->name.' ('.$row->subscriber_id.')' :'';
                     })
                     ->editColumn('client', function ($row) {
-                        return $row->client ? $row->client->name.'('.$row->client_id.')' :'';
+                        return $row->client ? $row->client->name.' ('.$row->client_id.')' :'';
                      })
                     ->editColumn('status', function ($row) {
                         $html = "";
@@ -3001,7 +3001,7 @@ class AdminController extends Controller
                         return $html;
                     })
                     ->addColumn('assigned_user', function ($row) {
-                        return $row->user ? $row->user->name . '(' . $row->user_id . ')' : '';
+                        return $row->user ? $row->user->name . ' (' . $row->user_id . ')' : '';
                     })
                     ->editColumn('ticket_no', function ($row) {
                         $ticketNo = e($row->ticket_no);
@@ -3885,7 +3885,7 @@ class AdminController extends Controller
             ->editColumn('sender_name', function ($row) {
                 // Format the `start_date` for better readability
 
-                return $row->sender_name . '(' . $row->send_by . ')';
+                return $row->sender_name . ' (' . $row->send_by . ')';
             })
             ->addColumn('message', function ($row) {
                 $text = htmlspecialchars($row->message);
@@ -4091,7 +4091,7 @@ class AdminController extends Controller
                     if (auth()->user()->user_type == "Subscriber") {
                         $activity->activity_detail = "Message sent by " .  auth()->user()->name . " at " . $request->local_time;
                     } else {
-                        $activity->activity_detail = "Message sent by " .  auth()->user()->name . "(" . auth()->user()->name . ") at " . $request->local_time;
+                        $activity->activity_detail = "Message sent by " .  auth()->user()->name . " (" . auth()->user()->name . ") at " . $request->local_time;
                     }
                     $activity->activity_icon = "mail.png";
                     $activity->local_time = $request->local_time;
@@ -4415,7 +4415,7 @@ class AdminController extends Controller
         <?php
         foreach ($applications as $application) {
         ?>
-            <option value="<?php echo $application->id; ?>"><?php echo $application->application_name . "(" . $application->id . ")"; ?></option>
+            <option value="<?php echo $application->id; ?>"><?php echo $application->application_name . " (" . $application->id . ")"; ?></option>
         <?php
         }
     }
@@ -4473,7 +4473,7 @@ class AdminController extends Controller
         <?php
         foreach ($users as $u) {
         ?>
-            <option value="<?php echo $u->id; ?>"><?php echo $u->name . "(" . $u->id . ")"; ?></option>
+            <option value="<?php echo $u->id; ?>"><?php echo $u->name . " (" . $u->id . ")"; ?></option>
 <?php
         }
     }
@@ -5043,7 +5043,7 @@ class AdminController extends Controller
                 ->addIndexColumn()
                 ->addColumn('affName', function ($row) {
                     // return !empty($row->refs->getUser) ? $row->refs->getUser->name . ' (' . $row->refs->getUser->id . ')' : '-';
-                    return $row->getReferralUser->getRefferedByUser ? $row->getReferralUser->getRefferedByUser->name.'('.$row->getReferralUser->getRefferedByUser->id.')':'';
+                    return $row->getReferralUser->getRefferedByUser ? $row->getReferralUser->getRefferedByUser->name.' ('.$row->getReferralUser->getRefferedByUser->id.')':'';
                 })
                 ->addColumn('sub', function ($row) {
                     return $row->name . ' (' . $row->id . ')';

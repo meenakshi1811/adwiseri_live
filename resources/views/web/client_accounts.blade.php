@@ -104,7 +104,7 @@ $canAddEntry = $client_roles && ($client_roles->write_only == 1 || $client_roles
                         data-application-id="{{ $account->application_id ?? '' }}">
                         <td class="p-1 text-center" data-order="{{ $account->id }}">{{ $account->id }}</td>
                         <td class="p-1 text-center">
-                            {{ $account->client ? $account->client->name . '(' . $account->client_id . ')' : $account->client_id }}
+                            {{ $account->client ? $account->client->name . ' (' . $account->client_id . ')' : $account->client_id }}
                         </td>
                         <td class="p-1 text-center">{{ $account->application_id ?? '—' }}</td>
                         <td class="p-1 text-center">

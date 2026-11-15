@@ -19,7 +19,7 @@
                             </div>
                             <div class="col-md-8 p-1">
                                 @php
-                                    $clientLabel = ($client->name ?? '') . '(' . ($client->id ?? $assignment->client_id) . ')';
+                                    $clientLabel = ($client->name ?? '') . ' (' . ($client->id ?? $assignment->client_id) . ')';
                                     $selectedApp = collect($applications)->firstWhere('application_id', $assignment->application_id);
                                     $applicationLabel = $selectedApp
                                         ? trim(($selectedApp->application_name ?? '') . ' (' . $selectedApp->application_id . ')')

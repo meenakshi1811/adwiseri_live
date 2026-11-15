@@ -27,7 +27,7 @@
                                 <option value="">Select Subscriber</option>
                                 @foreach ($subscribers as $subs)
                                     <option value="{{ $subs->id }}" {{ old('subscriber', $invoice->subscriber_id) == $subs->id ? 'selected' : '' }}>
-                                        {{ $subs->name . '(' . $subs->id . ')' }}
+                                        {{ $subs->name . ' (' . $subs->id . ')' }}
                                     </option>
                                 @endforeach
                             </select>

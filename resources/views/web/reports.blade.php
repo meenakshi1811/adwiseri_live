@@ -921,8 +921,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                 <thead>
                                     <tr>
                                         <th class="p-1 text-center">Referral_ID</th>
-                                        <th class="p-1 text-center">Referred By(Sub_ID)</th>
-                                        <th class="p-1 text-center">Referred To(Sub_ID)</th>
+                                        <th class="p-1 text-center">Referred By (Sub_ID)</th>
+                                        <th class="p-1 text-center">Referred To (Sub_ID)</th>
                                         <th class="p-1 text-center">Sub-Category</th>
                                         <th class="p-1 text-center">Sub_Plan</th>
                                         <th class="p-1 text-center">Purchase (USD)</th>
@@ -1045,7 +1045,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                         <th class="p-1 text-center">Sr.No.</th>
 
                                         <th class="p-1  text-center"> Wallet_TransID</th>
-                                        <th class="p-1  text-center col-4"> Subscriber(SUB_ID)</th>
+                                        <th class="p-1  text-center col-4"> Subscriber (SUB_ID)</th>
                                         <th class="p-1 narrow-column col-1">Transaction Amount (Cr/Dr) </th>
                                         <th class="p-1  text-center col-4"> Description</th>
                                         {{-- <th class="p-1 text-center text-center">Transaction Amount (USD) </th> --}}
@@ -3664,7 +3664,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
         } else if (type == 'bySubscriber') {
             reportTitle = 'Documents By Subscriber Stored Document';
             columns = [{
-                    title: "SUB(ID)",
+                    title: "SUB (ID)",
                     data: 'subscriber',
                     name: 'subscriber'
                 },

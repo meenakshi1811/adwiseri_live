@@ -1885,7 +1885,7 @@ class WebController extends Controller
         if ($user->user_type == "Subscriber") {
             $activity->activity_detail = "New client " . $request->name . " added by " . $user->name . " for " . $request->job_role . " job at " . $request->local_time;
         } else {
-            $activity->activity_detail = "New client " . $request->name . " added by " . $user->name . "(" . $subscriber->name . ") for " . $request->job_role . " job at " . $request->local_time;
+            $activity->activity_detail = "New client " . $request->name . " added by " . $user->name . " (" . $subscriber->name . ") for " . $request->job_role . " job at " . $request->local_time;
         }
         $activity->activity_icon = "user.png";
         $activity->local_time = $request->local_time;
@@ -1912,7 +1912,7 @@ class WebController extends Controller
         // if ($user->user_type == "Subscriber") {
         //     $activity->activity_detail = "New Application of " . $request->job_role . " added by " . $user->name . " at " . $request->local_time;
         // } else {
-        //     $activity->activity_detail = "New Application of " . $request->job_role . " added by " . $user->name . "(" . $subscriber->name . ") at " . $request->local_time;
+        //     $activity->activity_detail = "New Application of " . $request->job_role . " added by " . $user->name . " (" . $subscriber->name . ") at " . $request->local_time;
         // }
         // $activity->activity_icon = "user.png";
         // $activity->local_time = $request->local_time;
@@ -1982,7 +1982,7 @@ class WebController extends Controller
                 if ($user->user_type == "Subscriber") {
                     $activity->activity_detail = "" . $user->name . " Updates his profile at " . $request->local_time;
                 } else {
-                    $activity->activity_detail = "" . $user->name . "(" . $subscriber->name . ") Updates his profile at " . $request->local_time;
+                    $activity->activity_detail = "" . $user->name . " (" . $subscriber->name . ") Updates his profile at " . $request->local_time;
                 }
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
@@ -2017,7 +2017,7 @@ class WebController extends Controller
                 if ($user->user_type == "Subscriber") {
                     $activity->activity_detail = "" . $user->name . " Updates his profile at " . $request->local_time;
                 } else {
-                    $activity->activity_detail = "" . $user->name . "(" . $subscriber->name . ") Updates his profile at " . $request->local_time;
+                    $activity->activity_detail = "" . $user->name . " (" . $subscriber->name . ") Updates his profile at " . $request->local_time;
                 }
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
@@ -2040,7 +2040,7 @@ class WebController extends Controller
                 if ($user->user_type == "Subscriber") {
                     $activity->activity_detail = "" . $user->name . " Updates his profile at " . $request->local_time;
                 } else {
-                    $activity->activity_detail = "" . $user->name . "(" . $subscriber->name . ") Updates his profile at " . $request->local_time;
+                    $activity->activity_detail = "" . $user->name . " (" . $subscriber->name . ") Updates his profile at " . $request->local_time;
                 }
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
@@ -2063,7 +2063,7 @@ class WebController extends Controller
                 if ($user->user_type == "Subscriber") {
                     $activity->activity_detail = "" . $user->name . " Updates organization logo at " . $request->local_time;
                 } else {
-                    $activity->activity_detail = "" . $user->name . "(" . $subscriber->name . ") Updates organization logo at " . $request->local_time;
+                    $activity->activity_detail = "" . $user->name . " (" . $subscriber->name . ") Updates organization logo at " . $request->local_time;
                 }
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
@@ -2129,7 +2129,7 @@ class WebController extends Controller
                 if ($user->user_type == "Subscriber") {
                     $activity->activity_detail = "" . $user->name . " Updates his profile at " . $request->local_time;
                 } else {
-                    $activity->activity_detail = "" . $user->name . "(" . $subscriber->name . ") Updates his profile at " . $request->local_time;
+                    $activity->activity_detail = "" . $user->name . " (" . $subscriber->name . ") Updates his profile at " . $request->local_time;
                 }
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
@@ -2177,7 +2177,7 @@ class WebController extends Controller
                 if ($user->user_type == "Subscriber") {
                     $activity->activity_detail = "" . $user->name . " Updates his profile at " . $request->local_time;
                 } else {
-                    $activity->activity_detail = "" . $user->name . "(" . $affiliateUser->name . ") Updates his profile at " . $request->local_time;
+                    $activity->activity_detail = "" . $user->name . " (" . $affiliateUser->name . ") Updates his profile at " . $request->local_time;
                 }
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
@@ -2196,7 +2196,7 @@ class WebController extends Controller
                 $activity->user_id = $user->id;
                 $activity->user_name = $user->name;
                 $activity->activity_name = "Organization Logo Updated";
-                $activity->activity_detail = "" . $user->name . "(" . $affiliateUser->name . ") Updates organization logo at " . $request->local_time;
+                $activity->activity_detail = "" . $user->name . " (" . $affiliateUser->name . ") Updates organization logo at " . $request->local_time;
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
                 $activity->save();
@@ -2335,7 +2335,7 @@ class WebController extends Controller
             if ($user->user_type == "Subscriber") {
                 $activity->activity_detail = "" . $user->name . " changed his password at " . $request->local_time;
             } else {
-                $activity->activity_detail = "" . $user->name . "(" . $subscriber->name . ") changed his password at " . $request->local_time;
+                $activity->activity_detail = "" . $user->name . " (" . $subscriber->name . ") changed his password at " . $request->local_time;
             }
             $activity->activity_icon = "user.png";
             $activity->local_time = $request->local_time;
@@ -2366,7 +2366,7 @@ class WebController extends Controller
             if ($user->user_type == "Affiliate") {
                 $activity->activity_detail = "" . $user->name . " changed his password at " . $request->local_time;
             } else {
-                $activity->activity_detail = "" . $user->name . "(" . $subscriber->name . ") changed his password at " . $request->local_time;
+                $activity->activity_detail = "" . $user->name . " (" . $subscriber->name . ") changed his password at " . $request->local_time;
             }
             $activity->activity_icon = "user.png";
             $activity->local_time = $request->local_time;
@@ -2432,7 +2432,7 @@ class WebController extends Controller
                     if ($user->user_type == "Subscriber") {
                         $activity->activity_detail = $user->name . " Updates client " . $client->name . " profile at " . $request->local_time;
                     } else {
-                        $activity->activity_detail = $user->name . "(" . $subscriber->name . ") Updates client " . $client->name . " profile at " . $request->local_time;
+                        $activity->activity_detail = $user->name . " (" . $subscriber->name . ") Updates client " . $client->name . " profile at " . $request->local_time;
                     }
                     $activity->activity_icon = "user.png";
                     $activity->local_time = $request->local_time;
@@ -2456,7 +2456,7 @@ class WebController extends Controller
                     if ($user->user_type == "Subscriber") {
                         $activity->activity_detail = $user->name . " Updates client " . $client->name . " profile at " . $request->local_time;
                     } else {
-                        $activity->activity_detail = $user->name . "(" . $subscriber->name . ") Updates client " . $client->name . " profile at " . $request->local_time;
+                        $activity->activity_detail = $user->name . " (" . $subscriber->name . ") Updates client " . $client->name . " profile at " . $request->local_time;
                     }
                     $activity->activity_icon = "user.png";
                     $activity->local_time = $request->local_time;
@@ -2478,7 +2478,7 @@ class WebController extends Controller
                     if ($user->user_type == "Subscriber") {
                         $activity->activity_detail = $user->name . " Updates client " . $client->name . " job details at " . $request->local_time;
                     } else {
-                        $activity->activity_detail = $user->name . "(" . $subscriber->name . ") Updates client " . $client->name . " job details at " . $request->local_time;
+                        $activity->activity_detail = $user->name . " (" . $subscriber->name . ") Updates client " . $client->name . " job details at " . $request->local_time;
                     }
                     $activity->activity_icon = "job_icon.png";
                     $activity->local_time = $request->local_time;
@@ -2806,7 +2806,7 @@ class WebController extends Controller
                 if ($user->user_type == "Subscriber") {
                     $activity->activity_detail = $user->name . " Updates " . $client->name . " " . $request->doc_name . " Document at " . $request->local_time;
                 } else {
-                    $activity->activity_detail = $user->name . "(" . $subscriber->name . ") Updates " . $client->name . " " . $request->doc_name . " Document at " . $request->local_time;
+                    $activity->activity_detail = $user->name . " (" . $subscriber->name . ") Updates " . $client->name . " " . $request->doc_name . " Document at " . $request->local_time;
                 }
                 $activity->activity_icon = "doc.png";
                 $activity->local_time = $request->local_time;
@@ -2836,7 +2836,7 @@ class WebController extends Controller
             if ($user->user_type == "Subscriber") {
                 $activity->activity_detail = $user->name . " Uploads " . $client->name . " " . $request->doc_name . " Document at " . $request->local_time;
             } else {
-                $activity->activity_detail = $user->name . "(" . $subscriber->name . ") Uploads " . $client->name . " " . $request->doc_name . " Document at " . $request->local_time;
+                $activity->activity_detail = $user->name . " (" . $subscriber->name . ") Uploads " . $client->name . " " . $request->doc_name . " Document at " . $request->local_time;
             }
             $activity->activity_icon = "doc.png";
             $activity->local_time = $request->local_time;
@@ -2946,7 +2946,7 @@ class WebController extends Controller
                 if ($user->user_type == "Subscriber") {
                     $activity->activity_detail = $user->name . " deleted " . $client->name . " account at " . $localtime;
                 } else {
-                    $activity->activity_detail = $user->name . "(" . $subscriber->name . ") deleted " . $client->name . " account at " . $localtime;
+                    $activity->activity_detail = $user->name . " (" . $subscriber->name . ") deleted " . $client->name . " account at " . $localtime;
                 }
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $localtime;
@@ -3002,7 +3002,7 @@ class WebController extends Controller
                 return DataTables::of($applications)
                 ->addIndexColumn()
                 ->editColumn('client_name', function ($row) {
-                    return $row->client ?  $row->client->name.'('.$row->client_id.')' :'';
+                    return $row->client ?  $row->client->name.' ('.$row->client_id.')' :'';
                 })
                     ->editColumn('application_name', function ($row) {
                         return application_display_label($row->application_name, $row);
@@ -3486,7 +3486,7 @@ class WebController extends Controller
                 if ($user->user_type == "Subscriber") {
                     $activity->activity_detail = "Application of " . $request->job_role . " updated by " . $user->name . " at " . $request->local_time;
                 } else {
-                    $activity->activity_detail = "Application of " . $request->job_role . " updated by " . $user->name . "(" . $subscriber->name . ") at " . $request->local_time;
+                    $activity->activity_detail = "Application of " . $request->job_role . " updated by " . $user->name . " (" . $subscriber->name . ") at " . $request->local_time;
                 }
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
@@ -3549,7 +3549,7 @@ class WebController extends Controller
                     if ($user->user_type == "Subscriber") {
                         $activity->activity_detail = "New Application of " . $request->job_role . " added by " . $user->name . " at " . $request->local_time;
                     } else {
-                        $activity->activity_detail = "New Application of " . $request->job_role . " added by " . $user->name . "(" . $subscriber->name . ") at " . $request->local_time;
+                        $activity->activity_detail = "New Application of " . $request->job_role . " added by " . $user->name . " (" . $subscriber->name . ") at " . $request->local_time;
                     }
                     $activity->activity_icon = "user.png";
                     $activity->local_time = $request->local_time;
@@ -3944,7 +3944,7 @@ class WebController extends Controller
             if ($user->user_type == "Subscriber") {
                 $activity->activity_detail = "Password Recovered by " . $user->name . " at " . $request->local_time;
             } else {
-                $activity->activity_detail = "Password Recovered by " . $user->name . "(" . $subscriber->name . ") at " . $request->local_time;
+                $activity->activity_detail = "Password Recovered by " . $user->name . " (" . $subscriber->name . ") at " . $request->local_time;
             }
             $activity->activity_icon = "user.png";
             $activity->local_time = $request->local_time;
@@ -3972,7 +3972,7 @@ class WebController extends Controller
             $activity->user_id = $user->id;
             $activity->user_name = $user->name;
             $activity->activity_name = "Password Recovered";
-            $activity->activity_detail = "Password Recovered by " . $user->name . "(" . $user->name . ") at " . $request->local_time;
+            $activity->activity_detail = "Password Recovered by " . $user->name . " (" . $user->name . ") at " . $request->local_time;
             $activity->activity_icon = "user.png";
             $activity->local_time = $request->local_time;
             $activity->save();
@@ -4362,7 +4362,7 @@ class WebController extends Controller
                 if ($user->user_type == "Subscriber") {
                     $activity->activity_detail = $user->name . " added " . $request->amount . " in his wallet at " . $request->local_time;
                 } else {
-                    $activity->activity_detail = $user->name . "(" . $subscriber->name . ") added " . $request->amount . " in his wallet at " . $request->local_time;
+                    $activity->activity_detail = $user->name . " (" . $subscriber->name . ") added " . $request->amount . " in his wallet at " . $request->local_time;
                 }
                 $activity->activity_icon = "invoice.jpg";
                 $activity->local_time = $request->local_time;
@@ -5535,7 +5535,7 @@ class WebController extends Controller
                 if ($user->user_type == "Subscriber") {
                     $activity->activity_detail = "Invoice generated by " . $user->name . " at " . $request->local_time;
                 } else {
-                    $activity->activity_detail = "Invoice generated by " . $user->name . "(" . $subscriber->name . ") at " . $request->local_time;
+                    $activity->activity_detail = "Invoice generated by " . $user->name . " (" . $subscriber->name . ") at " . $request->local_time;
                 }
                 $activity->activity_icon = "invoice.jpg";
                 $activity->local_time = $request->local_time;
@@ -5650,7 +5650,7 @@ class WebController extends Controller
                 if ($user->user_type == "Subscriber") {
                     $activity->activity_detail = "Invoice generated by " . $user->name . " at " . $request->local_time;
                 } else {
-                    $activity->activity_detail = "Invoice generated by " . $user->name . "(" . $subscriber->name . ") at " . $request->local_time;
+                    $activity->activity_detail = "Invoice generated by " . $user->name . " (" . $subscriber->name . ") at " . $request->local_time;
                 }
                 $activity->activity_icon = "invoice.jpg";
                 $activity->local_time = $request->local_time;
@@ -6361,7 +6361,7 @@ class WebController extends Controller
             if ($user->user_type == "Subscriber") {
                 $activity->activity_detail = "Ticket raised by " . $user->name . " at " . $request->local_time;
             } else {
-                $activity->activity_detail = "Ticket raised by " . $user->name . "(" . $subscriber->name . ") at " . $request->local_time;
+                $activity->activity_detail = "Ticket raised by " . $user->name . " (" . $subscriber->name . ") at " . $request->local_time;
             }
             $activity->activity_icon = "user.png";
             $activity->local_time = $request->local_time;
@@ -6512,10 +6512,10 @@ class WebController extends Controller
         return DataTables::of($query)
             ->addIndexColumn()
             ->addColumn('subscriber', function ($row) {
-                return $row->subscriber ? $row->subscriber->name . '(' . $row->subscriber_id . ')' : '';
+                return $row->subscriber ? $row->subscriber->name . ' (' . $row->subscriber_id . ')' : '';
             })
             ->addColumn('client', function ($row) {
-                return $row->client ? $row->client->name . '(' . $row->client_id . ')' : '';
+                return $row->client ? $row->client->name . ' (' . $row->client_id . ')' : '';
             })
             ->editColumn('status', function ($row) {
                 return $row->status;
@@ -7119,7 +7119,7 @@ class WebController extends Controller
                     if ($user->user_type == "Subscriber") {
                         $activity->activity_detail = "Message sent by " .  $user->name . " at " . $request->local_time;
                     } else {
-                        $activity->activity_detail = "Message sent by " .  $user->name . "(" . $subscriber->name . ") at " . $request->local_time;
+                        $activity->activity_detail = "Message sent by " .  $user->name . " (" . $subscriber->name . ") at " . $request->local_time;
                     }
                     $activity->activity_icon = "mail.png";
                     $activity->local_time = $request->local_time;
@@ -7395,7 +7395,7 @@ class WebController extends Controller
                 if ($user->user_type == "Subscriber") {
                     $activity->activity_detail = "Application Assign updated by " . $user->name . " at " . $request->local_time;
                 } else {
-                    $activity->activity_detail = "Application Assign updated by " . $user->name . "(" . $subscriber->name . ") at " . $request->local_time;
+                    $activity->activity_detail = "Application Assign updated by " . $user->name . " (" . $subscriber->name . ") at " . $request->local_time;
                 }
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
@@ -7425,7 +7425,7 @@ class WebController extends Controller
                     if ($user->user_type == "Subscriber") {
                         $activity->activity_detail = "New Assignment added by " . $user->name . " at " . $request->local_time;
                     } else {
-                        $activity->activity_detail = "New Assignment added by " . $user->name . "(" . $subscriber->name . ") at " . $request->local_time;
+                        $activity->activity_detail = "New Assignment added by " . $user->name . " (" . $subscriber->name . ") at " . $request->local_time;
                     }
                     $activity->activity_icon = "user.png";
                     $activity->local_time = $request->local_time;
@@ -7604,7 +7604,7 @@ class WebController extends Controller
                 if ($user->user_type == "Subscriber") {
                     $activity->activity_detail = "Document updated by " . $user->name . " at " . $request->local_time;
                 } else {
-                    $activity->activity_detail = "Document updated by " . $user->name . "(" . $subscriber->name . ") at " . $request->local_time;
+                    $activity->activity_detail = "Document updated by " . $user->name . " (" . $subscriber->name . ") at " . $request->local_time;
                 }
                 $activity->activity_icon = "user.png";
                 $activity->local_time = $request->local_time;
@@ -7642,7 +7642,7 @@ class WebController extends Controller
                     if ($user->user_type == "Subscriber") {
                         $activity->activity_detail = "New Document added by " . $user->name . " at " . $request->local_time;
                     } else {
-                        $activity->activity_detail = "New Document added by " . $user->name . "(" . $subscriber->name . ") at " . $request->local_time;
+                        $activity->activity_detail = "New Document added by " . $user->name . " (" . $subscriber->name . ") at " . $request->local_time;
                     }
                     $activity->activity_icon = "user.png";
                     $activity->local_time = $request->local_time;
@@ -7709,7 +7709,7 @@ class WebController extends Controller
         if ($user->user_type == "Subscriber") {
             $activity->activity_detail = "Document " . $docName . " deleted by " . $user->name . " at " . $request->query('local_time', date('d M, Y H:i:s'));
         } else {
-            $activity->activity_detail = "Document " . $docName . " deleted by " . $user->name . "(" . $subscriber->name . ") at " . $request->query('local_time', date('d M, Y H:i:s'));
+            $activity->activity_detail = "Document " . $docName . " deleted by " . $user->name . " (" . $subscriber->name . ") at " . $request->query('local_time', date('d M, Y H:i:s'));
         }
         $activity->activity_icon = "user.png";
         $activity->save();
@@ -7933,7 +7933,7 @@ class WebController extends Controller
 
             return DataTables::of($clients)
               ->addColumn('client_name',function ($row) use ($client_roles, $user) {
-                 return $row->name.'('.$row->subscriber_id.')';
+                 return $row->name.' ('.$row->subscriber_id.')';
               })
                  ->addColumn('noa',function ($row) use ($client_roles, $user) {
                  return 1 + (int) ($row->dependants_count ?? 0);
@@ -9086,10 +9086,10 @@ class WebController extends Controller
             return e($row->displayCountry());
         })
         ->editColumn('subscriber', function ($row) {
-            return $row->subscriber ? $row->subscriber->name . '(' . $row->subscriber_id . ')' : 'N/A';
+            return $row->subscriber ? $row->subscriber->name . ' (' . $row->subscriber_id . ')' : 'N/A';
         })
         ->editColumn('user', function ($row) {
-            return $row->user ? $row->user->name . '(' . $row->user_id . ')' : 'N/A';
+            return $row->user ? $row->user->name . ' (' . $row->user_id . ')' : 'N/A';
         })
         ->editColumn('status', function ($row) {
             $isActive = (bool) $row->status;

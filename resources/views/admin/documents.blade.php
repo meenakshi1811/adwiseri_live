@@ -38,7 +38,7 @@
                             <th class="text-center">Sr No.</th>
                             <th class="text-center">DocumentID</th>
                             <th class="text-center">Sub_ID</th>
-                            <th class="text-center">Cilent(ID)</th>
+                            <th class="text-center">Client (ID)</th>
                             <th class="text-center">Application (ID)</th>
                             <th class="text-center">Doc_Type</th>
                             <th class="text-center">Doc_Name</th>
@@ -55,9 +55,9 @@
                                 <td class="text-center">{{ $doc->id }}</td>
                                 <td class="text-center">{{ $doc->client ? $doc->client->subscriber_id : '' }}</td>
                                 <td class="text-center">
-                                    {{ $doc->client ? $doc->client->name . '(' . $doc->client->id . ')' : '' }}</td>
+                                    {{ $doc->client ? $doc->client->name . ' (' . $doc->client->id . ')' : '' }}</td>
                                 @php $apps = \App\Models\Applications::where('application_id', $doc->application_id)->first() @endphp
-                                <td class="text-center">{{ $apps ? $apps->application_name . '(' . $apps->id . ')' : '' }}</td>
+                                <td class="text-center">{{ $apps ? $apps->application_name . ' (' . $apps->id . ')' : '' }}</td>
                                 <td class="text-center">{{ $doc->doc_type }}</td>
                                 <td class="text-center">{{ $doc->doc_name }}</td>
                                 <td class="text-center">

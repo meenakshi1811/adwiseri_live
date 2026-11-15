@@ -42,7 +42,7 @@
                         @foreach($feedbacks as $feedback)
                         <tr>
                             <td class="text-center">{{ $feedback->id }}</td>
-                            <td class="text-center" style="position: relative;">{{ $feedback->user->name .'('.$feedback->user_id.')' }}</td>
+                            <td class="text-center" style="position: relative;">{{ $feedback->user->name .' ('.$feedback->user_id.')' }}</td>
                             <td class="text-center">{{ $feedback->rating }}</td>
                             <td class="text-center">{{ $feedback->feedback }}</td>
                             <td class="text-center">{{  \Carbon\Carbon::parse($feedback->created_at)->format('d-m-Y H:i:s') }}</td>

@@ -20,7 +20,7 @@
                             </div>
                             <div class="col-md-8 p-1">
                                 @php
-                                    $clientLabel = ($client->name ?? '') . '(' . ($client->id ?? $assignment->client_id) . ')';
+                                    $clientLabel = ($client->name ?? '') . ' (' . ($client->id ?? $assignment->client_id) . ')';
                                     $selectedApp = collect($applications)->firstWhere('application_id', $assignment->application_id);
                                     $applicationLabel = $selectedApp
                                         ? trim(($selectedApp->application_name ?? '') . ' (' . $selectedApp->application_id . ')')
@@ -88,7 +88,7 @@
                                 <select name="client_id" id="client_id" required class="form-control form-select @error('client_id') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp">
                                     <option value="">Select Client</option>
                                     @foreach($clients as $clint)
-                                    <option value="{{ $clint->id }}">{{ $clint->name."(".$clint->id.")" }}</option>
+                                    <option value="{{ $clint->id }}">{{ $clint->name." (".$clint->id.")" }}</option>
                                     @endforeach
                                 </select>
                                 @error('client_id')

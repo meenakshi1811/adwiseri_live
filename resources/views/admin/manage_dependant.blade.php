@@ -94,8 +94,8 @@
                         <tr>
                             <th class="p-1 text-center">Sr No.</th>
                             <th class="p-1 text-center">Dependant (ID)</th>
-                            <th class="p-1 text-center">Client(ID)</th>
-                            {{-- <th class="p-1 text-center">Sub(ID)</th> --}}
+                            <th class="p-1 text-center">Client (ID)</th>
+                            {{-- <th class="p-1 text-center">Sub (ID)</th> --}}
                             <th class="p-1 text-center">Gender</th>
                             <th class="p-1 text-center">Relation</th>
                             <th class="p-1 text-center">DOB</th>
@@ -110,11 +110,11 @@
                         @foreach ($dependents as $key => $dependent)
                             <tr>
                                 <td class="text-center">{{ $key + 1 }}</td>
-                                <td class="text-center">{{ $dependent->name . '(' . $dependent->id . ')' }}</td>
+                                <td class="text-center">{{ $dependent->name . ' (' . $dependent->id . ')' }}</td>
                                 <td class="text-center">
-                                    {{ $dependent->client_id ? $dependent->client->name . '(' . $dependent->client_id . ')' : '' }}
+                                    {{ $dependent->client_id ? $dependent->client->name . ' (' . $dependent->client_id . ')' : '' }}
                                 </td>
-                                {{-- <td class="p-1 text-center">{{ ($dependent->client_id  && $dependent->client->subscriber_id) ? $dependent->client->subscriber->name.'('.$dependent->client->subscriber_id.')' : '' }}</td> --}}
+                                {{-- <td class="p-1 text-center">{{ ($dependent->client_id  && $dependent->client->subscriber_id) ? $dependent->client->subscriber->name.' ('.$dependent->client->subscriber_id.')' : '' }}</td> --}}
 
                                 <td class="text-center">{{ $dependent->gender }}</td>
                                 <td class="text-center">{{ $dependent->relation }}</td>
@@ -521,7 +521,7 @@ function validateInput(input) {
                         data.clients.forEach(function(client) {
                             // Add each client as an option in the dropdown
                             options += '<option value="' + client.id + '">' + client
-                                .name + '(' + client.subscriber.name + ')' + '</option>';
+                                .name + ' (' + client.subscriber.name + ')' + '</option>';
                         });
                         $("#clients").html(
                             options); // Update the clients dropdown with the new options

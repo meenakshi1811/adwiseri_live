@@ -409,7 +409,7 @@ class ReportFilterController extends Controller
             return  DataTables::of($clientDocs)
                 ->addIndexColumn()
                 ->addColumn('client_name', function ($row) {
-                    return $row->client ? $row->client->name . '(' . $row->client_id . ')' : '';
+                    return $row->client ? $row->client->name . ' (' . $row->client_id . ')' : '';
                 })
 
                 ->make(true);
@@ -433,7 +433,7 @@ class ReportFilterController extends Controller
             return  DataTables::of($clientsWithDependants)
                 ->addIndexColumn()
                 ->editColumn('name', function ($row) {
-                    return  $row->name . '(' . $row->id . ')';
+                    return  $row->name . ' (' . $row->id . ')';
                 })
 
                 ->make(true);;
@@ -1222,7 +1222,7 @@ class ReportFilterController extends Controller
             return DataTables::of($applicationProcessed)
                 ->addIndexColumn()
                 ->addColumn('user_name', function ($row) {
-                    return $row->user_id ? $row->user->name . '(' . $row->user->id . ')' : '';
+                    return $row->user_id ? $row->user->name . ' (' . $row->user->id . ')' : '';
                 })
                 ->make(true);
         } else if (request()->type == "meetingNotes") {
@@ -1304,7 +1304,7 @@ class ReportFilterController extends Controller
                 ->addIndexColumn()
                 ->editColumn('user_id', function ($row) {
                     $user = User::find($row->user_id);
-                    return  $user ? $user->name . '(' . $user->id . ')' : '';
+                    return  $user ? $user->name . ' (' . $user->id . ')' : '';
                 })
                 ->make(true);
         } else if (request()->type == "users") {
@@ -3600,7 +3600,7 @@ class ReportFilterController extends Controller
             
                     // Add the document and its size to the array
                     $filesWithSize[] = [
-                        'client_name' => $doc->client_name.'('.$doc->client_id.')',
+                        'client_name' => $doc->client_name.' ('.$doc->client_id.')',
                         'application_name' => application_display_label($doc->application_name, $doc->application_id), // Application name
                         'application_id' => $doc->application_id, // Application ID
                         'docs_name' => $doc->doc_name . ' (' . $doc->id . ')',

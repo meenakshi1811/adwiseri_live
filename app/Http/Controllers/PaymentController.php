@@ -611,7 +611,7 @@ class PaymentController extends Controller
         if (auth()->user()->user_type == "Subscriber") {
             $activity->activity_detail = "New AP Record added by " .  auth()->user()->name . " at " . $request->local_time;
         } else {
-            $activity->activity_detail = "New AP Record added by " .  auth()->user()->name . "(" . auth()->user()->$subscriber->name . ") at " . $request->local_time;
+            $activity->activity_detail = "New AP Record added by " .  auth()->user()->name . " (" . auth()->user()->$subscriber->name . ") at " . $request->local_time;
         }
         $activity->activity_icon = "invoice.jpg";
         $activity->local_time = $request->local_time;
@@ -632,7 +632,7 @@ class PaymentController extends Controller
                 ->addIndexColumn()
                 ->editColumn('client', function ($row) {
 
-                    return $row->client_id ? $row->client->name.'('.$row->client_id.')' :'';
+                    return $row->client_id ? $row->client->name.' ('.$row->client_id.')' :'';
                 })
 
                 ->editColumn('outstanding', function ($row) {

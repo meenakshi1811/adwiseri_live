@@ -20,7 +20,7 @@
                     <th class="text-center">Issue</th>
                     <th class="text-center">Department</th>
                     <th class="text-center">Status</th>
-                    <th class="text-center">User(ID)</th>
+                    <th class="text-center">User (ID)</th>
                     <th class="text-center">Date</th>
                     <th class="text-center">Attachment</th>
                     <th class="text-center">Action</th>
@@ -37,7 +37,7 @@
                             {{ $tic->ticket_no }}
                         </a>
                     </td>
-                    <td class="text-center">{{ $tic->subscriber ? $tic->subscriber->name .'('.$tic->subscriber_id.')' : '' }}</td>
+                    <td class="text-center">{{ $tic->subscriber ? $tic->subscriber->name .' ('.$tic->subscriber_id.')' : '' }}</td>
                     <td class="text-center">
                         <div style="max-height: 80px;overflow:auto;">
                             <a href="javascript:void(0);"
@@ -57,7 +57,7 @@
                         @endif
                     </td>
                     {{-- <td><a style="background:none;border:none;padding:0px;" onclick="{{ route('update_query_status', $tic->id) }}">{{ $tic->status }}</a></td> --}}
-                    <td class="text-center">{{ $tic->user ? $tic->user->name .'('.$tic->user_id.')' : '' }}</td>
+                    <td class="text-center">{{ $tic->user ? $tic->user->name .' ('.$tic->user_id.')' : '' }}</td>
                     <td class="text-center">{{ $tic->created_at }}</td>
                     <td class="text-center">
                         @if($tic->attachment && file_exists("web_assets/users/ticket_images/".$tic->attachment))

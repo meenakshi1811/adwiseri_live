@@ -40,7 +40,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 <select name="client_id" id="client_id" required class="form-control form-select @error('client_id') is-invalid @enderror" aria-describedby="emailHelp">
                                     <option value="">Select Client</option>
                                     @foreach($clients as $clint)
-                                    <option value="{{ $clint->id }}">{{ $clint->name."(".$clint->id.")" }}</option>
+                                    <option value="{{ $clint->id }}">{{ $clint->name." (".$clint->id.")" }}</option>
                                     @endforeach
                                 </select>
                                 @error('client_id')
@@ -69,7 +69,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                                 <select name="user_id" id="user_id" class="form-control form-select @error('user_id') is-invalid @enderror" aria-describedby="emailHelp" required>
                                     <option value="">Select User/Advisor</option>
                                     @foreach($siteusers as $u)
-                                    <option value="{{ $u->id }}">{{ $u->name }}({{ $u->id }})</option>
+                                    <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->id }})</option>
                                     @endforeach
                                 </select>
                                 @error('user_id')
@@ -98,7 +98,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         <thead>
                         <tr>
                           <th class="text-center">Sr No.</th>
-                            <th class="text-center">Client(ID)</th>
+                            <th class="text-center">Client (ID)</th>
                             <th class="text-center">Application (ID)</th>
                             <th class="text-center">Assigned To</th>
                             <th class="text-center">Assigned On</th>
@@ -115,9 +115,9 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         @endphp
                         <tr data-filter-value="{{ $assignmentFilterKey }}">
                         <td class="text-center">{{ $key+1 }} </td>
-                            <td class="text-center">{{ $assign->client ?  $assign->client->name .'('. $assign->client_id.')' : '' }}</td>
-                            <td class="text-center">{{ $assign->application_id ?  $assign->application->application_name .'('. $assign->application_id.')' : '' }}</td>
-                            <td class="text-center">{{ $assign->user_name  .'('. $assign->user_id.')'}}</td>
+                            <td class="text-center">{{ $assign->client ?  $assign->client->name .' ('. $assign->client_id.')' : '' }}</td>
+                            <td class="text-center">{{ $assign->application_id ?  $assign->application->application_name .' ('. $assign->application_id.')' : '' }}</td>
+                            <td class="text-center">{{ $assign->user_name  .' ('. $assign->user_id.')'}}</td>
                             <td class="text-center">{{ date("d-m-Y H:i:s",strtotime($assign->created_at)) }}</td>
                             <td class="text-center">
                                 @if($assign->updated_at && $assign->created_at && strtotime($assign->updated_at) > strtotime($assign->created_at))

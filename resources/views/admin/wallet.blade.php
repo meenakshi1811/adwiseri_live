@@ -24,7 +24,7 @@
                             <th class="p-1 text-center">Sr.No.</th>
 
                             <th class="p-1 text-center"> Wallet_Trans (ID)</th>
-                            <th class="p-1 text-center"> Subscriber(SUB_ID)</th>
+                            <th class="p-1 text-center"> Subscriber (SUB_ID)</th>
                             <th class="p-1 text-center">Transaction Amount (Cr/Dr) </th>
                             <th class="p-1 text-center"> Description</th>
                             {{-- <th class="p-1 text-center">Transaction Amount (USD) </th> --}}
@@ -39,9 +39,9 @@
                             <td class="p-1 text-center">{{ $key+1 }}</td>
                             <td class="p-1 text-center">{{ $ref->id }}</td>
                            {{--  @if(in_array($ref->type, ['cashback', 'one_off', 'double_term']))
-                           <td class="p-1 text-center">{{ $ref->user ? $ref->user->name.'('.$ref->user->id.')' :'' }}</td>
+                           <td class="p-1 text-center">{{ $ref->user ? $ref->user->name.' ('.$ref->user->id.')' :'' }}</td>
                             @else   --}}
-                            <td class="p-1 text-center">{{ $ref->getRefferedByUser ? $ref->getRefferedByUser->name .'('.$ref->getRefferedByUser->id.')' :''  }}</td>
+                            <td class="p-1 text-center">{{ $ref->getRefferedByUser ? $ref->getRefferedByUser->name .' ('.$ref->getRefferedByUser->id.')' :''  }}</td>
                            {{--   @endif  --}}
                             {{-- <td class="p-1" style="position: relative;">@if(strlen($ref->user_name) > 15){{ substr($ref->user_name, 0, 15) }}... <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{$ref->user_name}} ({{$ref->userid}})</span> @else {{$ref->user_name}} ({{$ref->userid}})@endif</td> --}}
                             <td class="p-1 text-center">

@@ -13,8 +13,8 @@
                         <thead class="table-light">
                             <tr>
                                 <th class="text-center" style="width:70px;">ID</th>
-                                <th class="text-center">User(ID)</th>
-                                <th class="text-center">Client(ID)</th>
+                                <th class="text-center">User (ID)</th>
+                                <th class="text-center">Client (ID)</th>
                                 <th class="text-center">Description</th>
                                 <th class="text-center" style="width:160px;">DateTime</th>
                             </tr>

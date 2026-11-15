@@ -34,7 +34,7 @@ class OperationalNotificationService
         $appCode = $application->application_id ?: $application->id;
 
         $title = sprintf(
-            'New Application (%s - %s(%s)) has been assigned to you.',
+            'New Application (%s - %s (%s)) has been assigned to you.',
             $clientName,
             $appName,
             $appCode

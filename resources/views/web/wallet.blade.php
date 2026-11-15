@@ -70,7 +70,7 @@
                             <th class="p-1 text-center wallet-col-sr">Sr.No.</th>
 
                             <th class="p-1 text-center wallet-col-id"> Wallet_<wbr>TransID</th>
-                            <th class="p-1 text-center wallet-col-subscriber"> Subscriber(SUB_ID)</th>
+                            <th class="p-1 text-center wallet-col-subscriber"> Subscriber (SUB_ID)</th>
                             <th class="p-1 text-center wallet-col-amount">Transaction Amount (Cr/Dr) </th>
                             <th class="p-1 text-center"> Description</th>
                             {{-- <th class="p-1 text-start">Transaction Amount (USD) </th> --}}
@@ -85,9 +85,9 @@
                             <td class="p-1 text-center">{{ $key+1 }}</td>
                             <td class="p-1 text-center">{{ $ref->id }}</td>
                             {{-- @if(in_array($ref->type, ['cashback', 'one_off', 'double_term']))
-                           <td class="p-1 text-center">{{ $ref->user ? $ref->user->name.'('.$ref->user->id.')' :'' }}</td>
+                           <td class="p-1 text-center">{{ $ref->user ? $ref->user->name.' ('.$ref->user->id.')' :'' }}</td>
                             @else
-                            <td class="p-1 text-center">{{ $ref->getRefferedByUser ? $ref->getRefferedByUser->name .'('.$ref->getRefferedByUser->id.')' :''  }}</td>
+                            <td class="p-1 text-center">{{ $ref->getRefferedByUser ? $ref->getRefferedByUser->name .' ('.$ref->getRefferedByUser->id.')' :''  }}</td>
                             @endif --}}
                             <td class="p-1 text-center">{{ $ref->user_name }}&nbsp;({{ $ref->userid }})</td>
                             <td class="p-1 text-center text-nowrap">

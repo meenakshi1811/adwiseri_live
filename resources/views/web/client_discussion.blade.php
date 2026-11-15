@@ -41,7 +41,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                             <select name="client" id="client" class="form-control form-select @error('client') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp" required>
                                 <option value="">Select Client</option>
                                 @foreach($clients as $client)
-                                <option {{ (old('client') == $client->id) ? 'selected' : '' }} value="{{ $client->id }}">{{ $client->name }}({{$client->id}})</option>
+                                <option {{ (old('client') == $client->id) ? 'selected' : '' }} value="{{ $client->id }}">{{ $client->name }} ({{$client->id}})</option>
                                 @endforeach
                             </select>
                             @error('client')

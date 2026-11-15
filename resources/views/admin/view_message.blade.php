@@ -34,9 +34,9 @@
                 <div class="col-md-8 p-1" style="max-height: 300px;overflow:auto;">
                     @foreach($receiver as $i => $rec)
                         @if($i == count($receiver)-1)
-                            {{ $rec }}({{$receiverid[$i]}})
+                            {{ $rec }} ({{$receiverid[$i]}})
                         @else
-                            {{ $rec }}({{$receiverid[$i]}}), &nbsp;&nbsp;
+                            {{ $rec }} ({{$receiverid[$i]}}), &nbsp;&nbsp;
                         @endif
                     @endforeach
                 </div>

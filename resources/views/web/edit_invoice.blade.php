@@ -29,7 +29,7 @@
                                 <option value="">Select client</option>
                                 @foreach ($clients as $clint)
                                     <option {{ (old('client', $selectedClientId) == $clint->id) ? 'selected' : '' }}
-                                        value="{{ $clint->id }}">{{ $clint->name . '(' . $clint->id . ')' }}</option>
+                                        value="{{ $clint->id }}">{{ $clint->name . ' (' . $clint->id . ')' }}</option>
                                 @endforeach
                             </select>
                             @error('client')

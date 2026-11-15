@@ -107,7 +107,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         <tr>
                             <th class="p-1 text-center">Sr No.</th>
                             <th class="p-1 text-center">DocumentID</th>
-                            <th class="p-1 text-center">Client(ID)</th>
+                            <th class="p-1 text-center">Client (ID)</th>
                             <th class="p-1 text-center">Application (ID)</th>
                             <th class="p-1 text-center">Type</th>
                             <th class="p-1 text-center">Name</th>
@@ -121,8 +121,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         <tr>
                             <td class="p-1 text-center"> {{ $key+1}}</td>
                             <td class="p-1 text-center"> {{ $doc->id}}</td>
-                            <td class="p-1 text-center">{{ $doc->client_id ? $doc->client->name .'('.$doc->client_id.')' : '' }}</td>
-                            <td class="p-1 text-center">{{ $doc->application_id  ? $doc->application->application_name .'('.$doc->application_id.')' : '' }}</td>
+                            <td class="p-1 text-center">{{ $doc->client_id ? $doc->client->name .' ('.$doc->client_id.')' : '' }}</td>
+                            <td class="p-1 text-center">{{ $doc->application_id  ? $doc->application->application_name .' ('.$doc->application_id.')' : '' }}</td>
                             <td class="p-1 text-center">{{ $doc->doc_type }}</td>
                             <td class="p-1 text-center">{{ $doc->doc_name }}</td>
                                                         <td class="p-1 text-center">

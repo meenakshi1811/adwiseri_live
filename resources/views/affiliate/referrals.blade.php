@@ -71,8 +71,8 @@ use App\Models\User;
                     <thead>
                     <tr>
                         <th class="p-1 text-center">Sr.No.</th>
-                        <th class="p-1 text-start">Referred By(Sub_ID)</th>
-                        <th class="p-1 text-start">Referred To(Sub_ID)</th>
+                        <th class="p-1 text-start">Referred By (Sub_ID)</th>
+                        <th class="p-1 text-start">Referred To (Sub_ID)</th>
                         <th class="p-1 text-start">Referral Code</th>
                         <th class="p-1 text-start">Sub_Plan</th>
                         <th class="p-1 text-start">Amount_Paid</th>
@@ -86,8 +86,8 @@ use App\Models\User;
                     @foreach($referrals as $key => $ref)
                     <tr>
                         <td class="p-1 text-center">{{ $key+1 }}</td>
-                        <td class="p-1">{{ User::where('referral',$ref->referral_code)->first()->name }}({{User::where('referral',$ref->referral_code)->first()->id}})</td>
-                        <td class="p-1">{{ $ref->user_name }}({{$ref->userid}})</td>
+                        <td class="p-1">{{ User::where('referral',$ref->referral_code)->first()->name }} ({{User::where('referral',$ref->referral_code)->first()->id}})</td>
+                        <td class="p-1">{{ $ref->user_name }} ({{$ref->userid}})</td>
                         <td class="p-1">{{ $ref->referral_code }}</td>
                         <td class="p-1">{{ $ref->user ? $ref->user->membership : '' }}</td>
                         <td class="p-1">{{ $ref->total_amount }}</td>

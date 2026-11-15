@@ -205,7 +205,7 @@ if (!function_exists('activity_actor_label')) {
 
         $initials = activity_user_initials($name);
         if ($userId !== null && $userId !== '') {
-            return $initials . '(' . $userId . ')';
+            return $initials . ' (' . $userId . ')';
         }
 
         return $initials;

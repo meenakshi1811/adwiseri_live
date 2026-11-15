@@ -27,7 +27,7 @@
                             <option value="">Select Client</option>
                             @foreach($clients as $client)
                                 <option value="{{ $client->id }}" {{ (int) old('client_id', $account->client_id) === (int) $client->id ? 'selected' : '' }}>
-                                    {{ $client->name . '(' . $client->id . ')' }}
+                                    {{ $client->name . ' (' . $client->id . ')' }}
                                 </option>
                             @endforeach
                         </select>

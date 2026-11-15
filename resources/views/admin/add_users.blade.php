@@ -181,7 +181,7 @@
                                 <select name="subscriber" required class="form-control form-select @error('subscriber') is-invalid @enderror" id="sel_subscriber" aria-describedby="emailHelp">
                                     <option value="">Select Subscriber</option>
                                     @foreach($subscribers as $sub)
-                                    <option {{ (old('subscriber') == $sub->id) ? 'selected':'' }} value="{{ $sub->id }}">{{ $sub->name."(".$sub->id.")" }}</option>
+                                    <option {{ (old('subscriber') == $sub->id) ? 'selected':'' }} value="{{ $sub->id }}">{{ $sub->name." (".$sub->id.")" }}</option>
                                     @endforeach
                                 </select>
                                 @error('subscriber')

@@ -59,7 +59,7 @@ class Tickets extends Model
             return '—';
         }
 
-        return trim((string) $raiser->name) . '(' . $raiser->id . ')';
+        return trim((string) $raiser->name) . ' (' . $raiser->id . ')';
     }
 
     public function ticketViewRoute(): string

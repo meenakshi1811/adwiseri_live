@@ -752,8 +752,8 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                 <thead>
                                     <tr>
                                         <th class="p-1 text-center">Referral_ID</th>
-                                        <th class="p-1 text-start">Referred By(Sub_ID)</th>
-                                        <th class="p-1 text-start">Referred To(Sub_ID)</th>
+                                        <th class="p-1 text-start">Referred By (Sub_ID)</th>
+                                        <th class="p-1 text-start">Referred To (Sub_ID)</th>
                                         <th class="p-1 text-start">Sub-Category</th>
                                         <th class="p-1 text-start">Sub_Plan</th>
                                         <th class="p-1 text-start">Purchase (USD)</th>
@@ -815,7 +815,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                                         <th class="p-1 text-center">Sr.No.</th>
 
                                         <th class="p-1 text-start"> Wallet_TransID</th>
-                                        <th class="p-1 text-start"> Subscriber(SUB_ID)</th>
+                                        <th class="p-1 text-start"> Subscriber (SUB_ID)</th>
                                         <th class="p-1 text-start">Transaction Amount (Cr/Dr) </th>
                                         <th class="p-1 text-start"> Description</th>
                                         {{-- <th class="p-1 text-start">Transaction Amount (USD) </th> --}}
@@ -3130,7 +3130,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             dom: '<"d-flex justify-content-between align-items-center"lBf>rtip', // Custom layout
             "buttons": [{
                     extend: 'csv',
-                    title: 'Clients ' + text + '(' + currentDate + ')', // Custom title for CSV
+                    title: 'Clients ' + text + ' (' + currentDate + ')', // Custom title for CSV
                     exportOptions: {
                         columns: ':visible',
                         modifier: {
@@ -3140,7 +3140,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'excel',
-                    title: 'Clients ' + text + '(' + currentDate + ')', // Custom title for Excel
+                    title: 'Clients ' + text + ' (' + currentDate + ')', // Custom title for Excel
                     exportOptions: {
                         columns: ':visible',
                         modifier: {
@@ -3150,7 +3150,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
                 },
                 {
                     extend: 'pdf',
-                    title: 'Clients ' + text + '(' + currentDate + ')', // Custom title for PDF
+                    title: 'Clients ' + text + ' (' + currentDate + ')', // Custom title for PDF
                     orientation: 'landscape', // Makes table fit better
                     pageSize: 'A4',
                     customize: function(doc) {
@@ -4356,12 +4356,12 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             $('#clientstabs222').html('By Application Documents');
             reportTitle = 'By Application Documents';
             columns = [{
-                    title: "SUB(ID)",
+                    title: "SUB (ID)",
                     data: 'subscriber',
                     name: 'subscriber'
                 },
                 {
-                    title: "Client(ID)",
+                    title: "Client (ID)",
                     data: 'client',
                     name: 'client'
                 },
@@ -4380,12 +4380,12 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             $('#clientstabs222').html('By Client Stored Document');
             reportTitle = 'By Client Stored Document';
             columns = [{
-                    title: "SUB(ID)",
+                    title: "SUB (ID)",
                     data: 'subscriber',
                     name: 'subscriber'
                 },
                 {
-                    title: "Client(ID)",
+                    title: "Client (ID)",
                     data: 'client',
                     name: 'client'
                 },
@@ -4399,7 +4399,7 @@ $support_roles = UserRoles::where('user_id', '=', $user->id)
             $('#clientstabs222').html('By Subscriber Stored Document');
             reportTitle = 'By Subscriber Stored Document';
             columns = [{
-                    title: "SUB(ID)",
+                    title: "SUB (ID)",
                     data: 'subscriber',
                     name: 'subscriber'
                 },

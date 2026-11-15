@@ -208,7 +208,7 @@
                                 @php
                                     $parentSubscriber = isset($subscriberLookup) ? $subscriberLookup->get($usrs->added_by) : null;
                                     $subscriberLabel = $parentSubscriber
-                                        ? $parentSubscriber->name . '(' . $parentSubscriber->id . ')'
+                                        ? $parentSubscriber->name . ' (' . $parentSubscriber->id . ')'
                                         : 'N/A';
                                 @endphp
                                 <option value="{{ $usrs->id }}">{{ $subscriberLabel }} - {{ $usrs->name }} ({{ $usrs->id }})</option>

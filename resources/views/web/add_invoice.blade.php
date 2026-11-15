@@ -26,7 +26,7 @@
                                     aria-describedby="emailHelp">
                                     <option value="">Select client</option>
                                     @foreach ($clients as $clint)
-                                        <option {{ (old('client') == $clint->id) ? 'selected' : '' }} value="{{ $clint->id }}">{{ $clint->name . '(' . $clint->id . ')' }}
+                                        <option {{ (old('client') == $clint->id) ? 'selected' : '' }} value="{{ $clint->id }}">{{ $clint->name . ' (' . $clint->id . ')' }}
                                         </option>
                                     @endforeach
                                 </select>

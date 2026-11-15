@@ -420,7 +420,7 @@ class SubscriberFilterController extends Controller
             return  DataTables::of($sub)
                 ->addIndexColumn()
                 ->editColumn('name', function ($row) {
-                    return $row->name . '(' . $row->id . ')';
+                    return $row->name . ' (' . $row->id . ')';
                 })
                 ->make(true);
         } elseif (request()->type == "bySubscriberNoOfUserChart") {
@@ -456,7 +456,7 @@ class SubscriberFilterController extends Controller
             return  DataTables::of($sub)
                 ->addIndexColumn()
                 ->editColumn('name', function ($row) {
-                    return $row->name . '(' . $row->id . ')';
+                    return $row->name . ' (' . $row->id . ')';
                 })
                 ->make(true);
         } elseif (request()->type == "bySubscriberReferrals") {
@@ -495,7 +495,7 @@ class SubscriberFilterController extends Controller
             return  DataTables::of($referrals)
                 ->addIndexColumn()
                 ->editColumn('user_name', function ($row) {
-                    return $row->user_name . '(' . $row->id . ')';
+                    return $row->user_name . ' (' . $row->id . ')';
                 })
                 ->make(true);
         } elseif (request()->type == "bySubscriberWalletAmountChart") {
@@ -518,7 +518,7 @@ class SubscriberFilterController extends Controller
             return  DataTables::of($wallets)
                 ->addIndexColumn()
                 ->editColumn('user_name', function ($row) {
-                    return $row->user_name . '(' . $row->id . ')';
+                    return $row->user_name . ' (' . $row->id . ')';
                 })
                 ->make(true);
         } elseif (request()->type == "bySubscriberNoOfApplicationChart") {
@@ -545,7 +545,7 @@ class SubscriberFilterController extends Controller
             return  DataTables::of($subApplication)
                 ->addIndexColumn()
                 ->editColumn('user_name', function ($row) {
-                    return $row->user_name . '(' . $row->id . ')';
+                    return $row->user_name . ' (' . $row->id . ')';
                 })
                 ->make(true);
         } elseif (request()->type == "bySubscribeDocumentStore") {
@@ -572,7 +572,7 @@ class SubscriberFilterController extends Controller
                 return  DataTables::of($client_docs)
                     ->addIndexColumn()
                     ->editColumn('user_name', function ($row) {
-                        return $row->user_name . '(' . $row->id . ')';
+                        return $row->user_name . ' (' . $row->id . ')';
                     })
                     ->make(true);
             }
@@ -1488,7 +1488,7 @@ class SubscriberFilterController extends Controller
 
                     // Add the document and its size to the array
                     $filesWithSize[] = [
-                        'client_name' => $doc->client_name . '(' . $doc->client_id . ')',
+                        'client_name' => $doc->client_name . ' (' . $doc->client_id . ')',
                         'application_name' => application_display_label($doc->application_name, $doc->application_no), // Application name
                         'application_id' => $doc->application_no, // Application No. (numeric, for display)
                         'docs_name' => $doc->doc_name . ' (' . $doc->id . ')',

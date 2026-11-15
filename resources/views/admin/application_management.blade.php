@@ -56,13 +56,13 @@
                                 {{ $assign->user_name ? 'Yes' : 'No' }}
                             </td>
                             <td class="text-center">
-                                {{ isset($assign->client_id) ? ($assign->client->name . '(' . $assign->client_id . ')') : '' }} <!-- Replace 'name' with the actual column name -->
+                                {{ isset($assign->client_id) ? ($assign->client->name . ' (' . $assign->client_id . ')') : '' }} <!-- Replace 'name' with the actual column name -->
                             </td>
                             <td class="text-center">
                                 {{ $assign->application->application_name ?? '' }} ({{ $assign->application->id }}) <!-- Replace with actual column name for application name -->
                             </td>
                             <td>
-                                {{ $assign->user_name  .'('. $assign->user_id.')'}}
+                                {{ $assign->user_name  .' ('. $assign->user_id.')'}}
                                 <!-- {{ $assign->user_name ?? '' }} -->
                             </td>
                             <td>
@@ -83,7 +83,7 @@
                         {{-- <tr> --}}
                             {{-- <td class="text-center">{{$assign->client ? $assign->client->subscriber_id : '' }}</td>
                             <td>{{ $assign->user_name ? 'Yes' :'No' }}</td>
-                            <td class="text-center">{{ $assign->client_id ?  $assign->client->name.'('.$assign->client_id.')' : ''; }}</td>
+                            <td class="text-center">{{ $assign->client_id ?  $assign->client->name.' ('.$assign->client_id.')' : ''; }}</td>
                             <td class="text-center"> {{$assign->application ? $assign->application->application_name : ''}} ({{  $assign->id }})</td>
                             <td>{{ $assign->user_name }}</td>
                             <td>{{ date("d-m-Y H:i:s", strtotime($assign->created_at)) }}</td>

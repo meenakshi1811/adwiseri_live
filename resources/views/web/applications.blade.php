@@ -67,7 +67,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         <thead>
                         <tr >
                             <th class="p-1 text-center">Sr No.</th>
-                            <th class="p-1 text-center">Client(ID)</th>
+                            <th class="p-1 text-center">Client (ID)</th>
                             <th class="p-1 text-center">Application (ID)</th>
                             <th class="p-1 text-center">Visa Country</th>
                             <th class="p-1 text-center">Home Country</th>
@@ -85,8 +85,8 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         @endphp
                         <tr data-filter-value="{{ $applicationFilterKey }}">
                             <td class="p-1 text-center">{{ $key+1}}</td>
-                            <td class="p-1 text-center">{{ $app->client ? $app->client->name .'('.$app->client_id.')' :  '' }}</td>
-                            <td class="p-1 text-center">{{  $app->application_name  .'('.$app->application_id.')'}}</td>
+                            <td class="p-1 text-center">{{ $app->client ? $app->client->name .' ('.$app->client_id.')' :  '' }}</td>
+                            <td class="p-1 text-center">{{  $app->application_name  .' ('.$app->application_id.')'}}</td>
                             <td class="p-1 text-center">{{ $app->visa_country ?: ($app->client->visa_country ?? '') }}</td>
                             <td class="p-1 text-center">{{ $app->application_country }}</td>
                             @php

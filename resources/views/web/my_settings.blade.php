@@ -1088,7 +1088,7 @@
                                     <thead>
                                         <tr>
                                             <th class="text-center">Sr No.</th>
-                                            <th class="text-center">Sub_Name(Sub_ID)</th>
+                                            <th class="text-center">Sub_Name (Sub_ID)</th>
                                             <th class="text-center">User_Name(User_ID)</th>
                                             <th class="text-center">Country</th>
                                             <th class="text-center">Service Name</th>
@@ -2075,7 +2075,7 @@
                             <thead>
                                 <tr>
                                     <th class="text-center appointment-col-id">ID</th>
-                                    <th class="text-center appointment-col-client">Client(ID)</th>
+                                    <th class="text-center appointment-col-client">Client (ID)</th>
                                     <th class="text-center appointment-col-date">Date</th>
                                     <th class="text-center appointment-col-time">Time</th>
                                     <th class="text-center appointment-purpose-col">Purpose</th>
@@ -2100,7 +2100,7 @@
                                     <dl class="row mb-0 appointment-record-view-list">
                                         <dt class="col-sm-4 text-end">ID</dt>
                                         <dd class="col-sm-8 text-start" id="appointment-view-id">—</dd>
-                                        <dt class="col-sm-4 text-end">Client(ID)</dt>
+                                        <dt class="col-sm-4 text-end">Client (ID)</dt>
                                         <dd class="col-sm-8 text-start" id="appointment-view-client">—</dd>
                                         <dt class="col-sm-4 text-end">Date</dt>
                                         <dd class="col-sm-8 text-start" id="appointment-view-date">—</dd>

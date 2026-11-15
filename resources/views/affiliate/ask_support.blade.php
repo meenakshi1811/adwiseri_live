@@ -12,7 +12,7 @@
                     <label>Affiliate<span class="text-danger" style="font-size: 18px;">*</span></label>
                 </div>
                 <div class="col-md-8 p-1">
-                    <input type="text" class="form-control bg-white" readonly name="subscriber" value="{{ $subscriber->name.'('.$subscriber->id.')' }}" />
+                    <input type="text" class="form-control bg-white" readonly name="subscriber" value="{{ $subscriber->name.' ('.$subscriber->id.')' }}" />
                 </div>
                 {{-- <div class="col-md-4 p-1">
                     <label>Client<span class="text-danger" style="font-size: 18px;"></span></label>

@@ -22,7 +22,7 @@
                                 <select name="subscriber" id="subscriber" required class="form-control form-select @error('client') is-invalid @enderror" id="exampleInputEmail1" aria-describedby="emailHelp">
                                     <option value="">Select Subscriber</option>
                                     @foreach($subscribers as $subs)
-                                    <option value="{{ $subs->id }}">{{ $subs->name."(".$subs->id.")" }}</option>
+                                    <option value="{{ $subs->id }}">{{ $subs->name." (".$subs->id.")" }}</option>
                                     @endforeach
                                 </select>
                                 @error('subscriber')

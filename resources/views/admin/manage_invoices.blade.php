@@ -26,7 +26,7 @@
                             <th class="text-center">SrNo</th>
                             <th class="text-center">InvoiceID</th>
                             <th class="text-center">Sub_ID</th>
-                            <th class="text-center">Sub_Name/Client(ID)</th>
+                            <th class="text-center">Sub_Name/Client (ID)</th>
                             {{-- <th>Phone</th> --}}
                             <th class="text-center">Service(s) offered</th>
                             <th class="text-center">Amount</th>
