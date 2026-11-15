@@ -7,5 +7,5 @@
 @endif
 <p style="margin:0 0 10px 0;"><strong>Have a question?</strong></p>
 <p style="margin:0 0 10px 0;">Check our <strong><a href="https://adwiseri.com/faqs">FAQ Page</a></strong> for a quick answer.</p>
-<p style="margin:0;">You can contact support team via email <a href="mailto:{{ $supportEmail ?? \App\Support\BrandedMail::supportEmail() }}">{{ $supportEmail ?? \App\Support\BrandedMail::supportEmail() }}</a> or by raising ticket.</p>
+<p style="margin:0;">You can contact our support team by email <a href="mailto:{{ $supportEmail ?? \App\Support\BrandedMail::supportEmail() }}">{{ $supportEmail ?? \App\Support\BrandedMail::supportEmail() }}</a> or by raising ticket.</p>
 @include('emails.partials.signature')

@@ -1719,6 +1719,7 @@ class AssociateController extends Controller
 
         $document = $this->buildAssociateInvoiceDocumentData($invoice, $associate, $subscriber, $invoiceSetting);
         $document->from_name = BrandedMail::sentOnBehalfOf($document->company_name ?? 'Subscriber');
+        $document->issuer_user_id = $subscriber->id;
         $document->subscriber_email = $subscriber->email ?? '';
         $document->reply_to_email = $subscriber->email ?? '';
         $document->reply_to_name = $document->company_name ?? 'Subscriber';

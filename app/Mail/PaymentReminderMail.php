@@ -55,7 +55,7 @@ class PaymentReminderMail extends Mailable
         $mail = $this->subject($subject)
             ->from(
                 BrandedMail::alertsFromAddress(),
-                BrandedMail::alertsFromName($subscriberName !== '' ? $subscriberName : 'Subscriber')
+                BrandedMail::alertsFromName(BrandedMail::businessName($this->subscriber))
             )
             ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle', 'footerMode', 'subscriberFooter'));
 
@@ -133,7 +133,8 @@ class PaymentReminderMail extends Mailable
         $paymentLinkSection = $hasPaymentLink
             ? '<p><strong>Payment Link :</strong> ' . $paymentLinkHtml . '</p>'
             : '';
-        $subscriberName = $data['subscriber_name'] ?? $data['subscriber_display_name'] ?? '';
+        // Signed with the subscriber's business name (their own name when no business name is set).
+        $subscriberName = BrandedMail::businessName($this->subscriber);
 
         return array_merge($data, [
             'name' => $clientName,

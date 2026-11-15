@@ -59,4 +59,4 @@
     </div>
 @endif
 
-@include('emails.partials.signature')
+@include('emails.partials.signature', ['signer' => $data->signature_name ?? null])

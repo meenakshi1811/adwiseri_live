@@ -8,7 +8,7 @@
                 Your {{ $data['consultancy_name'] ?? 'consultancy' }}'s Report(s) are ready.
             </p>
             <p style="margin:0 0 14px 0;font-size:14px;line-height:1.7;color:#1f2937;word-wrap:break-word;overflow-wrap:break-word;word-break:break-word;max-width:100%;">
-                Please find attached file or use the secure download link below.
+                Please find the attached file or use the secure download link below.
             </p>
 
             @if(!empty($data['modules']) && is_array($data['modules']))

@@ -37,8 +37,8 @@ class ClientCareLetterMail extends Mailable
         }
 
         $mail = $this->subject($subject)
-            ->from(BrandedMail::alertsFromAddress(), BrandedMail::alertsFromName($subscriberName))
-            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle'));
+            ->from(BrandedMail::alertsFromAddress(), BrandedMail::alertsFromName(BrandedMail::businessName($this->data['subscriber'] ?? null)))
+            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle') + BrandedMail::subscriberLayoutData($this->data['subscriber'] ?? null));
 
         DocumentMailAttachment::attachChecklistPdf($mail, $pdfContents, $attachmentName);
 

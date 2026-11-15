@@ -23,6 +23,10 @@ class Invoicemail extends Mailable
     public function build()
     {
         $data = $this->data;
+        $issuer = !empty($data->issuer_user_id) ? \App\Models\User::find($data->issuer_user_id) : null;
+        $fromSubscriber = $issuer && ($issuer->user_type ?? '') !== 'admin';
+        // A subscriber's invoice to their client is signed with their business name; Adwiseri's own keep "Adwiseri".
+        $data->signature_name = $fromSubscriber ? BrandedMail::businessName($issuer) : null;
         $content = BrandedMail::renderBody('emails.bodies.invoice', compact('data'));
         $headerTitle = 'Invoice ' . ($data->invoice_no ?? '');
 
@@ -32,7 +36,7 @@ class Invoicemail extends Mailable
 
         $mail = $this->subject('New Invoice ' . ($data->invoice_no ?? ''))
             ->from(BrandedMail::alertsFromAddress(), BrandedMail::alertsFromName($subscriberLabel))
-            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle'));
+            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle') + ($fromSubscriber ? BrandedMail::subscriberLayoutData($issuer) : []));
 
         $subscriberReplyEmail = trim((string) ($data->subscriber_email ?? $data->reply_to_email ?? ''));
         if ($subscriberReplyEmail !== '') {

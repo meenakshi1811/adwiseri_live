@@ -44,7 +44,7 @@ class DocumentListMail extends Mailable
         $headerLogoAlt = $subscriberFooter['organization'] ?? $subscriberName;
 
         $mail = $this->subject($subject)
-            ->from(BrandedMail::alertsFromAddress(), BrandedMail::alertsFromName($subscriberName))
+            ->from(BrandedMail::alertsFromAddress(), BrandedMail::alertsFromName($subscriberFooter['organization'] ?? $subscriberName))
             ->view(BrandedMail::LAYOUT, compact(
                 'content',
                 'headerTitle',

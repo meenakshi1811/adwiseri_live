@@ -12,5 +12,5 @@
     <p style="margin:0 0 16px 0;"><strong>Description:</strong> {{ $description ?? 'One-off Credit / Offer / Dispute Resolution' }}</p>
 @endif
 <p style="margin:0 0 10px 0;"><strong>Have a question?</strong></p>
-<p style="margin:0;">Check our <strong><a href="https://adwiseri.com/faqs" style="color:#695EEE;text-decoration:none;">FAQ Page</a></strong> or contact support team via email <a href="mailto:{{ $supportEmail }}" style="color:#695EEE;text-decoration:none;">{{ $supportEmail }}</a>.</p>
+<p style="margin:0;">Check our <strong><a href="https://adwiseri.com/faqs" style="color:#695EEE;text-decoration:none;">FAQ Page</a></strong> or contact our support team by email <a href="mailto:{{ $supportEmail }}" style="color:#695EEE;text-decoration:none;">{{ $supportEmail }}</a>.</p>
 @include('emails.partials.signature')

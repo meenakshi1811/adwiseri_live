@@ -6,9 +6,7 @@
     $maxRecipients = (int) data_get($broadcastLimits, 'max_recipients', config('mail.broadcast_max_recipients', 0));
     $orgName = trim((string) data_get($subscriberFooter, 'organization', ''));
     $subscriberName = trim((string) data_get($subscriberFooter, 'name', ''));
-    $senderDisplayName = $subscriberName !== ''
-        ? \App\Support\BrandedMail::alertsFromName($subscriberName)
-        : ($orgName !== '' ? \App\Support\BrandedMail::sentOnBehalfOf($orgName) : 'Sent on behalf of Subscriber');
+    $senderDisplayName = \App\Support\BrandedMail::alertsFromName($orgName !== '' ? $orgName : ($subscriberName !== '' ? $subscriberName : 'Subscriber'));
     $subscriberEmail = trim((string) data_get($subscriberFooter, 'email', ''));
     $alertsFrom = \App\Support\BrandedMail::alertsFromAddress();
     $usageLimit = (int) data_get($broadcastUsage, 'limit', 0);

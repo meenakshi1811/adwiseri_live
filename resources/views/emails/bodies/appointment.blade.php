@@ -1,6 +1,6 @@
 <p style="margin:0 0 12px 0;">Dear {{ $client->name }},</p>
 <p style="margin:0 0 16px 0;">
-    {{ $sender->name }} has invited you for an appointment.
+    {{ \App\Support\BrandedMail::businessName($sender) }} has invited you for an appointment.
     Please confirm the proposed meeting using one of the options below.
 </p>
 <p style="margin:0 0 8px 0;"><strong>Appointment Date:</strong> {{ !empty($appointment->appointment_date) ? \Carbon\Carbon::parse($appointment->appointment_date)->format('F j, Y') : 'N/A' }}</p>

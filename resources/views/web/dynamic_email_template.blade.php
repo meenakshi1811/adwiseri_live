@@ -301,7 +301,7 @@
                         <td class="email-footer" style="text-align:center;background:#695EEE;padding:20px 24px;color:#ffffff;">
                             @if(($footerMode ?? 'platform') === 'subscriber' && !empty($subscriberFooter))
                                 @if(!empty($subscriberFooter['name']) || !empty($subscriberFooter['organization']))
-                                    <p style="margin:0 0 8px;color:#ffffff;font-size:14px;font-weight:700;line-height:1.5;word-wrap:break-word;overflow-wrap:break-word;">{{ $subscriberFooter['name'] ?? $subscriberFooter['organization'] }}</p>
+                                    <p style="margin:0 0 8px;color:#ffffff;font-size:14px;font-weight:700;line-height:1.5;word-wrap:break-word;overflow-wrap:break-word;">{{ ($subscriberFooter['organization'] ?? '') !== '' ? $subscriberFooter['organization'] : ($subscriberFooter['name'] ?? '') }}</p>
                                 @endif
                                 @if(!empty($subscriberFooter['address']))
                                     <p style="margin:0 0 8px;color:#ffffff;font-size:13px;line-height:1.6;word-wrap:break-word;overflow-wrap:break-word;">{{ $subscriberFooter['address'] }}</p>

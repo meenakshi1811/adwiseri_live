@@ -228,6 +228,30 @@ class BrandedMail
         return $name === 'adwiseri' || $name === 'adwiseri team';
     }
 
+    /**
+     * The name a subscriber's emails go out under ("Sent on behalf of ..."): the
+     * consultancy / business name, not the person who triggered the email. Staff
+     * users take their subscriber's (added_by) business name. Falls back to the
+     * person's name only when no business name has been set anywhere.
+     */
+    public static function businessName($user): string
+    {
+        $organization = trim((string) ($user->organization ?? ''));
+
+        if ($organization === '' && !empty($user->added_by)) {
+            $owner = \App\Models\User::find($user->added_by);
+            $organization = trim((string) ($owner->organization ?? ''));
+        }
+
+        if ($organization !== '') {
+            return $organization;
+        }
+
+        $name = trim((string) ($user->name ?? ''));
+
+        return $name !== '' ? $name : 'Subscriber';
+    }
+
     public static function sentOnBehalfOf(string $name): string
     {
         $name = trim($name);
@@ -391,16 +415,34 @@ class BrandedMail
     }
 
     /**
+     * Layout data for an email sent on a subscriber's behalf (to their clients, associates or staff): the
+     * footer carries the subscriber's business name and contact details instead of Adwiseri's. A staff
+     * member's emails carry their subscriber's (added_by) details.
+     */
+    public static function subscriberLayoutData($subscriber): array
+    {
+        if (!$subscriber) {
+            return [];
+        }
+
+        if (($subscriber->user_type ?? '') !== 'Subscriber' && !empty($subscriber->added_by)) {
+            $subscriber = \App\Models\User::find($subscriber->added_by) ?: $subscriber;
+        }
+
+        return [
+            'footerMode' => 'subscriber',
+            'subscriberFooter' => self::subscriberFooterContext($subscriber),
+        ];
+    }
+
+    /**
      * Build footer context for subscriber-originated broadcast emails.
      *
      * @return array{organization: string, name: string, address: string, website: string, website_url: string, email: string, phone: string, logo_url: ?string}
      */
     public static function subscriberFooterContext($subscriber): array
     {
-        $organization = trim((string) ($subscriber->organization ?? ''));
-        if ($organization === '') {
-            $organization = trim((string) ($subscriber->name ?? 'Subscriber'));
-        }
+        $organization = self::businessName($subscriber);
 
         $addressParts = array_values(array_filter(array_map(
             static fn ($value) => trim((string) $value),

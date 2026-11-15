@@ -41,7 +41,7 @@ class EmailBroadcastMail extends Mailable
             $replyEmail = trim((string) ($this->subscriberFooter['email'] ?? ''));
 
             $mail = $this->subject($this->emailSubject)
-                ->from(BrandedMail::alertsFromAddress(), BrandedMail::alertsFromName($subscriberName))
+                ->from(BrandedMail::alertsFromAddress(), BrandedMail::alertsFromName($this->subscriberFooter['organization'] ?? $subscriberName))
                 ->view(BrandedMail::LAYOUT, compact(
                     'content',
                     'headerTitle',

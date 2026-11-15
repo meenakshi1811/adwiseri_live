@@ -46,9 +46,9 @@ class ApplicationReminderMail extends Mailable
         $mail = $this->subject($subject)
             ->from(
                 BrandedMail::alertsFromAddress(),
-                BrandedMail::alertsFromName($subscriberName !== '' ? $subscriberName : 'Subscriber')
+                BrandedMail::alertsFromName(BrandedMail::businessName($this->subscriber))
             )
-            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle'));
+            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle') + BrandedMail::subscriberLayoutData($this->subscriber));
 
         if ($subscriberEmail !== '') {
             BrandedMail::applySubscriberReplyTo($mail, $subscriberEmail, $subscriberName);
@@ -64,7 +64,8 @@ class ApplicationReminderMail extends Mailable
         return array_merge($data, [
             'user_name' => $data['user_name'] ?? $data['recipient_name'] ?? '',
             'description' => nl2br(e((string) ($data['description'] ?? ''))),
-            'subscriber_name' => $data['subscriber_name'] ?? ($this->subscriber->name ?? ''),
+            // Signed with the subscriber's business name (their own name when no business name is set).
+            'subscriber_name' => BrandedMail::businessName($this->subscriber),
         ]);
     }
 }

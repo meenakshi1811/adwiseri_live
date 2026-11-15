@@ -24,7 +24,7 @@ class DocumentReminderMail extends Mailable
 
         $defaultSubject = 'Documents Required - {{client_name}} ({{application_name}})';
         $defaultBody = '<p>Hello {{client_name}},</p>'
-            . '<p>Kindly send below listed Documents which are needed to prepare your application.</p>'
+            . '<p>Kindly send below listed documents which are needed to prepare your application.</p>'
             . '{{missing_documents_list}}'
             . '<p>Sincerely,<br>{{subscriber_name}}</p>';
 
@@ -42,9 +42,9 @@ class DocumentReminderMail extends Mailable
         $mail = $this->subject($subject)
             ->from(
                 BrandedMail::alertsFromAddress(),
-                BrandedMail::alertsFromName($subscriberName !== '' ? $subscriberName : 'Subscriber')
+                BrandedMail::alertsFromName(BrandedMail::businessName($this->subscriber))
             )
-            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle'));
+            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle') + BrandedMail::subscriberLayoutData($this->subscriber));
 
         if ($subscriberEmail !== '') {
             BrandedMail::applySubscriberReplyTo($mail, $subscriberEmail, $subscriberName);
@@ -79,7 +79,8 @@ class DocumentReminderMail extends Mailable
             'client_first_name' => $data['client_first_name'] ?? $clientName,
             'missing_documents_list' => $data['missing_documents_list'] ?? $listHtml,
             'missing_documents_text' => $data['missing_documents_text'] ?? implode("\n", $missingDocuments),
-            'subscriber_name' => $data['subscriber_name'] ?? ($this->subscriber->name ?? ''),
+            // Signed with the subscriber's business name (their own name when no business name is set).
+            'subscriber_name' => BrandedMail::businessName($this->subscriber),
         ]);
     }
 }

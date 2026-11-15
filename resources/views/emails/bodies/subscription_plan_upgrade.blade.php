@@ -6,5 +6,5 @@
 @if(isset($paidAmount) && $paidAmount !== null && $paidAmount !== '')
 <p style="margin:0 0 16px 0;"><strong>Paid Amount:</strong> USD {{ number_format((float) $paidAmount, 2) }}</p>
 @endif
-<p style="margin:0 0 16px 0;">Enjoy the benefits of upgraded plan.</p>
+<p style="margin:0 0 16px 0;">Enjoy the benefits of your upgraded plan.</p>
 @include('emails.partials.signature')

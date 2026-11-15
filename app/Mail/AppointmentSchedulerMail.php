@@ -29,9 +29,9 @@ class AppointmentSchedulerMail extends Mailable
         $headerTitle = 'Appointment Invitation';
         $subscriberName = trim((string) ($this->sender->name ?? ''));
 
-        $mail = $this->from(BrandedMail::alertsFromAddress(), BrandedMail::alertsFromName($subscriberName))
+        $mail = $this->from(BrandedMail::alertsFromAddress(), BrandedMail::alertsFromName(BrandedMail::businessName($this->sender)))
             ->subject('Appointment Invitation - Response Required')
-            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle'));
+            ->view(BrandedMail::LAYOUT, compact('content', 'headerTitle') + BrandedMail::subscriberLayoutData($this->sender));
 
         if (!empty($this->sender->email)) {
             BrandedMail::applySubscriberReplyTo($mail, $this->sender->email, $this->sender->name);

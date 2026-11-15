@@ -26,6 +26,6 @@
     <p style="margin:0 0 16px 0;">Thanks for joining Adwiseri. Your email verification OTP is <strong>{{ $data->otp }}</strong>.</p>
     <p style="margin:0 0 10px 0;"><strong>Have a question?</strong></p>
     <p style="margin:0 0 10px 0;">Check our <strong><a href="https://adwiseri.com/faqs">FAQ Page</a></strong> for a quick answer.</p>
-    <p style="margin:0;">You can always contact support team via email <a href="mailto:{{ $supportEmail ?? \App\Support\BrandedMail::supportEmail() }}">{{ $supportEmail ?? \App\Support\BrandedMail::supportEmail() }}</a>.</p>
+    <p style="margin:0;">You can always contact our support team by email <a href="mailto:{{ $supportEmail ?? \App\Support\BrandedMail::supportEmail() }}">{{ $supportEmail ?? \App\Support\BrandedMail::supportEmail() }}</a>.</p>
     @include('emails.partials.signature')
 @endif

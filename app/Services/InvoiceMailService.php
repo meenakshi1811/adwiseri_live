@@ -77,6 +77,7 @@ class InvoiceMailService
         $maildata->subscriber_email = $senderEmail;
         $maildata->display_from_email = $senderEmail;
         $maildata->subscriber_id = $subscriberId > 0 ? $subscriberId : null;
+        $maildata->issuer_user_id = $issuer?->id;
         $maildata->user_id = $invoice->user_id;
         $maildata->logo = $invoice->logo;
         $maildata->logo_path = $issuerLogo['relative_path'];
@@ -104,7 +105,7 @@ class InvoiceMailService
         $maildata->payment_link = $this->snapshotService->resolvedPaymentLink($invoice);
         $maildata->payment_qr_url = $qrUrl;
         $maildata->payment_qr_path = $qrPath;
-        $maildata->message = 'You have new invoice from ' . $maildata->company_name
+        $maildata->message = 'You have a new invoice from ' . $maildata->company_name
             . ' for ' . $currency . ' ' . number_format((float) $invoice->total, 2) . '.';
         $maildata->from_name = BrandedMail::sentOnBehalfOf($maildata->company_name);
         $maildata->reply_to_email = $senderEmail;
