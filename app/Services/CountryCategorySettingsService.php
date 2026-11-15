@@ -8,6 +8,7 @@ use App\Models\Countries;
 use App\Models\Services;
 use App\Models\SubscriberCcSetting;
 use App\Models\User;
+use App\Support\SubscriberLicensedCountry;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
@@ -1674,7 +1675,7 @@ class CountryCategorySettingsService
         $resolvedCategory = $this->resolveClientJobCategory($subscriber);
 
         if ($this->isLawFirmCategory($category, $normalized)) {
-            return Client_jobs::where('category', '=', $resolvedCategory)->get();
+            return $this->withoutOtherCountryJobs($subscriber, Client_jobs::where('category', '=', $resolvedCategory)->get());
         }
 
         $jobs = Client_jobs::where('category', '=', $resolvedCategory)
@@ -1685,7 +1686,44 @@ class CountryCategorySettingsService
             $jobs = Client_jobs::where('category', '=', $resolvedCategory)->get();
         }
 
-        return $jobs;
+        return $this->withoutOtherCountryJobs($subscriber, $jobs);
+    }
+
+    /**
+     * Country-specific visa categories (those of the US attorney, UK OISC, Canada ICCRC and Australia MARA
+     * sub-categories, or named "US - ...", "UK - ..." etc.) are only offered to subscribers who practise in
+     * that country. "General (All countries)" consultants see every category.
+     */
+    private function withoutOtherCountryJobs(User $subscriber, $jobs)
+    {
+        if (stripos((string) $subscriber->sub_category, 'general') !== false) {
+            return $jobs;
+        }
+
+        $ownCountry = SubscriberLicensedCountry::resolveCountryName($subscriber->sub_category);
+
+        return $jobs->filter(function ($job) use ($ownCountry) {
+            $jobCountry = SubscriberLicensedCountry::resolveCountryName($job->sub_category ?? null)
+                ?? $this->countryNamedInCategory((string) ($job->job ?? ''));
+
+            return $jobCountry === null || $jobCountry === $ownCountry;
+        })->values();
+    }
+
+    /** "US - Visitor (B-1/B-2)" => United States, "UK - ..." => United Kingdom, etc.; null when not country-specific. */
+    private function countryNamedInCategory(string $job): ?string
+    {
+        if (!preg_match('/^\s*(USA?|UK|Canada|Australia)\s*-/i', $job, $match)) {
+            return null;
+        }
+
+        return [
+            'US' => 'United States',
+            'USA' => 'United States',
+            'UK' => 'United Kingdom',
+            'CANADA' => 'Canada',
+            'AUSTRALIA' => 'Australia',
+        ][strtoupper($match[1])];
     }
 
     private function resolveTravelAgentClientJobs()

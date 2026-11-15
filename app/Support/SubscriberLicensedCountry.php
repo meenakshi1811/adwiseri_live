@@ -8,7 +8,7 @@ class SubscriberLicensedCountry
 {
     private const RULES = [
         [
-            'keywords' => ['us immigration attorney', 'usa visas immigration attorney'],
+            'keywords' => ['us immigration attorney', 'usa immigration attorney', 'usa visas immigration attorney'],
             'country' => 'United States',
         ],
         [
