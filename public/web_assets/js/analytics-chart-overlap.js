@@ -7,6 +7,9 @@
 
     var RADIAL_TYPES = ['pie', 'doughnut', 'gauge'];
 
+    /* Empty space (px, roughly two lines) between the x-axis names and a legend below the chart. */
+    var X_AXIS_LEGEND_GAP = 28;
+
     function chartStyle(config) {
         return String((config && (config.adwiseriStyle || config.type)) || '').toLowerCase();
     }
@@ -153,6 +156,23 @@
                         var label = originalXCallback.call(this, value, index, ticks);
                         return truncateLabel(label, maxLabelLength);
                     };
+                }
+
+                // Leave about two lines of space between the (rotated) x-axis names and a legend
+                // drawn underneath, so the names stay readable. Chart.js places the bottom legend
+                // straight after the axis box; growing the box in afterFit pushes the legend down.
+                var legendOpts = config.options.plugins && config.options.plugins.legend;
+                var legendBelow = legendOpts && legendOpts.display !== false
+                    && (!legendOpts.position || legendOpts.position === 'bottom');
+                if (legendBelow && !scale._adwiseriLegendGap) {
+                    var previousAfterFit = scale.afterFit;
+                    scale.afterFit = function (axis) {
+                        if (typeof previousAfterFit === 'function') {
+                            previousAfterFit.call(this, axis);
+                        }
+                        axis.height += X_AXIS_LEGEND_GAP;
+                    };
+                    scale._adwiseriLegendGap = true;
                 }
 
                 config.options.layout = config.options.layout || {};
