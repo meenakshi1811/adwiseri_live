@@ -610,7 +610,7 @@
      DISCOUNTS & OFFERS (Admin → Discounts & Offers)
      ========================================================= --}}
 @if($showHomepageSection('discounts_offers') && $landingPromoSettings && ($landingDiscountItems->count() || $landingOfferItems->count()))
-<section class="section" id="offers" aria-labelledby="landing-promo-heading" style="padding-top:{{ $showHomepageSection('price_plans') ? '0' : '120px' }}">
+<section class="section" id="offers" aria-labelledby="landing-promo-heading" @if($showHomepageSection('price_plans')) style="padding-top:0" @endif>
   <div class="wrap">
     <div class="section-head">
       <span class="ds-eyebrow" data-reveal>Exclusive deals</span>
@@ -665,7 +665,7 @@
      AFFILIATE PROGRAM
      ========================================================= --}}
 @if($showHomepageSection('affiliates'))
-<section class="section" id="affiliates" style="padding-bottom:40px">
+<section class="section" id="affiliates">
   <div class="wrap">
     <div class="aff" data-reveal="zoom">
       <div class="aff-copy">
@@ -714,44 +714,54 @@
       <p class="ds-lead" data-reveal style="--d:.12s">Everything you need to know before getting started with adwiseri.</p>
     </div>
 
-    <div class="faq2-grid">
-      <div class="faq2-list" id="faqList">
-        @foreach($faqItems as $i => $item)
-          <div class="qa {{ $i === 0 ? 'open' : '' }}" data-reveal style="--d:{{ number_format(min($i, 6) * 0.05, 2) }}s">
-            <button type="button" id="faq-q-{{ $i }}" aria-expanded="{{ $i === 0 ? 'true' : 'false' }}" aria-controls="faq-a-{{ $i }}">
-              <span class="qn" aria-hidden="true">{{ sprintf('%02d', $i + 1) }}</span>
-              <span class="qq">{{ $item['q'] }}</span>
-              <span class="pm" aria-hidden="true"><svg class="icon"><use href="#i-chev"/></svg></span>
-            </button>
-            <div class="ans" id="faq-a-{{ $i }}" role="region" aria-labelledby="faq-q-{{ $i }}"><div><p>{{ $item['a'] }}</p></div></div>
-          </div>
-        @endforeach
-      </div>
+    {{-- Questions fill the full width in two columns: first half on the left, second half on the
+         right, so on phones (one column) they still read in order. Each column opens independently. --}}
+    @php
+        $faqHalf = (int) ceil(count($faqItems) / 2);
+        $faqColumns = count($faqItems) > 3
+            ? [array_slice($faqItems, 0, $faqHalf, true), array_slice($faqItems, $faqHalf, null, true)]
+            : [$faqItems];
+    @endphp
+    <div class="faq2-cols {{ count($faqColumns) === 1 ? 'is-single' : '' }}" id="faqList">
+      @foreach($faqColumns as $column)
+        <div class="faq2-list">
+          @foreach($column as $i => $item)
+            <div class="qa {{ $i === 0 ? 'open' : '' }}" data-reveal style="--d:{{ number_format(min($i % $faqHalf, 6) * 0.05, 2) }}s">
+              <button type="button" id="faq-q-{{ $i }}" aria-expanded="{{ $i === 0 ? 'true' : 'false' }}" aria-controls="faq-a-{{ $i }}">
+                <span class="qn" aria-hidden="true">{{ sprintf('%02d', $i + 1) }}</span>
+                <span class="qq">{{ $item['q'] }}</span>
+                <span class="pm" aria-hidden="true"><svg class="icon"><use href="#i-chev"/></svg></span>
+              </button>
+              <div class="ans" id="faq-a-{{ $i }}" role="region" aria-labelledby="faq-q-{{ $i }}"><div><p>{{ $item['a'] }}</p></div></div>
+            </div>
+          @endforeach
+        </div>
+      @endforeach
+    </div>
 
-      <aside class="faq2-aside" data-reveal="right" aria-label="Get help">
-        <div class="faq2-help">
-          <span class="faq2-help-ic"><svg class="icon"><use href="#i-headset"/></svg></span>
+    {{-- Help strip under the questions (full width, instead of a side column) --}}
+    <div class="faq2-help" data-reveal>
+      <div class="faq2-help-main">
+        <span class="faq2-help-ic"><svg class="icon"><use href="#i-headset"/></svg></span>
+        <div>
           <h3>Still have questions?</h3>
           <p>Our Support team is available Monday – Friday, 10am – 6pm GMT.</p>
-
-          <a class="faq2-row" href="mailto:{{ $contactEmail }}">
-            <span class="ri"><svg class="icon"><use href="#i-mail"/></svg></span>
-            <span><b>Email us</b><small>{{ $contactEmail }}</small></span>
-            <svg class="icon go"><use href="#i-arrow"/></svg>
-          </a>
-          <a class="faq2-row" href="{{ route('contactus') }}">
-            <span class="ri"><svg class="icon"><use href="#i-message"/></svg></span>
-            <span><b>Contact form</b><small>We'll get back to you</small></span>
-            <svg class="icon go"><use href="#i-arrow"/></svg>
-          </a>
-
-          <div class="faq2-demo">
-            <span>Prefer a walkthrough?</span>
-            <a class="btn btn-primary" href="{{ route('get_demo') }}">Get A Demo <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
-          </div>
         </div>
-        <a class="link-arrow faq2-all" href="{{ route('faqs') }}">See all FAQs <svg class="icon"><use href="#i-arrow"/></svg></a>
-      </aside>
+      </div>
+      <a class="faq2-row" href="mailto:{{ $contactEmail }}">
+        <span class="ri"><svg class="icon"><use href="#i-mail"/></svg></span>
+        <span><b>Email us</b><small>{{ $contactEmail }}</small></span>
+        <svg class="icon go"><use href="#i-arrow"/></svg>
+      </a>
+      <a class="faq2-row" href="{{ route('contactus') }}">
+        <span class="ri"><svg class="icon"><use href="#i-message"/></svg></span>
+        <span><b>Contact form</b><small>We'll get back to you</small></span>
+        <svg class="icon go"><use href="#i-arrow"/></svg>
+      </a>
+      <div class="faq2-demo">
+        <a class="btn btn-primary" href="{{ route('get_demo') }}">Get A Demo <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
+        <a class="link-arrow" href="{{ route('faqs') }}">See all FAQs <svg class="icon"><use href="#i-arrow"/></svg></a>
+      </div>
     </div>
   </div>
 </section>
