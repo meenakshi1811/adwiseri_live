@@ -90,7 +90,7 @@ $canAddEntry = $client_roles && ($client_roles->write_only == 1 || $client_roles
                         <th class="p-1 text-center">Mode_Of_Payment</th>
                         <th class="p-1 text-center">Description</th>
                         <th class="p-1 text-center">Prev_Balance</th>
-                        <th class="p-1 text-center">Total</th>
+                        <th class="p-1 text-center">New_Balance</th>
                         <th class="p-1 text-center">Date</th>
                         <th class="p-1 text-center">By</th>
                         <th class="p-1 text-center">Action</th>

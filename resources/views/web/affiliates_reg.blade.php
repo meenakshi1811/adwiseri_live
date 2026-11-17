@@ -11,8 +11,8 @@
         </script>
     @endif
     {{-- Single-column form, centred vertically in the space under the menu (like Contact Us). --}}
-    <main class="py-4 d-flex align-items-center" style="min-height: 100vh; padding-top: calc(var(--site-nav-height, 72px) + 1rem) !important;">
-    <div class="container my-4">
+    <main>
+    <div class="container form-page">
         <div class="row justify-content-center">
             <div class="col-md-8 col-lg-6 col-xl-5 loginouter-box" style="max-width: 600px;">
                 <form id="loginform" class="login-box" method="POST" action="{{ route('Affiliates.store') }}">

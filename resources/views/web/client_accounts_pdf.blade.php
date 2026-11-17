@@ -44,7 +44,24 @@
         .entries-table {
             width: 100%;
             border-collapse: collapse;
+            table-layout: fixed;
             margin-bottom: 10px;
+        }
+
+        /* Fixed column widths (A4 landscape). Trans_ID, Trans_Type, Mode Of Payment and Prev_Balance
+           are kept narrow; Description gets the freed space (+10% of the table width over its old
+           ~22%); New_Balance matches Prev_Balance. Totals 100%. */
+        .col-id      { width: 7%; }
+        .col-type    { width: 9%; }
+        .col-amount  { width: 9%; }
+        .col-mode    { width: 12%; }
+        .col-desc    { width: 32%; }
+        .col-prev    { width: 11%; }
+        .col-new     { width: 11%; }
+        .col-date    { width: 9%; }
+
+        .entries-table td {
+            word-wrap: break-word;
         }
 
         .entries-table th,
@@ -107,14 +124,14 @@
         <table class="entries-table">
             <thead>
                 <tr>
-                    <th>Trans_ID</th>
-                    <th>Trans_Type</th>
-                    <th>Amount</th>
-                    <th>Mode Of Payment</th>
-                    <th>Description</th>
-                    <th>Prev_Balance</th>
-                    <th>Total</th>
-                    <th>Date</th>
+                    <th class="col-id">Trans_ID</th>
+                    <th class="col-type">Trans_Type</th>
+                    <th class="col-amount">Amount</th>
+                    <th class="col-mode">Mode Of Payment</th>
+                    <th class="col-desc">Description</th>
+                    <th class="col-prev">Prev_Balance</th>
+                    <th class="col-new">New_Balance</th>
+                    <th class="col-date">Date</th>
                 </tr>
             </thead>
             <tbody>

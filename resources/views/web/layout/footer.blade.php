@@ -247,7 +247,7 @@ crossorigin="anonymous"></script>
 
 @include('partials.intl_phone_scripts')
 <script src="{{ asset('web_assets/js/auto-open-action.js') }}?v=20261027a"></script>
-<script src="{{ asset('web_assets/js/adwiseri-site.js') }}?v=20261117b"></script>
+<script src="{{ asset('web_assets/js/adwiseri-site.js') }}?v=20261117f"></script>
 
 
 <!--Start of Tawk.to Script-->

@@ -48,6 +48,11 @@
     ticking = false;
   }
   window.addEventListener('scroll', function () {
+    // Header state is applied straight away (cheap class toggles), so a jump to an in-page
+    // section never measures against the taller, uncollapsed header. The rest waits for a frame.
+    var y = window.scrollY || window.pageYOffset;
+    if (header) { header.classList.toggle('scrolled', y > 10); }
+    if (top) { top.classList.toggle('collapsed', y > 10); }
     if (!ticking) { window.requestAnimationFrame(onScroll); ticking = true; }
   }, { passive: true });
   onScroll();

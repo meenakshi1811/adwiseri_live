@@ -9,7 +9,8 @@
     <style>
     .banner {
     width: 100%;
-    height: 450px;
+    /* Same compact height as the Price Plans banner, so the content starts above the fold. */
+    height: clamp(120px, 18vh, 200px);
     overflow: hidden;
     }
 
@@ -21,11 +22,11 @@
     }
 
 </style>
-  <div class="featurebanner mb-5 banner">
+  <div class="featurebanner mb-4 banner">
     <img src="{{ asset('web_assets/images/services-banner-1.jpg') }}" width="100%" height="auto" alt="">
   </div>
 
-  <div class="container page-feat mb-5">
+  <div class="container page-feat mb-5 pt-2">
     <h1 class="text-center">FAQ's</h1>
     <div class="col">
             <p class="px-2 m-0"><strong>FAQs</strong></p>

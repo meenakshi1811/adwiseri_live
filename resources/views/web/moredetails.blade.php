@@ -1,7 +1,7 @@
 @extends('web.layout.main')
 
 @section('main-section')
-  <div class="container mt-5 mb-5">
+  <div class="container form-page">
     <div class="row">
         <div class="col-lg-4"></div>
         <div class="col-lg-4 loginouter-box">

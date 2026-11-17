@@ -9,7 +9,14 @@
 
 /* ---------- Scoped base ---------- */
 :root{--ds-header-h:76px;--ds-container:1240px}
-html{scroll-padding-top:calc(var(--site-nav-height,118px) + 16px)}
+/* In-page links land just below the header. Once the page scrolls, the announcement bar has slid away,
+   so only the header's own height counts (not --site-nav-height, which includes the bar). */
+html{scroll-padding-top:var(--ds-header-h)}
+/* Skip most of a section's top padding when jumping to it, so the heading (and the content under it)
+   is in view straight away: 120px padding - 110px = 10px left above the eyebrow. */
+.ds .section[id]{scroll-margin-top:-110px}
+@media (max-width:900px){.ds .section[id]{scroll-margin-top:-76px}}
+@media (max-width:640px){.ds .section[id]{scroll-margin-top:-60px}}
 .ds{font-family:var(--ds-font-body);font-size:16px;line-height:1.65;color:var(--ds-text);-webkit-font-smoothing:antialiased}
 .ds *,.ds *::before,.ds *::after{box-sizing:border-box}
 .ds img,.ds svg{display:block;max-width:100%}
@@ -690,9 +697,18 @@ html{scroll-padding-top:calc(var(--site-nav-height,118px) + 16px)}
 /* Space between page content and the public footer on inner pages; on the
    homepage the last section (CTA band, or FAQ etc. if it is hidden) supplies it. */
 .ds-footer-wrap{margin-top:96px}
-.ds-home + .ds-footer-wrap,.ds-footer-wrap.flush{margin-top:0}
+.site-page.is-home + .ds-footer-wrap,.ds-footer-wrap.flush{margin-top:0}
 .ds-home{background:var(--ds-bg)}
 @media (max-width:640px){.ds-footer-wrap{margin-top:72px}}
+
+/* Public pages: the header is fixed, so the layout (web/layout/main) wraps page content in
+   .site-page, which starts it just below the header. The homepage hero offsets itself. */
+.site-page{padding-top:var(--site-nav-height,76px)}
+.site-page.is-home{padding-top:0}
+/* Legal pages used to add the header offset themselves (style.css .p-policy). */
+.site-page .p-policy{padding-top:0}
+
+/* .form-page (vertically centred form pages) lives in adwiseri-theme.css: the login page uses it too. */
 
 /* Header: signed-in user chip (registration flow) */
 .ds .login .user-name{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -743,3 +759,41 @@ html{scroll-padding-top:calc(var(--site-nav-height,118px) + 16px)}
 
 /* FAQ on phones: tighter rows, answer spans the full card width */
 @media (max-width:640px){.ds .qa button{gap:12px;padding:16px}.ds .qa .qn{min-width:32px;height:26px;font-size:12px}.ds .qa .qq{font-size:15.5px}.ds .qa .ans p{padding:0 16px 18px}.ds .faq2-help{padding:22px}}
+
+/* Price Plans banner: style.css added 3rem above it to clear the old fixed menu; .site-page does that now. */
+.site-page .membership-page{margin-top:0}
+
+/* Plan cards: theme-coloured header band (name + price), centred, flush with the card's top edge */
+.ds .plan-head{margin:-26px -22px 0;padding:24px 18px 20px;border-radius:calc(var(--ds-r-lg) - 1px) calc(var(--ds-r-lg) - 1px) 0 0;background:var(--ds-grad-btn);text-align:center;color:#fff;position:relative;overflow:hidden}
+.ds .plan-head::after{content:"";position:absolute;width:160px;height:160px;right:-60px;top:-80px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.18),transparent 65%);pointer-events:none}
+.ds .plan-head h3{justify-content:center;color:#fff;font-size:19px}
+.ds .plan-head .price{justify-content:center;margin:12px 0 4px}
+.ds .plan-head .price b{color:#fff}
+.ds .plan-head .price span{color:rgba(255,255,255,.78)}
+.ds .plan-head .permo{color:rgba(255,255,255,.82);min-height:18px}
+.ds .plan .for{text-align:center;margin-top:16px}
+/* Most popular: brighter header, and a white ring so the ribbon stands out on it */
+.ds .plan.popular .plan-head{background:linear-gradient(135deg,#D946EF 0%,#8B5CF6 50%,var(--ds-primary) 100%)}
+.ds .plan.popular .plan-head .price span,.ds .plan.popular .plan-head .permo{color:rgba(255,255,255,.85)}
+.ds .plan.popular .ribbon{z-index:2;box-shadow:0 0 0 3px #fff,0 10px 20px -8px rgba(217,70,239,.7)}
+.ds .plan.popular .plan-head{padding-top:32px}
+
+/* =========================================================
+   Large screens (1400px+): full-width pages
+   Content spans the screen with gutters that grow with it, instead of a fixed
+   1240px column. Paragraph text keeps its own readable max-width, and form
+   cards stay centred (see .form-page).
+   ========================================================= */
+@media (min-width:1400px){
+  :root{--ds-gutter:clamp(32px,4vw,96px)}
+  /* Header, homepage sections, footer */
+  .ds .wrap{max-width:none;padding-left:var(--ds-gutter);padding-right:var(--ds-gutter)}
+  .ds .mock-wrap{max-width:1280px}
+  .ds .tbs{max-width:1280px}
+  /* Features and FAQ pages (Bootstrap .container) */
+  .site-page .container.page-feat{max-width:none;padding-left:var(--ds-gutter);padding-right:var(--ds-gutter)}
+  /* About page */
+  .site-page .about-saas .about-container{width:auto;margin-left:var(--ds-gutter);margin-right:var(--ds-gutter)}
+  /* Price Plans page: match the same side gutters */
+  .site-page .member-mainbox{padding-left:var(--ds-gutter);padding-right:var(--ds-gutter)}
+}

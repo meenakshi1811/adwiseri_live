@@ -1,8 +1,8 @@
 @extends('web.layout.main')
 
 @section('main-section')
-  <div class="container mt-5 mb-5 pt-4">
-    <div class="row w-100">
+  <div class="container form-page">
+    <div class="row">
         <div class="col-lg-6 mx-auto">
             <form id="registration_form" class="register-box login-box" method="POST" action="{{ route('check_registration') }}">
               @csrf

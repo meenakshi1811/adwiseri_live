@@ -74,7 +74,7 @@
         <span class="tag">NEW</span> Fixed yearly pricing — no extra invoices for add-ons
         <svg class="icon"><use href="#i-arrow"/></svg>
       </a>
-      <h1 data-reveal style="--d:.08s">The one-stop solution for <span class="ds-grad-text">Visa &amp; Immigration</span> Consultancies</h1>
+      <h1 data-reveal style="--d:.08s">One-stop solution for <span class="ds-grad-text">Visa &amp; Immigration</span> Consultancies</h1>
       <p class="ds-lead" data-reveal style="--d:.16s">Cloud Storage, Users &amp; Case Management, Analytics, Reports, Invoicing and much more — everything your advisory needs, in one secure platform.</p>
       <div class="hero-ctas" data-reveal style="--d:.24s">
         <a class="btn btn-primary" href="{{ route('get_demo') }}">Get A Demo <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
@@ -524,7 +524,7 @@
               $price = $plan->price_per_year + 0;
               $blurb = $planBlurbs[strtolower(trim((string) $plan->plan_name))]
                   ?? ('Up to ' . $num($plan->client_limit) . ' clients and ' . $num($plan->no_of_users) . ' user licence' . ((int) $plan->no_of_users === 1 ? '' : 's') . '.');
-              $emails = (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . ' / Year' : '0';
+              $emails = (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) : '0';
               $inclusions = [
                   'Invoicing' => $plan->invoicing == 'Yes',
                   'Analytics' => $plan->analytics === 'Yes',
@@ -534,20 +534,23 @@
               ];
               $isCurrentPlan = isset($myplan) && $myplan && $plan->plan_name === $myplan->plan_name;
               $isHigherPlan = isset($myplan) && $myplan && \App\Services\SubscriptionTermPricing::isUpgradePlan($myplan, $plan);
-              $btnClass = $isPopular ? 'btn btn-primary' : 'btn btn-ghost';
+              // Solid buttons on every plan (not hollow outlines).
+              $btnClass = 'btn btn-primary';
           @endphp
           <article class="plan {{ $isPopular ? 'popular' : '' }}" data-reveal style="--d:{{ number_format($i * 0.06, 2) }}s">
             @if($isPopular)<span class="ribbon">★ MOST POPULAR</span>@endif
-            <h3>{{ $plan->plan_name }}</h3>
-            <p class="for">{{ $blurb }}</p>
-            <div class="price"><b>${{ $price }}</b><span>/ {{ $free ? ((int) $plan->validity . ' days') : 'year' }}</span></div>
-            <div class="permo">
-              @if($free)
-                Free for your first {{ (int) $plan->validity }} days
-              @elseif($price > 0)
-                ≈ ${{ number_format($price / 12, 2) }}/mo, billed yearly
-              @endif
+            {{-- Theme-coloured header: plan name + price, centred --}}
+            <div class="plan-head">
+              <h3>{{ $plan->plan_name }}</h3>
+              <div class="price"><b>${{ $price }}</b><span>/ {{ $free ? ((int) $plan->validity . ' days') : 'year' }}</span></div>
+              {{-- Plans are sold yearly only, so no monthly equivalent is shown. --}}
+              <div class="permo">
+                @if($free)
+                  Free for your first {{ (int) $plan->validity }} days
+                @endif
+              </div>
             </div>
+            <p class="for">{{ $blurb }}</p>
 
             {{-- Same actions as before the redesign: guests subscribe; signed-in users see renew / upgrade / current-plan states. --}}
             @if(empty($myplan))

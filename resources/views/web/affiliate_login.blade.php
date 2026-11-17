@@ -1,8 +1,8 @@
 @extends('web.layout.main')
 
 @section('main-section')
-   <main class="py-4" style="padding-top:4.5rem!important;">
-    <div class="container mt-5 mb-5">
+   <main>
+    <div class="container form-page">
         <div class="row">
             <div class="col-lg-4"></div>
             <div class="col-lg-4 loginouter-box">

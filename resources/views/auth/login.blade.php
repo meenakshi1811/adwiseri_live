@@ -70,7 +70,7 @@
         </div>
     </div>
 </div> -->
-<div class="container mt-5 mb-5">
+<div class="container form-page">
     <div class="row">
         <div class="col-lg-4"></div>
         <div class="col-lg-4 loginouter-box p-4" style="border: 1.27184px solid #8D2E28;

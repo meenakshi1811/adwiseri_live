@@ -1,10 +1,10 @@
 ﻿@extends('web.layout.main')
 
 @section('main-section')
-  <div class="container mt-5 mb-5">
+  <div class="container form-page">
     <div class="row">
         <div class="col-lg-4"></div>
-        <div style="margin-top: 50px;" class="col-lg-4 loginouter-box">
+        <div class="col-lg-4 loginouter-box">
             <form id="verifyotp" class="otp-box login-box" method="POST" action="{{ route('verify_otp') }}">
               @csrf
               <input type="hidden" name="local_time" class="localtime" />

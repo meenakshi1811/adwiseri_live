@@ -48,7 +48,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                     <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
                     <li><span class="plan-feat-label">Messages</span><span class="plan-feat-value">{{ $plan->messaging }}</span></li>
-                    <li><span class="plan-feat-label">Emails</span><span class="plan-feat-value">{{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "0" }}</span></li>
+                    <li><span class="plan-feat-label">Emails</span><span class="plan-feat-value">{{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) : "0" }}</span></li>
                     <li><span class="plan-feat-label">Reports</span><span class="plan-feat-value">{{ $plan->reports }}</span></li>
                     <li><span class="plan-feat-label">Invoicing</span><span class="plan-feat-value">@if($plan->invoicing == 'Yes')
                             <i class="fa fa-check icon-circle plan-check"></i>
@@ -107,7 +107,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                     <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                     <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
                     <li><span class="plan-feat-label">Messages</span><span class="plan-feat-value">{{ $plan->messaging }}</span></li>
-                    <li><span class="plan-feat-label">Emails</span><span class="plan-feat-value">{{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) . " / Year" : "0" }}</span></li>
+                    <li><span class="plan-feat-label">Emails</span><span class="plan-feat-value">{{ (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) : "0" }}</span></li>
                     <li><span class="plan-feat-label">Reports</span><span class="plan-feat-value">{{ $plan->reports }}</span></li>
                     <li><span class="plan-feat-label">Invoicing</span><span class="plan-feat-value">@if($plan->invoicing == 'Yes')
                             <i class="fa fa-check icon-circle plan-check"></i>

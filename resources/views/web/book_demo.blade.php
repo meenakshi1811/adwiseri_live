@@ -1,8 +1,8 @@
 @extends('web.layout.main')
 
 @section('main-section')
-<div class="container mt-5 mb-5">
-    <div class="row justify-content-center mt-5">
+<div class="container form-page">
+    <div class="row justify-content-center">
         <div class="col-lg-8 col-md-10 col-sm-12">
             <form id="registration_form" class="register-box login-box mt-5" method="POST" action="{{ route('demo_post') }}">
                 @csrf

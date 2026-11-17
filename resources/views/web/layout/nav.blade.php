@@ -2,10 +2,11 @@
 @php
     $isHome = request()->is('/');
     $homeUrl = route('/');
-    // In-page anchors on the homepage; real pages everywhere else.
+    // Features and Pricing always open their own pages, from every page (homepage included),
+    // so the menu shows the same thing wherever it is clicked. Use Cases lives on the homepage only.
     $useCasesHref = $isHome ? '#use-cases' : $homeUrl . '#use-cases';
-    $featuresHref = $isHome ? '#features' : route('features');
-    $pricingHref = $isHome ? '#pricing' : route('membership');
+    $featuresHref = route('features');
+    $pricingHref = route('membership');
     $navUseCases = config('use_cases', []);
 
     $navPlans = isset($price_plans) ? collect($price_plans) : \App\Models\Membership::orderBy('created_at', 'asc')->get();
@@ -73,8 +74,8 @@
               </div>
             </div>
           </div>
-          <a href="{{ $featuresHref }}" @if(!$isHome && request()->routeIs('features')) class="active" @endif>Features</a>
-          <a href="{{ $pricingHref }}" @if(!$isHome && request()->routeIs('membership')) class="active" @endif>Pricing</a>
+          <a href="{{ $featuresHref }}" @if(request()->routeIs('features')) class="active" @endif>Features</a>
+          <a href="{{ $pricingHref }}" @if(request()->routeIs('membership')) class="active" @endif>Pricing</a>
           <a href="{{ route('affiliate.createLogin') }}">Affiliates</a>
           <a href="{{ route('contactus') }}" @if(request()->routeIs('contactus')) class="active" @endif>Contact Us</a>
         </nav>
