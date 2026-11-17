@@ -84,7 +84,7 @@
     <div class="ms-auto px-3 mb-3">
         <img class="px-3"
            @if($affiliate->type != 'Individual')
-            @if ($user->organization_logo != null) src="{{ asset('web_assets/users/user' . $user->id . '/' . $user->organization_logo) }}" @else src="{{ asset('web_assets/images/Style2_blue.png') }}" @endif
+            @if ($user->organization_logo != null) src="{{ asset('web_assets/users/user' . $user->id . '/' . $user->organization_logo) }}" @else src="{{ asset('web_assets/images/Style2_violet.png') }}" @endif
             height="30px;">
             @endif
         <p class="p-2 text-primary" style="display: inline;margin-left:auto;font-weight:550;">{{ $user->name }}

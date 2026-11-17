@@ -495,8 +495,9 @@
      ========================================================= --}}
 @if($showHomepageSection('price_plans') && $plans->count())
 @php
-    // "Most Popular" is hidden until there are real sign-up numbers; set to true to show it again.
-    $showPopularBadge = false;
+    // "Most Popular" ribbon + highlighted card on this plan; set $showPopularBadge to false to hide it.
+    $showPopularBadge = true;
+    $popularPlanName = 'Adwiseri+';
     $visiblePlans = $plans->filter(function ($plan) use ($myplan) {
         if (empty($myplan)) { return true; }
         if ($plan->plan_name == 'Free') { return false; }
@@ -519,7 +520,7 @@
         @foreach($visiblePlans as $i => $plan)
           @php
               $free = $isFree($plan);
-              $isPopular = $showPopularBadge && (stripos((string) $plan->plan_name, '+') !== false || strcasecmp((string) $plan->plan_name, 'Adwiseri+') === 0);
+              $isPopular = $showPopularBadge && strcasecmp(trim((string) $plan->plan_name), $popularPlanName) === 0;
               $price = $plan->price_per_year + 0;
               $blurb = $planBlurbs[strtolower(trim((string) $plan->plan_name))]
                   ?? ('Up to ' . $num($plan->client_limit) . ' clients and ' . $num($plan->no_of_users) . ' user licence' . ((int) $plan->no_of_users === 1 ? '' : 's') . '.');
@@ -702,24 +703,52 @@
         $faqItems[] = ['q' => 'Can I upgrade my plan later?', 'a' => 'Yes — choose the plan that fits your practice today and upgrade anytime as your client base and team grow.'];
     }
 @endphp
-<section class="section" id="faq">
-  <div class="wrap faq-wrap">
-    <div class="faq-side">
+<section class="section faq2" id="faq">
+  <div class="wrap">
+    <div class="section-head">
       <span class="ds-eyebrow" data-reveal>// {{ $nextNo() }} · FAQ</span>
-      <h2 class="ds-h2" data-reveal style="--d:.06s">Questions, answered</h2>
+      <h2 class="ds-h2" data-reveal style="--d:.06s">Questions, <span class="ds-grad-text">answered</span></h2>
       <p class="ds-lead" data-reveal style="--d:.12s">Everything you need to know before getting started with adwiseri.</p>
-      <div class="support-card" data-reveal style="--d:.18s">
-        <span class="si"><svg class="icon"><use href="#i-headset"/></svg></span>
-        <div><b>Still have questions?</b><p>Our Support team is available Monday – Friday, 10am – 6pm GMT. Email us at <a href="mailto:{{ $contactEmail }}">{{ $contactEmail }}</a> or <a href="{{ route('contactus') }}">contact us</a>.</p></div>
-      </div>
     </div>
-    <div class="faq" id="faqList">
-      @foreach($faqItems as $i => $item)
-        <div class="qa {{ $i === 0 ? 'open' : '' }}" data-reveal style="--d:{{ number_format(min($i, 6) * 0.05, 2) }}s">
-          <button type="button" aria-expanded="{{ $i === 0 ? 'true' : 'false' }}" aria-controls="faq-a-{{ $i }}">{{ $item['q'] }} <span class="pm"><svg class="icon"><use href="#i-plus"/></svg></span></button>
-          <div class="ans" id="faq-a-{{ $i }}"><div><p>{{ $item['a'] }}</p></div></div>
+
+    <div class="faq2-grid">
+      <div class="faq2-list" id="faqList">
+        @foreach($faqItems as $i => $item)
+          <div class="qa {{ $i === 0 ? 'open' : '' }}" data-reveal style="--d:{{ number_format(min($i, 6) * 0.05, 2) }}s">
+            <button type="button" id="faq-q-{{ $i }}" aria-expanded="{{ $i === 0 ? 'true' : 'false' }}" aria-controls="faq-a-{{ $i }}">
+              <span class="qn" aria-hidden="true">{{ sprintf('%02d', $i + 1) }}</span>
+              <span class="qq">{{ $item['q'] }}</span>
+              <span class="pm" aria-hidden="true"><svg class="icon"><use href="#i-chev"/></svg></span>
+            </button>
+            <div class="ans" id="faq-a-{{ $i }}" role="region" aria-labelledby="faq-q-{{ $i }}"><div><p>{{ $item['a'] }}</p></div></div>
+          </div>
+        @endforeach
+      </div>
+
+      <aside class="faq2-aside" data-reveal="right" aria-label="Get help">
+        <div class="faq2-help">
+          <span class="faq2-help-ic"><svg class="icon"><use href="#i-headset"/></svg></span>
+          <h3>Still have questions?</h3>
+          <p>Our Support team is available Monday – Friday, 10am – 6pm GMT.</p>
+
+          <a class="faq2-row" href="mailto:{{ $contactEmail }}">
+            <span class="ri"><svg class="icon"><use href="#i-mail"/></svg></span>
+            <span><b>Email us</b><small>{{ $contactEmail }}</small></span>
+            <svg class="icon go"><use href="#i-arrow"/></svg>
+          </a>
+          <a class="faq2-row" href="{{ route('contactus') }}">
+            <span class="ri"><svg class="icon"><use href="#i-message"/></svg></span>
+            <span><b>Contact form</b><small>We'll get back to you</small></span>
+            <svg class="icon go"><use href="#i-arrow"/></svg>
+          </a>
+
+          <div class="faq2-demo">
+            <span>Prefer a walkthrough?</span>
+            <a class="btn btn-primary" href="{{ route('get_demo') }}">Get A Demo <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
+          </div>
         </div>
-      @endforeach
+        <a class="link-arrow faq2-all" href="{{ route('faqs') }}">See all FAQs <svg class="icon"><use href="#i-arrow"/></svg></a>
+      </aside>
     </div>
   </div>
 </section>
@@ -729,27 +758,40 @@
      FINAL CTA + NEWSLETTER (posts to email_subscription)
      ========================================================= --}}
 @if($showHomepageSection('get_started'))
-<section class="wrap" id="get-started">
-  <div class="cta-band" data-reveal="zoom">
-    <span class="ring" aria-hidden="true"></span><span class="ring r2" aria-hidden="true"></span><span class="ring r3" aria-hidden="true"></span>
-    <span class="ds-eyebrow" style="color:#D9D6FF;justify-content:center">Ready when you are</span>
-    <h2 style="margin-top:14px">Run your entire consultancy from one secure platform</h2>
-    <p>See how adwiseri brings your cases, documents, team, reports and invoices together — with a personal walkthrough from our team.</p>
-    <div class="hero-ctas">
-      <a class="btn btn-light" href="{{ route('get_demo') }}">Get A Demo <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
-      <a class="btn btn-outline-light" href="{{ $showHomepageSection('price_plans') ? '#pricing' : route('membership') }}">View price plans</a>
-    </div>
+<section class="get-started" id="get-started">
+  <div class="wrap">
+    <div class="cta2" data-reveal="zoom">
+      <div class="cta2-bg" aria-hidden="true"></div>
 
-    <form class="newsletter" id="homepage-newsletter-form" action="{{ route('email_subscription') }}" method="POST" novalidate
-          @if($errors->has('email')) data-error="{{ $errors->first('email') }}" @endif>
-      @csrf
-      <label for="homepage-newsletter-email">Subscribe to our newsletter</label>
-      <small>Get the latest news, updates and offers from adwiseri.</small>
-      <div class="nl-row" id="nlRow">
-        <input id="homepage-newsletter-email" type="email" name="email" placeholder="Enter your email address" autocomplete="email" inputmode="email" maxlength="255" value="{{ old('email') }}">
-        <button class="btn btn-light" type="submit" id="homepage-newsletter-btn">Subscribe</button>
+      <div class="cta2-main">
+        <span class="ds-eyebrow">Ready when you are</span>
+        <h2>Run your entire consultancy from <span class="cta2-hl">one secure platform</span></h2>
+        <p>See how adwiseri brings your cases, documents, team, reports and invoices together — with a personal walkthrough from our team.</p>
+        <div class="cta2-actions">
+          <a class="btn btn-light" href="{{ route('get_demo') }}">Get A Demo <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
+          <a class="btn btn-outline-light" href="{{ $showHomepageSection('price_plans') ? '#pricing' : route('membership') }}">View price plans</a>
+        </div>
+        <ul class="cta2-points">
+          <li><svg class="icon"><use href="#i-check"/></svg>Personal walkthrough</li>
+          @if($freePlan)
+            <li><svg class="icon"><use href="#i-check"/></svg>{{ (int) $freePlan->validity }}-day {{ $freePlan->plan_name }} plan</li>
+          @endif
+          <li><svg class="icon"><use href="#i-check"/></svg>Upgrade anytime</li>
+        </ul>
       </div>
-    </form>
+
+      <form class="cta2-news" id="homepage-newsletter-form" action="{{ route('email_subscription') }}" method="POST" novalidate
+            @if($errors->has('email')) data-error="{{ $errors->first('email') }}" @endif>
+        @csrf
+        <span class="cta2-news-ic" aria-hidden="true"><svg class="icon"><use href="#i-mail"/></svg></span>
+        <label for="homepage-newsletter-email">Subscribe to our newsletter</label>
+        <small>Get the latest news, updates and offers from adwiseri.</small>
+        <div class="cta2-field" id="nlRow">
+          <input id="homepage-newsletter-email" type="email" name="email" placeholder="Enter your email address" autocomplete="email" inputmode="email" maxlength="255" value="{{ old('email') }}">
+          <button class="btn btn-primary" type="submit" id="homepage-newsletter-btn">Subscribe <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></button>
+        </div>
+      </form>
+    </div>
   </div>
 </section>
 @endif

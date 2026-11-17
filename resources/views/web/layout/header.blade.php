@@ -9,8 +9,8 @@ date_default_timezone_set("Asia/Kolkata");
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>{{ ($page ?? '') === 'index' ? 'adwiseri — One-stop Platform for Visa & Immigration Consultancies' : 'Adwiseri' }}</title>
+  @include('partials.favicon')
   <meta name="description" content="One-stop solution for Visa & Immigration Consultancies with features like Cloud Storage, Users & Case Management, Analytics, Reports, Invoicing and much more.">
-  <meta name="theme-color" content="#695EEE">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
   <link rel="stylesheet" href="{{ asset('web_assets/css/style.css') }}?v=20261113b">
@@ -112,8 +112,8 @@ select.form-control {
   </style>
 
   {{-- Design system: loaded after the legacy styles so its tokens and component rules win. --}}
-  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-theme.css') }}?v=20261117b">
-  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-site.css') }}?v=20261117b">
+  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-theme.css') }}?v=20261117c">
+  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-site.css') }}?v=20261117c">
 
   @stack('css')
 

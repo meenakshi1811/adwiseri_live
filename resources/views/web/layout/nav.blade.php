@@ -35,7 +35,7 @@
     <header class="site-header" id="siteHeader">
       <div class="wrap">
         <a class="brand" href="{{ $homeUrl }}" aria-label="adwiseri home">
-          <img src="{{ asset('web_assets/images/Style2.png') }}" alt="adwiseri" width="143" height="34" onerror="this.parentNode.classList.add('logo-fallback')">
+          <img src="{{ asset('web_assets/images/Style2_violet.png') }}" alt="adwiseri" width="143" height="34" onerror="this.parentNode.classList.add('logo-fallback')">
           <span class="brand-text">adwiseri</span>
         </a>
 
@@ -98,7 +98,7 @@
     <div class="drawer-backdrop" data-close></div>
     <aside class="drawer-panel" role="dialog" aria-modal="true" aria-label="Menu">
       <div class="drawer-top">
-        <a class="brand" href="{{ $homeUrl }}"><img src="{{ asset('web_assets/images/Style2.png') }}" alt="adwiseri" onerror="this.parentNode.classList.add('logo-fallback')"><span class="brand-text">adwiseri</span></a>
+        <a class="brand" href="{{ $homeUrl }}"><img src="{{ asset('web_assets/images/Style2_violet.png') }}" alt="adwiseri" onerror="this.parentNode.classList.add('logo-fallback')"><span class="brand-text">adwiseri</span></a>
         <button type="button" class="burger" style="display:grid" data-close aria-label="Close menu"><svg class="icon"><use href="#i-x"/></svg></button>
       </div>
       <nav class="drawer-body" aria-label="Mobile">
