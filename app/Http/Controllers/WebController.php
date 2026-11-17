@@ -634,6 +634,7 @@ class WebController extends Controller
             $discounts = Offers::get();
             [$landingPromoSettings, $landingDiscountItems, $landingOfferItems] = $this->landingPromoPayload();
             $homepageSectionVisibility = HomepageSectionSetting::current()->visibilityMap();
+            $faqs = Faq::get();
             return view('web.index', compact(
                 'user',
                 'page',
@@ -647,7 +648,8 @@ class WebController extends Controller
                 'landingPromoSettings',
                 'landingDiscountItems',
                 'landingOfferItems',
-                'homepageSectionVisibility'
+                'homepageSectionVisibility',
+                'faqs'
             ));
         } else {
             $page = "index";
@@ -660,6 +662,7 @@ class WebController extends Controller
             $discounts = Offers::get();
             [$landingPromoSettings, $landingDiscountItems, $landingOfferItems] = $this->landingPromoPayload();
             $homepageSectionVisibility = HomepageSectionSetting::current()->visibilityMap();
+            $faqs = Faq::get();
             return view('web.index', compact(
                 'page',
                 'features',
@@ -672,7 +675,8 @@ class WebController extends Controller
                 'landingPromoSettings',
                 'landingDiscountItems',
                 'landingOfferItems',
-                'homepageSectionVisibility'
+                'homepageSectionVisibility',
+                'faqs'
             ));
             // return redirect()->route('login');
         }

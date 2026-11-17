@@ -8,7 +8,9 @@ date_default_timezone_set("Asia/Kolkata");
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>Adwiseri</title>
+  <title>{{ ($page ?? '') === 'index' ? 'adwiseri — One-stop Platform for Visa & Immigration Consultancies' : 'Adwiseri' }}</title>
+  <meta name="description" content="One-stop solution for Visa & Immigration Consultancies with features like Cloud Storage, Users & Case Management, Analytics, Reports, Invoicing and much more.">
+  <meta name="theme-color" content="#695EEE">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
   <link rel="stylesheet" href="{{ asset('web_assets/css/style.css') }}?v=20261113b">
@@ -19,7 +21,7 @@ date_default_timezone_set("Asia/Kolkata");
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Lato:wght@300;400;700;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 
   <!-- <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
@@ -106,14 +108,19 @@ select.form-control {
      .form-control:focus,
      select.form-control {
         font-family: 'Lato'  !important;
-     }  
+     }
   </style>
+
+  {{-- Design system: loaded after the legacy styles so its tokens and component rules win. --}}
+  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-theme.css') }}?v=20261117b">
+  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-site.css') }}?v=20261117b">
 
   @stack('css')
 
 </head>
 
 <body>
+  @include('partials.site_icons')
 
     @if(auth()->user() && in_array(strtolower((string) auth()->user()->user_type), ['subscriber', 'user'], true))
 

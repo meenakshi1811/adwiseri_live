@@ -91,7 +91,7 @@
         </p>
     </div>
  </div>
-<nav class="navbar navbar-expand-lg navbar-light" style="background:#695EEE;">
+<nav class="navbar navbar-expand-lg navbar-light app-topbar">
     <div class="container-fluid">
         <a class="navbar-brand text-white" href="{{ route('/') }}"><img width="200" src="{{ asset('web_assets/images/Style2.png') }}" /></a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"

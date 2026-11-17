@@ -77,7 +77,17 @@
             color: #374151;
             margin-bottom: 12px;
         }
+
+        /* Design-system surfaces for this standalone client page */
+        .hero-card,
+        .upload-card { border-color: var(--ds-border); border-radius: var(--ds-r-lg); box-shadow: var(--ds-shadow-sm); }
+        .hero-title { color: var(--ds-primary-700); font-family: var(--ds-font-head); letter-spacing: -.02em; }
+        .meta-item { background: var(--ds-mist); border-color: var(--ds-border); border-radius: var(--ds-r-sm); }
+        .meta-label { font-family: var(--ds-font-mono); color: var(--ds-muted); }
+        .section-title { font-family: var(--ds-font-head); color: var(--ds-ink); }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Lato:wght@300;400;700;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-theme.css') }}?v=20261117b">
 </head>
 <body>
     <div class="page-wrap">

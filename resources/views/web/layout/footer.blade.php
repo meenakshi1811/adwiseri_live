@@ -1,79 +1,72 @@
 <!--- footer --->
 @guest
-<footer class="text-light py-4">
-    <div class="container-fluid">
-      <div class="row align-items-start justify-content-between">
-        <!-- Logo and Address -->
-        <div class="col-md-4 mb-4 footer-brand-col">
-          <a class="footer-brand" href="{{ route('/') }}">
-            <img class="logo-fix" width="170" src="{{ asset('web_assets/images/Style2.png') }}" alt="adwiseri" />
-          </a>
-
-          <p class="footer-support-label">Our Support team is available:</p>
-          <p>Monday - Friday,<br> 10am - 6pm GMT</p>
-          <p>
-            <strong>Email Us:</strong><br>
-            {{-- <i class="fas fa-envelope"></i>  --}}
-              {{ $contact->email }}
-          </p>
-          {{-- <p>
-            <strong>Contact No:</strong><br>
-            <i class="fas fa-phone"></i>   @include('partials.phone_display', ['phone' => $contact->contact_no])
-          </p> --}}
+@php
+    $footerEmail = optional($contact ?? null)->email ?: ($supportEmail ?? 'care@adwiseri.com');
+    // Follow Us (social links) stays hidden until the channels are set up.
+    $showSocialLinks = false;
+@endphp
+<div class="ds ds-footer-wrap">
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="foot-grid">
+        <div class="foot-brand">
+          <a class="brand" href="{{ route('/') }}" aria-label="adwiseri home"><img src="{{ asset('web_assets/images/Style2.png') }}" alt="adwiseri" width="152" height="36" onerror="this.parentNode.classList.add('logo-fallback')"><span class="brand-text" style="color:#fff">adwiseri</span></a>
+          <p>One-stop solution for Visa &amp; Immigration Consultancies with features like Cloud Storage, Users &amp; Case Management, Analytics, Reports, and much more.</p>
+          <div class="foot-support">
+            <svg class="icon"><use href="#i-headset"/></svg>
+            <div>
+              <b>Our Support team is available:</b>
+              <span>Monday – Friday, 10am – 6pm GMT</span>
+              <span>Email Us: <a href="mailto:{{ $footerEmail }}">{{ $footerEmail }}</a></span>
+            </div>
+          </div>
         </div>
-
-        <!-- Quick Links -->
-        <div class="col-md-2 mb-4">
-          <ul class="list-unstyled">
-            <li><a href="{{ route('/') }}" class="text-light text-decoration-none">Home</a></li>
-            <li><a href="{{ route('contactus') }}" class="text-light text-decoration-none">Contact Us</a></li>
-
-            <li><a href="{{ route('features') }}" class="text-light text-decoration-none">Features</a></li>
-            <li><a href="{{ route('membership') }}" class="text-light text-decoration-none">Pricing</a></li>
-
+        <div class="foot-col">
+          <h4>Product</h4>
+          <ul>
+            <li><a href="{{ route('features') }}">Features</a></li>
+            <li><a href="{{ route('membership') }}">Pricing</a></li>
+            <li><a href="{{ route('get_demo') }}">Get A Demo</a></li>
+            <li><a href="{{ route('login') }}">Login</a></li>
           </ul>
         </div>
-
-        <!-- About Us Links -->
-        <div class="col-md-2 mb-4">
-          <ul class="list-unstyled">
-            <li >
-                <a  class="text-light text-decoration-none" href="{{ route('affiliate.createLogin')}}">Affiliates</a>
-              </li>
-            <li><a href="{{ route('terms_use') }}" class="text-light text-decoration-none">Terms of Use</a></li>
-            <li><a href="{{ route('privacy_policy') }}" class="text-light text-decoration-none">Privacy Policy</a></li>
-            <li><a href="{{ route('terms_conditions') }}" class="text-light text-decoration-none">GDPR</a></li>
-            <li><a href="{{ route('refund_policy') }}" class="text-light text-decoration-none">Cookie Notice</a></li>
-        </ul>
+        <div class="foot-col">
+          <h4>Company</h4>
+          <ul>
+            <li><a href="{{ route('/') }}">Home</a></li>
+            <li><a href="{{ route('contactus') }}">Contact Us</a></li>
+            <li><a href="{{ route('affiliate.createLogin') }}">Affiliates</a></li>
+            <li><a href="{{ route('Affiliates.create') }}">Join Affiliate Program</a></li>
+          </ul>
         </div>
-
-        {{-- Follow Us (social links) hidden until the channels are set up. --}}
-        @if(false)
-        <!-- Social Links -->
-        <div class="col-md-4 mb-4 text-center socail-media">
-          <h5>Follow Us</h5>
-          <div class="d-flex justify-content-center gap-3">
-            <a href="#" class="text-light"><img src="{{ asset('web_assets/images/fb.png') }}" width="30" height="30" alt="Facebook"></a>
-            <a href="#" class="text-light"><img src="{{ asset('web_assets/images/insta.png') }}" width="30" height="30" alt="Instagram"></a>
-            <a href="#" class="text-light"><img src="{{ asset('web_assets/images/twit.png') }}" width="30" height="30" alt="Twitter"></a>
-            <a href="#" class="text-light"><img src="{{ asset('web_assets/images/link.png') }}" width="30" height="30" alt="LinkedIn"></a>
-            <a href="#" class="text-light"><img src="{{ asset('web_assets/images/you.png') }}" width="30" height="30" alt="YouTube"></a>
+        <div class="foot-col">
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="{{ route('terms_use') }}">Terms of Use</a></li>
+            <li><a href="{{ route('privacy_policy') }}">Privacy Policy</a></li>
+            <li><a href="{{ route('terms_conditions') }}">GDPR</a></li>
+            <li><a href="{{ route('refund_policy') }}">Cookie Notice</a></li>
+          </ul>
+          @if ($showSocialLinks)
+          <div class="socials" aria-label="Follow us">
+            <a href="#" aria-label="Facebook"><svg class="icon"><use href="#i-fb"/></svg></a>
+            <a href="#" aria-label="Instagram"><svg class="icon"><use href="#i-ig"/></svg></a>
+            <a href="#" aria-label="X (Twitter)"><svg class="icon"><use href="#i-tw"/></svg></a>
+            <a href="#" aria-label="LinkedIn"><svg class="icon"><use href="#i-in"/></svg></a>
+            <a href="#" aria-label="YouTube"><svg class="icon"><use href="#i-yt"/></svg></a>
           </div>
-          <div class="address mt-8">
-
-            {{-- <p class="mb-1">Cityville, State, 12345</p> --}}
-            {{-- <p>Country</p> --}}
+          @endif
         </div>
-        </div>
-        @endif
       </div>
-
-      <!-- Bottom Footer -->
-      <div class="text-center mt-3">
-        <p class="mb-0">&copy; {{ $copyrightYears }} adwiseri.&nbsp;All rights reserved.</p>
+      <div class="foot-bottom">
+        <span>&copy; {{ $copyrightYears }} adwiseri. All rights reserved.</span>
+        <nav aria-label="Legal"><a href="{{ route('terms_use') }}">Terms</a><a href="{{ route('privacy_policy') }}">Privacy</a><a href="{{ route('refund_policy') }}">Cookies</a></nav>
       </div>
+      <div class="foot-word" aria-hidden="true">adwiseri</div>
     </div>
   </footer>
+  <button type="button" class="totop" id="totop" aria-label="Back to top"><svg class="icon"><use href="#i-up"/></svg></button>
+</div>
 @endguest
 
 @auth
@@ -254,6 +247,7 @@ crossorigin="anonymous"></script>
 
 @include('partials.intl_phone_scripts')
 <script src="{{ asset('web_assets/js/auto-open-action.js') }}?v=20261027a"></script>
+<script src="{{ asset('web_assets/js/adwiseri-site.js') }}?v=20261117b"></script>
 
 
 <!--Start of Tawk.to Script-->

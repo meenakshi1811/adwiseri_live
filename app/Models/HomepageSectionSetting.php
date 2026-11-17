@@ -24,15 +24,21 @@ class HomepageSectionSetting extends Model
      */
     public static function definitions(): array
     {
+        // Listed in page order. Keys added later default to visible (see defaultVisibility),
+        // so saved settings from before they existed keep working unchanged.
         return [
             'banner' => 'Banner / Hero',
-            'about_highlights' => 'About Highlights',
+            'about_highlights' => 'About Highlights (trust badges)',
+            'practice_strip' => 'Practice Types Strip',
             'key_features' => 'Key Features',
-            'about_us' => 'About Us',
+            'about_us' => 'About Us / How adwiseri works',
+            'why_adwiseri' => 'Why adwiseri?',
+            'use_cases' => 'Use Cases',
             'price_plans' => 'Price Plans',
             'discounts_offers' => 'Discounts & Offers',
-            'why_adwiseri' => 'Why adwiseri?',
             'affiliates' => 'Affiliate Program',
+            'faq' => 'FAQ',
+            'get_started' => 'Get Started & Newsletter',
         ];
     }
 

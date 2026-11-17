@@ -1,0 +1,511 @@
+/* =====================================================================
+   adwiseri design system — global theme
+   ---------------------------------------------------------------------
+   Single source of truth for the brand tokens used across the public
+   site, the subscriber app, the affiliate portal and the admin panel.
+   Loaded LAST in every layout so it can harmonise Bootstrap and the
+   older per-page styles without touching their markup or behaviour.
+
+   Marketing-only components (homepage, public header/footer) live in
+   adwiseri-site.css and reuse the tokens below.
+   ===================================================================== */
+
+:root {
+  /* ---- Brand ---- */
+  --ds-primary: #695EEE;
+  --ds-primary-600: #564BB0;
+  --ds-primary-700: #4C3BB7;
+  --ds-primary-light: #8B75EE;
+  --ds-primary-soft: #A89BFF;
+  --ds-violet: #8B5CF6;
+  --ds-fuchsia: #D946EF;
+  --ds-cyan: #06B6D4;
+  --ds-green: #16A34A;
+  --ds-amber: #F59E0B;
+  --ds-red: #EF4444;
+
+  /* ---- Neutrals ---- */
+  --ds-ink: #0F172A;
+  --ds-ink-2: #1E293B;
+  --ds-text: #5A6275;
+  --ds-muted: #8B9BB8;
+  --ds-border: #E2E6F0;
+  --ds-bg: #FFFFFF;
+  --ds-bg-soft: #F5F6FA;
+  --ds-wash: #EEF1F8;
+  --ds-mist: #FAFBFD;
+  --ds-night: #0D0B26;
+
+  /* ---- Gradients ---- */
+  --ds-grad: linear-gradient(135deg, var(--ds-primary) 0%, var(--ds-violet) 55%, var(--ds-fuchsia) 100%);
+  --ds-grad-btn: linear-gradient(135deg, #7468F2 0%, var(--ds-primary) 45%, var(--ds-primary-700) 100%);
+  --ds-grad-deep: radial-gradient(120% 140% at 0% 0%, #7B70F5 0%, var(--ds-primary-700) 55%, #2A1F7A 100%);
+
+  /* ---- Typography ---- */
+  --ds-font-head: 'Plus Jakarta Sans', 'Lato', system-ui, sans-serif;
+  --ds-font-body: 'Lato', 'Source Sans Pro', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --ds-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ---- Shape & depth ---- */
+  --ds-r-xs: 8px;
+  --ds-r-sm: 10px;
+  --ds-r: 14px;
+  --ds-r-lg: 20px;
+  --ds-r-xl: 28px;
+  --ds-shadow-sm: 0 1px 2px rgba(15, 23, 42, .06), 0 1px 3px rgba(15, 23, 42, .05);
+  --ds-shadow: 0 10px 30px -12px rgba(15, 23, 42, .18), 0 4px 10px -6px rgba(15, 23, 42, .08);
+  --ds-shadow-lg: 0 40px 80px -30px rgba(76, 59, 183, .35), 0 18px 40px -20px rgba(15, 23, 42, .25);
+  --ds-shadow-glow: 0 14px 34px -10px rgba(105, 94, 238, .55);
+  --ds-ring: 0 0 0 4px rgba(105, 94, 238, .18);
+  --ds-ease: cubic-bezier(.22, .8, .26, 1);
+
+  /* ---- Legacy token names (style.css) kept in sync ---- */
+  --adwiseri-font-family: var(--ds-font-body);
+  --adwiseri-primary: var(--ds-primary);
+  --adwiseri-primary-hover: var(--ds-primary-600);
+  --adwiseri-primary-deep: var(--ds-primary-700);
+
+  /* ---- Bootstrap bridge ---- */
+  --bs-primary: #695EEE;
+  --bs-primary-rgb: 105, 94, 238;
+  --bs-success: #695EEE;
+  --bs-success-rgb: 105, 94, 238;
+  --bs-link-color: var(--ds-primary-700);
+  --bs-link-hover-color: var(--ds-primary);
+  --bs-body-color: var(--ds-text);
+  --bs-border-color: var(--ds-border);
+  --bs-border-radius: var(--ds-r-sm);
+}
+
+/* =====================================================================
+   Base typography
+   ===================================================================== */
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--ds-font-body) !important;
+  color: var(--ds-ink-2);
+  background: var(--ds-bg-soft);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: var(--ds-font-head) !important;
+  letter-spacing: -.02em;
+}
+
+::selection { background: rgba(105, 94, 238, .22); }
+
+a { color: var(--ds-primary-700); }
+a:hover { color: var(--ds-primary); }
+
+:focus-visible { outline: 3px solid rgba(105, 94, 238, .5); outline-offset: 2px; }
+
+.text-primary { color: var(--ds-primary) !important; }
+.bg-primary { background-color: var(--ds-primary) !important; }
+.border-primary { border-color: var(--ds-primary) !important; }
+.text-muted { color: var(--ds-muted) !important; }
+.bg-light { background-color: var(--ds-bg-soft) !important; }
+
+/* Eyebrow label shared by every surface */
+.ds-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--ds-font-mono); font-size: 12.5px; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--ds-primary);
+}
+.ds-eyebrow::before { content: ""; width: 18px; height: 2px; border-radius: 2px; background: var(--ds-grad); }
+.ds-grad-text { background: var(--ds-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* =====================================================================
+   Buttons
+   ===================================================================== */
+.btn {
+  font-family: var(--ds-font-head) !important;
+  font-weight: 700;
+  letter-spacing: -.005em;
+  border-radius: var(--ds-r-sm);
+  transition: transform .25s var(--ds-ease), box-shadow .25s var(--ds-ease), background .25s, color .25s, border-color .25s;
+}
+.btn:focus, .btn:focus-visible { box-shadow: var(--ds-ring) !important; }
+.btn-sm { border-radius: var(--ds-r-xs); }
+.btn-lg { border-radius: 12px; }
+
+.btn-primary,
+.btn-success {
+  color: #fff !important;
+  background: var(--ds-grad-btn) !important;
+  border-color: transparent !important;
+  box-shadow: 0 10px 22px -12px rgba(105, 94, 238, .7), inset 0 1px 0 rgba(255, 255, 255, .22);
+}
+.btn-primary:hover,
+.btn-success:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px -12px rgba(105, 94, 238, .75), inset 0 1px 0 rgba(255, 255, 255, .22);
+}
+.btn-primary:active, .btn-success:active { transform: none; }
+.btn-primary:disabled, .btn-primary.disabled { opacity: .55; transform: none; box-shadow: none; }
+
+.btn-outline-primary,
+.btn-outline-success {
+  color: var(--ds-primary-700) !important;
+  border-color: rgba(105, 94, 238, .45) !important;
+  background: #fff;
+}
+.btn-outline-primary:hover,
+.btn-outline-success:hover {
+  color: #fff !important;
+  background: var(--ds-primary) !important;
+  border-color: var(--ds-primary) !important;
+}
+
+.btn-secondary {
+  color: var(--ds-ink-2) !important;
+  background: #fff !important;
+  border: 1px solid var(--ds-border) !important;
+  box-shadow: var(--ds-shadow-sm);
+}
+.btn-secondary:hover {
+  color: var(--ds-primary-700) !important;
+  border-color: rgba(105, 94, 238, .45) !important;
+  box-shadow: var(--ds-shadow);
+}
+
+.btn-outline-secondary { border-color: var(--ds-border); color: var(--ds-text); }
+.btn-outline-secondary:hover { background: var(--ds-wash); color: var(--ds-primary-700); border-color: rgba(105, 94, 238, .35); }
+
+.btn-danger { background: var(--ds-red); border-color: var(--ds-red); }
+.btn-link { color: var(--ds-primary-700); font-family: var(--ds-font-head) !important; }
+
+/* =====================================================================
+   Forms
+   ===================================================================== */
+.form-control,
+.form-select {
+  border-color: var(--ds-border);
+  border-radius: var(--ds-r-sm);
+  color: var(--ds-ink-2);
+  transition: border-color .2s, box-shadow .2s;
+}
+.form-control:focus,
+.form-select:focus {
+  border-color: rgba(105, 94, 238, .6) !important;
+  box-shadow: var(--ds-ring) !important;
+}
+.form-control::placeholder { color: #9AA4B8; }
+.form-label, label { color: var(--ds-ink-2); }
+.form-check-input:checked { background-color: var(--ds-primary); border-color: var(--ds-primary); }
+.form-check-input:focus { box-shadow: var(--ds-ring); border-color: rgba(105, 94, 238, .6); }
+.input-group-text { background: var(--ds-bg-soft); border-color: var(--ds-border); color: var(--ds-text); }
+
+/* =====================================================================
+   Cards, modals, dropdowns, alerts
+   ===================================================================== */
+.card {
+  border-color: var(--ds-border);
+  border-radius: var(--ds-r);
+  box-shadow: var(--ds-shadow-sm);
+}
+.card-header {
+  background: var(--ds-mist);
+  border-bottom-color: var(--ds-border);
+  font-family: var(--ds-font-head);
+  font-weight: 700;
+  color: var(--ds-ink);
+}
+.card-header:first-child { border-radius: calc(var(--ds-r) - 1px) calc(var(--ds-r) - 1px) 0 0; }
+
+.modal-content {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-lg);
+  box-shadow: var(--ds-shadow-lg);
+  overflow: hidden;
+}
+.modal-header { border-bottom-color: var(--ds-border); }
+.modal-footer { border-top-color: var(--ds-border); }
+.modal-title { font-family: var(--ds-font-head) !important; color: var(--ds-ink); font-weight: 700; }
+.modal-backdrop.show { opacity: .45; background: var(--ds-night); }
+
+.dropdown-menu {
+  border-color: var(--ds-border);
+  border-radius: var(--ds-r);
+  box-shadow: var(--ds-shadow);
+  padding: 6px;
+}
+.dropdown-item { border-radius: var(--ds-r-xs); }
+.dropdown-item:hover, .dropdown-item:focus { background: var(--ds-bg-soft); color: var(--ds-primary-700); }
+.dropdown-item.active, .dropdown-item:active { background: var(--ds-primary); color: #fff; }
+
+.alert { border-radius: var(--ds-r); }
+.badge { font-family: var(--ds-font-head); font-weight: 700; border-radius: 999px; }
+.badge.bg-primary, .badge.bg-success { background: var(--ds-primary) !important; }
+
+.progress { background: var(--ds-wash); border-radius: 999px; }
+.progress-bar { background: var(--ds-grad); }
+
+.tooltip-inner { border-radius: var(--ds-r-xs); font-family: var(--ds-font-body); }
+
+/* =====================================================================
+   Navigation: tabs, pills, pagination, breadcrumbs, accordion
+   ===================================================================== */
+.nav-tabs { border-bottom-color: var(--ds-border); }
+.nav-tabs .nav-link { font-family: var(--ds-font-head); font-weight: 600; color: var(--ds-text); border-radius: var(--ds-r-sm) var(--ds-r-sm) 0 0; }
+.nav-tabs .nav-link:hover { color: var(--ds-primary-700); }
+.nav-tabs .nav-link.active { color: var(--ds-primary-700); border-color: var(--ds-border) var(--ds-border) #fff; }
+.nav-pills .nav-link { border-radius: 999px; font-family: var(--ds-font-head); font-weight: 600; color: var(--ds-text); }
+.nav-pills .nav-link.active, .nav-pills .show > .nav-link { background: var(--ds-primary); color: #fff; }
+
+.page-link { color: var(--ds-primary-700); border-color: var(--ds-border); }
+.page-link:hover { color: var(--ds-primary); background: var(--ds-wash); }
+.page-item.active .page-link { background: var(--ds-primary); border-color: var(--ds-primary); color: #fff; }
+
+.accordion-item { border-color: var(--ds-border); }
+.accordion-item:first-of-type, .accordion-item:last-of-type { border-radius: var(--ds-r); }
+.accordion-button { font-family: var(--ds-font-head); font-weight: 700; color: var(--ds-ink); }
+.accordion-button:not(.collapsed) { color: var(--ds-primary-700); background: var(--ds-wash); box-shadow: none; }
+.accordion-button:focus { box-shadow: var(--ds-ring); border-color: transparent; }
+
+/* =====================================================================
+   Tables & DataTables
+   ===================================================================== */
+.table { --bs-table-hover-bg: var(--ds-mist); color: var(--ds-ink-2); border-color: var(--ds-border); }
+.table > thead > tr > th,
+table.dataTable > thead > tr > th {
+  font-family: var(--ds-font-head);
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--ds-ink);
+  border-bottom-color: var(--ds-border);
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  border-radius: var(--ds-r-xs) !important;
+  border: 1px solid transparent !important;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover,
+.page-item.active .page-link {
+  background: var(--ds-primary) !important;
+  border-color: var(--ds-primary) !important;
+  color: #fff !important;
+}
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-sm);
+  padding: 4px 10px;
+}
+.dataTables_wrapper .dataTables_filter input:focus { outline: 0; border-color: rgba(105, 94, 238, .6); box-shadow: var(--ds-ring); }
+div.dt-buttons .dt-button,
+button.dt-button {
+  border-radius: var(--ds-r-xs) !important;
+  border: 1px solid var(--ds-border) !important;
+  background: #fff !important;
+  font-family: var(--ds-font-head) !important;
+  font-weight: 600;
+  color: var(--ds-ink-2) !important;
+}
+div.dt-buttons .dt-button:hover,
+button.dt-button:hover { border-color: rgba(105, 94, 238, .45) !important; color: var(--ds-primary-700) !important; }
+
+/* =====================================================================
+   SweetAlert2 / flatpickr
+   ===================================================================== */
+.swal2-popup { border-radius: var(--ds-r-lg) !important; font-family: var(--ds-font-body) !important; }
+.swal2-title { font-family: var(--ds-font-head) !important; color: var(--ds-ink) !important; }
+.swal2-styled.swal2-confirm { background: var(--ds-grad-btn) !important; border-radius: var(--ds-r-sm) !important; font-family: var(--ds-font-head) !important; }
+.swal2-styled.swal2-cancel { border-radius: var(--ds-r-sm) !important; font-family: var(--ds-font-head) !important; }
+.swal2-styled:focus { box-shadow: var(--ds-ring) !important; }
+
+.flatpickr-day.selected, .flatpickr-day.selected:hover { background: var(--ds-primary); border-color: var(--ds-primary); }
+
+/* =====================================================================
+   App shells (subscriber, affiliate, admin)
+   ===================================================================== */
+
+/* Top bar — deep brand gradient instead of the flat violet fill */
+.navbar.app-topbar {
+  background: linear-gradient(115deg, #2A1F7A 0%, var(--ds-primary-700) 38%, var(--ds-primary) 78%, var(--ds-violet) 100%) !important;
+  box-shadow: 0 10px 30px -18px rgba(13, 11, 38, .6);
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+.navbar.app-topbar .login-btn,
+.navbar.app-topbar .demo-btn {
+  border-radius: var(--ds-r-sm) !important;
+  border: 1px solid rgba(255, 255, 255, .28) !important;
+  background: rgba(255, 255, 255, .08) !important;
+  color: #fff !important;
+  font-family: var(--ds-font-head) !important;
+  font-weight: 700;
+}
+.navbar.app-topbar .login-btn:hover,
+.navbar.app-topbar .demo-btn:hover { background: rgba(255, 255, 255, .18) !important; border-color: rgba(255, 255, 255, .55) !important; }
+
+/* Organisation strip above the subscriber top bar */
+.mainav-head { background: #fff; border-bottom: 1px solid var(--ds-border); }
+.mainav-head .text-primary { font-family: var(--ds-font-head); }
+
+/* Sidebar */
+.dash-box { border-radius: var(--ds-r-lg); }
+.sidebar-menu-item {
+  font-family: var(--ds-font-head);
+  font-weight: 600 !important;
+  color: var(--ds-ink-2) !important;
+  border-radius: var(--ds-r-sm) !important;
+  border: 1px solid transparent;
+  transition: background .2s, color .2s, border-color .2s, transform .2s var(--ds-ease) !important;
+}
+.sidebar-menu-item:hover {
+  background: var(--ds-bg-soft) !important;
+  color: var(--ds-primary-700) !important;
+  border-color: var(--ds-border);
+}
+.sidebar-menu-icon {
+  background: var(--ds-wash) !important;
+  color: var(--ds-primary-700) !important;
+  border-radius: 9px !important;
+  transition: background .2s, color .2s;
+}
+.sidebar-menu-item:hover .sidebar-menu-icon { background: var(--ds-primary) !important; color: #fff !important; }
+/* Active item: the layouts mark it with an inline violet background */
+.sidebar-menu-item[style*="#695EEE"],
+.sidebar-menu-item[style*="#695eee"] {
+  background: var(--ds-grad-btn) !important;
+  color: #fff !important;
+  box-shadow: 0 12px 24px -14px rgba(105, 94, 238, .8);
+}
+.sidebar-menu-item[style*="#695EEE"] .sidebar-menu-icon,
+.sidebar-menu-item[style*="#695eee"] .sidebar-menu-icon { background: rgba(255, 255, 255, .2) !important; color: #fff !important; }
+.sidebar-menu-icon img { filter: none; }
+
+/* Slim footer for signed-in pages */
+.last-footer {
+  background: transparent;
+  border-top: 1px solid var(--ds-border);
+  color: var(--ds-muted);
+  font-size: 13.5px;
+}
+.last-footer p { margin: 0; padding: 14px 0; }
+
+/* Shared page headings inside the app */
+.dashboard-box h1, .dashboard-box h2, .dashboard-box h3, .dashboard-box h4,
+.client-row h1, .client-row h2, .client-row h3, .client-row h4 { color: var(--ds-ink); }
+
+/* Cookie notice (partials/cookie_notice) */
+.adwiseri-cookie-panel { border-radius: 18px !important; border: 1px solid var(--ds-border) !important; box-shadow: 0 30px 60px -20px rgba(15, 23, 42, .35) !important; }
+.adwiseri-cookie-title { font-family: var(--ds-font-head) !important; color: var(--ds-ink) !important; }
+.adwiseri-cookie-btn { font-family: var(--ds-font-head) !important; border-radius: var(--ds-r-sm) !important; }
+.adwiseri-cookie-btn-primary { background: var(--ds-grad-btn) !important; border-color: transparent !important; color: #fff !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn, .sidebar-menu-item { transition: none !important; }
+}
+
+/* =====================================================================
+   Legacy page components re-skinned to the design system
+   (markup and behaviour unchanged)
+   ===================================================================== */
+
+/* Form cards: login, register, contact, demo, affiliate login */
+.form-box,
+.login-box,
+.loginouter-box {
+  background: #fff;
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-r-lg) !important;
+  box-shadow: var(--ds-shadow) !important;
+}
+.form-box h1, .form-box h2, .form-box h3,
+.login-box h1, .login-box h2, .login-box h3,
+.loginouter-box h1, .loginouter-box h2, .loginouter-box h3 { color: var(--ds-ink); letter-spacing: -.03em; }
+
+/* Page titles on public inner pages */
+.page-feat h1,
+.contact-form h1,
+.member-mainbox.plans-section h1,
+.plans-section-head h1 {
+  font-family: var(--ds-font-head) !important;
+  font-weight: 800 !important;
+  color: var(--ds-ink) !important;
+  letter-spacing: -.035em;
+}
+
+/* Feature cards (Features page) */
+.features-card {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-lg);
+  box-shadow: var(--ds-shadow-sm);
+  padding: 26px 0 !important;
+  transition: transform .35s var(--ds-ease), box-shadow .35s, border-color .35s;
+}
+.features-card:hover { transform: translateY(-4px); box-shadow: 0 30px 60px -28px rgba(76, 59, 183, .38); border-color: rgba(105, 94, 238, .35); }
+.features-card h4 { font-family: var(--ds-font-head) !important; color: var(--ds-ink); font-weight: 700; }
+.features-card p { font-size: 14.5px !important; line-height: 1.65 !important; color: var(--ds-text); }
+
+/* Price plan cards (Price Plans page, membership pages) — same look as the homepage plans */
+.plans-section { background: linear-gradient(180deg, #fff 0%, var(--ds-bg-soft) 100%); }
+.plans-section-sub { color: var(--ds-text); font-size: 16px; }
+.plan-card {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-r-lg) !important;
+  box-shadow: var(--ds-shadow-sm) !important;
+  padding: 26px 20px 22px !important;
+  text-align: left !important;
+}
+.plan-card:hover,
+.plan-card:focus-within { border-color: rgba(105, 94, 238, .4) !important; box-shadow: var(--ds-shadow) !important; }
+.plan-card--popular { border-color: rgba(105, 94, 238, .55) !important; }
+.plan-title {
+  background: none !important;
+  color: var(--ds-ink) !important;
+  margin: 0 0 16px !important;
+  padding: 0 0 16px !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid var(--ds-border);
+  text-align: left !important;
+  font-family: var(--ds-font-head) !important;
+  font-size: 19px !important;
+  letter-spacing: -.02em !important;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.plan-title-price {
+  display: block;
+  font-family: var(--ds-font-head);
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -.04em;
+  line-height: 1;
+  color: var(--ds-ink);
+}
+.plan-feat-label { color: var(--ds-text); }
+.plan-feat-value { color: var(--ds-ink); font-family: var(--ds-font-head); }
+.plan-features li { border-bottom-color: var(--ds-wash) !important; }
+.plan-check, .plan-card .fa-check { color: var(--ds-green) !important; }
+.subscribe-btn {
+  font-family: var(--ds-font-head) !important;
+  border-radius: 12px !important;
+  background: var(--ds-grad-btn) !important;
+  box-shadow: 0 12px 26px -14px rgba(105, 94, 238, .8);
+  transition: transform .25s var(--ds-ease), box-shadow .25s !important;
+}
+.subscribe-btn:hover { transform: translateY(-2px); box-shadow: 0 18px 34px -14px rgba(105, 94, 238, .85); }
+.subscribe-btn--active { background: var(--ds-primary-700) !important; box-shadow: none; transform: none !important; }
+.plan-badge { background: var(--ds-grad) !important; color: #fff !important; border-radius: 999px !important; }
+
+/* Legacy owl-carousel arrows */
+#subscription-plan .owl-nav .owl-prev,
+#subscription-plan .owl-nav .owl-next { box-shadow: var(--ds-shadow-sm); }
+
+/* Login pages nest .login-box inside .loginouter-box: only the outer one is the card */
+.loginouter-box .login-box { border: 0 !important; box-shadow: none !important; border-radius: 0 !important; background: transparent; }
+
+/* Price shown under the plan name on the Price Plans page (beats `.plan-title .plan-title-price`) */
+.plan-card .plan-title .plan-title-price { font-size: 36px; font-weight: 800; letter-spacing: -.04em; margin-top: 0; color: var(--ds-ink); }
+
+/* style.css forces `.nav-item a { color: white !important }` (meant for the old public navbar);
+   keep inactive tab labels readable. Active / hover states keep their own rules. */
+.nav-tabs .nav-item a.nav-link:not(.active):not(:hover),
+.nav-pills .nav-item a.nav-link:not(.active):not(:hover) { color: var(--ds-primary-700) !important; }

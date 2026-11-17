@@ -77,7 +77,7 @@ $hasAnalyticsAccess = $offerBenefitService->hasAnalyticsAccess($user);
       <p class="p-2 text-primary" style="display: inline;margin-left:auto;font-weight:550;">{{ $user->organization }}</p>
     </div>
 </div>
-<nav class="navbar navbar-expand-lg navbar-light" style="background:#695EEE;">
+<nav class="navbar navbar-expand-lg navbar-light app-topbar">
     <div class="container-fluid">
       <!-- <a class="navbar-brand text-white" href="{{ route('/') }}"><img width="50" @if($user->organization_logo != null) src="{{ asset('web_assets/users/user'.$user->id.'/'.$user->organization_logo) }}" @else src="{{ asset('web_assets/images/Style2.png') }}" @endif /></a> -->
        <a class="navbar-brand text-white" href="{{ route('/') }}"><img class="logo-fix" src="{{ asset('web_assets/images/Style2.png') }}" alt="adwiseri" /></a>

@@ -52,7 +52,7 @@
     {{-- <p class=" help-text"><img src="{{ asset('web_assets/images/callus.png') }}" width="15" height="15" alt="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Helpline number <strong>+91-9137196317 </strong> </p> --}}
     <!-- <a href="{{ route('contactus') }}" class="contact-texthead"><img src="{{ asset('web_assets/images/contactus.png') }}" width="15" height="15" alt=""> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Contact Us</a> -->
 {{-- </div> --}}
-<nav class="navbar navbar-expand-lg navbar-light" style="background:#695EEE;">
+<nav class="navbar navbar-expand-lg navbar-light app-topbar">
     <div class="container-fluid">
       <a class="navbar-brand text-white" href="{{ route('admin') }}"><img class="logo-fix" width="200" src="{{ asset('web_assets/images/Style2.png') }}" /></a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"

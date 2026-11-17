@@ -1,204 +1,143 @@
-<!---Navbar-->
+{{-- Public header: announcement bar, primary navigation with the Use Cases mega menu, mobile drawer. --}}
+@php
+    $isHome = request()->is('/');
+    $homeUrl = route('/');
+    // In-page anchors on the homepage; real pages everywhere else.
+    $useCasesHref = $isHome ? '#use-cases' : $homeUrl . '#use-cases';
+    $featuresHref = $isHome ? '#features' : route('features');
+    $pricingHref = $isHome ? '#pricing' : route('membership');
+    $navUseCases = config('use_cases', []);
 
-
-  {{-- <div class="mainav-head">
-    <p class=" help-text"><img src="{{ asset('web_assets/images/callus.png') }}" width="15" height="15" alt="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Helpline number <strong>+91-9137196317</strong> </p>
-    <a href="{{ route('contactus') }}" class="contact-texthead"><img src="{{ asset('web_assets/images/contactus.png') }}" width="15" height="15" alt=""> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Contact Us</a>
-</div> --}}
-{{-- <nav class="navbar navbar-expand-lg navbar-light fixed-top" style="background:#695EEE;">
-    <div class="container-fluid">
-      <a class="navbar-brand text-white" href="{{ route('/') }}">adwiseri</a>
-
-      <div class="collapse navbar-collapse" id="navbarSupportedContent" style="display:flex !important;">
-        <ul class="navbar-nav me-auto mb-1 mb-lg-0">
-
-          <li class="nav-item">
-            <a class="nav-link active" href="{{ route('/') }}">Home</a>
-          </li>
-
-          <li class="nav-item">
-            <a class="nav-link active" href="{{ route('aboutadvisori') }}">About Us</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link active" href="{{ route('features') }}">Features</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link active" href="{{ route('membership') }}">Pricing</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link active" href="{{ route('/')}}#affiliates">Affiliates</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link active" href="{{ route('contactus') }}">Contact Us</a>
-          </li>
-        </ul>
-        <form class="log-btn">
-          @if(isset($user))
-          <a href="{{ route('userprofile') }}" class="btn btn-outline-success login-btn"><img src="{{ asset('web_assets/images/login.png') }}" width="20"
-            height="20" alt=""> {{ $user->name }}</a>
-          <a href="{{ route('logout') }}" class="btn btn-outline-success demo-btn"><img src="{{ asset('web_assets/images/logout.png') }}" width="20"
-            height="20" alt=""> Logout</a>
-          @else
-          <a href="{{ route('login') }}" class="btn btn-outline-success login-btn"><img src="{{ asset('web_assets/images/login.png') }}" width="20"
-            height="20" alt=""> Login</a>
-            <a href="{{ route('get_demo') }}" class="btn btn-outline-success demo-btn">Get A Demo</a>
-          @endif
-        </form>
-      </div>
-    </div>
-  </nav> --}}
-  <!---Navbar END-->
-  <!-- Navbar -->
-<nav class="navbar navbar-expand-lg navbar-light fixed-top" style="background:#695EEE;">
-    <div class="container-fluid">
-      <!-- Brand -->
-      <a class="navbar-brand text-white" href="{{ route('/') }}"><img class="logo-fix navbar-logo" src="{{ asset('web_assets/images/Style2.png') }}" width="170" alt="adwiseri" /></a>
-
-      <!-- Hamburger Menu Button -->
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <!-- Collapsible Content -->
-      <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          {{-- <li class="nav-item">
-            <a class="nav-link active text-white" href="{{ route('/') }}">Home</a>
-          </li> --}}
-          <li class="nav-item dropdown">
-                <a class="nav-link active dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Use Cases</a>
-                @php
-                    // Subscriber categories, each with a one-line definition shown on hover.
-                    $useCases = [
-                        'General (All countries) Visa Consultants' => 'A Visa/Immigration Consultant, dealing in almost all countries and across all visa categories.',
-                        'Study Abroad (Student) Visa Consultants' => 'A consultant helping students with university/college admissions and student visas for studying abroad.',
-                        'Business / Work Visa Specialists' => 'A specialist in business, work-permit and employer-sponsored visas for professionals and skilled workers.',
-                        'PR / Immigration Advisories' => 'An advisory focused on permanent residency (PR), settlement and long-term immigration pathways.',
-                        'USA - Immigration Attorneys' => 'A licensed US immigration attorney handling US visas, green cards and related legal matters.',
-                        'UK - OISC (IAA) Advisors' => 'An immigration adviser regulated by the OISC, now the Immigration Advice Authority (IAA), advising on UK visas and immigration.',
-                        'Australia - MARA Advisors' => 'A registered migration agent (MARA) advising on Australian visas and migration.',
-                        'Canada - ICCRC Advisors' => 'A licensed Canadian immigration consultant (RCIC), regulated by the ICCRC, now the CICC, advising on Canadian visas and immigration.',
-                        'CBI - Citizenship By Investment Consultants' => 'A consultant helping investors obtain second citizenship or residency through government investment programs.',
-                        'Travel Agents (Visit Visa Specialists)' => 'A travel agency that also arranges visit/tourist visas alongside travel bookings.',
-                        'Immigration Law Firms' => 'A law firm whose lawyers provide legal advice and representation on immigration and visa matters.',
-                    ];
-                @endphp
-                <ul class="dropdown-menu use-cases-menu">
-                    @foreach ($useCases as $useCase => $definition)
-                        <li><p class="dropdown-item mb-0" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="right" title="{{ $definition }}">{{ $useCase }}</p></li>
-                    @endforeach
-                </ul>
-          </li>
-          {{-- <li class="nav-item">
-            <a class="nav-link active text-white" href="{{ route('aboutadvisori') }}">About Us</a>
-          </li> --}}
-          <li class="nav-item">
-            <a class="nav-link active text-white" href="{{ route('features') }}">Features</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link active text-white" href="{{ route('membership') }}">Pricing</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link active text-white" href="{{ route('affiliate.createLogin')}}">Affiliates</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link active text-white" href="{{ route('contactus') }}">Contact Us</a>
-          </li>
-        </ul>
-        <!-- Login and Demo Buttons -->
-        <form class="d-flex">
-          @if(isset($user))
-          <a href="{{ route('userprofile') }}" class="btn btn-outline-light login-btn me-2">
-            <img src="{{ asset('web_assets/images/login.png') }}" width="20" height="20" alt=""> {{ $user->name }}
-          </a>
-          <a href="{{ route('logout') }}" class="btn btn-outline-light demo-btn">
-            <img src="{{ asset('web_assets/images/logout.png') }}" width="20" height="20" alt=""> Logout
-          </a>
-          @else
-          <a href="{{ route('login') }}" class="btn btn-outline-light login-btn me-2">
-            <img src="{{ asset('web_assets/images/login.png') }}" width="20" height="20" alt=""> Login
-          </a>
-          <a href="{{ route('get_demo') }}" class="btn btn-outline-light demo-btn">Get A Demo</a>
-          @endif
-        </form>
-      </div>
-    </div>
-  </nav>
-  <!-- Navbar END -->
-
-  <style>
-    /* Use Cases definitions: theme purple instead of Bootstrap's black, with a thin white edge so the
-       tooltip stands apart from the purple menu beside it. */
-    .use-case-tooltip {
-      --bs-tooltip-bg: #695EEE;
-      --bs-tooltip-opacity: 1;
-    }
-
-    .use-case-tooltip .tooltip-inner {
-      max-width: 280px;
-      text-align: left;
-      font-size: 13px;
-      background-color: #695EEE;
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.85);
-      box-shadow: 0 6px 18px rgba(20, 16, 60, 0.28);
-    }
-
-    .use-case-tooltip.bs-tooltip-end .tooltip-arrow::before,
-    .use-case-tooltip.bs-tooltip-auto[data-popper-placement^="right"] .tooltip-arrow::before {
-      border-right-color: #695EEE;
-    }
-
-    .use-case-tooltip.bs-tooltip-start .tooltip-arrow::before,
-    .use-case-tooltip.bs-tooltip-auto[data-popper-placement^="left"] .tooltip-arrow::before {
-      border-left-color: #695EEE;
-    }
-  </style>
-  <script>
-    // The menu bar is fixed and its height changes with screen width (it wraps to two lines on some
-    // laptops). Publish it as --site-nav-height so pages can keep their content clear of it.
-    (function () {
-      var nav = document.querySelector('nav.navbar.fixed-top');
-      if (!nav) {
-        return;
-      }
-      var sync = function () {
-        document.documentElement.style.setProperty('--site-nav-height', nav.offsetHeight + 'px');
-      };
-      sync();
-      window.addEventListener('resize', sync);
-      if (window.ResizeObserver) {
-        new ResizeObserver(sync).observe(nav);
-      }
-    })();
-
-    // "Use Cases" menu: show each category's definition as a tooltip. Without Bootstrap's JS the
-    // browser still shows the plain title text.
-    document.addEventListener('DOMContentLoaded', function () {
-      if (!window.bootstrap || !window.bootstrap.Tooltip) {
-        return;
-      }
-
-      var tooltips = Array.prototype.map.call(
-        document.querySelectorAll('.use-cases-menu [data-bs-toggle="tooltip"]'),
-        function (item) {
-          return new bootstrap.Tooltip(item, {
-            container: 'body',
-            trigger: 'hover focus',
-            customClass: 'use-case-tooltip',
-          });
-        }
-      );
-
-      document.querySelectorAll('.use-cases-menu').forEach(function (menu) {
-        var dropdown = menu.closest('.dropdown');
-        if (dropdown) {
-          dropdown.addEventListener('hide.bs.dropdown', function () {
-            tooltips.forEach(function (tooltip) { tooltip.hide(); });
-          });
-        }
-      });
+    $navPlans = isset($price_plans) ? collect($price_plans) : \App\Models\Membership::orderBy('created_at', 'asc')->get();
+    $navFreePlan = $navPlans->first(function ($p) {
+        return (float) $p->price_per_year == 0.0 || in_array($p->plan_name, ['Free', 'Free Plan'], true);
     });
-  </script>
+@endphp
 
+<a class="skip-link" href="#main">Skip to content</a>
 
+<div class="ds">
+  <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
+
+  <div class="site-top" id="siteTop">
+    {{-- Promo bar on the homepage only: inner pages were laid out for a single-row header. --}}
+    @if ($isHome)
+    <div class="announce">
+      <div class="wrap">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="ann-long">Want to earn extra from referrals? Refer consultancies you know and earn commissions.</span>
+        <span class="ann-short">Earn commissions on referrals.</span>
+        <a href="{{ route('Affiliates.create') }}">Join Affiliate Program <svg class="icon" style="width:15px;height:15px"><use href="#i-arrow"/></svg></a>
+      </div>
+    </div>
+    @endif
+
+    <header class="site-header" id="siteHeader">
+      <div class="wrap">
+        <a class="brand" href="{{ $homeUrl }}" aria-label="adwiseri home">
+          <img src="{{ asset('web_assets/images/Style2.png') }}" alt="adwiseri" width="143" height="34" onerror="this.parentNode.classList.add('logo-fallback')">
+          <span class="brand-text">adwiseri</span>
+        </a>
+
+        <nav class="site-nav" aria-label="Primary">
+          <div class="dd" id="ucDropdown">
+            <button type="button" class="dd-toggle" aria-expanded="false" aria-controls="megaMenu">Use Cases <svg class="icon"><use href="#i-chev"/></svg></button>
+            <div class="mega" id="megaMenu">
+              <div class="mega-col">
+                <h6>By practice type</h6>
+                @foreach ($navUseCases as $uc)
+                  @if (($uc['type'] ?? '') === 'practice')
+                    <a class="mega-link" href="{{ $useCasesHref }}" data-uc="practice" title="{{ $uc['definition'] }}"><span class="ic"><svg class="icon"><use href="#i-{{ $uc['icon'] ?? 'globe' }}"/></svg></span>{{ $uc['name'] }}</a>
+                  @endif
+                @endforeach
+              </div>
+              <div class="mega-col">
+                <h6>By region &amp; regulation</h6>
+                @foreach ($navUseCases as $uc)
+                  @if (($uc['type'] ?? '') === 'region')
+                    <a class="mega-link" href="{{ $useCasesHref }}" data-uc="region" title="{{ $uc['definition'] }}"><span class="ic cc">{{ $uc['code'] }}</span>{{ $uc['name'] }}</a>
+                  @endif
+                @endforeach
+              </div>
+              <div class="mega-feature">
+                @if ($navFreePlan)
+                  <span class="ds-eyebrow" style="color:#D9D6FF">{{ $navFreePlan->plan_name }} plan</span>
+                  <strong>Try adwiseri free for {{ (int) $navFreePlan->validity }} days</strong>
+                  <p>{{ $navFreePlan->client_limit }} clients, {{ $navFreePlan->no_of_users }} user licence{{ (int) $navFreePlan->no_of_users === 1 ? '' : 's' }}, invoicing, analytics and a secure environment — at $0.</p>
+                @else
+                  <span class="ds-eyebrow" style="color:#D9D6FF">Price plans</span>
+                  <strong>Simple, fixed yearly pricing</strong>
+                  <p>No extra invoices for add-on features — choose the plan that fits your practice.</p>
+                @endif
+                <a class="link-arrow" href="{{ $pricingHref }}">See all plans <svg class="icon"><use href="#i-arrow"/></svg></a>
+              </div>
+            </div>
+          </div>
+          <a href="{{ $featuresHref }}" @if(!$isHome && request()->routeIs('features')) class="active" @endif>Features</a>
+          <a href="{{ $pricingHref }}" @if(!$isHome && request()->routeIs('membership')) class="active" @endif>Pricing</a>
+          <a href="{{ route('affiliate.createLogin') }}">Affiliates</a>
+          <a href="{{ route('contactus') }}" @if(request()->routeIs('contactus')) class="active" @endif>Contact Us</a>
+        </nav>
+
+        <div class="header-cta">
+          @if (isset($user))
+            <a class="login" href="{{ route('userprofile') }}"><svg class="icon"><use href="#i-user"/></svg><span class="user-name">{{ $user->name }}</span></a>
+            <a class="btn btn-primary btn-sm" href="{{ route('logout') }}">Logout <svg class="icon"><use href="#i-logout"/></svg></a>
+          @else
+            <a class="login" href="{{ route('login') }}"><svg class="icon"><use href="#i-login"/></svg>Login</a>
+            <a class="btn btn-primary btn-sm" href="{{ route('get_demo') }}">Get A Demo <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
+          @endif
+          <button type="button" class="burger" id="burger" aria-label="Open menu" aria-controls="drawer" aria-expanded="false"><svg class="icon"><use href="#i-menu"/></svg></button>
+        </div>
+      </div>
+    </header>
+  </div>
+
+  {{-- Mobile drawer --}}
+  <div class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-backdrop" data-close></div>
+    <aside class="drawer-panel" role="dialog" aria-modal="true" aria-label="Menu">
+      <div class="drawer-top">
+        <a class="brand" href="{{ $homeUrl }}"><img src="{{ asset('web_assets/images/Style2.png') }}" alt="adwiseri" onerror="this.parentNode.classList.add('logo-fallback')"><span class="brand-text">adwiseri</span></a>
+        <button type="button" class="burger" style="display:grid" data-close aria-label="Close menu"><svg class="icon"><use href="#i-x"/></svg></button>
+      </div>
+      <nav class="drawer-body" aria-label="Mobile">
+        <div class="m-acc" id="mAcc">
+          <button type="button" aria-expanded="false">Use Cases <svg class="icon"><use href="#i-chev"/></svg></button>
+          <div class="m-acc-panel"><div>
+            @foreach ($navUseCases as $uc)
+              <a href="{{ $useCasesHref }}" data-close title="{{ $uc['definition'] }}">{{ $uc['name'] }}</a>
+            @endforeach
+          </div></div>
+        </div>
+        <a href="{{ $featuresHref }}" data-close>Features <svg class="icon"><use href="#i-arrow"/></svg></a>
+        <a href="{{ $pricingHref }}" data-close>Pricing <svg class="icon"><use href="#i-arrow"/></svg></a>
+        <a href="{{ route('affiliate.createLogin') }}">Affiliates <svg class="icon"><use href="#i-arrow"/></svg></a>
+        <a href="{{ route('contactus') }}">Contact Us <svg class="icon"><use href="#i-arrow"/></svg></a>
+        <a href="{{ $isHome ? '#faq' : route('faqs') }}" data-close>FAQ <svg class="icon"><use href="#i-arrow"/></svg></a>
+      </nav>
+      <div class="drawer-foot">
+        @if (isset($user))
+          <a class="btn btn-ghost" href="{{ route('userprofile') }}"><svg class="icon"><use href="#i-user"/></svg> {{ $user->name }}</a>
+          <a class="btn btn-primary" href="{{ route('logout') }}">Logout <svg class="icon"><use href="#i-logout"/></svg></a>
+        @else
+          <a class="btn btn-primary" href="{{ route('get_demo') }}">Get A Demo <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
+          <a class="btn btn-ghost" href="{{ route('login') }}"><svg class="icon"><use href="#i-login"/></svg> Login</a>
+        @endif
+      </div>
+    </aside>
+  </div>
+</div>
+<span id="main" tabindex="-1"></span>
+
+<script>
+  // Publish the fixed header's height before first paint so pages can keep
+  // their content clear of it (adwiseri-site.js keeps it in sync on resize).
+  (function () {
+    var top = document.getElementById('siteTop');
+    if (!top) { return; }
+    document.documentElement.style.setProperty('--site-nav-height', top.offsetHeight + 'px');
+    var ann = top.querySelector('.announce');
+    top.style.setProperty('--ann-h', (ann ? ann.offsetHeight : 0) + 'px');
+  })();
+</script>
