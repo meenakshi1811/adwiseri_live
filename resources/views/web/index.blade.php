@@ -543,12 +543,7 @@
             <div class="plan-head">
               <h3>{{ $plan->plan_name }}</h3>
               <div class="price"><b>${{ $price }}</b><span>/ {{ $free ? ((int) $plan->validity . ' days') : 'year' }}</span></div>
-              {{-- Plans are sold yearly only, so no monthly equivalent is shown. --}}
-              <div class="permo">
-                @if($free)
-                  Free for your first {{ (int) $plan->validity }} days
-                @endif
-              </div>
+              {{-- Plans are sold yearly only; the free plan's validity is already in the price line. --}}
             </div>
             <p class="for">{{ $blurb }}</p>
 
