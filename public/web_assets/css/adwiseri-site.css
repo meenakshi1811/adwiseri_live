@@ -143,15 +143,19 @@ html{scroll-padding-top:var(--ds-header-h)}
 
 /* Mobile drawer */
 .ds .drawer{position:fixed;inset:0;z-index:1060;pointer-events:none;visibility:hidden;transition:visibility 0s .4s}
-.ds .drawer.open{visibility:visible;transition:none}
+/* While open, the menu sits above the cookie notice (z-index 1080) so it cannot cover the buttons. */
+.ds .drawer.open{visibility:visible;transition:none;z-index:1090}
 .ds .drawer-backdrop{position:absolute;inset:0;background:rgba(13,11,38,.45);backdrop-filter:blur(4px);opacity:0;transition:opacity .3s}
-.ds .drawer-panel{position:absolute;top:0;right:0;height:100%;width:min(400px,100%);background:#fff;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .38s var(--ds-ease);box-shadow:-30px 0 60px -30px rgba(0,0,0,.35)}
+/* The panel scrolls as one piece and the buttons follow the menu list directly (not pinned to the
+   bottom), so mobile browser toolbars and short screens can never hide Login / Get A Demo. */
+.ds .drawer-panel{position:absolute;top:0;right:0;height:100%;height:100dvh;max-height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;width:min(400px,100%);background:#fff;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .38s var(--ds-ease);box-shadow:-30px 0 60px -30px rgba(0,0,0,.35)}
 .ds .drawer.open{pointer-events:auto}
 .ds .drawer.open .drawer-backdrop{opacity:1}
 .ds .drawer.open .drawer-panel{transform:none}
 .ds .drawer-top{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--ds-border)}
 .ds .drawer-top .brand img{height:30px}
-.ds .drawer-body{flex:1;overflow-y:auto;padding:12px 20px 20px}
+.ds .drawer-top{flex:0 0 auto}
+.ds .drawer-body{flex:0 0 auto;padding:12px 20px 8px}
 .ds .drawer-body > a,.ds .m-acc > button{display:flex;align-items:center;justify-content:space-between;width:100%;padding:15px 4px;border-bottom:1px solid var(--ds-border);font-family:var(--ds-font-head);font-weight:700;font-size:17px;color:var(--ds-ink)}
 .ds .m-acc > button .icon{transition:transform .25s}
 .ds .m-acc.open > button .icon{transform:rotate(180deg)}
@@ -161,7 +165,7 @@ html{scroll-padding-top:var(--ds-header-h)}
 .ds .m-acc-panel a{display:block;padding:10px 4px 10px 14px;font-size:15px;font-weight:700;color:var(--ds-text);border-left:2px solid var(--ds-border);margin-left:4px}
 .ds .m-acc-panel a:first-child{margin-top:8px}.ds .m-acc-panel a:last-child{margin-bottom:10px}
 .ds .m-acc-panel a:hover{color:var(--ds-primary-700);border-color:var(--ds-primary)}
-.ds .drawer-foot{padding:18px 20px 24px;display:grid;gap:10px;border-top:1px solid var(--ds-border)}
+.ds .drawer-foot{flex:0 0 auto;padding:16px 20px calc(24px + env(safe-area-inset-bottom, 0px));display:grid;gap:10px}
 .ds .drawer-foot .btn{width:100%}
 
 /* =========================================================
@@ -622,7 +626,8 @@ html{scroll-padding-top:var(--ds-header-h)}
   .ds .plans-nav{display:flex}
 }
 @media (max-width:1100px){
-  .ds .site-nav,.ds .header-cta .login,.ds .header-cta .btn{display:none}
+  /* Login stays in the header bar next to the menu button, so it is never out of reach. */
+  .ds .site-nav,.ds .header-cta .btn{display:none}
   .ds .burger{display:grid}
   .ds .bento{grid-template-columns:repeat(2,1fr)}
   .ds .why-grid{grid-template-columns:repeat(2,1fr)}
@@ -650,6 +655,10 @@ html{scroll-padding-top:var(--ds-header-h)}
 }
 @media (max-width:640px){
   .ds .wrap{padding:0 16px}
+  /* Phones: Login shows as an icon button beside the menu button. */
+  .ds .header-cta{gap:8px}
+  .ds .header-cta .login{width:44px;height:44px;padding:0;justify-content:center;border:1px solid var(--ds-border);border-radius:12px;background:#fff}
+  .ds .header-cta .login .login-text,.ds .header-cta .login .user-name{display:none}
   .ds .section-head{margin-bottom:36px}
   .ds .announce{font-size:13px}
   .ds .announce .wrap{min-height:40px;padding-top:8px;padding-bottom:8px}

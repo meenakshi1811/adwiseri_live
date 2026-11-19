@@ -552,28 +552,23 @@
 
         var xTicks = x.ticks || (x.ticks = {});
         var pointCount = labels.length || 0;
-        var overlap = global.AdwiseriAnalyticsOverlap || {};
-        var maxLabelLength = typeof overlap.axisLabelMaxLength === 'function'
-            ? overlap.axisLabelMaxLength(pointCount)
-            : 18;
-        var truncateLabel = typeof overlap.truncateLabel === 'function'
-            ? overlap.truncateLabel
-            : function (text) { return text; };
 
         xTicks.stepSize = 1;
         // Every point keeps its name on the axis (no skipping).
         xTicks.autoSkip = false;
         xTicks.maxTicksLimit = undefined;
-        xTicks.maxRotation = pointCount > 14 ? 90 : (pointCount > 8 ? 75 : 45);
-        xTicks.minRotation = pointCount > 14 ? 70 : (pointCount > 8 ? 50 : 0);
+        xTicks.maxRotation = 90;
+        xTicks.minRotation = 0;
         xTicks.color = '#000000';
         xTicks.font = Object.assign({}, xTicks.font || {}, {
-            size: pointCount > 16 ? 8 : (pointCount > 10 ? 9 : 10),
-            weight: 'normal'
+            size: pointCount > 16 ? 10 : 11,
+            weight: 'normal',
+            lineHeight: 1.25
         });
+        // Full name here; AdwiseriAnalyticsOverlap wraps it to fit (whole name stays readable).
         xTicks.callback = function (value) {
             var label = labels[value] !== undefined ? labels[value] : value;
-            return truncateLabel(String(label), maxLabelLength);
+            return String(label);
         };
 
         var yTicks = y.ticks || (y.ticks = {});

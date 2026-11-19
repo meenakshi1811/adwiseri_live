@@ -113,7 +113,7 @@ select.form-control {
 
   {{-- Design system: loaded after the legacy styles so its tokens and component rules win. --}}
   <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-theme.css') }}?v=20261117i">
-  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-site.css') }}?v=20261117i">
+  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-site.css') }}?v=20261119a">
 
   @stack('css')
 

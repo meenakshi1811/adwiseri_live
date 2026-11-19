@@ -82,10 +82,10 @@
 
         <div class="header-cta">
           @if (isset($user))
-            <a class="login" href="{{ route('userprofile') }}"><svg class="icon"><use href="#i-user"/></svg><span class="user-name">{{ $user->name }}</span></a>
+            <a class="login" href="{{ route('userprofile') }}" aria-label="My profile"><svg class="icon"><use href="#i-user"/></svg><span class="user-name">{{ $user->name }}</span></a>
             <a class="btn btn-primary btn-sm" href="{{ route('logout') }}">Logout <svg class="icon"><use href="#i-logout"/></svg></a>
           @else
-            <a class="login" href="{{ route('login') }}"><svg class="icon"><use href="#i-login"/></svg>Login</a>
+            <a class="login" href="{{ route('login') }}"><svg class="icon"><use href="#i-login"/></svg><span class="login-text">Login</span></a>
             <a class="btn btn-primary btn-sm" href="{{ route('get_demo') }}">Get A Demo <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
           @endif
           <button type="button" class="burger" id="burger" aria-label="Open menu" aria-controls="drawer" aria-expanded="false"><svg class="icon"><use href="#i-menu"/></svg></button>

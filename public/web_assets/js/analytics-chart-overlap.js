@@ -74,6 +74,67 @@
         return 9;
     }
 
+    /*
+     * How to wrap the x-axis names of a drawn chart: when each name has room for about nine
+     * characters or more, wrap to that width so the names sit level, line under line. When the
+     * axis is crowded, the names must tilt, and tilted multi-line names run into each other, so
+     * they get at most two longer lines instead.
+     */
+    function axisWrapFor(scale, count, fontSize) {
+        var chartWidth = (scale && scale.chart && scale.chart.width) || 800;
+        var perName = (chartWidth * 0.88) / Math.max(count, 1);
+        var chars = Math.floor(perName / (fontSize * 0.6));
+        if (chars >= 9) {
+            return { width: Math.min(chars, 26), lines: 5 };
+        }
+        return { width: 22, lines: 2 };
+    }
+
+    /*
+     * Split a name into short lines at spaces so the whole name stays readable on the axis
+     * (Chart.js draws an array as several lines). Only a name longer than maxLines lines is
+     * shortened, and pointing at it still shows it in full.
+     */
+    function wrapLabel(text, width, maxLines) {
+        var value = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+        if (!value || !width || value.length <= width) {
+            return value;
+        }
+
+        var lines = [];
+        var current = '';
+        value.split(' ').forEach(function (word) {
+            // A word a little longer than a line stays whole; only really long words are split.
+            while (word.length > width + 2) {
+                if (current) {
+                    lines.push(current);
+                    current = '';
+                }
+                lines.push(word.slice(0, width - 1) + '-');
+                word = word.slice(width - 1);
+            }
+            if (!current) {
+                current = word;
+            } else if ((current + ' ' + word).length <= width) {
+                current += ' ' + word;
+            } else {
+                lines.push(current);
+                current = word;
+            }
+        });
+        if (current) {
+            lines.push(current);
+        }
+
+        var limit = maxLines || 4;
+        if (lines.length > limit) {
+            lines = lines.slice(0, limit);
+            lines[limit - 1] = lines[limit - 1].slice(0, width - 1) + '…';
+        }
+
+        return lines.length === 1 ? lines[0] : lines;
+    }
+
     function formatCompactNumber(value, decimals) {
         var number = Number(value);
         if (!isFinite(number)) {
@@ -120,8 +181,6 @@
         var rotateVertical = shouldRotateDataLabels(config, count);
         var scales = config.options.scales;
         var labels = (config.data && config.data.labels) ? config.data.labels : [];
-        var maxLabelLength = axisLabelMaxLength(count);
-
         Object.keys(scales).forEach(function (scaleId) {
             var scale = scales[scaleId];
             if (!scale || scale.display === false) {
@@ -132,15 +191,25 @@
                 var xTicks = scale.ticks || (scale.ticks = {});
                 var isCategory = !scale.type || scale.type === 'category';
 
-                xTicks.maxRotation = count > 14 ? 90 : (count > 8 ? 75 : (count > 4 ? 60 : 45));
-                xTicks.minRotation = count > 14 ? 70 : (count > 8 ? 50 : (count > 4 ? 35 : 0));
+                // Names are wrapped onto short lines (not cut off). Chart.js keeps them level when
+                // they fit between the bars and only tilts them as far as it needs to.
+                xTicks.minRotation = 0;
+                xTicks.maxRotation = 90;
                 // Show every category name: skipping left points (and legend colours) without a name.
                 xTicks.autoSkip = false;
                 xTicks.maxTicksLimit = undefined;
+                var xFontSize = count > 16 ? 10 : 11;
                 xTicks.font = Object.assign({}, xTicks.font || {}, {
-                    size: count > 16 ? 8 : (count > 10 ? 9 : 10),
-                    weight: 'normal'
+                    size: xFontSize,
+                    weight: 'normal',
+                    lineHeight: 1.25
                 });
+
+                // Wrapping is worked out from the chart's current width, so it adapts on resize.
+                var wrapName = function (scaleCtx, label) {
+                    var wrap = axisWrapFor(scaleCtx, count, xFontSize);
+                    return wrapLabel(Array.isArray(label) ? label.join(' ') : label, wrap.width, wrap.lines);
+                };
 
                 if (isCategory) {
                     xTicks.callback = function (value, index) {
@@ -148,13 +217,12 @@
                         if (label === undefined) {
                             label = value;
                         }
-                        return truncateLabel(label, maxLabelLength);
+                        return wrapName(this, label);
                     };
                 } else if (typeof xTicks.callback === 'function') {
                     var originalXCallback = xTicks.callback;
                     xTicks.callback = function (value, index, ticks) {
-                        var label = originalXCallback.call(this, value, index, ticks);
-                        return truncateLabel(label, maxLabelLength);
+                        return wrapName(this, originalXCallback.call(this, value, index, ticks));
                     };
                 }
 
@@ -275,7 +343,8 @@
         }
 
         var labels = legend.labels;
-        var maxLegendLength = count > 14 ? 34 : (count > 8 ? 42 : 52);
+        // Long enough for full application-type and country names; the legend wraps onto more rows.
+        var maxLegendLength = 60;
         var originalGenerate = labels.generateLabels;
 
         labels.padding = count > 12 ? 4 : 6;
@@ -428,6 +497,7 @@
     global.AdwiseriAnalyticsOverlap = {
         enhance: enhance,
         truncateLabel: truncateLabel,
+        wrapLabel: wrapLabel,
         formatCompactNumber: formatCompactNumber,
         axisLabelMaxLength: axisLabelMaxLength
     };
