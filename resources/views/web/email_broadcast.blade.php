@@ -647,7 +647,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const planName = usage.plan_name || 'your plan';
 
         if (limit <= 0) {
-            return 'Email broadcasts are not included on ' + planName + '. Please upgrade your subscription plan to send bulk emails.';
+            const planLabel = usage.plan_name ? 'the ' + String(usage.plan_name).toUpperCase() + ' plan' : 'your plan';
+            return 'Email Broadcast feature is not included on ' + planLabel + '. Please upgrade your subscription plan to send bulk emails.';
         }
 
         return 'You have used ' + used.toLocaleString() + ' of ' + limit.toLocaleString()

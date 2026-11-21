@@ -64,7 +64,7 @@
                 @if ($navFreePlan)
                   <span class="ds-eyebrow" style="color:#D9D6FF">{{ $navFreePlan->plan_name }} plan</span>
                   <strong>Try adwiseri free for {{ (int) $navFreePlan->validity }} days</strong>
-                  <p>{{ $navFreePlan->client_limit }} clients, {{ $navFreePlan->no_of_users }} user licence{{ (int) $navFreePlan->no_of_users === 1 ? '' : 's' }}, invoicing, analytics and a secure environment — at $0.</p>
+                  <p>{{ $navFreePlan->client_limit }} clients, {{ $navFreePlan->no_of_users }} user license{{ (int) $navFreePlan->no_of_users === 1 ? '' : 's' }}, invoicing, analytics and a secure environment — at $0.</p>
                 @else
                   <span class="ds-eyebrow" style="color:#D9D6FF">Price plans</span>
                   <strong>Simple, fixed yearly pricing</strong>

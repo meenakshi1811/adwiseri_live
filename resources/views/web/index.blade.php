@@ -523,7 +523,7 @@
               $isPopular = $showPopularBadge && strcasecmp(trim((string) $plan->plan_name), $popularPlanName) === 0;
               $price = $plan->price_per_year + 0;
               $blurb = $planBlurbs[strtolower(trim((string) $plan->plan_name))]
-                  ?? ('Up to ' . $num($plan->client_limit) . ' clients and ' . $num($plan->no_of_users) . ' user licence' . ((int) $plan->no_of_users === 1 ? '' : 's') . '.');
+                  ?? ('Up to ' . $num($plan->client_limit) . ' clients and ' . $num($plan->no_of_users) . ' user license' . ((int) $plan->no_of_users === 1 ? '' : 's') . '.');
               $emails = (int) ($plan->email_broadcast_limit ?? 0) > 0 ? number_format((int) $plan->email_broadcast_limit) : '0';
               $inclusions = [
                   'Invoicing' => $plan->invoicing == 'Yes',
@@ -544,10 +544,26 @@
               <h3>{{ $plan->plan_name }}</h3>
               <div class="price"><b>${{ $price }}</b><span>/ {{ $free ? ((int) $plan->validity . ' days') : 'year' }}</span></div>
               {{-- Plans are sold yearly only; the free plan's validity is already in the price line. --}}
+              {{-- Who the plan suits, in white on the coloured header so it stands out. --}}
+              <p class="for">{{ $blurb }}</p>
             </div>
-            <p class="for">{{ $blurb }}</p>
 
-            {{-- Same actions as before the redesign: guests subscribe; signed-in users see renew / upgrade / current-plan states. --}}
+            <ul class="limits">
+              <li><span>Client limit</span><b>{{ $num($plan->client_limit) }}</b></li>
+              <li><span>User license</span><b>{{ $num($plan->no_of_users) }}</b></li>
+              <li><span>Messages</span><b>{{ $num($plan->messaging) }}</b></li>
+              <li><span>Emails</span><b>{{ $emails }}</b></li>
+              <li><span>Reports</span><b>{{ $plan->reports }}</b></li>
+            </ul>
+            <ul class="incl">
+              @foreach($inclusions as $label => $included)
+                <li class="{{ $included ? '' : 'no' }}"><svg class="icon"><use href="#i-{{ $included ? 'check' : 'x' }}"/></svg>{{ $label }}<span class="sr-only">{{ $included ? ' — included' : ' — not included' }}</span></li>
+              @endforeach
+            </ul>
+
+            {{-- The button is the last thing in the card, after the plan's details, and lines up across cards.
+                 Same actions as before the redesign: guests subscribe; signed-in users see renew / upgrade / current-plan states. --}}
+            <div class="plan-cta">
             @if(empty($myplan))
               <a class="{{ $btnClass }}" href="{{ route('user_register_plan', $plan->plan_name) }}">{{ $free ? 'Start Free' : 'Subscribe' }}</a>
             @elseif(isset($user))
@@ -567,19 +583,7 @@
             @else
               <a class="{{ $btnClass }}" href="{{ route('user_register_plan', $plan->plan_name) }}">Subscribe</a>
             @endif
-
-            <ul class="limits">
-              <li><span>Client limit</span><b>{{ $num($plan->client_limit) }}</b></li>
-              <li><span>User licence</span><b>{{ $num($plan->no_of_users) }}</b></li>
-              <li><span>Messages</span><b>{{ $num($plan->messaging) }}</b></li>
-              <li><span>Emails</span><b>{{ $emails }}</b></li>
-              <li><span>Reports</span><b>{{ $plan->reports }}</b></li>
-            </ul>
-            <ul class="incl">
-              @foreach($inclusions as $label => $included)
-                <li class="{{ $included ? '' : 'no' }}"><svg class="icon"><use href="#i-{{ $included ? 'check' : 'x' }}"/></svg>{{ $label }}<span class="sr-only">{{ $included ? ' — included' : ' — not included' }}</span></li>
-              @endforeach
-            </ul>
+            </div>
           </article>
         @endforeach
       </div>
@@ -595,7 +599,7 @@
       <span><svg class="icon"><use href="#i-tag"/></svg>Flat yearly pricing</span>
       <span><svg class="icon"><use href="#i-infinity"/></svg>Unlimited data</span>
       <span><svg class="icon"><use href="#i-zap"/></svg>Instant activation</span>
-      <a class="link-arrow" href="{{ route('membership') }}">Compare plans in detail <svg class="icon"><use href="#i-arrow"/></svg></a>
+      {{-- "Compare plans in detail" is hidden until the plans have more features that set them apart. --}}
     </div>
   </div>
 </section>
@@ -692,11 +696,11 @@
     } else {
         $faqItems = [];
         if ($freePlan) {
-            $faqItems[] = ['q' => 'Is there a free plan?', 'a' => 'Yes. The ' . $freePlan->plan_name . ' plan costs $0 for ' . (int) $freePlan->validity . ' days and includes up to ' . $num($freePlan->client_limit) . ' clients, ' . $num($freePlan->no_of_users) . ' user licence' . ((int) $freePlan->no_of_users === 1 ? '' : 's') . ', ' . $num($freePlan->messaging) . ' messages and ' . strtolower((string) $freePlan->reports) . ' reports.'];
+            $faqItems[] = ['q' => 'Is there a free plan?', 'a' => 'Yes. The ' . $freePlan->plan_name . ' plan costs $0 for ' . (int) $freePlan->validity . ' days and includes up to ' . $num($freePlan->client_limit) . ' clients, ' . $num($freePlan->no_of_users) . ' user license' . ((int) $freePlan->no_of_users === 1 ? '' : 's') . ', ' . $num($freePlan->messaging) . ' messages and ' . strtolower((string) $freePlan->reports) . ' reports.'];
         }
         $faqItems[] = ['q' => 'Will I receive extra invoices for add-on features?', 'a' => "No. adwiseri follows a flat pricing model, so you know exactly what you'll pay over the year. Most of our plans are inclusive of all needed features — there are no surprise invoices for add-ons."];
-        $faqItems[] = ['q' => 'Is there a limit on how much data I can store?', 'a' => 'No cap has been imposed on data usage. You pay one-time fixed fees per year and get unlimited data as an in-built facility. Plans differ by client limit, user licences, messages and report level.'];
-        $faqItems[] = ['q' => 'Can my whole team work on cases together?', 'a' => 'Yes. With Multi-User Access your registered users can work anytime, anywhere, and cases can be assigned to one or multiple advisors/consultants.' . ($userCounts->count() ? ' User licences range from ' . $userCounts->min() . ' to ' . number_format($userCounts->max()) . ', depending on the plan.' : '')];
+        $faqItems[] = ['q' => 'Is there a limit on how much data I can store?', 'a' => 'No cap has been imposed on data usage. You pay one-time fixed fees per year and get unlimited data as an in-built facility. Plans differ by client limit, user licenses, messages and report level.'];
+        $faqItems[] = ['q' => 'Can my whole team work on cases together?', 'a' => 'Yes. With Multi-User Access your registered users can work anytime, anywhere, and cases can be assigned to one or multiple advisors/consultants.' . ($userCounts->count() ? ' User licenses range from ' . $userCounts->min() . ' to ' . number_format($userCounts->max()) . ', depending on the plan.' : '')];
         $faqItems[] = ['q' => 'Which consultancies is adwiseri built for?', 'a' => 'adwiseri serves ' . collect($useCases)->pluck('name')->implode(', ') . '.'];
         $faqItems[] = ['q' => 'Can I upgrade my plan later?', 'a' => 'Yes — choose the plan that fits your practice today and upgrade anytime as your client base and team grow.'];
     }

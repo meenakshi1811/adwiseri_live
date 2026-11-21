@@ -1000,7 +1000,9 @@ class OfferBenefitService
         $remaining = max(0, $limit - $used);
 
         if ($limit <= 0) {
-            return 'Email broadcasts are not included on ' . $planName . '. Please upgrade your subscription plan to send bulk emails.';
+            $planLabel = $planName === 'your plan' || $planName === '' ? 'your plan' : 'the ' . mb_strtoupper($planName) . ' plan';
+
+            return 'Email Broadcast feature is not included on ' . $planLabel . '. Please upgrade your subscription plan to send bulk emails.';
         }
 
         return 'You have used ' . number_format($used) . ' of ' . number_format($limit)

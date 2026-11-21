@@ -36,6 +36,12 @@
   --ds-mist: #FAFBFD;
   --ds-night: #0D0B26;
 
+  /* ---- Tables ---- */
+  --ds-table-line: #D6DBE8;        /* cell and row lines */
+  --ds-table-line-strong: #C3C9DC; /* under the header row */
+  --ds-table-head: #ECEBFD;        /* header shading (light lavender) */
+  --ds-table-band: #F8F9FD;        /* alternate rows */
+
   /* ---- Gradients ---- */
   --ds-grad: linear-gradient(135deg, var(--ds-primary) 0%, var(--ds-violet) 55%, var(--ds-fuchsia) 100%);
   --ds-grad-btn: linear-gradient(135deg, #7468F2 0%, var(--ds-primary) 45%, var(--ds-primary-700) 100%);
@@ -222,9 +228,13 @@ a:hover { color: var(--ds-primary); }
   box-shadow: var(--ds-shadow-lg);
   overflow: hidden;
 }
-.modal-header { border-bottom-color: var(--ds-border); }
+/* Dark title text comes from the header, so a coloured header (e.g. purple with white text) keeps a white title. */
+.modal-header { border-bottom-color: var(--ds-border); color: var(--ds-ink); }
 .modal-footer { border-top-color: var(--ds-border); }
-.modal-title { font-family: var(--ds-font-head) !important; color: var(--ds-ink); font-weight: 700; }
+.modal-title { font-family: var(--ds-font-head) !important; color: inherit; font-weight: 700; }
+/* Safety net: any title inside a coloured header that asks for white text stays white. */
+:is(.modal-header, .card-header, [class*="-header"], [class*="heading"], [class*="banner"]):is(.text-white, [style*="color:#fff"], [style*="color: #fff"], [style*="color:#FFF"], [style*="color: #FFF"], [style*="color:white"], [style*="color: white"])
+  :is(h1, h2, h3, h4, h5, h6, .modal-title, .card-title) { color: inherit !important; }
 .modal-backdrop.show { opacity: .45; background: var(--ds-night); }
 
 .dropdown-menu {
@@ -269,15 +279,35 @@ a:hover { color: var(--ds-primary); }
 /* =====================================================================
    Tables & DataTables
    ===================================================================== */
-.table { --bs-table-hover-bg: var(--ds-mist); color: var(--ds-ink-2); border-color: var(--ds-border); }
+.table {
+  --bs-table-hover-bg: var(--ds-wash);
+  --bs-table-border-color: var(--ds-table-line);
+  color: var(--ds-ink-2);
+  border-color: var(--ds-table-line);
+}
+
+/* style.css has ".fl-table th, td { border: 2px solid #fff }". The bare "td" gives every table cell a
+   white 2px border. On the main lists (.fl-table: lavender cells) that reads as thin white dividers,
+   which is intended. On every other table (white cells) it erased the lines completely, e.g. the
+   Email Broadcast Log. Those tables get visible grey lines again: row lines, and a full grid where
+   the table is .table-bordered (DataTables' own rules still drop the doubled left edges). */
+.table:not(.fl-table) > :not(caption) > * > * { border-width: 0 0 1px; border-color: var(--ds-table-line); }
+.table-bordered:not(.fl-table) > :not(caption) > * > * { border-width: 1px; }
+
+/* Shaded header row (light lavender) with dark bold titles, on every table. */
 .table > thead > tr > th,
 table.dataTable > thead > tr > th {
   font-family: var(--ds-font-head);
   font-weight: 700;
   font-size: 13.5px;
   color: var(--ds-ink);
-  border-bottom-color: var(--ds-border);
+  background-color: var(--ds-table-head);
+  border-bottom-color: var(--ds-table-line-strong);
 }
+
+/* Soft banding on alternate rows of the white tables. Set through Bootstrap's own cell colour, with
+   no weight of its own, so rows and cells given a colour elsewhere (totals, folders, unread) keep it. */
+:where(.table:not(.fl-table):not(.table-striped) > tbody > tr:nth-of-type(even)) { --bs-table-bg: var(--ds-table-band); }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button {
   border-radius: var(--ds-r-xs) !important;
