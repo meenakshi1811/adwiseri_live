@@ -84,7 +84,7 @@
   </nav>
   <!---Navbar END-->
 <script src="{{ asset('web_assets/js/app-topbar-logo.js') }}?v=20261122a" defer></script>
-  <div class="container-fluid dashboard-box mt-3 mb-3 px-lg-5">
+  <div class="container-fluid dashboard-box mt-3 mb-3">
 
     <div class="row client-row{{ ($page ?? '') === 'dashboard' ? ' dashboard-equal-cols' : '' }}">
         <div class="col-lg-2 column-dashbox">

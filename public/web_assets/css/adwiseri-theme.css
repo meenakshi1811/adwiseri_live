@@ -295,6 +295,20 @@ a:hover { color: var(--ds-primary); }
 /* =====================================================================
    Tables & DataTables
    ===================================================================== */
+/* Every DataTables table fills its box. Without width="100%" on the <table>, DataTables measures the
+   table when it starts (often still empty, before its rows arrive from the server) and fixes that
+   narrow pixel width on it, so the table took only part of the box (e.g. Admin > Affiliates).
+   Tables with horizontal scrolling (scrollX) size themselves and are left alone; a table wider than
+   its box still scrolls inside .table-wrapper. */
+.dataTables_wrapper table.dataTable:not(.dataTables_scroll *) { width: 100% !important; }
+
+/* "table-responsive" placed on the <table> itself (about 40 tables, mostly Reports) turned the table
+   into a block box: the box was full width but the rows inside shrank to their content, leaving empty
+   space on the right. The table stays a real table at full width; the box around it scrolls sideways
+   when a table has more columns than fit, as before. */
+table.table.table-responsive { display: table !important; width: 100% !important; }
+:has(> table.table.table-responsive) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
 .table {
   --bs-table-hover-bg: var(--ds-wash);
   --bs-table-border-color: var(--ds-table-line);
@@ -371,7 +385,31 @@ button.dt-button:hover { border-color: rgba(105, 94, 238, .45) !important; color
 /* =====================================================================
    SweetAlert2 / flatpickr
    ===================================================================== */
-.swal2-popup { border-radius: var(--ds-r-lg) !important; font-family: var(--ds-font-body) !important; }
+.swal2-popup { border-radius: var(--ds-r-lg) !important; font-family: var(--ds-font-body) !important; max-width: calc(100vw - 24px); }
+/* Fields inside pop-ups (Change Password, Add Note, ...) always fit the pop-up's width. SweetAlert gives
+   its inputs a fixed natural width plus 2em side margins, so in a narrower pop-up they ran past the
+   right edge and the pop-up had to be scrolled sideways. */
+.swal2-popup .swal2-input,
+.swal2-popup .swal2-file,
+.swal2-popup .swal2-textarea,
+.swal2-popup .swal2-select {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+/* Fields SweetAlert places straight in the pop-up (its own "input" option) keep a side margin. */
+.swal2-popup > .swal2-input,
+.swal2-popup > .swal2-file,
+.swal2-popup > .swal2-textarea,
+.swal2-popup > .swal2-select {
+  width: calc(100% - 3.2em) !important;
+  margin-left: 1.6em !important;
+  margin-right: 1.6em !important;
+}
+.swal2-popup .swal2-html-container { overflow-x: hidden; }
 .swal2-title { font-family: var(--ds-font-head) !important; color: var(--ds-ink) !important; }
 .swal2-styled.swal2-confirm { background: var(--ds-grad-btn) !important; border-radius: var(--ds-r-sm) !important; font-family: var(--ds-font-head) !important; }
 .swal2-styled.swal2-cancel { border-radius: var(--ds-r-sm) !important; font-family: var(--ds-font-head) !important; }
