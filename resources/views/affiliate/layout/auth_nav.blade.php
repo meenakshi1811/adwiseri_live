@@ -93,7 +93,7 @@
  </div>
 <nav class="navbar navbar-expand-lg navbar-light app-topbar">
     <div class="container-fluid">
-        <a class="navbar-brand text-white" href="{{ route('/') }}"><img width="200" src="{{ asset('web_assets/images/Style2.png') }}" /></a>
+        <a class="navbar-brand text-white" href="{{ route('/') }}"><img class="app-logo" src="{{ asset('web_assets/images/Style2_white.png') }}" alt="adwiseri" /></a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
             aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -133,6 +133,7 @@
     </div>
 </nav>
 <!---Navbar END-->
+<script src="{{ asset('web_assets/js/app-topbar-logo.js') }}?v=20261122a" defer></script>
 @if (
     $page != 'index' and
         $page != 'features' and

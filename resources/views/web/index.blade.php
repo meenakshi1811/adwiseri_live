@@ -74,7 +74,8 @@
         <span class="tag">NEW</span> Fixed yearly pricing — no extra invoices for add-ons
         <svg class="icon"><use href="#i-arrow"/></svg>
       </a>
-      <h1 data-reveal style="--d:.08s">One-stop solution for <span class="ds-grad-text">Visa &amp; Immigration</span> Consultancies</h1>
+      {{-- Three lines: "One-stop solution for" / "Visa & Immigration" / "Consultancies". --}}
+      <h1 data-reveal style="--d:.08s">One-stop solution for<br><span class="ds-grad-text hero-keep">Visa &amp; Immigration</span><br>Consultancies</h1>
       <p class="ds-lead" data-reveal style="--d:.16s">Cloud Storage, Users &amp; Case Management, Analytics, Reports, Invoicing and much more — everything your advisory needs, in one secure platform.</p>
       <div class="hero-ctas" data-reveal style="--d:.24s">
         <a class="btn btn-primary" href="{{ route('get_demo') }}">Get A Demo <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
@@ -182,7 +183,7 @@
      ========================================================= --}}
 @if($showHomepageSection('practice_strip') && count($useCases))
 <section class="strip" aria-label="Practices adwiseri is built for">
-  <p class="strip-title">Purpose-built for every kind of visa &amp; immigration practice</p>
+  <p class="strip-title">Purpose-built for all types of Visa &amp; Immigration Practices</p>
   <div class="marquee">
     <div class="marquee-track" id="marqueeTrack">
       @foreach($useCases as $uc)

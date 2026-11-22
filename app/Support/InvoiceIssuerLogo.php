@@ -14,6 +14,15 @@ class InvoiceIssuerLogo
      */
     public static function resolve(Internal_Invoices $invoice, ?User $issuer = null): array
     {
+        // adwiseri's own invoices (subscription fees) carry the brand's violet logo, the one the
+        // site uses, rather than whatever file was uploaded on the admin profile.
+        if (BrandedMail::isPlatformBrand($invoice->name ?? '')) {
+            $platform = self::platformLogo();
+            if ($platform['disk_path'] !== null) {
+                return $platform;
+            }
+        }
+
         $filename = trim((string) ($invoice->logo ?? ''));
         if ($filename === '') {
             return self::emptyResult();
@@ -108,6 +117,27 @@ class InvoiceIssuerLogo
         }
 
         return null;
+    }
+
+    /** The brand logo in the theme's violet, used on invoices from adwiseri.com. */
+    public const PLATFORM_LOGO = 'web_assets/images/Style2_violet.png';
+
+    /**
+     * @return array{disk_path: ?string, url: ?string, relative_path: ?string, owner_user_id: ?int}
+     */
+    public static function platformLogo(): array
+    {
+        $diskPath = public_path(self::PLATFORM_LOGO);
+        if (!file_exists($diskPath)) {
+            return self::emptyResult();
+        }
+
+        return [
+            'disk_path' => $diskPath,
+            'url' => asset(self::PLATFORM_LOGO),
+            'relative_path' => self::PLATFORM_LOGO,
+            'owner_user_id' => null,
+        ];
     }
 
     /**

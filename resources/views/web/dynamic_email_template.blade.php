@@ -306,19 +306,19 @@
                                 @if(!empty($subscriberFooter['address']))
                                     <p style="margin:0 0 8px;color:#ffffff;font-size:13px;line-height:1.6;word-wrap:break-word;overflow-wrap:break-word;">{{ $subscriberFooter['address'] }}</p>
                                 @endif
-                                <p style="margin:0;font-size:13px;line-height:1.6;word-wrap:break-word;overflow-wrap:break-word;">
-                                    @if(!empty($subscriberFooter['phone']))
+                                {{-- Tel and Email each on their own line (no "|" between them). --}}
+                                @if(!empty($subscriberFooter['phone']))
+                                    <p style="margin:0;font-size:13px;line-height:1.6;word-wrap:break-word;overflow-wrap:break-word;">
                                         <span class="footer-contact-item">Tel: {{ $subscriberFooter['phone'] }}</span>
-                                    @endif
-                                    @if(!empty($subscriberFooter['phone']) && !empty($subscriberFooter['email']))
-                                        <span class="footer-contact-item" style="color:#ffffff;"> &nbsp;|&nbsp; </span>
-                                    @endif
-                                    @if(!empty($subscriberFooter['email']))
+                                    </p>
+                                @endif
+                                @if(!empty($subscriberFooter['email']))
+                                    <p style="margin:{{ !empty($subscriberFooter['phone']) ? '4px' : '0' }} 0 0;font-size:13px;line-height:1.6;word-wrap:break-word;overflow-wrap:break-word;">
                                         <span class="footer-contact-item">Email: <a href="mailto:{{ $subscriberFooter['email'] }}" style="color:#ffffff;text-decoration:underline;">{{ $subscriberFooter['email'] }}</a></span>
-                                    @endif
-                                </p>
+                                    </p>
+                                @endif
                                 @if(!empty($subscriberFooter['website']) && !empty($subscriberFooter['website_url']))
-                                    <p style="margin:8px 0 0;font-size:13px;line-height:1.6;word-wrap:break-word;overflow-wrap:break-word;">
+                                    <p style="margin:4px 0 0;font-size:13px;line-height:1.6;word-wrap:break-word;overflow-wrap:break-word;">
                                         <span class="footer-contact-item">Web: <a href="{{ $subscriberFooter['website_url'] }}" style="color:#ffffff;text-decoration:underline;">{{ $subscriberFooter['website'] }}</a></span>
                                     </p>
                                 @endif

@@ -25,9 +25,16 @@
     }
 
     .column-client .invoice-doc-footer-contact a {
-        color: #6b7280 !important;
+        color: #111827 !important;
         text-decoration: none !important;
     }
+
+    /* Invoices from adwiseri.com: header rule, "INVOICE" title and name in the brand purple
+       (other invoices keep their blue). */
+    .invoice-brand-adwiseri .header,
+    .header.invoice-brand-adwiseri { border-bottom-color: #695EEE !important; }
+    .invoice-brand-adwiseri .title,
+    .invoice-brand-adwiseri .company { color: #695EEE !important; }
     .invoice-doc-section-title {
         font-size: 11px;
         letter-spacing: .5px;
@@ -128,7 +135,7 @@
         margin-top: 24px;
         text-align: center;
         font-size: 12px;
-        color: #4b5563;
+        color: #111827;
     }
 
     .invoice-doc-pdf-footer {

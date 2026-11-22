@@ -54,7 +54,7 @@
 {{-- </div> --}}
 <nav class="navbar navbar-expand-lg navbar-light app-topbar">
     <div class="container-fluid">
-      <a class="navbar-brand text-white" href="{{ route('admin') }}"><img class="logo-fix" width="200" src="{{ asset('web_assets/images/Style2.png') }}" /></a>
+      <a class="navbar-brand text-white" href="{{ route('admin') }}"><img class="logo-fix app-logo" src="{{ asset('web_assets/images/Style2_white.png') }}" alt="adwiseri" /></a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
         aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -83,6 +83,7 @@
     </div>
   </nav>
   <!---Navbar END-->
+<script src="{{ asset('web_assets/js/app-topbar-logo.js') }}?v=20261122a" defer></script>
   <div class="container-fluid dashboard-box mt-3 mb-3 px-lg-5">
 
     <div class="row client-row{{ ($page ?? '') === 'dashboard' ? ' dashboard-equal-cols' : '' }}">

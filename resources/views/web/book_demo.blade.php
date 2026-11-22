@@ -82,8 +82,23 @@
                         <option {{ (old('how_did_hear') == "YouTube") ? 'selected' : ''}} value="YouTube">YouTube</option>
                         <option {{ (old('how_did_hear') == "Industry friend") ? 'selected' : ''}} value="Industry friend">Industry friend</option>
                         <option {{ (old('how_did_hear') == "Google") ? 'selected' : ''}} value="Google">Google</option>
+                        <option {{ (old('how_did_hear') == "Other") ? 'selected' : ''}} value="Other">Other</option>
                     </select>
                     @error('how_did_hear')
+                        <span class="invalid-feedback" role="alert">
+                            <strong>{{ $message }}</strong>
+                        </span>
+                    @enderror
+                </div>
+
+                {{-- Shown only when "Other" is chosen above: where they heard about us. --}}
+                <div class="mb-4" id="how_did_hear_other_wrap" @if(old('how_did_hear') !== 'Other') style="display:none" @endif>
+                    <input name="how_did_hear_other" id="how_did_hear_other" type="text" minlength="2" maxlength="100"
+                        class="form-control @error('how_did_hear_other') is-invalid @enderror"
+                        value="{{ old('how_did_hear_other') }}"
+                        placeholder="Where did you hear about us?"
+                        @if(old('how_did_hear') === 'Other') required @endif>
+                    @error('how_did_hear_other')
                         <span class="invalid-feedback" role="alert">
                             <strong>{{ $message }}</strong>
                         </span>
@@ -122,7 +137,7 @@
                 <input type="hidden" name="local_time" class="localtime" />
                 <div class="row justify-content-center">
                     <div class="col-lg-6 d-flex justify-content-center">
-                        <button type="submit" class="btn btn-sm btn-primary w-100 mb-5">Submit</button>
+                        <button type="submit" class="btn btn-sm btn-primary btn-fit btn-fit-sm-full mb-5">Submit</button>
                     </div>
                 </div>
             </form>
@@ -173,6 +188,24 @@
           }
         });
     });
+    // "Other" in "How did you hear about us?" opens a box to say where; it is required only then.
+    document.addEventListener('DOMContentLoaded', function () {
+        var source = document.getElementById('how_did_hear');
+        var otherWrap = document.getElementById('how_did_hear_other_wrap');
+        var otherInput = document.getElementById('how_did_hear_other');
+        if (!source || !otherWrap || !otherInput) { return; }
+
+        function toggleOtherSource() {
+            var isOther = source.value === 'Other';
+            otherWrap.style.display = isOther ? '' : 'none';
+            otherInput.required = isOther;
+            if (isOther && document.activeElement === source) { otherInput.focus(); }
+        }
+
+        source.addEventListener('change', toggleOtherSource);
+        toggleOtherSource();
+    });
+
     document.addEventListener('DOMContentLoaded', function () {
     const checkbox = document.querySelector('#flexCheckDefault');
     const form = document.querySelector('#registration_form');

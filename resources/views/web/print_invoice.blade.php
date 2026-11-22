@@ -61,7 +61,7 @@
     @endphp
 
     <div class="sheet">
-        <table class="header">
+        <table class="header{{ \App\Support\BrandedMail::isPlatformBrand($invoice->name ?? 'Adwiseri') ? ' invoice-brand-adwiseri' : '' }}">
             <tr>
                 <td>
                     @if(!empty($logoPath) && $hasSubscriberLogo)

@@ -104,7 +104,7 @@
         $isAdwiseriInvoice = \App\Support\BrandedMail::isPlatformBrand($subscriberName);
     @endphp
 
-    <table class="header">
+    <table class="header{{ $isAdwiseriInvoice ? ' invoice-brand-adwiseri' : '' }}">
         <tr>
             <td>
                 @if(!empty($logoPath))
@@ -130,7 +130,7 @@
     ])
 
     <div class="invoice-doc-pdf-footer">
-        @include('partials.invoice_document_footer', ['isAdwiseriInvoice' => $isAdwiseriInvoice])
+        @include('partials.invoice_document_footer', ['isAdwiseriInvoice' => $isAdwiseriInvoice, 'inPdfFooter' => true])
     </div>
 </body>
 

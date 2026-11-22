@@ -31,12 +31,14 @@ class InternalInvoicePdfDataFactory
             'total' => $internalInvoice->total,
             'currency' => 'USD',
             'name' => trim((string) ($subscriber->organization ?: $subscriber->name)),
-            'to_email' => $internalInvoice->to_email ?? $subscriber->email,
-            'to_address' => $internalInvoice->to_address ?? $subscriber->address_line,
-            'to_city' => $internalInvoice->to_city ?? $subscriber->city,
-            'to_state' => $internalInvoice->to_state ?? $subscriber->state,
-            'to_country' => $internalInvoice->to_country ?? $subscriber->country,
-            'to_pincode' => $internalInvoice->to_pincode ?? $subscriber->pincode,
+            // The invoice keeps the address as it was when it was made; any part left empty then
+            // (often, before the profile was filled in) comes from the subscriber's profile now.
+            'to_email' => $internalInvoice->to_email ?: $subscriber->email,
+            'to_address' => $internalInvoice->to_address ?: $subscriber->address_line,
+            'to_city' => $internalInvoice->to_city ?: $subscriber->city,
+            'to_state' => $internalInvoice->to_state ?: $subscriber->state,
+            'to_country' => $internalInvoice->to_country ?: $subscriber->country,
+            'to_pincode' => $internalInvoice->to_pincode ?: $subscriber->pincode,
             'company_name' => $company->organization ?: 'adwiseri',
             'from_email' => $company->email,
             'display_from_email' => $company->email,
@@ -44,10 +46,11 @@ class InternalInvoicePdfDataFactory
             'user_id' => $subscriber->id,
             'invoice_id' => $internalInvoice->id,
             'token' => $internalInvoice->token,
-            'logo' => $company->organization_logo,
-            'logo_path' => !empty($company->organization_logo)
-                ? 'web_assets/users/logos/' . $company->organization_logo
-                : null,
+            // adwiseri's own invoice: the brand's violet logo (as on the site), not the admin upload.
+            'logo' => null,
+            'logo_path' => file_exists(public_path(\App\Support\InvoiceIssuerLogo::PLATFORM_LOGO))
+                ? \App\Support\InvoiceIssuerLogo::PLATFORM_LOGO
+                : (!empty($company->organization_logo) ? 'web_assets/users/logos/' . $company->organization_logo : null),
         ];
     }
 }

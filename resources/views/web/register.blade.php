@@ -174,7 +174,7 @@
 
             <div class="row justify-content-center">
                 <div class="col-lg-6 d-flex justify-content-center">
-                    <button type="submit" class="btn btn-sm btn-primary w-100">Submit</button>
+                    <button type="submit" class="btn btn-sm btn-primary btn-fit btn-fit-sm-full">Submit</button>
                 </div>
             </div>
                 <p class="text-center mt-3 reg-logbtn">Already have an account? <a href="{{ route('login') }}" ><strong>Login</strong></a></p>

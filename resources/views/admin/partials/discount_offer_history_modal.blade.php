@@ -19,7 +19,7 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <button type="button" class="btn btn-sm w-100 text-white" style="background:#695EEE;" id="discountOfferApplyBtn">Apply</button>
+                        <button type="button" class="btn btn-sm btn-fit text-white" style="background:#695EEE;" id="discountOfferApplyBtn">Apply</button>
                     </div>
                 </div>
                 @endif

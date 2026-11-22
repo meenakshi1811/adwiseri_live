@@ -104,6 +104,24 @@ class Internal_Invoices extends Model
     }
 
     /**
+     * How a line's description reads on the invoice document. Subscription lines are stored as
+     * "Subscription Fees (Free) - 1 Year" (other code recognises them by that text, so it stays as
+     * stored) and are shown as "Subscription Fees (FREE Plan) - 1 Year". Other lines are unchanged.
+     */
+    public static function displayDetail(?string $detail): string
+    {
+        $text = trim((string) $detail);
+        if (!preg_match('/^Subscription Fees\s*\((.+?)\)\s*(.*)$/is', $text, $matches)) {
+            return $text;
+        }
+
+        $plan = trim((string) preg_replace('/\s+plan$/i', '', trim($matches[1])));
+        $rest = trim($matches[2]);
+
+        return 'Subscription Fees (' . mb_strtoupper($plan !== '' ? $plan : 'Plan') . ' Plan)' . ($rest !== '' ? ' ' . $rest : '');
+    }
+
+    /**
      * Packaged yearly subscription fees (purchase / upgrade / renewal).
      * These use fixed plan prices and must never pick up Invoice Settings tax/discount.
      */

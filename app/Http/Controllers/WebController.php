@@ -745,9 +745,13 @@ class WebController extends Controller
                 'country' => 'required|string|max:255',
                 'company_name' => 'required|string|max:255',
                 'job_title' => 'required|string|max:255',
-                'how_did_hear' => 'required|in:LinkedIn,Twitter,YouTube,Industry friend,Google',
+                'how_did_hear' => 'required|in:LinkedIn,Twitter,YouTube,Industry friend,Google,Other',
+                'how_did_hear_other' => 'nullable|required_if:how_did_hear,Other|string|min:2|max:100',
                 'terms' => 'accepted',
                 'g-recaptcha-response' => 'required|captcha'
+            ],
+            [
+                'how_did_hear_other.required_if' => 'Please tell us where you heard about us.',
             ]
         );
         $demo = new DemoRequests();
@@ -760,7 +764,10 @@ class WebController extends Controller
         $demo->status = "Pending";
         $demo->company_name = $request['company_name'];
         $demo->job_title = $request['job_title'];
-        $demo->how_did_hear = $request['how_did_hear'];
+        // "Other" keeps what they typed, e.g. "Other - Facebook group", so admin lists and emails show it.
+        $demo->how_did_hear = $request['how_did_hear'] === 'Other'
+            ? 'Other - ' . trim((string) $request['how_did_hear_other'])
+            : $request['how_did_hear'];
         $demo->save();
         foreach (BrandedMail::adminNotificationRecipients() as $recipient) {
             Mail::to($recipient)->send(new EmailVerification($demo));
@@ -1424,7 +1431,11 @@ class WebController extends Controller
        
         $category = $request['category'];
         
-            $sub_categories = Subscriber_Sub_Categories::where('status','Active')->where('category_name', '=', $category)->get();
+            // "Other" always comes last, also after sub-categories added later.
+            $sub_categories = Subscriber_Sub_Categories::where('status','Active')->where('category_name', '=', $category)
+                ->orderByRaw("CASE WHEN sub_category_name = 'Other' THEN 1 ELSE 0 END")
+                ->orderBy('id')
+                ->get();
             ?>
             <option value="">Select Sub-Category</option>
             <?php

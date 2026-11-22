@@ -21,22 +21,17 @@ use App\Models\User;
                         <img style="cursor: pointer;" onclick="document.getElementById('update_box').style.display='flex';" src="{{ asset('web_assets/images/edit.png') }}"width="20" height="20" alt="">
                     </div>
                 </div> --}}
-                    <div class="row det-row">
-                        <div class="col-lg-12">
-                            <div class="row">
-                                <div class="col-5">
-                                    <p style="font-weight:550;font-size:18px;">Referral Code</p>
-                                </div>
-                                <div class="col-7">
-                                    <p style="font-size:18px;">{{ $user->referral }}</p>
-                                </div>
-                                <div class="col-5">
-                                    <p style="font-weight:550;font-size:18px;">Referral Link</p>
-                                </div>
-                                <div class="col-7" style="word-wrap: break-word;">
-                                    <p style="font-size:18px;">{{ route('user_register', $user->referral) }}</p>
-                                </div>
-                            </div>
+                    {{-- Name : value, centred on the ":" like the Subscription module. --}}
+                    <div class="detail-pairs">
+                        <div class="detail-pair">
+                            <span class="detail-pair-label">Referral Code</span>
+                            <span class="detail-pair-sep">:</span>
+                            <span class="detail-pair-value">{{ $user->referral }}</span>
+                        </div>
+                        <div class="detail-pair">
+                            <span class="detail-pair-label">Referral Link</span>
+                            <span class="detail-pair-sep">:</span>
+                            <span class="detail-pair-value">{{ route('user_register', $user->referral) }}</span>
                         </div>
                     </div>
                 </div>

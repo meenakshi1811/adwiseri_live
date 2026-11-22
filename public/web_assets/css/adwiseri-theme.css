@@ -138,6 +138,13 @@ a:hover { color: var(--ds-primary); }
 .btn-sm { border-radius: var(--ds-r-xs); }
 .btn-lg { border-radius: 12px; }
 
+/* Button width standard: a button is as wide as its label plus padding, with a sensible minimum,
+   never stretched to fill its column (Download PDF, Export, Submit, Apply, Upload ...).
+   .btn-fit-sm-full lets a main form button take the full width on phones, where that is easier to tap. */
+.btn.btn-fit { width: fit-content !important; max-width: 100%; min-width: 160px; padding-left: 1.5rem; padding-right: 1.5rem; }
+.btn.btn-sm.btn-fit { min-width: 130px; padding-left: 1.25rem; padding-right: 1.25rem; }
+@media (max-width: 575.98px) { .btn.btn-fit.btn-fit-sm-full { width: 100% !important; } }
+
 .btn-primary,
 .btn-success {
   color: #fff !important;
@@ -276,6 +283,15 @@ a:hover { color: var(--ds-primary); }
 .accordion-button:not(.collapsed) { color: var(--ds-primary-700); background: var(--ds-wash); box-shadow: none; }
 .accordion-button:focus { box-shadow: var(--ds-ring); border-color: transparent; }
 
+/* Name : value lines centred on the ":" (the Subscription module's layout), used in the summary
+   boxes of Referrals and Wallet: name right-aligned, ":" in the middle, value left-aligned. */
+.detail-pairs { display: flex; flex-direction: column; align-items: center; gap: .65rem; width: 100%; max-width: 62rem; margin: 0 auto; padding: 1rem 0; font-size: 18px; }
+.detail-pair { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); column-gap: .75rem; width: 100%; align-items: baseline; }
+.detail-pair-label { text-align: right; font-weight: 550; }
+.detail-pair-sep { font-weight: 550; text-align: center; }
+.detail-pair-value { text-align: left; min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 575.98px) { .detail-pairs { font-size: 15px; } }
+
 /* =====================================================================
    Tables & DataTables
    ===================================================================== */
@@ -366,6 +382,21 @@ button.dt-button:hover { border-color: rgba(105, 94, 238, .45) !important; color
 /* =====================================================================
    App shells (subscriber, affiliate, admin)
    ===================================================================== */
+
+/* App pages (menu + content [+ Activities]): the outer left and right margins equal the 12px gaps
+   between the columns, instead of 35px on the left and about 59px on the right, which leaves more
+   room for the content (on the Dashboard: the count cards and charts). Other pages get the same
+   12px gap between the menu and their content box. */
+@media (min-width: 992px) {
+  .dashboard-box > .client-row { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
+  .dashboard-box > .client-row > .column-client.col-lg-10 { width: calc(83.333333% - 12px); margin-left: 12px; }
+}
+
+/* Top bar logo: a tightly cropped white logo (no empty margins inside the image), so its visible
+   centre is its real centre. Centred vertically in the bar; on desktop app-topbar-logo.js also
+   lines it up with the centre of the sidebar menu box below. */
+.navbar.app-topbar .navbar-brand { display: flex; align-items: center; align-self: center; padding: 0; line-height: 0; }
+.navbar.app-topbar .navbar-brand img.app-logo { display: block; height: 33px; width: auto !important; max-width: none !important; }
 
 /* Top bar — deep brand gradient instead of the flat violet fill */
 .navbar.app-topbar {

@@ -72,7 +72,7 @@ $canAddEntry = $client_roles && ($client_roles->write_only == 1 || $client_roles
             </div>
             @if($canDownloadPdf)
             <div class="col-md-4 col-lg-3 client-accounts-filter-actions">
-                <a href="javascript:void(0)" id="downloadClientAccountsPdf" class="btn btn-outline-primary btn-sm w-100 client-accounts-pdf-btn disabled" aria-disabled="true">Download PDF</a>
+                <a href="javascript:void(0)" id="downloadClientAccountsPdf" class="btn btn-outline-primary btn-sm btn-fit client-accounts-pdf-btn disabled" aria-disabled="true">Download PDF</a>
             </div>
             @endif
         </div>

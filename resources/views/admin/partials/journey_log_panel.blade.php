@@ -94,7 +94,7 @@
             </select>
         </div>
         <div class="col-md-3">
-            <button type="button" class="btn w-100 text-white" style="background:#695EEE;" id="{{ $panelId }}ApplyBtn">
+            <button type="button" class="btn btn-fit text-white" style="background:#695EEE;" id="{{ $panelId }}ApplyBtn">
                 Apply Filters
             </button>
         </div>

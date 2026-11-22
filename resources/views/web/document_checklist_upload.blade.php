@@ -88,7 +88,7 @@
         .section-title { font-family: var(--ds-font-head); color: var(--ds-ink); }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Lato:wght@300;400;700;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-theme.css') }}?v=20261121b">
+    <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-theme.css') }}?v=20261122d">
 </head>
 <body>
     <div class="page-wrap">
@@ -167,7 +167,7 @@
                                         <div class="form-text">jpg, jpeg, png, or pdf — max 4 MB</div>
                                     </div>
                                     <div class="col-md-4">
-                                        <button type="submit" class="btn btn-primary w-100">Upload</button>
+                                        <button type="submit" class="btn btn-primary btn-fit btn-fit-sm-full">Upload</button>
                                     </div>
                                 </form>
                             @else
@@ -181,7 +181,7 @@
                                         <input type="file" name="doc_file" class="form-control" accept=".jpg,.jpeg,.png,.pdf" required>
                                     </div>
                                     <div class="col-md-4">
-                                        <button type="submit" class="btn btn-outline-primary w-100">Replace</button>
+                                        <button type="submit" class="btn btn-outline-primary btn-fit btn-fit-sm-full">Replace</button>
                                     </div>
                                 </form>
                             @endif

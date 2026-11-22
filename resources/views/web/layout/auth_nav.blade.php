@@ -80,7 +80,7 @@ $hasAnalyticsAccess = $offerBenefitService->hasAnalyticsAccess($user);
 <nav class="navbar navbar-expand-lg navbar-light app-topbar">
     <div class="container-fluid">
       <!-- <a class="navbar-brand text-white" href="{{ route('/') }}"><img width="50" @if($user->organization_logo != null) src="{{ asset('web_assets/users/user'.$user->id.'/'.$user->organization_logo) }}" @else src="{{ asset('web_assets/images/Style2.png') }}" @endif /></a> -->
-       <a class="navbar-brand text-white" href="{{ route('/') }}"><img class="logo-fix" src="{{ asset('web_assets/images/Style2.png') }}" alt="adwiseri" /></a>
+       <a class="navbar-brand text-white" href="{{ route('/') }}"><img class="logo-fix app-logo" src="{{ asset('web_assets/images/Style2_white.png') }}" alt="adwiseri" /></a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
         aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -117,6 +117,7 @@ $hasAnalyticsAccess = $offerBenefitService->hasAnalyticsAccess($user);
     </div>
   </nav>
   <!---Navbar END-->
+<script src="{{ asset('web_assets/js/app-topbar-logo.js') }}?v=20261122a" defer></script>
 @if($page != "index" and $page != "features" and $page != "membership" and $page != "about_adwiseri" and $page != "contact_us" and $page != "privacy_policy" and $page != "terms_conditions" and $page != "terms_use" and $page != "refund_policy")
   <div class="container-fluid dashboard-box mt-2 mb-3">
 

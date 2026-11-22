@@ -32,6 +32,10 @@
         $exportTaxExempt = (bool) ($data->export_service_tax_exempt ?? false);
         $total = (float) ($data->total ?? 0);
         $currencyLabel = trim((string) ($data->currency ?? 'Rs.'));
+        // adwiseri bills subscribers in US dollars; show it the same way as other invoices, e.g. GBP(£).
+        if (strtoupper($currencyLabel) === 'USD') {
+            $currencyLabel = 'USD($)';
+        }
         $taxLabel = \App\Models\Invoice_settings::resolveTaxLabel($data->tax_label ?? null);
         $paymentLink = trim((string) ($data->payment_link ?? ''));
         $qrPath = $data->payment_qr_path ?? null;
@@ -41,33 +45,42 @@
             return !empty($item['detail'] ?? (is_object($item) ? $item->detail : null));
         })->map(function ($item) {
             return [
-                'detail' => trim((string) ($item['detail'] ?? (is_object($item) ? $item->detail : ''))),
+                'detail' => \App\Models\Internal_Invoices::displayDetail($item['detail'] ?? (is_object($item) ? $item->detail : '')),
                 'amount' => (float) ($item['amount'] ?? (is_object($item) ? $item->amount : 0)),
             ];
         });
 
         if ($lineItems->isEmpty()) {
             $lineItems = collect([[
-                'detail' => trim((string) ($data->detail ?? 'Professional Services')),
+                'detail' => \App\Models\Internal_Invoices::displayDetail($data->detail ?? 'Professional Services'),
                 'amount' => $amount,
             ]]);
         }
     } else {
         $billName = $invoice->to_name ?? '-';
-        // Subscription invoices from adwiseri.com keep the vendor name in to_name (it drives the AP
-        // lists), so Bill To has to come from the subscriber being billed.
-        if ($invoice->isSubscriptionApInvoice()) {
-            $billedSubscriber = \App\Models\User::find($invoice->subscriber_id);
-            if ($billedSubscriber) {
-                $billName = trim((string) ($billedSubscriber->organization ?: $billedSubscriber->name)) ?: $billName;
-            }
-        }
         $billEmail = trim((string) ($invoice->to_email ?? ''));
         $billAddress = trim((string) ($invoice->to_address ?? ''));
         $billCity = trim((string) ($invoice->to_city ?? ''));
         $billState = trim((string) ($invoice->to_state ?? ''));
         $billCountry = trim((string) ($invoice->to_country ?? ''));
         $billPincode = trim((string) ($invoice->to_pincode ?? ''));
+        // Subscription invoices from adwiseri.com keep the vendor name in to_name (it drives the AP
+        // lists), so Bill To has to come from the subscriber being billed. The address was copied when
+        // the invoice was made, often before the subscriber filled in their profile, so any part that
+        // is still empty comes from their profile now.
+        $isSubscriptionFromAdwiseri = $invoice->isSubscriptionApInvoice();
+        if ($isSubscriptionFromAdwiseri) {
+            $billedSubscriber = \App\Models\User::find($invoice->subscriber_id);
+            if ($billedSubscriber) {
+                $billName = trim((string) ($billedSubscriber->organization ?: $billedSubscriber->name)) ?: $billName;
+                $billEmail = $billEmail !== '' ? $billEmail : trim((string) $billedSubscriber->email);
+                $billAddress = $billAddress !== '' ? $billAddress : trim((string) $billedSubscriber->address_line);
+                $billCity = $billCity !== '' ? $billCity : trim((string) $billedSubscriber->city);
+                $billState = $billState !== '' ? $billState : trim((string) $billedSubscriber->state);
+                $billCountry = $billCountry !== '' ? $billCountry : trim((string) $billedSubscriber->country);
+                $billPincode = $billPincode !== '' ? $billPincode : trim((string) $billedSubscriber->pincode);
+            }
+        }
         $invoiceNo = $invoice->invoice_no ?? '-';
         $invoiceDate = !empty($invoice->created_at) ? date('d-m-Y', strtotime($invoice->created_at)) : '-';
         $dueDate = !empty($invoice->due_date) ? date('d-m-Y', strtotime($invoice->due_date)) : '-';
@@ -82,6 +95,10 @@
         $exportTaxExempt = $invoice->isExportServiceTaxExempt();
         $total = (float) $invoice->total;
         $currencyLabel = trim((string) (($user->currency ?? null) ?: ($u->currency ?? 'Rs.')));
+        // adwiseri always bills subscribers in US dollars, whatever currency the subscriber works in.
+        if ($isSubscriptionFromAdwiseri) {
+            $currencyLabel = 'USD($)';
+        }
         $taxLabel = $snapshotService->resolvedTaxLabel($invoice, $invoiceSetting ?? null);
         $paymentLink = $snapshotService->resolvedPaymentLink($invoice, $invoiceSetting ?? null);
         $qrFilename = $snapshotService->resolvedPaymentQrFilename($invoice, $invoiceSetting ?? null);
@@ -108,7 +125,7 @@
         $invoiceNote = $snapshotService->resolvedInvoiceNote($invoice, $invoiceSetting ?? null);
         $lineItems = $invoice->lineItems()->map(function ($item) {
             return [
-                'detail' => trim((string) $item->detail),
+                'detail' => \App\Models\Internal_Invoices::displayDetail($item->detail),
                 'amount' => (float) $item->amount,
             ];
         });

@@ -48,7 +48,7 @@
                           @include('partials.user_access_matrix', ['matrixRoles' => $matrixRoles])
                         </div>
                         <div class="col-md-12 p-1">
-                            <button type="submit" class="btn btn-primary" style="width: 100%; display: block;">Apply Changes</button>
+                            <button type="submit" class="btn btn-primary btn-fit btn-fit-sm-full d-block mx-auto">Apply Changes</button>
                         </div>
                     </div>
                 </form>
@@ -73,9 +73,11 @@
       max-width: 100%;
     }
 
+    /* Apply Changes: sized to its label and centred (full width only on phones, via .btn-fit-sm-full). */
     #user_role_form button[type="submit"] {
-      width: 100% !important;
       display: block;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     /* Access Rights options: a single centered box, radios stacked in a straight vertical line */

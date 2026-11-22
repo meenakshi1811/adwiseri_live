@@ -1,5 +1,29 @@
 @extends('web.layout.main')
 
+@push('css')
+<style>
+    /* User Profile: details + pictures side by side, compact enough to fit beside the module menu. */
+    .profile-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    .profile-card { background: #fff; border: 1px solid var(--ds-border, #E2E6F0); border-radius: 12px; overflow: hidden; }
+    .profile-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; background: #F4F3FE; border-bottom: 1px solid var(--ds-border, #E2E6F0); }
+    .profile-card-head h4 { margin: 0; font-size: 15px !important; font-weight: 700; color: var(--ds-primary-700, #4C3BB7); }
+    .profile-edit-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; cursor: pointer; }
+    .profile-edit-btn:hover, .profile-edit-btn:focus-visible { background: #fff; border-color: var(--ds-border, #E2E6F0); }
+    /* Each label sits right next to its value (no wide gap between the two). */
+    .profile-fields { display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: 28px; row-gap: 9px; margin: 0; padding: 16px 20px; font-size: 14px; line-height: 1.45; }
+    .profile-fields dt { font-weight: 600; color: var(--ds-ink-2, #1E293B); }
+    .profile-fields dd { margin: 0; color: #334155; overflow-wrap: anywhere; }
+    .profile-fields dd p { margin: 0; }
+    .profile-fields .profile-field-link { font-size: inherit; font-weight: 400; text-decoration: underline; }
+    .profile-side { display: flex; flex-direction: column; gap: 16px; }
+    .profile-media { display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .profile-media .profile-photo { width: 150px; height: 150px; object-fit: cover; border-radius: 12px; }
+    .profile-media .profile-logo-img { display: block; width: auto; max-width: 100%; max-height: 96px; height: auto; object-fit: contain; }
+    @media (max-width: 991.98px) { .profile-layout { grid-template-columns: 1fr; } }
+    @media (max-width: 575.98px) { .profile-fields { grid-template-columns: 1fr; row-gap: 2px; } .profile-fields dd { margin-bottom: 8px; } }
+</style>
+@endpush
+
 @section('main-section')
 
     <div class="col-lg-10 userdash-client column-client">
@@ -9,164 +33,96 @@
             <h3 style="font-size: 1.7rem;font-weight: 500;line-height: 1.2" class="text-primary text-center flex-grow-1 text-center m-0">User Profile</h3>
             <a href="#" onclick="document.getElementById('change_password').style.display='flex';">Change Password</a>
         </div>
-        <div class="profile-detail">
-            <div class="col-lg-7 profile-data" style="border: 1px solid lightgrey;">
-                <div class="row">
-                    <div class="col-11"></div>
-                    <div class="col-1 editss">
-                        <img style="cursor: pointer;" onclick="document.getElementById('update_box').style.display='flex';"
-                            src="{{ asset('web_assets/images/edit.png') }}"width="20" height="20" alt="">
-                    </div>
+        @php
+            $profileUserType = match (strtolower((string) $user->user_type)) {
+                'subscriber' => 'Subscriber',
+                'affiliate' => 'Affiliate',
+                'admin' => 'Admin',
+                'user' => 'Staff Member',
+                default => $user->user_type ?: '—',
+            };
+            $profileDetailsTitle = strtolower((string) $user->user_type) === 'subscriber' ? 'Subscriber Details' : 'User Details';
+        @endphp
+        {{-- Details on the left, Profile Picture and Organization Logo stacked on the right, so the whole
+             profile fits on one screen beside the module menu (like the Dashboard). --}}
+        <div class="profile-layout">
+            <section class="profile-card profile-card-details" aria-labelledby="profileDetailsTitle">
+                <div class="profile-card-head">
+                    <h4 id="profileDetailsTitle">{{ $profileDetailsTitle }}</h4>
+                    <button type="button" class="profile-edit-btn" title="Edit details" aria-label="Edit details"
+                        onclick="document.getElementById('update_box').style.display='flex';">
+                        <img src="{{ asset('web_assets/images/edit.png') }}" width="18" height="18" alt="">
+                    </button>
                 </div>
-                <div class="row det-row">
-                    <div class="col-6">
-                        <p style="font-weight:550;">Name</p>
-                    </div>
-                    <div class="col-6">
-                        <p>{{ $user->name }}</p>
-                    </div>
-                    <div class="col-6">
-                        <p style="font-weight:550;">User Type</p>
-                    </div>
-                    <div class="col-6">
-                        <p>
-                            @php
-                                $profileUserType = match (strtolower((string) $user->user_type)) {
-                                    'subscriber' => 'Subscriber',
-                                    'affiliate' => 'Affiliate',
-                                    'admin' => 'Admin',
-                                    'user' => 'Staff Member',
-                                    default => $user->user_type ?: '—',
-                                };
-                            @endphp
-                            {{ $profileUserType }}
-                        </p>
-                    </div>
-                    <div class="col-6">
-                        <p style="font-weight:550;">Phone Number</p>
-                    </div>
-                    <div class="col-6">
-                        @include('partials.phone_display', ['phone' => $user->phone])
-                    </div>
-                    <div class="col-6">
-                        <p style="font-weight:550;">Email ID</p>
-                    </div>
-                    <div class="col-6">
-                        <p>{{ $user->email }}</p>
-                    </div>
-                    <div class="col-6">
-                        <p style="font-weight:550;">Organization</p>
-                    </div>
-                    <div class="col-6">
-                        <p>{{ $user->organization }}</p>
-                    </div>
-                    <div class="col-6">
-                        <p style="font-weight:550;">Designation</p>
-                    </div>
-                    <div class="col-6">
-                        <p>{{ $user->designation }}</p>
-                    </div>
-                    <div class="col-6">
-                        <p style="font-weight:550;">Category</p>
-                    </div>
-                    <div class="col-6">
-                        <p>{{ $user->category }}</p>
-                    </div>
-                    <div class="col-6">
-                        <p style="font-weight:550;">Sub-Category</p>
-                    </div>
-                    <div class="col-6">
-                        <p>{{ $user->sub_category }}@if($user->sub_category == "Other")({{$user->oter_subcategory}})@endif</p>
-                    </div>
-                    <div class="col-6">
-                        <p style="font-weight:550;">Country</p>
-                    </div>
-                    <div class="col-6">
-                        <p>{{ $user->country }}</p>
-                    </div>
-                    <div class="col-6">
-                        <p style="font-weight:550;">State/County</p>
-                    </div>
-                    <div class="col-6">
-                        <p>{{ $user->state }}</p>
-                    </div>
-                    <div class="col-6">
-                        <p style="font-weight:550;">City/Town</p>
-                    </div>
-                    <div class="col-6">
-                        <p>{{ $user->city }}</p>
-                    </div>
-                    <div class="col-6">
-                        <p style="font-weight:550;">Address</p>
-                    </div>
-                    <div class="col-6">
-                        <p>{{ $user->address_line }}</p>
-                    </div>
-                    <div class="col-6">
-                        <p style="font-weight:550;">Website</p>
-                    </div>
-                    <div class="col-6">
-                        <p>@if(!empty($user->website))<a href="{{ \App\Support\BrandedMail::normalizeWebsiteUrl($user->website) }}" target="_blank" rel="noopener">{{ $user->website }}</a>@else — @endif</p>
-                    </div>
-                    <div class="col-6">
-                        <p style="font-weight:550;">Postcode</p>
-                    </div>
-                    <div class="col-6">
-                        <p>{{ $user->pincode }}</p>
-                    </div>
-                    <div class="col-6">
-                        <p style="font-weight:550;">Timezone</p>
-                    </div>
-                    <div class="col-6">
-                        <p>{{ $user->timezone }}</p>
+                <dl class="profile-fields">
+                    <dt>Name</dt>
+                    <dd>{{ $user->name }}</dd>
+                    <dt>User Type</dt>
+                    <dd>{{ $profileUserType }}</dd>
+                    <dt>Phone Number</dt>
+                    <dd>@include('partials.phone_display', ['phone' => $user->phone])</dd>
+                    <dt>Email ID</dt>
+                    <dd>{{ $user->email }}</dd>
+                    <dt>Organization</dt>
+                    <dd>{{ $user->organization ?: '—' }}</dd>
+                    <dt>Designation</dt>
+                    <dd>{{ $user->designation ?: '—' }}</dd>
+                    <dt>Category</dt>
+                    <dd>{{ $user->category ?: '—' }}</dd>
+                    <dt>Sub-Category</dt>
+                    <dd>{{ $user->sub_category ?: '—' }}@if($user->sub_category == "Other") ({{ $user->oter_subcategory }})@endif</dd>
+                    <dt>Country</dt>
+                    <dd>{{ $user->country ?: '—' }}</dd>
+                    <dt>State/County</dt>
+                    <dd>{{ $user->state ?: '—' }}</dd>
+                    <dt>City/Town</dt>
+                    <dd>{{ $user->city ?: '—' }}</dd>
+                    <dt>Address</dt>
+                    <dd>{{ $user->address_line ?: '—' }}</dd>
+                    <dt>Website</dt>
+                    <dd>@if(!empty($user->website))<a class="btn btn-link p-0 align-baseline profile-field-link" href="{{ \App\Support\BrandedMail::normalizeWebsiteUrl($user->website) }}" target="_blank" rel="noopener">{{ $user->website }}</a>@else — @endif</dd>
+                    <dt>Postcode</dt>
+                    <dd>{{ $user->pincode ?: '—' }}</dd>
+                    <dt>Timezone</dt>
+                    <dd>{{ $user->timezone ?: '—' }}</dd>
+                </dl>
+            </section>
 
+            <div class="profile-side">
+                <section class="profile-card" aria-labelledby="profilePictureTitle">
+                    <div class="profile-card-head">
+                        <h4 id="profilePictureTitle">Profile Picture</h4>
+                        <button type="button" class="profile-edit-btn" title="Edit Profile Picture" aria-label="Edit profile picture"
+                            onclick="document.getElementById('update_img_box').style.display='flex';">
+                            <img src="{{ asset('web_assets/images/edit.png') }}" width="18" height="18" alt="">
+                        </button>
                     </div>
-                </div>
-            </div>
-            <div class="col-lg-4 profile-pic" style="border: 1px solid lightgrey;">
-                <div class="row align-items-center profile-picture-block">
-                    <div class="col-10">
-                        <p class="profile-logo-label mb-0">Profile Picture</p>
-                    </div>
-                    <div class="col-2 text-end">
-                        <img style="cursor: pointer;" onclick="document.getElementById('update_img_box').style.display='flex';"
-                            src="{{ asset('web_assets/images/edit.png') }}" width="20" height="20" alt="Edit profile picture" title="Edit Profile Picture">
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-12 profilepic-row">
+                    <div class="profile-media">
                         @if ($user->profile_img != '')
-                            <img src="{{ asset('web_assets/users/user' . $user->id . '/' . $user->profile_img) }}" width="200"
-                                height="200" alt="Profile picture">
+                            <img class="profile-photo" src="{{ asset('web_assets/users/user' . $user->id . '/' . $user->profile_img) }}" alt="Profile picture">
                         @else
-                            <img src="{{ asset('web_assets/images/profile.jpg') }}" width="200" height="200"
-                                alt="Profile picture">
+                            <img class="profile-photo" src="{{ asset('web_assets/images/profile.jpg') }}" alt="Profile picture">
                         @endif
                     </div>
-                </div>
+                </section>
+
                 @if ($user->user_type == 'Subscriber')
-                    <hr>
-                    <div class="row align-items-start profile-logo-block">
-                        <div class="col-10">
-                            <p class="profile-logo-label mb-2">Organization Logo</p>
+                    <section class="profile-card" aria-labelledby="profileLogoTitle">
+                        <div class="profile-card-head">
+                            <h4 id="profileLogoTitle">Organization Logo</h4>
+                            <button type="button" class="profile-edit-btn" title="Edit Logo" aria-label="Edit organization logo"
+                                onclick="document.getElementById('update_logo_box').style.display='flex';">
+                                <img src="{{ asset('web_assets/images/edit.png') }}" width="18" height="18" alt="">
+                            </button>
                         </div>
-                        <div class="col-2 text-end">
-                            <img style="cursor: pointer;" onclick="document.getElementById('update_logo_box').style.display='flex';"
-                                src="{{ asset('web_assets/images/edit.png') }}" width="20" height="20"
-                                alt="Edit logo" title="Edit Logo">
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-12 profile-logo-wrap">
+                        <div class="profile-media">
                             @if ($user->organization_logo != '')
-                                <img class="profile-logo-img" src="{{ asset('web_assets/users/user' . $user->id . '/' . $user->organization_logo) }}"
-                                    alt="Organization logo">
+                                <img class="profile-logo-img" src="{{ asset('web_assets/users/user' . $user->id . '/' . $user->organization_logo) }}" alt="Organization logo">
                             @else
-                                <img class="profile-logo-img" src="{{ asset('web_assets/images/default_logo.png') }}"
-                                    alt="Default logo">
+                                <img class="profile-logo-img" src="{{ asset('web_assets/images/default_logo.png') }}" alt="Default logo">
                             @endif
                         </div>
-                    </div>
+                    </section>
                 @endif
             </div>
         </div>

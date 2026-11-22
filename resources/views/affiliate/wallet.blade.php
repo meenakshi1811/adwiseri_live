@@ -15,28 +15,23 @@
                         <img style="cursor: pointer;" onclick="document.getElementById('update_box').style.display='flex';" src="{{ asset('web_assets/images/edit.png') }}"width="20" height="20" alt="">
                     </div>
                 </div> --}}
-                <div class="row det-row">
-                    <div class="col-lg-8">
-                        <div class="row">
-                            <div class="col-6">
-                                <p style="font-weight:550;font-size:18px;">Wallet Balance</p>
-                            </div>
+                {{-- Name : value, centred on the ":" like the Subscription module. --}}
+                <div class="detail-pairs">
+                    <div class="detail-pair">
+                        <span class="detail-pair-label">Wallet Balance</span>
+                        <span class="detail-pair-sep">:</span>
+                        <span class="detail-pair-value">
                             @if($expiry != null)
-                            <div class="col-6">
-                                <p style="font-size:18px;">Upgrade or Renew membership to View Balance.</p>
-                            </div>
+                                Upgrade or Renew membership to View Balance.
                             @else
-                            <div class="col-6">
-                                <p style="font-size:18px;">${{ $user->wallet > 0 ? $user->wallet:0 }}</p>
-                            </div>
+                                ${{ $user->wallet > 0 ? $user->wallet:0 }}
                             @endif
-                            <div class="col-6">
-                                <p style="font-weight:550;font-size:18px;">Referral Code</p>
-                            </div>
-                            <div class="col-6">
-                                <p style="font-size:18px;">{{ $user->referral }}</p>
-                            </div>
-                        </div>
+                        </span>
+                    </div>
+                    <div class="detail-pair">
+                        <span class="detail-pair-label">Referral Code</span>
+                        <span class="detail-pair-sep">:</span>
+                        <span class="detail-pair-value">{{ $user->referral }}</span>
                     </div>
                 </div>
             </div>

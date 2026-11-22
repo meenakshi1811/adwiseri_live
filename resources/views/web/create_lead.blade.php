@@ -692,7 +692,7 @@ I agree to <a href="/privacy_policy" target="_blank">Privacy Policy</a> &amp; <a
     });
 </script>
 @else
-<button class="btn btn-primary mt-4 w-100">{{ $isEdit ? 'Update Enquiry' : 'Submit Enquiry' }}</button>
+<button class="btn btn-primary btn-fit btn-fit-sm-full d-block mx-auto mt-4">{{ $isEdit ? 'Update Enquiry' : 'Submit Enquiry' }}</button>
 @endif
 
 </form>
