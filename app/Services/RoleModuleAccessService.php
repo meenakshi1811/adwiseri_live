@@ -122,6 +122,6 @@ class RoleModuleAccessService
 
     public function affiliateHomeRoute(): string
     {
-        return 'subscribers_affiliate';
+        return 'affiliate.dashboard_affiliate';
     }
 }

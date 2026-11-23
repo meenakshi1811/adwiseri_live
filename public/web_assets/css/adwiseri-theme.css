@@ -302,6 +302,20 @@ a:hover { color: var(--ds-primary); }
    its box still scrolls inside .table-wrapper. */
 .dataTables_wrapper table.dataTable:not(.dataTables_scroll *) { width: 100% !important; }
 
+/* Icons inside links in table cells (view / edit / delete) are brand purple. style.css paints every
+   link icon in the content area white for its purple link-buttons
+   (.column-client a:not(...):not(...):not(.btn) i), and that rule out-ranked its own table-cell
+   exception, so a link with its background removed showed a white icon on a white cell
+   (e.g. the eye icon in Support > Tickets). */
+.column-client table td a:not(.comm-view-btn):not(.comm-action-btn):not(.btn) i,
+.column-client table td a:not(.comm-view-btn):not(.comm-action-btn):not(.btn) .fa,
+.column-client table td a:not(.comm-view-btn):not(.comm-action-btn):not(.btn) .fas,
+.column-client table td a:not(.comm-view-btn):not(.comm-action-btn):not(.btn) .far,
+.column-client table td a:not(.comm-view-btn):not(.comm-action-btn):not(.btn) .fa-solid,
+.column-client table td a:not(.comm-view-btn):not(.comm-action-btn):not(.btn) .fa-regular {
+  color: var(--adwiseri-primary, #695EEE) !important;
+}
+
 /* "table-responsive" placed on the <table> itself (about 40 tables, mostly Reports) turned the table
    into a block box: the box was full width but the rows inside shrank to their content, leaving empty
    space on the right. The table stays a real table at full width; the box around it scrolls sideways
@@ -435,6 +449,13 @@ button.dt-button:hover { border-color: rgba(105, 94, 238, .45) !important; color
    lines it up with the centre of the sidebar menu box below. */
 .navbar.app-topbar .navbar-brand { display: flex; align-items: center; align-self: center; padding: 0; line-height: 0; }
 .navbar.app-topbar .navbar-brand img.app-logo { display: block; height: 33px; width: auto !important; max-width: none !important; }
+/* Desktop: start the logo centred over the menu (menu column = 1/6 of the 12px-padded page; logo is
+   about 134px wide), so it is aligned even before app-topbar-logo.js measures and fine-tunes it. */
+@media (min-width: 992px) {
+  /* The bar's own 30px side padding is dropped, so its content lines up with the page's 12px gutter. */
+  .navbar.app-topbar { padding-left: 0 !important; padding-right: 0 !important; }
+  .navbar.app-topbar .navbar-brand { margin-left: max(0px, calc((100vw - 24px) / 12 - 67px)); }
+}
 
 /* Top bar — deep brand gradient instead of the flat violet fill */
 .navbar.app-topbar {

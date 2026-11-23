@@ -70,7 +70,7 @@
                   <strong>Simple, fixed yearly pricing</strong>
                   <p>No extra invoices for add-on features — choose the plan that fits your practice.</p>
                 @endif
-                <a class="link-arrow" href="{{ $pricingHref }}">See all plans <svg class="icon"><use href="#i-arrow"/></svg></a>
+                <a class="link-arrow" href="{{ $pricingHref }}">See All Plans <svg class="icon"><use href="#i-arrow"/></svg></a>
               </div>
             </div>
           </div>

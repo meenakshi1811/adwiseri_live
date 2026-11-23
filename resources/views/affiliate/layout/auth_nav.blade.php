@@ -150,7 +150,13 @@
             <div class="col-lg-2 column-dashbox">
                 <div class="dash-box">
                     @if (isset($user))
-                            {{-- Affiliate modules: Subscribers, Referrals, Wallet, Commissions --}}
+                            {{-- Affiliate modules: Dashboard, Subscribers, Referrals, Wallet, Commissions, Settings, Support --}}
+                            <a href="{{ route('affiliate.dashboard_affiliate') }}" @if($page == "dashboard") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
+                                <span class="sidebar-menu-icon">
+                                    <i class="fa-solid fa-house"></i>
+                                </span>
+                                Dashboard
+                            </a>
                             <a href="{{ route('subscribers_affiliate') }}" @if($page == "subscribers") style="font-weight:700;background-color:#695EEE;color:white" @endif class="sidebar-menu-item">
                                 <span class="sidebar-menu-icon">
                                     <i class="fa-solid fa-subscript"></i>

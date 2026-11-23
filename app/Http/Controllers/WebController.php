@@ -6364,16 +6364,14 @@ class WebController extends Controller
             }
             return $tic;
         }
-        $user = Auth::user();
+        $user = Auth::user() ?: $this->affiliatePortalUser();
         if (!$user) {
-            $user = auth()->guard('affiliates')->user();
-            $user = User::where('email', $user->email)->first();
-            $user['type_user'] = 'affiliate';
+            return redirect()->route(Auth::guard('affiliates')->check() ? 'affiliate.createLogin' : 'login');
         }
 
         $this->set_timezone();
         if ($user) {
-            if ($user->user_type == "Affiliate") {
+            if ($user->user_type == "Affiliate" || $user->type_user === 'affiliate') {
                 $subscriber = $user;
             } else {
                 $subscriber =  empty($user->added_by) ? User::find($user->id) : User::find($user->added_by);
@@ -6458,19 +6456,32 @@ class WebController extends Controller
 
     public function my_query($id)
     {
-        $user = Auth::user() ?? Auth::guard('affiliates')->user()->user;
+        // Subscribers / staff / admin use the main login; affiliates their own (see sharedPageUser()).
+        $isAffiliate = !Auth::user() && Auth::guard('affiliates')->check();
+        $user = $isAffiliate ? $this->affiliatePortalUser() : Auth::user();
 
-        if ($user) {
-            if ($id) {
-                $query = Tickets::find($id);
-                $page = "support";
-                $template = ($user->user_type != 'Affiliate') ?  'web.my_query' :'affiliate.my_query';
-
-                return view($template, compact('user', 'page', 'query'));
-            }
-        } else {
-            return redirect()->route('login');
+        if (!$user) {
+            return redirect()->route($isAffiliate ? 'affiliate.createLogin' : 'login');
         }
+
+        $query = $id ? Tickets::find($id) : null;
+        if (!$query) {
+            abort(404);
+        }
+
+        // Only the people the ticket belongs to may open it: the account that raised it, or the
+        // subscriber whose team raised it (admins see every ticket).
+        if ($user->user_type !== 'admin') {
+            $ownerIds = array_filter([(int) $user->id, (int) ($user->added_by ?? 0)]);
+            if (!in_array((int) $query->subscriber_id, $ownerIds, true) && (int) $query->user_id !== (int) $user->id) {
+                abort(403);
+            }
+        }
+
+        $page = "support";
+        $template = $isAffiliate ? 'affiliate.my_query' : 'web.my_query';
+
+        return view($template, compact('user', 'page', 'query'));
     }
 
     public function sub_reports()
@@ -8282,9 +8293,65 @@ class WebController extends Controller
         ));
     }
 
+    /**
+     * Affiliate Dashboard: headline totals and charts of the subscribers the affiliate has referred.
+     */
     public function dashboard_affiliate()
     {
-        return redirect()->route(app(\App\Services\RoleModuleAccessService::class)->affiliateHomeRoute());
+        $affiliateUser = Auth::guard('affiliates')->user();
+        $user = $this->affiliatePortalUser();
+        if (!$affiliateUser || !$user) {
+            return redirect()->route('affiliate.createLogin');
+        }
+
+        $page = 'dashboard';
+        $referralCode = (string) $user->referral;
+
+        $subscribers = $referralCode !== ''
+            ? User::where('user_type', 'Subscriber')->where('referral_code', $referralCode)->get()
+            : collect();
+
+        $commissionTypes = ['Referral Commission', \App\Services\RenewalCommissionService::TYPE];
+        $commissions = $referralCode !== ''
+            ? Referrals::where('referral_code', $referralCode)->whereIn('type', $commissionTypes)->get()
+            : collect();
+
+        // Same figures as the Commissions and Wallet pages.
+        $commissionSummary = $referralCode !== '' ? AffiliateCommissionEarnt::where('referral_code', $referralCode)->first() : null;
+        $totalCommission = $commissionSummary ? (float) $commissionSummary->total_earned : (float) $commissions->sum('amount_added');
+        $totalReferrals = $commissions->where('type', 'Referral Commission')->count();
+        $wallet = (float) ($user->wallet ?? 0);
+
+        $countBy = function ($items, callable $key) {
+            return $items->groupBy($key)->map->count()->sortDesc()->all();
+        };
+
+        $byPlan = $countBy($subscribers, fn ($s) => $s->membership ?: 'Not set');
+        $byDuration = $countBy($subscribers, function ($s) {
+            if (empty($s->membership_start_date) || empty($s->membership_expiry_date)) {
+                return 'Not set';
+            }
+            $years = max(1, (int) round(\Carbon\Carbon::parse($s->membership_start_date)->floatDiffInYears(\Carbon\Carbon::parse($s->membership_expiry_date))));
+            return $years . ' ' . ($years === 1 ? 'Year' : 'Years');
+        });
+        $byCountry = $countBy($subscribers, fn ($s) => $s->country ?: 'Not set');
+        $bySubCategory = $countBy($subscribers, fn ($s) => $s->sub_category ?: 'Not set');
+
+        return view('affiliate.dashboard_affiliate', [
+            'user' => $user,
+            'affiliateUser' => $affiliateUser,
+            'page' => $page,
+            'totalSubscribers' => $subscribers->count(),
+            'totalReferrals' => $totalReferrals,
+            'totalCommission' => $totalCommission,
+            'wallet' => $wallet,
+            'charts' => [
+                ['id' => 'affChartPlan', 'title' => 'Subscribers by Plan', 'data' => $byPlan],
+                ['id' => 'affChartDuration', 'title' => 'Subscribers by Plan Duration', 'data' => $byDuration],
+                ['id' => 'affChartCountry', 'title' => 'Subscribers by Country', 'data' => $byCountry],
+                ['id' => 'affChartSubCategory', 'title' => 'Subscribers by Sub-Category', 'data' => $bySubCategory],
+            ],
+        ]);
     }
 
     public function Affiliates_forget_create()

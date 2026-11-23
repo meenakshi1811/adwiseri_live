@@ -80,9 +80,9 @@
       <div class="hero-ctas" data-reveal style="--d:.24s">
         <a class="btn btn-primary" href="{{ route('get_demo') }}">Get A Demo <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
         @if($freePlan)
-          <a class="btn btn-ghost" href="{{ route('user_register_plan', $freePlan->plan_name) }}">Start free for {{ (int) $freePlan->validity }} days</a>
+          <a class="btn btn-ghost" href="{{ route('user_register_plan', $freePlan->plan_name) }}">Start Free for {{ (int) $freePlan->validity }} Days</a>
         @else
-          <a class="btn btn-ghost" href="{{ route('membership') }}">View price plans</a>
+          <a class="btn btn-ghost" href="{{ route('membership') }}">View Price Plans</a>
         @endif
       </div>
       <div class="hero-note" data-reveal style="--d:.32s">
@@ -264,7 +264,7 @@
     </div>
 
     <div class="section-foot" data-reveal>
-      <a class="btn btn-ghost" href="{{ route('features') }}">Explore all features <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
+      <a class="btn btn-ghost" href="{{ route('features') }}">Explore All Features <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
     </div>
   </div>
 </section>
@@ -294,7 +294,7 @@
         </ul>
         <div class="zz-actions">
           <a class="btn btn-primary" href="{{ route('get_demo') }}">Get A Demo <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
-          <a class="link-arrow" href="{{ route('features') }}">Read more <svg class="icon"><use href="#i-arrow"/></svg></a>
+          <a class="link-arrow" href="{{ route('features') }}">Read More <svg class="icon"><use href="#i-arrow"/></svg></a>
         </div>
       </div>
       <div class="zz-media" data-reveal="right">
@@ -330,7 +330,7 @@
         </ul>
         <div class="zz-actions">
           <a class="btn btn-primary" href="{{ route('get_demo') }}">Get A Demo <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
-          <a class="link-arrow" href="{{ route('features') }}">Read more <svg class="icon"><use href="#i-arrow"/></svg></a>
+          <a class="link-arrow" href="{{ route('features') }}">Read More <svg class="icon"><use href="#i-arrow"/></svg></a>
         </div>
       </div>
       <div class="zz-media" data-reveal="left">
@@ -358,7 +358,7 @@
         </ul>
         <div class="zz-actions">
           <a class="btn btn-primary" href="{{ route('get_demo') }}">Get A Demo <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
-          <a class="link-arrow" href="{{ route('features') }}">Read more <svg class="icon"><use href="#i-arrow"/></svg></a>
+          <a class="link-arrow" href="{{ route('features') }}">Read More <svg class="icon"><use href="#i-arrow"/></svg></a>
         </div>
       </div>
       <div class="zz-media" data-reveal="right">
@@ -393,7 +393,7 @@
         </ul>
         <div class="zz-actions">
           <a class="btn btn-primary" href="{{ route('get_demo') }}">Get A Demo <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
-          <a class="link-arrow" href="{{ route('features') }}">Read more <svg class="icon"><use href="#i-arrow"/></svg></a>
+          <a class="link-arrow" href="{{ route('features') }}">Read More <svg class="icon"><use href="#i-arrow"/></svg></a>
         </div>
       </div>
       <div class="zz-media" data-reveal="left">
@@ -674,7 +674,7 @@
         <p class="ds-lead">Refer consultancies you know and earn commissions when they subscribe.</p>
         <div class="aff-actions">
           <a class="btn btn-primary" href="{{ route('Affiliates.create') }}">Join Affiliate Program <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
-          <a class="link-arrow" href="{{ route('affiliate.createLogin') }}">Affiliate login <svg class="icon"><use href="#i-arrow"/></svg></a>
+          <a class="link-arrow" href="{{ route('affiliate.createLogin') }}">Affiliate Login <svg class="icon"><use href="#i-arrow"/></svg></a>
         </div>
       </div>
       <div class="aff-visual" aria-hidden="true">
@@ -760,7 +760,7 @@
       </a>
       <div class="faq2-demo">
         <a class="btn btn-primary" href="{{ route('get_demo') }}">Get A Demo <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
-        <a class="link-arrow" href="{{ route('faqs') }}">See all FAQs <svg class="icon"><use href="#i-arrow"/></svg></a>
+        <a class="link-arrow" href="{{ route('faqs') }}">See All FAQs <svg class="icon"><use href="#i-arrow"/></svg></a>
       </div>
     </div>
   </div>
@@ -782,7 +782,7 @@
         <p>See how adwiseri brings your cases, documents, team, reports and invoices together — with a personal walkthrough from our team.</p>
         <div class="cta2-actions">
           <a class="btn btn-light" href="{{ route('get_demo') }}">Get A Demo <svg class="icon icon-arrow"><use href="#i-arrow"/></svg></a>
-          <a class="btn btn-outline-light" href="{{ $showHomepageSection('price_plans') ? '#pricing' : route('membership') }}">View price plans</a>
+          <a class="btn btn-outline-light" href="{{ $showHomepageSection('price_plans') ? '#pricing' : route('membership') }}">View Price Plans</a>
         </div>
         <ul class="cta2-points">
           <li><svg class="icon"><use href="#i-check"/></svg>Personal walkthrough</li>
