@@ -14,7 +14,7 @@ use App\Models\User;
               <i class="fa-solid fa-magnifying-glass"></i> --}}
             </div>
             <div class="profile-detail">
-                <div class="col-12 profile-data" style="border: 1px solid lightgrey;">
+                <div class="col-12 profile-data module-summary-box">
                     {{-- <div class="row">
                     <div class="col-11"></div>
                     <div class="col-1 editss">
@@ -66,14 +66,14 @@ use App\Models\User;
                     <thead>
                     <tr>
                         <th class="p-1 text-center">Sr.No.</th>
-                        <th class="p-1 text-start">Referred By (Sub_ID)</th>
-                        <th class="p-1 text-start">Referred To (Sub_ID)</th>
-                        <th class="p-1 text-start">Referral Code</th>
-                        <th class="p-1 text-start">Sub_Plan</th>
-                        <th class="p-1 text-start">Amount_Paid</th>
-                        <th class="p-1 text-start">DOS</th>
-                        <th class="p-1 text-start">Commission</th>
-                        <th class="p-1 text-start">Date</th>
+                        <th class="p-1 text-center">Referred By (ID)</th>
+                        <th class="p-1 text-center">Referred To (Sub_ID)</th>
+                        <th class="p-1 text-center">Referral Code</th>
+                        <th class="p-1 text-center">Plan_Name</th>
+                        <th class="p-1 text-center">Purchase (USD)</th>
+                        <th class="p-1 text-center">DOS</th>
+                        <th class="p-1 text-center">Commission (USD)</th>
+                        <th class="p-1 text-center">ReferredDate</th>
                     </tr>
                     </thead>
                     <tbody>

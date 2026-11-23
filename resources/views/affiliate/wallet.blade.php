@@ -8,7 +8,7 @@
             {{-- <a onclick="document.getElementById('update_box').style.display='flex';" class="btn btn-primary p-2 px-4 m-0">Add Amount</a> --}}
         </div>
         <div class="profile-detail">
-            <div class="col-12 profile-data" style="border: 1px solid lightgrey;">
+            <div class="col-12 profile-data module-summary-box">
                 {{-- <div class="row">
                     <div class="col-11"></div>
                     <div class="col-1 editss">
@@ -63,15 +63,15 @@
                     <th class="p-1 text-start">Purchase Amount</th>
                     <th class="p-1 text-start">Credit Added</th>
                     <th class="p-1 text-start">Date</th>
-                    <th class="p-1 text-start">Pevious Balance</th>
+                    <th class="p-1 text-start">Previous Balance</th>
                     <th class="p-1 text-start">New Balance</th> --}}
                     <th class="p-1 text-center">Sr.No.</th>
-                    <th class="p-1 text-start">Wallet_TransID</th>
-                    <th class="p-1 text-start">Transaction Amount (Cr/Dr)</th>
-                    <th class="p-1 text-start">Description</th>
-                    <th class="p-1 text-start">Previous Balance</th>
-                    <th class="p-1 text-start">New Balance</th>
-                    <th class="p-1 text-start">Transaction Date</th>
+                    <th class="p-1 text-center">Wallet_TransID</th>
+                    <th class="p-1 text-center">Transaction Amount (Cr/Dr)</th>
+                    <th class="p-1 text-center">Description</th>
+                    <th class="p-1 text-center">Previous Balance (USD)</th>
+                    <th class="p-1 text-center">New Balance (USD)</th>
+                    <th class="p-1 text-center">Transaction Date</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -86,11 +86,11 @@
                     @endphp
 
                     @if ($wallet_balance > 0 && $wallet_balance > $previous_balance)
-                        +  {{ $wallet_balance - $previous_balance }}
+                        <span class="wallet-amount-credit">+ {{ number_format($wallet_balance - $previous_balance, 2) }}</span>
                     @elseif ($previous_balance > 0 && $wallet_balance < $previous_balance)
-                        - {{ $previous_balance - $wallet_balance }}
+                        <span class="wallet-amount-debit">- {{ number_format($previous_balance - $wallet_balance, 2) }}</span>
                     @else
-                        0
+                        0.00
                     @endif
                     </td>
 
@@ -116,7 +116,7 @@
                     <th class="p-1 text-start">Purchase Amount</th>
                     <th class="p-1 text-start">Debit Amount</th>
                     <th class="p-1 text-start">Date</th>
-                    <th class="p-1 text-start">Pevious Balance</th>
+                    <th class="p-1 text-start">Previous Balance</th>
                     <th class="p-1 text-start">New Balance</th>
                 </tr>
                 </thead>

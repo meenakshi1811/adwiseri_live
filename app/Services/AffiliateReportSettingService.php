@@ -56,14 +56,17 @@ class AffiliateReportSettingService
             return null;
         }
 
-        $email = trim((string) $affiliateAccount->email);
+        $email = strtolower(trim((string) $affiliateAccount->email));
         if ($email === '') {
             return null;
         }
 
+        // The affiliate's own users row; if the email was also used for another account type,
+        // fall back to that row rather than locking the affiliate out of their portal.
         return User::query()
-            ->where('email', $email)
-            ->whereRaw('LOWER(user_type) = ?', ['affiliate'])
+            ->whereRaw('LOWER(TRIM(email)) = ?', [$email])
+            ->orderByRaw("CASE WHEN LOWER(user_type) = 'affiliate' THEN 0 ELSE 1 END")
+            ->orderBy('id')
             ->first();
     }
 

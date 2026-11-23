@@ -71,7 +71,7 @@
                             {{-- <th class="p-1 text-start">Transaction Amount (USD) </th> --}}
                             <th class="p-1 text-center wallet-col-balance"> Previous Balance (USD) </th>
                             <th class="p-1 text-center wallet-col-balance"> New Balance (USD)</th>
-                            <th class="p-1 text-center wallet-col-date">TransactionDate</th>
+                            <th class="p-1 text-center wallet-col-date">Transaction Date</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -127,7 +127,7 @@
                             <th class="p-1 text-start">Purchase Amount</th>
                             <th class="p-1 text-start">Debit Amount</th>
                             <th class="p-1 text-start">Date</th>
-                            <th class="p-1 text-start">Pevious Balance</th>
+                            <th class="p-1 text-start">Previous Balance</th>
                             <th class="p-1 text-start">New Balance</th>
                         </tr>
                         </thead>

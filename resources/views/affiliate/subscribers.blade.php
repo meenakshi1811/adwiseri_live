@@ -10,13 +10,13 @@
                     <thead>
                         <tr>
                             <th class="p-1 text-center">Sr.No.</th>
-                            <th class="p-1 text-start">Subscriber Name</th>
-                            <th class="p-1 text-start">Email</th>
-                            <th class="p-1 text-start">Country</th>
-                            <th class="p-1 text-start">Plan</th>
-                            <th class="p-1 text-start">Sub-Category</th>
-                            <th class="p-1 text-start">Status</th>
-                            <th class="p-1 text-start">Joined</th>
+                            <th class="p-1 text-center">Subscriber (Sub_ID)</th>
+                            <th class="p-1 text-center">Email</th>
+                            <th class="p-1 text-center">Country</th>
+                            <th class="p-1 text-center">Plan_Name</th>
+                            <th class="p-1 text-center">Sub-Category</th>
+                            <th class="p-1 text-center">Status</th>
+                            <th class="p-1 text-center">Joining Date</th>
                         </tr>
                     </thead>
                     <tbody>

@@ -595,16 +595,49 @@ class WebController extends Controller
             // Affiliates sign in on their own guard; use their linked user account.
             $affiliate = auth()->guard('affiliates')->user();
             if ($affiliate) {
-                $user = User::where('status', 'true')->where('email', $affiliate->email)->first();
+                $user = $this->affiliatePortalUser();
                 if ($user) {
-                    $user['type_user'] = 'affiliate';
                     return $user;
                 }
+
+                // Deactivated or unlinked affiliate: end only the affiliate login and send them to the
+                // affiliate sign-in (flushing the whole session used to log them out of every page).
+                auth()->guard('affiliates')->logout();
+                return redirect()->route('affiliate.createLogin');
             }
         }
         Auth::logout();
         Session::flush();
         return redirect()->route('login');
+    }
+
+    /**
+     * The signed-in affiliate's linked users row, marked as an affiliate-portal user, or null when
+     * there is no active affiliate login.
+     */
+    private function affiliatePortalUser(): ?User
+    {
+        $account = Auth::guard('affiliates')->user();
+        $user = app(\App\Services\AffiliateReportSettingService::class)->resolveLinkedUser($account);
+        if ($user) {
+            $user['type_user'] = 'affiliate';
+        }
+
+        return $user;
+    }
+
+    /**
+     * The user for a page that both subscribers and affiliates open (Referrals, Wallet, Support): on the
+     * affiliate portal's own routes it is always the signed-in affiliate, even if the same browser is also
+     * signed in to the subscriber or admin side. Returns a redirect when nobody suitable is signed in.
+     */
+    private function sharedPageUser(array $affiliateRoutes)
+    {
+        if (request()->routeIs(...$affiliateRoutes)) {
+            return $this->affiliatePortalUser() ?: redirect()->route('affiliate.createLogin');
+        }
+
+        return $this->check_login();
     }
 
     public function index()
@@ -4223,7 +4256,10 @@ class WebController extends Controller
 
     public function wallet()
     {
-        $user = $this->check_login();
+        $user = $this->sharedPageUser(['wallet_affiliate']);
+        if ($user instanceof \Symfony\Component\HttpFoundation\Response) {
+            return $user;
+        }
         if ($user->type_user != "affiliate" && $user->user_type != "admin" && membership_access_blocked($user)) {
             return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
@@ -4393,7 +4429,10 @@ class WebController extends Controller
 
     public function referrals()
     {
-        $user = $this->check_login();
+        $user = $this->sharedPageUser(['referrals_affiliate']);
+        if ($user instanceof \Symfony\Component\HttpFoundation\Response) {
+            return $user;
+        }
         if ($user->type_user != "affiliate" && membership_access_blocked($user)) {
 
             return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
@@ -6252,7 +6291,10 @@ class WebController extends Controller
 
     public function support()
     {
-        $user = $this->check_login();
+        $user = $this->sharedPageUser(['support_affiliate']);
+        if ($user instanceof \Symfony\Component\HttpFoundation\Response) {
+            return $user;
+        }
         if ($user->type_user != "affiliate" && membership_access_blocked($user)) {
             return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
         }
@@ -6275,7 +6317,10 @@ class WebController extends Controller
 
     public function ask_support()
     {
-        $user = $this->check_login();
+        $user = $this->sharedPageUser(['ask_support_affiliate']);
+        if ($user instanceof \Symfony\Component\HttpFoundation\Response) {
+            return $user;
+        }
         $this->set_timezone();
         if ($user->type_user != "affiliate" && membership_access_blocked($user)) {
             return redirect()->route('user_membership')->with("price_plan_expiry", "Please renew or upgrade your subscription plan.");
@@ -8189,16 +8234,10 @@ class WebController extends Controller
     public function subscribers_affiliate()
     {
         $affiliateUser = Auth::guard('affiliates')->user();
-        if (!$affiliateUser) {
+        $user = $this->affiliatePortalUser();
+        if (!$affiliateUser || !$user) {
             return redirect()->route('affiliate.createLogin');
         }
-
-        $user = User::where('email', $affiliateUser->email)->first();
-        if (!$user) {
-            return redirect()->route('affiliate.createLogin');
-        }
-
-        $user['type_user'] = 'affiliate';
         $page = 'subscribers';
         $subscribers = User::where('user_type', 'Subscriber')
             ->where('referral_code', $user->referral)
@@ -8211,16 +8250,10 @@ class WebController extends Controller
     public function commissions_affiliate()
     {
         $affiliateUser = Auth::guard('affiliates')->user();
-        if (!$affiliateUser) {
+        $user = $this->affiliatePortalUser();
+        if (!$affiliateUser || !$user) {
             return redirect()->route('affiliate.createLogin');
         }
-
-        $user = User::where('email', $affiliateUser->email)->first();
-        if (!$user) {
-            return redirect()->route('affiliate.createLogin');
-        }
-
-        $user['type_user'] = 'affiliate';
         $page = 'commissions';
 
         $commissions = Referrals::with('user')
