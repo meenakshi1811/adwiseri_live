@@ -387,6 +387,7 @@ Route::get('/commissions_affiliate', [App\Http\Controllers\WebController::class,
 Route::get('/referrals_affiliate', [App\Http\Controllers\WebController::class, 'referrals'])->name('referrals_affiliate');
 Route::get('/wallet_affiliate', [App\Http\Controllers\WebController::class, 'wallet'])->name('wallet_affiliate');
 Route::get('/affiliate_settings', [App\Http\Controllers\WebController::class, 'affiliate_settings'])->name('affiliate_settings');
+Route::post('/affiliate_settings/send-test-report', [App\Http\Controllers\WebController::class, 'sendAffiliateTestReport'])->name('affiliate_send_test_report');
 Route::group(['middleware' => ['ops.sys']], function () {
     Route::get('/support_affiliate', [App\Http\Controllers\WebController::class, 'support'])->name('support_affiliate');
     Route::get('/ask_support_affiliate', [App\Http\Controllers\WebController::class, 'ask_support'])->name('ask_support_affiliate');

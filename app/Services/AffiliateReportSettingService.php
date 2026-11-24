@@ -9,8 +9,9 @@ use Illuminate\Support\Facades\Auth;
 
 class AffiliateReportSettingService
 {
-    /** Frequencies an affiliate can choose for Auto Reports (monthly is the default). */
-    public const FREQUENCIES = ['daily', 'weekly', 'monthly'];
+    /** Frequencies an affiliate can choose for Auto Reports: weekly (last week), monthly (the calendar month)
+     *  and quarterly (the last 3 calendar months); monthly is the default. Daily is for subscribers only. */
+    public const FREQUENCIES = ['weekly', 'monthly', 'quarterly'];
 
     public const MODULE_SUBSCRIBERS = 'affiliate_subscribers';
 

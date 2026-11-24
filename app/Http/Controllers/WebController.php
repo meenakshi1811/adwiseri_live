@@ -10993,6 +10993,48 @@ class WebController extends Controller
         ]);
     }
 
+    /**
+     * Affiliate Settings > "Send Test Report Now": emails the Auto Report straight away to the saved
+     * recipients, for the frequency chosen in the form (weekly = last week, monthly = this calendar
+     * month, quarterly = last calendar quarter), without changing the saved schedule or its send log.
+     */
+    public function sendAffiliateTestReport(Request $request)
+    {
+        $affiliateReportService = app(\App\Services\AffiliateReportSettingService::class);
+        $user = $this->affiliatePortalUser();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Please sign in again.'], 401);
+        }
+
+        $request->validate([
+            'frequency' => 'required|in:' . implode(',', \App\Services\AffiliateReportSettingService::FREQUENCIES),
+            'delivery_mode' => 'nullable|in:attachment,link',
+        ]);
+
+        $setting = $affiliateReportService->ensureReportSetting($user);
+        // In memory only: the saved schedule stays as it is.
+        $setting->frequency = $request->frequency;
+        if ($request->filled('delivery_mode')) {
+            $setting->delivery_mode = $request->delivery_mode;
+        }
+
+        try {
+            $result = app(\App\Services\ScheduledReportService::class)->dispatchForSetting($setting, 'test', null, true);
+        } catch (\Throwable $e) {
+            report($e);
+            return response()->json(['status' => false, 'message' => 'The test report could not be sent. Please try again later.'], 500);
+        }
+
+        $sent = in_array($result['status'] ?? '', ['sent', 'partial'], true);
+
+        return response()->json([
+            'status' => $sent,
+            'message' => $sent
+                ? 'Test report sent to ' . $setting->emails . '. Please check the inbox (and spam folder).'
+                : ($result['message'] ?? 'The test report could not be sent.'),
+        ], $sent ? 200 : 422);
+    }
+
     public function saveReportSettings(Request $request)
     {
         try {
@@ -11101,9 +11143,9 @@ class WebController extends Controller
             );
 
             $affiliateSchedule = [
-                'daily' => 'every day at 8:00 AM',
-                'weekly' => 'every Monday at 8:00 AM',
-                'monthly' => 'on the last day of each calendar month at 11:00 PM',
+                'weekly' => 'every Monday at 8:00 AM (last week)',
+                'monthly' => 'on the last day of each calendar month at 11:00 PM (that month)',
+                'quarterly' => 'on the 1st of January, April, July and October at 8:00 AM (the last 3 calendar months)',
             ][$request->frequency] ?? 'on the selected schedule';
 
             return response()->json([
