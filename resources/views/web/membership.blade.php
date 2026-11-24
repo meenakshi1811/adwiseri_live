@@ -23,13 +23,18 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             font-size:20px;
             /* font-weight: 500; */
         }
+        /* No banner: the title and the plan cards sit centred in the screen below the menu. */
+        .member-mainbox.page-center {
+            min-height: calc(100vh - var(--site-nav-height, 76px));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding-top: 28px;
+            padding-bottom: 28px;
+        }
     </style>
-  <div class="membership-page">
-        <img src="{{ asset('web_assets/images/membership.png') }}" width="1519" height="440" alt="">
-        <h1>Subscription</h1>
-    </div>
 
-    <div class="container-fluid member-mainbox mt-5 mb-5">
+    <div class="container-fluid member-mainbox page-center">
         <div class="plans-section-head text-center mb-4">
             <h1>@if(isset($user) && isset($myplan)) Upgrade Plan @else Price Plans @endif</h1>
             @if(!(isset($user) && isset($myplan)))

@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Auth;
 
 class AffiliateReportSettingService
 {
+    /** Frequencies an affiliate can choose for Auto Reports (monthly is the default). */
+    public const FREQUENCIES = ['daily', 'weekly', 'monthly'];
+
     public const MODULE_SUBSCRIBERS = 'affiliate_subscribers';
 
     public const MODULE_COMMISSIONS = 'affiliate_commissions';
@@ -87,7 +90,10 @@ class AffiliateReportSettingService
 
         if ($existing) {
             $existing->modules = self::DEFAULT_MODULES;
-            $existing->frequency = 'monthly';
+            // Keep the affiliate's chosen frequency (daily / weekly / monthly); monthly by default.
+            if (!in_array($existing->frequency, self::FREQUENCIES, true)) {
+                $existing->frequency = 'monthly';
+            }
 
             if (empty($existing->delivery_mode)) {
                 $existing->delivery_mode = 'attachment';

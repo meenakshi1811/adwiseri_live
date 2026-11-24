@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 440" role="img" aria-labelledby="t d">
+  <title id="t">A live adwiseri demo</title>
+  <desc id="d">A laptop showing an adwiseri dashboard, a live video call with a product specialist, and a calendar with the demo booked.</desc>
+  <defs>
+    <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8B7CF6"/>
+      <stop offset="1" stop-color="#4C3BB7"/>
+    </linearGradient>
+    <linearGradient id="frame" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3A2D9A"/>
+      <stop offset="1" stop-color="#211867"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#2A1F7A" flood-opacity=".18"/>
+    </filter>
+  </defs>
+
+  <!-- soft background shapes -->
+  <ellipse cx="270" cy="235" rx="235" ry="185" fill="#EEEBFF"/>
+  <circle cx="455" cy="330" r="38" fill="#F6E8FF"/>
+  <circle cx="70" cy="120" r="26" fill="#E6F7EE"/>
+
+  <!-- laptop -->
+  <g filter="url(#shadow)">
+    <rect x="112" y="96" width="300" height="196" rx="14" fill="url(#frame)"/>
+    <rect x="124" y="108" width="276" height="172" rx="6" fill="#FFFFFF"/>
+    <path d="M86 300 h352 l-22 22 h-308 z" fill="#C9C3F7"/>
+    <rect x="232" y="300" width="60" height="6" rx="3" fill="#A79EF0"/>
+  </g>
+
+  <!-- screen: app header and menu -->
+  <rect x="124" y="108" width="276" height="20" rx="6" fill="#695EEE"/>
+  <rect x="124" y="120" width="276" height="8" fill="#695EEE"/>
+  <circle cx="136" cy="118" r="3" fill="#FFFFFF" opacity=".8"/>
+  <rect x="146" y="115" width="44" height="6" rx="3" fill="#FFFFFF" opacity=".85"/>
+  <rect x="132" y="138" width="44" height="134" rx="5" fill="#F3F1FF"/>
+  <rect x="138" y="146" width="32" height="6" rx="3" fill="#695EEE"/>
+  <rect x="138" y="160" width="26" height="5" rx="2.5" fill="#C9C3F7"/>
+  <rect x="138" y="172" width="30" height="5" rx="2.5" fill="#C9C3F7"/>
+  <rect x="138" y="184" width="22" height="5" rx="2.5" fill="#C9C3F7"/>
+  <rect x="138" y="196" width="28" height="5" rx="2.5" fill="#C9C3F7"/>
+
+  <!-- screen: count cards -->
+  <rect x="184" y="138" width="62" height="30" rx="6" fill="#695EEE"/>
+  <rect x="190" y="145" width="22" height="5" rx="2.5" fill="#FFFFFF" opacity=".85"/>
+  <rect x="190" y="155" width="34" height="7" rx="3.5" fill="#FFFFFF"/>
+  <rect x="252" y="138" width="62" height="30" rx="6" fill="#D946EF"/>
+  <rect x="258" y="145" width="22" height="5" rx="2.5" fill="#FFFFFF" opacity=".85"/>
+  <rect x="258" y="155" width="30" height="7" rx="3.5" fill="#FFFFFF"/>
+  <rect x="320" y="138" width="72" height="30" rx="6" fill="#15803D"/>
+  <rect x="326" y="145" width="22" height="5" rx="2.5" fill="#FFFFFF" opacity=".85"/>
+  <rect x="326" y="155" width="38" height="7" rx="3.5" fill="#FFFFFF"/>
+
+  <!-- screen: bar chart -->
+  <rect x="184" y="176" width="130" height="96" rx="6" fill="#F8F7FF"/>
+  <rect x="198" y="226" width="14" height="36" rx="3" fill="url(#bar)"/>
+  <rect x="220" y="206" width="14" height="56" rx="3" fill="url(#bar)"/>
+  <rect x="242" y="216" width="14" height="46" rx="3" fill="url(#bar)"/>
+  <rect x="264" y="192" width="14" height="70" rx="3" fill="url(#bar)"/>
+  <rect x="286" y="200" width="14" height="62" rx="3" fill="#D946EF"/>
+  <rect x="192" y="262" width="114" height="2" fill="#D9D5FB"/>
+
+  <!-- screen: donut chart -->
+  <rect x="320" y="176" width="72" height="96" rx="6" fill="#F8F7FF"/>
+  <circle cx="356" cy="214" r="20" fill="none" stroke="#E4E0FD" stroke-width="10"/>
+  <circle cx="356" cy="214" r="20" fill="none" stroke="#695EEE" stroke-width="10" stroke-dasharray="70 126" transform="rotate(-90 356 214)"/>
+  <circle cx="356" cy="214" r="20" fill="none" stroke="#D946EF" stroke-width="10" stroke-dasharray="32 126" stroke-dashoffset="-70" transform="rotate(-90 356 214)"/>
+  <rect x="332" y="246" width="48" height="5" rx="2.5" fill="#C9C3F7"/>
+  <rect x="338" y="256" width="36" height="5" rx="2.5" fill="#E4E0FD"/>
+
+  <!-- live video call card -->
+  <g filter="url(#shadow)">
+    <rect x="336" y="34" width="152" height="104" rx="14" fill="#FFFFFF"/>
+  </g>
+  <rect x="346" y="44" width="132" height="62" rx="9" fill="#E9E6FF"/>
+  <circle cx="412" cy="66" r="12" fill="#8B5E3C"/>
+  <path d="M390 106 q22 -30 44 0 z" fill="#695EEE"/>
+  <rect x="353" y="50" width="40" height="13" rx="6.5" fill="#FFFFFF"/>
+  <circle cx="361" cy="56.5" r="3" fill="#EF4444"/>
+  <text x="368" y="60" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="700" fill="#2A1F7A">LIVE</text>
+  <circle cx="378" cy="122" r="7" fill="#EF4444"/>
+  <rect x="374.5" y="119" width="7" height="6" rx="1.5" fill="#FFFFFF"/>
+  <circle cx="400" cy="122" r="7" fill="#695EEE"/>
+  <rect x="397" y="118.5" width="6" height="7" rx="3" fill="#FFFFFF"/>
+  <circle cx="422" cy="122" r="7" fill="#695EEE"/>
+  <rect x="418.5" y="119" width="7" height="6" rx="1" fill="#FFFFFF"/>
+  <circle cx="444" cy="122" r="7" fill="#E9E6FF"/>
+  <circle cx="441" cy="122" r="1.2" fill="#695EEE"/><circle cx="444" cy="122" r="1.2" fill="#695EEE"/><circle cx="447" cy="122" r="1.2" fill="#695EEE"/>
+
+  <!-- calendar card: demo booked -->
+  <g filter="url(#shadow)">
+    <rect x="34" y="262" width="150" height="128" rx="14" fill="#FFFFFF"/>
+  </g>
+  <path d="M34 276 a14 14 0 0 1 14 -14 h122 a14 14 0 0 1 14 14 v12 h-150 z" fill="#695EEE"/>
+  <text x="48" y="281" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" fill="#FFFFFF">Demo booked</text>
+  <g fill="#EEEBFF">
+    <rect x="46" y="298" width="18" height="16" rx="4"/><rect x="70" y="298" width="18" height="16" rx="4"/><rect x="94" y="298" width="18" height="16" rx="4"/><rect x="118" y="298" width="18" height="16" rx="4"/><rect x="142" y="298" width="18" height="16" rx="4"/>
+    <rect x="46" y="320" width="18" height="16" rx="4"/><rect x="70" y="320" width="18" height="16" rx="4"/><rect x="118" y="320" width="18" height="16" rx="4"/><rect x="142" y="320" width="18" height="16" rx="4"/>
+    <rect x="46" y="342" width="18" height="16" rx="4"/><rect x="70" y="342" width="18" height="16" rx="4"/><rect x="94" y="342" width="18" height="16" rx="4"/><rect x="118" y="342" width="18" height="16" rx="4"/><rect x="142" y="342" width="18" height="16" rx="4"/>
+  </g>
+  <rect x="94" y="320" width="18" height="16" rx="4" fill="#15803D"/>
+  <path d="M98 328 l3.5 3.5 l6 -7" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="46" y="366" width="74" height="7" rx="3.5" fill="#C9C3F7"/>
+  <rect x="46" y="378" width="50" height="6" rx="3" fill="#E4E0FD"/>
+
+  <!-- presenter -->
+  <g>
+    <circle cx="470" cy="214" r="15" fill="#8B5E3C"/>
+    <path d="M455 205 q15 -18 30 0 q-2 -6 -15 -9 q-13 3 -15 9 z" fill="#2A1F7A"/>
+    <path d="M446 300 q0 -62 24 -62 q24 0 24 62 z" fill="#D946EF"/>
+    <path d="M452 250 l-22 -22" stroke="#8B5E3C" stroke-width="7" stroke-linecap="round"/>
+    <rect x="452" y="300" width="9" height="46" rx="4" fill="#2A1F7A"/>
+    <rect x="479" y="300" width="9" height="46" rx="4" fill="#2A1F7A"/>
+    <path d="M446 346 h17 v6 h-21 z M477 346 h17 v6 h-21 z" fill="#211867"/>
+  </g>
+
+  <!-- small details: check badges and sparkles -->
+  <circle cx="96" cy="196" r="15" fill="#FFFFFF" filter="url(#shadow)"/>
+  <path d="M89 196 l5 5 l9 -10" fill="none" stroke="#15803D" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="214" cy="56" r="12" fill="#FFFFFF" filter="url(#shadow)"/>
+  <path d="M208 56 h12 M214 50 v12" stroke="#695EEE" stroke-width="3" stroke-linecap="round"/>
+  <path d="M290 54 l3 7 l7 3 l-7 3 l-3 7 l-3 -7 l-7 -3 l7 -3 z" fill="#D946EF"/>
+  <path d="M60 236 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z" fill="#695EEE"/>
+  <path d="M232 380 l2.5 6 l6 2.5 l-6 2.5 l-2.5 6 l-2.5 -6 l-6 -2.5 l6 -2.5 z" fill="#8B7CF6"/>
+</svg>

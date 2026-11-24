@@ -95,7 +95,7 @@
                     </td>
 
                     </td>
-                    <td class="p-1">{{ $ref->type }}</td>
+                    <td class="p-1">{{ $ref->type ?: \App\Services\AffiliateCommissionLedger::SIGNUP_BONUS_TYPE }}</td>
                     <td class="p-1">{{ $ref->previous_balance }}</td>
                     <td class="p-1">{{ $ref->wallet_balance }}</td>
                     <td class="p-1">{{ date("d-m-Y H:i:s", strtotime($ref->created_at)) }}</td>

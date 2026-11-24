@@ -7,26 +7,19 @@
         }
     </style>
     <style>
-    .banner {
-    width: 100%;
-    /* Same compact height as the Price Plans banner, so the content starts above the fold. */
-    height: clamp(120px, 18vh, 200px);
-    overflow: hidden;
+    /* No banner: the title and the feature cards sit centred in the screen below the menu. */
+    .page-feat.page-center {
+    min-height: calc(100vh - var(--site-nav-height, 76px));
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 28px;
+    padding-bottom: 28px;
     }
-
-    .banner img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;     /* Fill area without distortion */
-    object-position: center; /* Center the image */
-    }
-
+    .page-feat.page-center .top-feat { margin-top: 20px !important; }
 </style>
-  <div class="featurebanner mb-4 banner">
-    <img src="{{ asset('web_assets/images/services-banner-1.jpg') }}" width="100%" height="auto" alt="">
-  </div>
 
-  <div class="container page-feat mb-5 pt-2">
+  <div class="container page-feat page-center">
     <h1 class="text-center">Features</h1>
     <div class="row mt-4 top-feat">
       @foreach($features as $feature)

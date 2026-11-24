@@ -84,6 +84,7 @@ class OfferBenefitService
         'one_off_loyalty',
         'Referral Commission',
         'Renewal Commission',
+        'Sign-up Bonus',
         'Wallet Transaction',
     ];
 

@@ -9,7 +9,7 @@
                 <form id="loginform" class="login-box" method="POST" action="{{ route('affiliate.storeLogin') }}">
                     @csrf
                     <input type="hidden" name="local_time" class="localtime" />
-                    <h3 class="mb-5 text-center">Affiliate  Login</h3>
+                    <h3 class="mb-5 text-center">Affiliate Login</h3>
 
 
                     <div class="log-img mb-5">

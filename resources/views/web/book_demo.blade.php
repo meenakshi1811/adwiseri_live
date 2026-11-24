@@ -1,9 +1,24 @@
 @extends('web.layout.main')
 
+@push('css')
+<style>
+    /* Get A Demo: illustration beside the form on desktop. */
+    .demo-request-page { max-width: 1180px; }
+    .demo-request-art { justify-content: center; align-items: center; }
+    .demo-request-art img { width: 100%; max-width: 480px; height: auto; display: block; }
+    .demo-request-page .register-box { margin-top: 0 !important; }
+</style>
+@endpush
+
 @section('main-section')
-<div class="container form-page">
-    <div class="row justify-content-center">
-        <div class="col-lg-8 col-md-10 col-sm-12">
+{{-- Illustration on the left, the same form (narrower) on the right; on tablets and phones the
+     illustration is hidden and the form takes the full width as before. --}}
+<div class="container form-page demo-request-page">
+    <div class="row justify-content-center align-items-center g-4">
+        <div class="col-lg-5 d-none d-lg-flex demo-request-art" aria-hidden="true">
+            <img src="{{ asset('web_assets/images/demo-illustration.svg') }}" alt="" width="520" height="440">
+        </div>
+        <div class="col-lg-7 col-md-10 col-sm-12">
             <form id="registration_form" class="register-box login-box mt-5" method="POST" action="{{ route('demo_post') }}">
                 @csrf
                 <h3 class="mb-2 mt-4 text-center">Request A Demo</h3>

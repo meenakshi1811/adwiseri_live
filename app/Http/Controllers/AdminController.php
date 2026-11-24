@@ -4873,13 +4873,13 @@ class AdminController extends Controller
         $affiliate = Affiliates::with('user')->find($affiliate);
 
         $user = $affiliate->user->referral;
-        $ace = AffiliateCommissionEarnt::where('referral_code', $user)
-        ->first();
-        if(empty($ace)){
-            $ace['total_earned'] = $affiliate->user->wallet;
-             $ace['paid_amount'] = 0;
-
-        }
+        // Figures for the Add Payout dialog, from the ledger (the dialog shows total - paid as available).
+        $totals = app(\App\Services\AffiliateCommissionLedger::class)->totals($user);
+        $ace = [
+            'total_earned' => $totals['earned'],
+            'paid_amount' => $totals['paid'],
+            'pending_amount' => $totals['pending'],
+        ];
         return response()->json(['data' => $ace]);
     }
     public function affiliateCommissionPaid(Request $request)
@@ -4892,38 +4892,18 @@ class AdminController extends Controller
         $user = $affiliate->user->referral;
 
 
-        // dd($affiliate->user->update(['wallet',($affiliate->user->wallet - $commissionPay)]));
-        $ace = AffiliateCommissionEarnt::where('referral_code', $user)->first();
+        // Payouts can never exceed the commission still pending, worked out from the ledger
+        // (commissions and sign-up bonuses earned, minus payouts already made).
+        $ledger = app(\App\Services\AffiliateCommissionLedger::class);
+        $pending = $ledger->totals($user)['pending'];
+        $commissionPay = round((float) $commissionPay, 2);
 
-        if (isset($ace)) {
-
-            if ( $commissionPay > $ace->pending_amount   ) {
-
-                return redirect()->back()->withErrors(['msg' => 'Trying to pay more than commission earned']);
-            }
-
-
-            // $affiliate->user->update(['wallet',($affiliate->user->wallet - $commissionPay)]);
-            $ace->paid_amount += $commissionPay;
-            $ace->pending_amount -=  $commissionPay;
-            $ace->last_paid_at = date("Y-m-d H:m:s");
-            $ace->save();
-
-
-            // return redirect()->back()->with(['msg' => 'Commission Paid']);
-        } else {
-
-            $ace = new AffiliateCommissionEarnt();
-            $ace->total_earned = $affiliate->user->wallet;
-            $ace->referral_code =  $affiliate->user->referral;
-            $ace->paid_amount = $commissionPay;
-            $ace->pending_amount = $affiliate->user->wallet - $commissionPay;
-            $ace->last_paid_at = date("Y-m-d H:m:s");
-            $ace->save();
-
-
+        if ($commissionPay <= 0) {
+            return redirect()->back()->withErrors(['msg' => 'Enter an amount to pay.']);
         }
-        // dd($affiliate->user);
+        if ($commissionPay > $pending + 0.00001) {
+            return redirect()->back()->withErrors(['msg' => 'Trying to pay more than the pending commission ($ ' . number_format($pending, 2) . ').']);
+        }
 
             $save_referral = new Referrals();
             $save_referral->referral_code =  $affiliate->user->referral;
@@ -4937,6 +4917,7 @@ class AdminController extends Controller
             $save_referral->save();
             $affiliate->user->wallet -= $commissionPay;
             $affiliate->user->save(); // Save the updated wallet value
+            $ledger->sync($user, true);
             return redirect()->back()->with(['msg' => 'Commission Paid']);
 
     }
@@ -4977,8 +4958,9 @@ class AdminController extends Controller
                     return Used_referrals::where('referral_code', $row->referral)->sum('commission_earnt');
                 })
                 ->addColumn('totalCommissionEarnt', function ($row) {
-                    $ace = AffiliateCommissionEarnt::where('referral_code', $row->referral)->first();
-                    return !empty($ace) ? '$ ' . $ace->total_earned . ' / $ ' . $ace->paid_amount : '0';
+                    // Earned / paid from the ledger (same figures as the affiliate's Commissions page).
+                    $totals = app(\App\Services\AffiliateCommissionLedger::class)->totals($row->referral);
+                    return '$ ' . number_format($totals['earned'], 2) . ' / $ ' . number_format($totals['paid'], 2);
                 })
                 ->addColumn('transactionDate', function ($row) {
                     $transaction = AffiliateCommissionEarnt::where('referral_code', $row->referral)->first();

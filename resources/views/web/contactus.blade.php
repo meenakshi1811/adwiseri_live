@@ -3,27 +3,37 @@
 @section('main-section')
 
 <style>
-    /* Short banner so the whole form fits on screen without scrolling. */
-    .banner {
-    width: 100%;
-    height: clamp(100px, 14vh, 180px);
-    overflow: hidden;
+    /* Contact form in a card like the price plan tables: a solid purple header band with the title,
+       the fields below. No banner image, so the card and the footer fit on one screen. */
+    /* Normal spacing (not full-screen centring), so the footer follows right after the card. */
+    .contact-page {
+    padding-top: 32px;
+    padding-bottom: 40px;
     }
-
-    .banner img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;     /* Fill area without distortion */
-    object-position: center; /* Center the image */
-    }
-
-    /* Compact single-column form so it fits on screen with the banner. */
-    .contact-form h1 {
-    font-size: clamp(26px, 3vw, 34px);
+    /* This page only: the footer follows the card without the usual 96px gap. */
+    .ds-footer-wrap {
+    margin-top: 0 !important;
     }
     .contact-form .form-box {
-    max-width: 600px;
-    padding: 22px 30px;
+    max-width: 720px;
+    padding: 0 30px 22px;
+    overflow: hidden;
+    }
+    .contact-form .contact-card-head {
+    margin: 0 -30px 20px;
+    padding: 18px 24px 16px;
+    background: var(--ds-grad-btn, linear-gradient(135deg, #7468F2 0%, #695EEE 45%, #4C3BB7 100%));
+    text-align: center;
+    }
+    .contact-form .contact-card-head h1 {
+    margin: 0;
+    font-size: clamp(24px, 2.6vw, 30px);
+    color: #fff !important;
+    }
+    .contact-form .contact-card-head p {
+    margin: 4px 0 0;
+    font-size: 14px;
+    color: rgba(255, 255, 255, .88);
     }
     .contact-form .form-box .form-control {
     padding: 8px 14px;
@@ -33,26 +43,25 @@
     }
 </style>
 
-  <div class="contactbanner banner">
-    <img src="{{ asset('admin_assets/contactus/'.$contact->banner) }}">
-  </div>
-
-  <div class="container contact-form mb-5">
-    <h1 class="mb-2 mt-3">Contact Us</h1>
+  <div class="container contact-form contact-page">
     <div class="row contact-row">
-        <div class="col-md-8 col-lg-6 mx-auto form-box">
+        <div class="col-md-10 col-lg-8 col-xl-7 mx-auto form-box">
+            <div class="contact-card-head">
+                <h1>Get in Touch</h1>
+                <p>Send us a message and our team will get back to you.</p>
+            </div>
             <form method="post" action="{{ route('post_contact') }}" id="contact_us">
                 @csrf
                 <input type="hidden" name="local_time" class="localtime" />
 
                 <div class="row g-2 mb-2">
-                    <div class="col-12">
+                    <div class="col-md-6">
                         <input type="text" minlength="3" maxlength="100" name="name"
                                @if($user) value="{{$user->name}}" @endif
                                class="form-control"
                                placeholder="Enter Your Name" required>
                     </div>
-                    <div class="col-12">
+                    <div class="col-md-6">
                         <input type="tel" name="phone"
                                @if($user) value="{{$user->phone}}" @endif
                                class="form-control"
@@ -61,7 +70,7 @@
                 </div>
 
                 <div class="row g-2 mb-2">
-                    <div class="col-12">
+                    <div class="col-md-6">
                         <select style="font-size: 14px;" name="country"
                                 class="form-control form-select" required>
                             <option value="">Select Your Country</option>
@@ -72,7 +81,7 @@
                             ])
                         </select>
                     </div>
-                    <div class="col-12">
+                    <div class="col-md-6">
                         <input type="text" minlength="3" maxlength="100" name="city"
                                @if($user) value="{{$user->city}}" @endif
                                class="form-control"

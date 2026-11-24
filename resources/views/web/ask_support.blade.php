@@ -3,9 +3,9 @@
 @section('main-section')
 
         <div class="col-lg-10 column-client">
-            <h3 class="text-primary px-2">Raise Support Ticket</h3>
+            <h3 class="text-primary text-center px-2">Raise Support Ticket</h3>
             <div class="col">
-                <form id="registration_form" class="register-box login-box" method="POST" action="{{ route('ask_new_question') }}" enctype="multipart/form-data">
+                <form id="registration_form" class="register-box login-box support-ticket-form" method="POST" action="{{ route('ask_new_question') }}" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="local_time" class="localtime" />
                     <div class="row">
@@ -71,11 +71,8 @@
                                 </span>
                             @enderror
                         </div>
-                        <div class="col-md-4 p-1">
-                            <!-- <label>Attach File</label> -->
-                        </div>
-                        <div class="col-md-8 text-left p-1">
-                            <button type="submit" class="form-control btn btn-primary" style="width: fit-content;">Submit</button>
+                        <div class="col-12 p-1 support-ticket-actions">
+                            <button type="submit" class="btn btn-primary btn-fit btn-fit-sm-full">Submit</button>
                         </div>
                     </div>
                 </form>

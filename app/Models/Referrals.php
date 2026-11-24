@@ -68,7 +68,13 @@ class Referrals extends Model
         return $query->where(function ($inner) {
             $inner->whereIn('type', OfferBenefitService::walletTableReferralTypes())
                 ->orWhere('type', 'like', 'Plan Upgrade %')
-                ->orWhere('type', 'like', 'Plan Renewal %');
+                ->orWhere('type', 'like', 'Plan Renewal %')
+                // Older sign-up bonus credits were saved without a type; they did change the balance.
+                ->orWhere(function ($untyped) {
+                    $untyped->where(function ($empty) {
+                        $empty->whereNull('type')->orWhere('type', '');
+                    })->where('amount_added', '>', 0);
+                });
         });
     }
 }

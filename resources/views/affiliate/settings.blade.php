@@ -2,16 +2,24 @@
 @section('main-section')
 
 <div class="col-lg-10 userdash-client column-client">
-    <div class="client-btn d-flex justify-content-between mb-4">
-        <h3>Settings</h3>
+    <div class="client-btn d-flex mb-4">
+        <h3 class="text-primary text-center flex-grow-1 m-0">Settings</h3>
     </div>
 
+    @php
+        $selectedFrequency = old('frequency', optional($reportSetting)->frequency ?: 'monthly');
+        $frequencyOptions = [
+            'daily' => 'Daily (every day, 8:00 AM)',
+            'weekly' => 'Weekly (every Monday, 8:00 AM)',
+            'monthly' => 'Monthly (last day of each calendar month, 11:00 PM)',
+        ];
+    @endphp
     <div class="profile-detail">
-        <div class="col-lg-10 profile-data" style="border: 1px solid lightgrey;">
+        <div class="col-lg-10 mx-auto profile-data" style="border: 1px solid lightgrey;">
             <div class="row p-3 m-0">
                 <p class="m-0" style="font-size:18px;font-weight:550;">Auto Reports</p>
                 <small class="text-muted mt-1">
-                    A monthly PDF covering Subscribers Referred, Commissions, and Wallet activity is emailed on the last day of each calendar month at 11:00 PM in your account timezone (even when counts are zero).
+                    A PDF covering Subscribers Referred, Commissions, and Wallet activity is emailed at the frequency you choose below, in your account timezone (even when counts are zero).
                 </small>
             </div>
 
@@ -25,7 +33,7 @@
                 @endphp
 
                 <div class="mb-3">
-                    <label class="fw-semibold d-block mb-2">Report modules (included every month)</label>
+                    <label class="fw-semibold d-block mb-2">Report modules (included in every report)</label>
                     @foreach ($reportModules as $moduleKey => $moduleLabel)
                         <div class="form-check">
                             <input type="checkbox" name="modules[]" value="{{ $moduleKey }}" class="form-check-input"
@@ -36,12 +44,14 @@
                     @endforeach
                 </div>
 
-                <input type="hidden" name="frequency" value="monthly">
-
                 <div class="row mb-3 align-items-center">
-                    <div class="col-md-4"><label>Frequency</label></div>
+                    <div class="col-md-4"><label for="affiliateReportFrequency">Frequency</label></div>
                     <div class="col-md-8">
-                        <input type="text" class="form-control" value="Monthly (last day of each calendar month, 11:00 PM)" readonly>
+                        <select name="frequency" id="affiliateReportFrequency" class="form-control form-select">
+                            @foreach ($frequencyOptions as $value => $label)
+                                <option value="{{ $value }}" {{ $selectedFrequency === $value ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
 

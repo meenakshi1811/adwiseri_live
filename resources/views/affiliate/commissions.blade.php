@@ -44,6 +44,7 @@
                         <tr>
                             <th class="p-1 text-center">Commission_ID</th>
                             <th class="p-1 text-center">Subscriber (Sub_ID)</th>
+                            <th class="p-1 text-center">Type</th>
                             <th class="p-1 text-center">Plan_Name</th>
                             <th class="p-1 text-center">Purchase (USD)</th>
                             <th class="p-1 text-center">Commission (USD)</th>
@@ -57,21 +58,22 @@
                             <tr>
                                 <td class="p-1 text-center">{{ $commission->id }}</td>
                                 <td class="p-1">{{ $commission->user_name }} ({{ $commission->userid }})</td>
+                                <td class="p-1">{{ \App\Services\AffiliateCommissionLedger::earningLabel($commission->type) }}</td>
                                 <td class="p-1">{{ $commission->user->membership ?? 'N/A' }}</td>
-                                <td class="p-1">{{ $commission->total_amount }}</td>
-                                <td class="p-1">{{ $commission->amount_added }}</td>
+                                <td class="p-1">{{ \App\Services\AffiliateCommissionLedger::earningLabel($commission->type) === \App\Services\AffiliateCommissionLedger::SIGNUP_BONUS_TYPE ? '—' : number_format((float) $commission->total_amount, 2) }}</td>
+                                <td class="p-1">{{ number_format((float) $commission->amount_added, 2) }}</td>
                                 <td class="p-1">{{ \Carbon\Carbon::parse($commission->created_at)->format('d-m-Y') }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="p-3 text-center text-muted">No commissions earned yet.</td>
+                                <td colspan="7" class="p-3 text-center text-muted">No commissions earned yet.</td>
                             </tr>
                         @endforelse
                     </tbody>
                     @if($commissions->isNotEmpty())
                         <tfoot>
                             <tr>
-                                <td colspan="4" class="p-1 text-end"><strong>Total Commission:</strong></td>
+                                <td colspan="5" class="p-1 text-end"><strong>Total Commission:</strong></td>
                                 <td class="p-1"><strong>{{ number_format($runningTotal, 2) }}</strong></td>
                                 <td></td>
                             </tr>

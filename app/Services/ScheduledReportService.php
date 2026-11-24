@@ -667,15 +667,13 @@ class ScheduledReportService
         }
 
         if (in_array(AffiliateReportSettingService::MODULE_COMMISSIONS, $modules, true)) {
-            $commissionQuery = Referrals::query()
+            // Same rows as the affiliate's Commissions page (purchase / renewal commissions and sign-up bonuses).
+            $commissionQuery = app(AffiliateCommissionLedger::class)->earningsQuery($referralCode)
                 ->whereBetween('created_at', [$startDate, $endDate])
-                ->whereIn('type', ['Referral Commission', RenewalCommissionService::TYPE])
                 ->select('id', 'user_name', 'type', 'amount_added', 'total_amount', 'created_at')
                 ->orderByDesc('created_at');
 
-            if ($referralCode !== '') {
-                $commissionQuery->where('referral_code', $referralCode);
-            } else {
+            if ($referralCode === '') {
                 $commissionQuery->whereRaw('1 = 0');
             }
 

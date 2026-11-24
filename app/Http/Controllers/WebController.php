@@ -1222,6 +1222,8 @@ class WebController extends Controller
             $save_referral->amount_added = 10;
             $save_referral->previous_balance = $wallet;
             $save_referral->wallet_balance = $wallet + 10;
+            // Typed, so it shows in the Commissions list and the wallet history.
+            $save_referral->type = \App\Services\AffiliateCommissionLedger::SIGNUP_BONUS_TYPE;
             $save_referral->save();
 
             $use_referral = new Used_referrals();
@@ -1230,18 +1232,8 @@ class WebController extends Controller
             $use_referral->commission_earnt = 10;
             $use_referral->save();
 
-            $affiliate_commission = AffiliateCommissionEarnt::where('referral_code', $request['referral'])->first();
-            if ($affiliate_commission) {
-
-                $affiliate_commission->total_earned += 10;
-                $affiliate_commission->save();
-            } else {
-
-                $use_referral = new AffiliateCommissionEarnt();
-                $use_referral->referral_code = $request['referral'];
-                $use_referral->total_earned = 10;
-                $use_referral->save();
-            }
+            // Earned / paid / pending follow the ledger rows (this used to raise "earned" only).
+            app(\App\Services\AffiliateCommissionLedger::class)->sync($request['referral']);
         }
         $email = $data->email;
         $welcomedata = new \stdClass();
@@ -1464,6 +1456,9 @@ class WebController extends Controller
        
         $category = $request['category'];
         
+            // Applies the latest list update once (rename + new entries), even if its migration was not run.
+            app(\App\Services\SubscriberSubCategoryCatalog::class)->ensureCurrent();
+
             // "Other" always comes last, also after sub-categories added later.
             $sub_categories = Subscriber_Sub_Categories::where('status','Active')->where('category_name', '=', $category)
                 ->orderByRaw("CASE WHEN sub_category_name = 'Other' THEN 1 ELSE 0 END")
@@ -8267,20 +8262,18 @@ class WebController extends Controller
         }
         $page = 'commissions';
 
-        $commissions = Referrals::with('user')
-            ->where('referral_code', $user->referral)
-            ->whereIn('type', ['Referral Commission', \App\Services\RenewalCommissionService::TYPE])
+        // Commission list and totals both come from the ledger rows, so they always agree
+        // (purchase and renewal commissions and sign-up bonuses; payouts for "Paid").
+        $ledger = app(\App\Services\AffiliateCommissionLedger::class);
+        $commissions = $ledger->earningsQuery($user->referral)
+            ->with('user')
             ->orderByDesc('created_at')
             ->get();
 
-        $commissionSummary = AffiliateCommissionEarnt::where('referral_code', $user->referral)->first();
-        $totalEarned = $commissionSummary
-            ? (float) $commissionSummary->total_earned
-            : (float) $commissions->sum('amount_added');
-        $paidAmount = $commissionSummary ? (float) $commissionSummary->paid_amount : 0;
-        $pendingAmount = $commissionSummary
-            ? (float) $commissionSummary->pending_amount
-            : max($totalEarned - $paidAmount, 0);
+        $totals = $ledger->totals($user->referral);
+        $totalEarned = $totals['earned'];
+        $paidAmount = $totals['paid'];
+        $pendingAmount = $totals['pending'];
 
         return view('affiliate.commissions', compact(
             'user',
@@ -8311,15 +8304,12 @@ class WebController extends Controller
             ? User::where('user_type', 'Subscriber')->where('referral_code', $referralCode)->get()
             : collect();
 
-        $commissionTypes = ['Referral Commission', \App\Services\RenewalCommissionService::TYPE];
-        $commissions = $referralCode !== ''
-            ? Referrals::where('referral_code', $referralCode)->whereIn('type', $commissionTypes)->get()
-            : collect();
-
-        // Same figures as the Commissions and Wallet pages.
-        $commissionSummary = $referralCode !== '' ? AffiliateCommissionEarnt::where('referral_code', $referralCode)->first() : null;
-        $totalCommission = $commissionSummary ? (float) $commissionSummary->total_earned : (float) $commissions->sum('amount_added');
-        $totalReferrals = $commissions->where('type', 'Referral Commission')->count();
+        // Same figures as the Commissions page (worked out from the ledger rows).
+        $ledger = app(\App\Services\AffiliateCommissionLedger::class);
+        $commissions = $referralCode !== '' ? $ledger->earningsQuery($referralCode)->get() : collect();
+        $totalCommission = $ledger->totals($referralCode)['earned'];
+        // One referral per referred subscriber who brought a commission or sign-up bonus.
+        $totalReferrals = $commissions->pluck('userid')->filter()->unique()->count();
         $wallet = (float) ($user->wallet ?? 0);
 
         $countBy = function ($items, callable $key) {
@@ -11034,7 +11024,7 @@ class WebController extends Controller
             }
 
             $frequencyRule = $isAffiliate
-                ? 'required|in:monthly'
+                ? 'required|in:' . implode(',', \App\Services\AffiliateReportSettingService::FREQUENCIES)
                 : 'required|in:daily,weekly,monthly,quarterly';
 
             $request->validate([
@@ -11104,16 +11094,22 @@ class WebController extends Controller
                 ['user_id' => $user->id],
                 [
                     'modules' => $modules,
-                    'frequency' => $isAffiliate ? 'monthly' : $request->frequency,
+                    'frequency' => $request->frequency,
                     'delivery_mode' => $request->delivery_mode,
                     'emails' => $normalizedEmails
                 ]
             );
 
+            $affiliateSchedule = [
+                'daily' => 'every day at 8:00 AM',
+                'weekly' => 'every Monday at 8:00 AM',
+                'monthly' => 'on the last day of each calendar month at 11:00 PM',
+            ][$request->frequency] ?? 'on the selected schedule';
+
             return response()->json([
                 'status' => true,
                 'message' => $isAffiliate
-                    ? 'Affiliate report settings saved. Your Subscribers, Commissions, and Wallet summary will be emailed on the last day of each calendar month.'
+                    ? 'Affiliate report settings saved. Your Subscribers, Commissions, and Wallet summary will be emailed ' . $affiliateSchedule . '.'
                     : 'Report settings saved successfully. Reports will be sent according to the selected schedule.',
                 'data' => $setting
             ]);

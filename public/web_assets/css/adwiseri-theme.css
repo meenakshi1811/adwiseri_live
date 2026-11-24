@@ -138,6 +138,15 @@ a:hover { color: var(--ds-primary); }
 .btn-sm { border-radius: var(--ds-r-xs); }
 .btn-lg { border-radius: 12px; }
 
+/* Support ticket form (Ask Support / Raise Support Ticket): a centred block with each label right next to
+   its field, and the Submit button centred under the fields. */
+.support-ticket-form { max-width: 780px; margin-left: auto; margin-right: auto; }
+.support-ticket-form label { margin: 0; }
+@media (min-width: 768px) {
+  .support-ticket-form .row > .col-md-4 { text-align: right; padding-right: 16px !important; padding-top: 10px !important; }
+}
+.support-ticket-form .support-ticket-actions { display: flex; justify-content: center; margin-top: 12px; }
+
 /* Button width standard: a button is as wide as its label plus padding, with a sensible minimum,
    never stretched to fill its column (Download PDF, Export, Submit, Apply, Upload ...).
    .btn-fit-sm-full lets a main form button take the full width on phones, where that is easier to tap. */
@@ -549,18 +558,20 @@ button.dt-button:hover { border-color: rgba(105, 94, 238, .45) !important; color
   border-radius: var(--ds-r-lg) !important;
   box-shadow: var(--ds-shadow) !important;
 }
+/* Form titles (Login, Request A Demo, Affiliate registration / login, Forgot Password ...) in the theme
+   colour, like the module titles inside the app. */
 .form-box h1, .form-box h2, .form-box h3,
 .login-box h1, .login-box h2, .login-box h3,
-.loginouter-box h1, .loginouter-box h2, .loginouter-box h3 { color: var(--ds-ink); letter-spacing: -.03em; }
+.loginouter-box h1, .loginouter-box h2, .loginouter-box h3 { color: var(--ds-primary); letter-spacing: -.03em; }
 
-/* Page titles on public inner pages */
+/* Page titles on public inner pages (Features, Price Plans ...) in the theme colour. */
 .page-feat h1,
 .contact-form h1,
 .member-mainbox.plans-section h1,
 .plans-section-head h1 {
   font-family: var(--ds-font-head) !important;
   font-weight: 800 !important;
-  color: var(--ds-ink) !important;
+  color: var(--ds-primary) !important;
   letter-spacing: -.035em;
 }
 
@@ -575,6 +586,24 @@ button.dt-button:hover { border-color: rgba(105, 94, 238, .45) !important; color
 .features-card:hover { transform: translateY(-4px); box-shadow: 0 30px 60px -28px rgba(76, 59, 183, .38); border-color: rgba(105, 94, 238, .35); }
 .features-card h4 { font-family: var(--ds-font-head) !important; color: var(--ds-ink); font-weight: 700; }
 .features-card p { font-size: 14.5px !important; line-height: 1.65 !important; color: var(--ds-text); }
+
+/* Features and Price Plans pages (no banner, content centred): compact cards so the title and all
+   the cards fit one laptop screen (e.g. 1366x768) without scrolling. */
+@media (min-width: 992px) {
+  .page-center .plans-section-head { margin-bottom: 14px !important; }
+  .page-center .plans-section-head h1 { font-size: 34px !important; margin-bottom: 2px !important; }
+  .page-center .plans-section-sub { font-size: 14.5px; margin-bottom: 0; }
+  .page-center .plan-card { padding: 16px 16px 14px !important; }
+  .page-center .plan-card .plan-title { margin: -16px -16px 8px !important; padding: 12px 12px 10px !important; font-size: 17px !important; }
+  .page-center .plan-card .plan-title .plan-title-price { font-size: 28px; }
+  .page-center .plan-features li { padding: 3px 2px !important; font-size: 13px; }
+  .page-center .subscribe-btn { margin-top: 10px !important; padding-top: 7px !important; padding-bottom: 7px !important; }
+
+  .page-center .features-card { flex-direction: column; padding: 16px 18px !important; }
+  .page-center .features-card img { width: 44px !important; height: 44px !important; object-fit: contain; }
+  .page-center .features-card h4 { font-size: 16.5px !important; line-height: 1.3 !important; margin: 10px 0 6px !important; padding: 0 !important; }
+  .page-center .features-card p { font-size: 13.5px !important; line-height: 1.5 !important; margin: 0 !important; padding: 0 !important; }
+}
 
 /* Price plan cards (Price Plans page, membership pages) — same look as the homepage plans */
 .plans-section { background: linear-gradient(180deg, #fff 0%, var(--ds-bg-soft) 100%); }

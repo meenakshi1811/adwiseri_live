@@ -580,14 +580,6 @@ class StripeController extends Controller
         if(isset($find_referral)){
             $totalCommission = $find_referral->affiliateTotalCommission->sum('amount_added');
             $ref_amount =  commission_amount($totalCommission,$amount,$find_referral) ;
-            $ace = AffiliateCommissionEarnt::where('referral_code', $data['referral'])->first();
-            if (!empty($ace)) {
-                $ace->total_earned +=  $ref_amount;
-                $ace->pending_amount +=  $ref_amount;
-                $ace->last_paid_at = date("Y-m-d H:m:s");
-                $ace->save();
-
-            }
             $wallet = $find_referral->wallet;
             $find_referral->wallet = $wallet + $ref_amount;
             $find_referral->save();
@@ -601,6 +593,8 @@ class StripeController extends Controller
             $save_referral->wallet_balance = $wallet + $ref_amount;
             $save_referral->type = 'Referral Commission';
             $save_referral->save();
+            // Earned / paid / pending follow the ledger rows (previously only an existing summary was updated).
+            app(\App\Services\AffiliateCommissionLedger::class)->sync($data['referral']);
             $use_referral = new Used_referrals();
             $use_referral->referral_code = $data['referral'];
             $use_referral->subscriber_id = $user->id;

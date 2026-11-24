@@ -72,17 +72,11 @@ class RenewalCommissionService
             return null;
         }
 
-        $ace = AffiliateCommissionEarnt::firstOrNew(['referral_code' => $affiliate->referral]);
-        $ace->total_earned = (float) ($ace->total_earned ?? 0) + $commissionAmount;
-        $ace->pending_amount = (float) ($ace->pending_amount ?? 0) + $commissionAmount;
-        $ace->last_paid_at = now()->format('Y-m-d H:i:s');
-        $ace->save();
-
         $previousBalance = (float) $affiliate->wallet;
         $affiliate->wallet = $previousBalance + $commissionAmount;
         $affiliate->save();
 
-        return Referrals::create([
+        $row = Referrals::create([
             'referral_code' => $affiliate->referral,
             'userid' => $subscriber->id,
             'user_name' => $subscriber->name,
@@ -92,5 +86,10 @@ class RenewalCommissionService
             'wallet_balance' => $affiliate->wallet,
             'type' => self::TYPE,
         ]);
+
+        // Earned / paid / pending follow the ledger rows.
+        app(AffiliateCommissionLedger::class)->sync($affiliate->referral);
+
+        return $row;
     }
 }
