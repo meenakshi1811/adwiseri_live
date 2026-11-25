@@ -39,7 +39,7 @@
                         </tr>
                         </thead>
                         <tbody>
-                            @forelse($emailSubscribers as $key => $subscriber)
+                            @foreach($emailSubscribers as $key => $subscriber)
                             <tr>
                                 <td class="text-center">{{ $key + 1 }}</td>
                                 <td class="text-center" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $subscriber->email }}" style="position: relative;">
@@ -75,11 +75,7 @@
                                     @endif
                                 </td>
                             </tr>
-                            @empty
-                            <tr>
-                                <td colspan="4" class="text-center text-muted py-4">No email subscribers found.</td>
-                            </tr>
-                            @endforelse
+                            @endforeach
                         </tbody>
                     </table>
                 </div>
@@ -90,6 +86,24 @@
 
   <script>
      document.addEventListener("DOMContentLoaded", function() {
+        // Search, sort and paging like the other admin lists; newest subscribers first.
+        if (window.jQuery && $.fn.DataTable && !$.fn.DataTable.isDataTable('#emailSubscriberTable')) {
+            $('#emailSubscriberTable').DataTable({
+                order: [[2, 'desc']],
+                pageLength: 25,
+                columnDefs: [{ orderable: false, targets: [0] }],
+                language: { emptyTable: 'No email subscribers found.' },
+                drawCallback: function () {
+                    // Sr No. follows the current sort / search, not the original order.
+                    var api = this.api();
+                    var start = api.page.info().start;
+                    api.column(0, { page: 'current' }).nodes().each(function (cell, i) {
+                        cell.innerHTML = start + i + 1;
+                    });
+                }
+            });
+        }
+
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);

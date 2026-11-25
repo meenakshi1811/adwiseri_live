@@ -512,12 +512,13 @@
                             <div class="col-md-4">
                                 <div class="mb-3">
                                         <label>Price Plan<span class="text-danger" style="font-size: 18px;">*</span></label>
-                                        <input type="hidden" name="membership" value="{{ $subscriber->membership }}">
-                                        <select name="membership_display" class="form-select" aria-label="Default select example" disabled>
-                                            @foreach($membership as $plan)
-                                              <option {{ (old('membership') == $plan->plan_name) ? 'selected':'' }} value="{{  $plan->plan_name }}">{{  $plan->plan_name." ".$plan->price_per_year." USD, ".$plan->validity." days " }}</option>
+                                        {{-- New subscriber: the admin picks the starting plan (FREE unless chosen otherwise). --}}
+                                        @php $newPlan = old('membership', optional($membership->first(fn ($p) => strtoupper(trim($p->plan_name)) === 'FREE'))->plan_name); @endphp
+                                        <select name="membership" class="form-select @error('membership') is-invalid @enderror" aria-label="Price Plan" required>
+                                            @foreach($membership->sortBy('price_per_year') as $plan)
+                                              <option {{ ($newPlan == $plan->plan_name) ? 'selected' : '' }} value="{{ $plan->plan_name }}">{{ strtoupper(trim($plan->plan_name)) == 'FREE' ? 'FREE - 30 Days' : $plan->plan_name." ".$plan->price_per_year." USD, Yearly" }}</option>
                                             @endforeach
-                                            </select>
+                                        </select>
                                 </div>
                             </div>
                         </div>

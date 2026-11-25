@@ -625,6 +625,9 @@ class AdminController extends Controller
         $membership = Membership::where('plan_name', $request['membership'])->first();
         $validityDuration = $membership ? $membership->validity : null;
         $user = Auth::user();
+        if (!isset($request->id) && !$membership) {
+            return redirect()->back()->withInput()->withErrors(['membership' => 'Please select a valid price plan.']);
+        }
         if (isset($request->id)) {
             $this->validate($request, [
                 'name' => 'required|string|min:3|max:100',
