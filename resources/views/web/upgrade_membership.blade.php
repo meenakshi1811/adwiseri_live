@@ -45,68 +45,58 @@
                                 <small class="text-muted">Long-term signup available — 1, 2, 3, 4, or 5 years with built-in savings.</small>
                             </div>
                         </div>
+                        @php
+                            $firstQuote = $quotes[1] ?? reset($quotes);
+                            $hasCredit = collect($quotes)->contains(fn ($q) => $q['credit_amount'] > 0);
+                            $hasWallet = collect($quotes)->contains(fn ($q) => $q['wallet_applied'] > 0);
+                        @endphp
                         <div class="row mb-2">
                             <div class="col-md-6">
                                 <p class="text-dark" style="font-size: 16px;">Amount (USD)</p>
                             </div>
                             <div class="col-md-6">
-                                <input type="hidden" id="plan_amount" name="plan_amount" value="{{ $membership->price_per_year }}" />
-                                <p class="text-dark" id="plan_amt" style="font-size: 16px;">$ {{ number_format((float) $membership->price_per_year, 2) }}</p>
+                                <p class="text-dark" id="plan_amt" style="font-size: 16px;">$ {{ number_format((float) $firstQuote['plan_amount'], 2) }}</p>
                             </div>
                         </div>
-                        @if(!$expired)
+                        @if($hasCredit)
+                        {{-- The unused part of the current plan, credited towards this upgrade. --}}
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <p class="text-dark mb-0" style="font-size: 16px;">Unused Plan Credit (USD)</p>
+                                <small class="text-muted">{{ $firstQuote['credit_days'] }} day(s) left on your {{ strtoupper((string) $firstQuote['credit_plan']) }} plan</small>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="text-dark" id="credit_amt" style="font-size: 16px;">- $ {{ number_format((float) $firstQuote['credit_amount'], 2) }}</p>
+                                <small class="text-muted" id="credit_excess_note" @if(($firstQuote['credit_excess'] ?? 0) <= 0) style="display:none" @endif>The remaining $ <span id="credit_excess_amt">{{ number_format((float) ($firstQuote['credit_excess'] ?? 0), 2) }}</span> goes to your wallet.</small>
+                            </div>
+                        </div>
+                        @endif
+                        @if($hasWallet)
                         <div class="row mb-2">
                             <div class="col-md-6">
                                 <p class="text-dark" style="font-size: 16px;">Wallet Credit (USD)</p>
                             </div>
                             <div class="col-md-6">
-                                <input type="hidden" name="wallet_amount" id="wallet_amount" value="{{ $user->wallet }}" />
-                                <p class="text-dark" style="font-size: 16px;" id="wallet_amt">$ {{ number_format((float) $user->wallet, 2) }}</p>
+                                <p class="text-dark" style="font-size: 16px;" id="wallet_amt">- $ {{ number_format((float) $firstQuote['wallet_applied'], 2) }}</p>
                             </div>
                         </div>
                         @endif
                         <div class="row mb-2">
                             <div class="col-md-6">
-                                <p class="text-dark" style="font-size: 16px;">Payable (USD)</p>
+                                <p class="text-dark fw-bold" style="font-size: 16px;">Payable (USD)</p>
                             </div>
                             <div class="col-md-6">
-                                <input type="hidden" id="payable_amount" name="plan_price" value="{{ $membership->price_per_year }}" />
-                                <p class="text-dark" id="payable_amt" style="font-size: 16px;">$ {{ number_format((float) $membership->price_per_year, 2) }}</p>
+                                <p class="text-dark fw-bold" id="payable_amt" style="font-size: 16px;">$ {{ number_format((float) $firstQuote['payable'], 2) }}</p>
                             </div>
                         </div>
-                        <!-- <div class="row mb-2">
-                            <div class="col-md-6">
-                                <p class="text-dark" style="font-size: 16px;">Referral Code</p>
-                            </div>
-                            <div class="col-md-6">
-                                <input type="text" maxlength="20" @if (session()->has('error')) class="px-1 is-invalid" @else class="px-1" @endif value="{{ old('referral_code') }}" name="referral_code" placeholder="Enter Referral Code(if any)" />
-                                @if (session()->has('error'))
-                                <p class="text-danger">Invalid Referral Code</p>
-                                @elseif(session()->has('used'))
-                                <p class="text-danger">Referral Code already used by you.</p>
-                                @endif
-                                {{-- <p class="text-dark" style="font-size: 16px;">{{ $membership->price_per_year }} USD</p> --}}
-                            </div>
-                        </div> -->
                         <div class="row mb-2">
                             <div class="col-md-6">
                             </div>
-                            @if($user->wallet > $membership->price_per_year and !$expired)
                             <div class="col-md-6">
-                                <div class="row">
-                                    <div class="col-lg-6">
-                                        <button type="submit" name="wallet_pay" value="wallet" class="btn btn-primary">Pay From Wallet</button>
-                                    </div>
-                                    {{-- <div class="col-lg-6">
-                                        <button type="submit" name="submit" class="btn btn-primary">Pay Securely</button>
-                                    </div> --}}
-                                </div>
+                                {{-- Nothing to pay when credits cover the whole amount: the upgrade is confirmed straight away. --}}
+                                <button type="submit" name="submit" id="checkout_btn" class="btn btn-primary btn-fit"
+                                    data-pay-label="Pay Securely" data-confirm-label="Confirm Upgrade">{{ $firstQuote['payable'] > 0 ? 'Pay Securely' : 'Confirm Upgrade' }}</button>
                             </div>
-                            @else
-                            <div class="col-md-6">
-                                <button type="submit" name="submit" class="btn btn-primary">Pay Securely</button>
-                            </div>
-                            @endif
                         </div>
                     </form>
                 </div>
@@ -140,36 +130,30 @@
             }
         @endif
         $(document).ready(function() {
-            var termAmounts = @json(\App\Services\SubscriptionTermPricing::amountsByDuration((float) $membership->price_per_year));
-            var wallet = document.getElementById('wallet_amount');
+            // Figures for each term come from the server; the page only shows them.
+            var quotes = @json($quotes);
 
             function formatUsd(amount) {
                 return '$ ' + Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             }
 
-            function updatePayableAmount(duration) {
-                var amount = termAmounts[duration] || termAmounts[1] || 0;
-
-                $("#plan_amount").attr('value', amount);
-                $("#plan_amt").text(formatUsd(amount));
-
-                var payable = amount;
-                if (wallet) {
-                    // Work in cents so 495.99 - 12.30 shows 483.69, not 483.69000000000005.
-                    payable = Math.round(amount * 100 - Number($("#wallet_amount").val() || 0) * 100) / 100;
-                    if (payable <= 0) {
-                        payable = 0;
-                    }
-                }
-
-                $("#payable_amount").attr('value', payable);
-                $("#payable_amt").text(formatUsd(payable));
+            function showQuote(duration) {
+                var quote = quotes[duration] || quotes[1];
+                if (!quote) { return; }
+                $("#plan_amt").text(formatUsd(quote.plan_amount));
+                $("#credit_amt").text('- ' + formatUsd(quote.credit_amount));
+                $("#credit_excess_amt").text(Number(quote.credit_excess || 0).toFixed(2));
+                $("#credit_excess_note").toggle((quote.credit_excess || 0) > 0);
+                $("#wallet_amt").text('- ' + formatUsd(quote.wallet_applied));
+                $("#payable_amt").text(formatUsd(quote.payable));
+                var btn = $("#checkout_btn");
+                btn.text(quote.payable > 0 ? btn.data('pay-label') : btn.data('confirm-label'));
             }
 
-            updatePayableAmount($("#plan_duration").val() || 1);
+            showQuote($("#plan_duration").val() || 1);
 
             $("#plan_duration").change(function() {
-                updatePayableAmount($(this).val());
+                showQuote($(this).val());
             });
         });
     </script>

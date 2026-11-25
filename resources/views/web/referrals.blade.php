@@ -43,24 +43,25 @@ use App\Models\User;
                     <table class="fl-table table table-hover p-0 m-0" id="userTable">
                         <thead>
                         <tr>
-                            <th class="p-1 text-center">Referral_ID</th>
+                            <th class="p-1 text-center">Referral ID</th>
 
                             <th class="p-1 text-center">Referred By (Sub_ID)</th>
                             <th class="p-1 text-center">Referred To (Sub_ID)</th>
                             <th class="p-1 text-center">Sub-Category</th>
-                            <th class="p-1 text-center">Plan_Name</th>
+                            <th class="p-1 text-center">Plan Name</th>
                             <th class="p-1 text-center">Purchase (USD)</th>
 
                             <th class="p-1 text-center"> DOS </th>
                             <th class="p-1 text-center">Commission (USD)</th>
-                            <th class="p-1 text-center">ReferredDate</th>
+                            <th class="p-1 text-center">Referred Date</th>
                         </tr>
                         </thead>
                         <tbody>
                         @foreach($referrals as $key => $ref)
                         <tr>
                             <td class="p-1 text-center">{{ $ref->id }}</td>
-                            <td class="p-1 text-center">{{ User::where('referral',$ref->referral_code)->first()->name }} ({{User::where('referral',$ref->referral_code)->first()->id}})</td>
+                            @php $referrer = User::where('referral', $ref->referral_code)->first(); @endphp
+                            <td class="p-1 text-center">{{ $referrer ? $referrer->name . ' (' . $referrer->id . ')' : '-' }}</td>
                             <td class="p-1 text-center">{{ $ref->user_name }} ({{$ref->userid}})</td>
                             <td class="p-1 text-center">{{ $ref->user ? $ref->user->sub_category : '' }}</td>
                             <td class="p-1 text-center">{{ $ref->user ? $ref->user->membership : '' }}</td>

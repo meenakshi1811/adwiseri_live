@@ -167,4 +167,15 @@ $(function () {
 });
 </script>
 
+{{-- A declined or failed card comes back here with the reason (nothing was saved or charged). --}}
+@if (session()->has('errors') && is_string(session('errors')))
+<script>
+    Swal.fire({
+        icon: 'error',
+        title: 'Payment failed',
+        text: @json(session('errors'))
+    });
+</script>
+@endif
+
 @endsection

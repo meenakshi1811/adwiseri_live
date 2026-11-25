@@ -3164,149 +3164,101 @@ class ReportFilterController extends Controller
 
 
 
+    /**
+     * Rows of {field, total_users} counted per value of a users column (blank values as "N/A"),
+     * grouped on the plain column so MySQL's ONLY_FULL_GROUP_BY mode accepts it.
+     */
+    private function countByField($query, string $field)
+    {
+        return $query->select($field, DB::raw('COUNT(id) as total_users'))
+            ->groupBy($field)
+            ->get()
+            ->groupBy(fn ($row) => trim((string) $row->{$field}) !== '' ? trim((string) $row->{$field}) : 'N/A')
+            ->map(fn ($rows, $value) => [$field => $value, 'total_users' => (int) $rows->sum('total_users')])
+            ->sortByDesc('total_users')
+            ->values();
+    }
+
     public function affiliatesReport()
     {
-
+        // Figures come from the referral ledger (AffiliateCommissionLedger), the same source as the
+        // affiliate's own Commissions page and the admin Affiliates list, and the period filters on
+        // when the subscriber signed up or the commission was earned (not when the affiliate joined).
         $startDate = $this->parseReportDate(request()->input('startDate'));
         $endDate = $this->parseReportDate(request()->input('endDate'), true);
+        $ledger = app(\App\Services\AffiliateCommissionLedger::class);
+        $affiliates = User::where('user_type', 'Affiliate')->whereNotNull('referral')->where('referral', '!=', '')->get();
+        $affiliateCodes = $affiliates->pluck('referral')->all();
+        $referredSubscribers = fn () => User::where('user_type', 'Subscriber')
+            ->whereIn('referral_code', $affiliateCodes ?: ['__none__'])
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
         if (request()->type == "subscribersReferred") {
+            $counts = $referredSubscribers()
+                ->select('referral_code', DB::raw('COUNT(id) as total'))
+                ->groupBy('referral_code')
+                ->pluck('total', 'referral_code');
 
+            $rows = $affiliates
+                ->map(fn ($affiliate) => [
+                    'name' => $affiliate->name ?: 'N/A',
+                    'total_referrals' => (int) ($counts[$affiliate->referral] ?? 0),
+                ])
+                ->filter(fn ($row) => $row['total_referrals'] > 0)
+                ->sortByDesc('total_referrals')
+                ->values();
 
-            $affiliates =  User::where('user_type', 'Affiliate')
-                // ->withSum('affiliateTotalCommission as total_commission', 'amount_added')
-                // ->having('total_commission', '>', 0)
-                ->where('wallet', '>', 0)
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->whereHas('getReferrals', function ($query) {
-                    $query->whereNull('referrals.type') // Ensure type is null
-                        ->whereNull('referrals.debit_amount'); // Ensure debit_amount is null
-                })
-                ->withCount(['getReferrals as total_referrals' => function ($query) {
-                    $query->whereNull('referrals.type')->whereNull('debit_amount');
-                }])
-                ->get();
-
-            return DataTables::of($affiliates)
-                ->editColumn('name', function ($row) {
-                    return !empty($row->name) ? $row->name : "N/A";
-                })
-                ->make(true);
+            return DataTables::of($rows)->make(true);
         } elseif (request()->type == "earnedComission") {
+            $rows = $affiliates
+                ->map(function ($affiliate) use ($ledger, $startDate, $endDate) {
+                    $earned = (float) $ledger->earningsQuery($affiliate->referral)
+                        ->whereBetween('created_at', [$startDate, $endDate])
+                        ->sum('amount_added');
+                    $paid = (float) Referrals::where('referral_code', $affiliate->referral)
+                        ->where('type', \App\Services\AffiliateCommissionLedger::PAYOUT_TYPE)
+                        ->whereBetween('created_at', [$startDate, $endDate])
+                        ->sum('debit_amount');
 
-            $affiliates =  User::where('user_type', 'Affiliate')
-                ->withSum('affiliateTotalCommission as total_commission', 'amount_added')
-                ->having('total_commission', '>', 0)
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->whereHas('getReferrals', function ($query) {
-                    $query->whereNull('referrals.type') // Ensure type is null
-                        ->whereNull('referrals.debit_amount'); // Ensure debit_amount is null
+                    return [
+                        'name' => $affiliate->name ?: 'N/A',
+                        'total_commission' => round($earned, 2),
+                        'total_paid' => round($paid, 2),
+                        'pending_now' => $ledger->totals($affiliate->referral)['pending'],
+                    ];
                 })
-                ->withCount(['getReferrals as total_referrals' => function ($query) {
-                    $query->whereNull('referrals.type')->whereNull('debit_amount');
-                }])
-                ->get();
+                ->filter(fn ($row) => $row['total_commission'] > 0 || $row['total_paid'] > 0)
+                ->sortByDesc('total_commission')
+                ->values();
 
-            return DataTables::of($affiliates)
-                ->editColumn('total_commission', function ($row) {
-                    return round($row->total_commission, 2);
-                })
-                ->make(true);
+            return DataTables::of($rows)->make(true);
         } elseif (request()->type == "country") {
+            $rows = $this->countByField(
+                User::where('user_type', 'Affiliate')->whereBetween('created_at', [$startDate, $endDate]),
+                'country'
+            );
 
-            $affiliates = User::select(
-                'country', // Group by country
-                DB::raw('COUNT(users.id) as total_users') // Count the total number of users per country
-            )
-                ->where('user_type', 'Affiliate') // Filter by user type 'Affiliate'
-                ->whereBetween('created_at', [$startDate, $endDate]) // Filter by creation date range
-                ->groupBy('country') // Group by country
-                ->orderBy('total_users', 'desc') // Order by total users in descending order
-                ->get();
-
-
-            return DataTables::of($affiliates)
-                ->editColumn('country', function ($row) {
-                    return !empty($row->country) ? $row->country : "N/A";
-                })
-                ->make(true);
+            return DataTables::of($rows)->make(true);
         } elseif (request()->type == "subscriberType") {
+            $rows = $this->countByField($referredSubscribers(), 'category');
 
-
-
-            $referralsId = User::whereBetween('created_at', [$startDate, $endDate]) // Filter by the creation date in referrals
-                ->where('user_type', 'Subscriber') // Ensure the user_type is 'Subscriber'
-                ->whereNotNull('referral_code') // Only include users with a referral code
-                ->orderBy('created_at', 'desc') // Order by creation date
-                ->pluck('id') // Get the IDs of the users
-                ->toArray();
-
-            // Group the referrals by membership and count the users
-            $referrals = Referrals::whereIn('referrals.userid', $referralsId)
-                ->whereNull('referrals.type') // Ensure referrals.type is NULL
-                ->whereNull('referrals.debit_amount') // Ensure debit_amount is NULL
-                ->with(['user' => function ($query) {
-                    $query->select('id', 'category'); // Load only the necessary fields
-                }])
-                ->get();
-
-            // Group the referrals by the user's category and count
-            $groupedReferrals = $referrals->groupBy(function ($referral) {
-                return $referral->user ? $referral->user->category : 'Unknown'; // Group by user category
-            });
-            $categoryCounts = $groupedReferrals->map(function ($items, $category) {
-                return [
-                    'category' => $category,
-                    'total_users' => $items->count(),
-                ];
-            });
-            return DataTables::of($categoryCounts)
-                ->make(true);
+            return DataTables::of($rows)->make(true);
         } elseif (request()->type == "subscribedPlan") {
+            $rows = $this->countByField($referredSubscribers(), 'membership');
 
-            $referralsId = User::whereBetween('created_at', [$startDate, $endDate]) // Filter by the creation date in referrals
-                ->where('user_type', 'Subscriber') // Ensure the user_type is 'Subscriber'
-                ->whereNotNull('referral_code') // Only include users with a referral code
-                ->orderBy('created_at', 'desc') // Order by creation date
-                ->pluck('id') // Get the IDs of the users
-                ->toArray();
-
-            // Group the referrals by membership and count the users
-            $referrals = Referrals::join('users', 'referrals.userid', '=', 'users.id') // Join referrals with users table
-                ->whereIn('referrals.userid', $referralsId) // Filter referrals by the matched user IDs
-                ->whereNull('referrals.type') // Ensure referrals.type is NULL
-                ->whereNull('referrals.debit_amount') // Ensure debit_amount is NULL
-                ->select(
-                    'users.membership', // Group by membership
-                    DB::raw('COUNT(users.id) as total_users') // Count the number of users per membership
-                )
-                ->groupBy('users.membership') // Group by membership
-                ->orderBy('total_users', 'desc') // Order by the total number of users in descending order
-                ->get();
-
-
-            return DataTables::of($referrals)
-
-                ->make(true);
+            return DataTables::of($rows)->make(true);
         } elseif (request()->type == "currentWalletCredits") {
+            // A current balance: commission earned and not yet paid out, whatever the period picked.
+            $rows = $affiliates
+                ->map(fn ($affiliate) => [
+                    'name' => $affiliate->name ?: 'N/A',
+                    'amount_added' => $ledger->totals($affiliate->referral)['pending'],
+                ])
+                ->filter(fn ($row) => $row['amount_added'] > 0)
+                ->sortByDesc('amount_added')
+                ->values();
 
-
-            $affiliates =  User::where('user_type', 'Affiliate')
-                ->where('wallet', '>', 0)
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->whereHas('getReferrals', function ($query) {
-                    $query->whereNull('referrals.type') // Ensure type is null
-                        ->whereNull('referrals.debit_amount'); // Ensure debit_amount is null
-                })
-                ->withCount(['getReferrals as total_referrals' => function ($query) {
-                    $query->whereNull('referrals.type')->whereNull('debit_amount');
-                }])
-                ->get();
-
-            return DataTables::of($affiliates)
-                ->editColumn('amount_added', function ($row) {
-                    return !empty($row->wallet) ? $row->wallet : "0";
-                })
-                ->make(true);
+            return DataTables::of($rows)->make(true);
         }
     }
     public function demoReport(Request $request)

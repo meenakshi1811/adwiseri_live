@@ -64,7 +64,7 @@ Route::get('/send_email', [App\Http\Controllers\WebController::class, 'send_emai
 Route::get('/add_subscriber_roles', [App\Http\Controllers\WebController::class, 'add_subscriber_roles'])->name('add_subscriber_roles');
 
 // Stripe Routes
-Route::post('stripe', [App\Http\Controllers\StripeController::class, 'stripePost'])->name('stripe.post');
+Route::post('stripe', [App\Http\Controllers\StripeController::class, 'stripePost'])->name('stripe.post')->middleware('auth');
 Route::post('reg_stripe', [App\Http\Controllers\StripeController::class, 'regstripePost'])->name('stripe.postreg');
 
 Route::get('/export_users', [App\Http\Controllers\ExportController::class, 'export_users'])->name('export_users');
@@ -220,9 +220,8 @@ Route::get('/delete_siteuser/{id?}/{localtime?}', [App\Http\Controllers\WebContr
 Route::get('/siteuser_status/{id}/{status}/{localtime?}', [App\Http\Controllers\WebController::class, 'siteuser_status'])->name('siteuser_status')->middleware(['auth','check.device']);
 Route::get('/delete_client/{id?}/{localtime?}', [App\Http\Controllers\WebController::class, 'delete_client'])->name('delete_client')->middleware(['auth','check.device']);
 Route::post('/upload_client_doc', [App\Http\Controllers\WebController::class, 'upload_client_doc'])->name('upload_client_doc')->middleware(['auth','check.device']);
-Route::post('/make_payment', [App\Http\Controllers\WebController::class, 'make_payment'])->name('make_payment');
-Route::get('/pay_securely', [App\Http\Controllers\WebController::class, 'pay_securely'])->name('pay_securely');
-Route::post('/upgrade_plan', [App\Http\Controllers\WebController::class, 'upgrade_plan'])->name('upgrade_plan');
+Route::post('/make_payment', [App\Http\Controllers\WebController::class, 'make_payment'])->name('make_payment')->middleware('auth');
+Route::get('/pay_securely', [App\Http\Controllers\WebController::class, 'pay_securely'])->name('pay_securely')->middleware('auth');
 Route::post('/downgrade_plan', [App\Http\Controllers\WebController::class, 'downgrade_plan'])->name('downgrade_plan');
 Route::get('/upgrade_membership/{plan?}', [App\Http\Controllers\WebController::class, 'upgrade_membership'])->name('upgrade_membership')->middleware(['auth','check.device']);
 Route::get('/user_membership', [App\Http\Controllers\WebController::class, 'user_membership'])->name('user_membership')->middleware(['auth','check.device']);
@@ -376,7 +375,6 @@ Route::get('/AffiliatesLogin', [App\Http\Controllers\WebController::class, 'Affi
 Route::post('/Affiliates_storeLogin', [App\Http\Controllers\WebController::class, 'Affiliates_storeLogin'])->name('affiliate.storeLogin');
 Route::get('/Affiliates_forget_create', [App\Http\Controllers\WebController::class, 'Affiliates_forget_create'])->name('affiliate.forget_create');
 Route::post('/change_password_affiliate', [App\Http\Controllers\WebController::class, 'change_password_affiliate'])->name('change_password_affiliate');
-Route::post('/Affiliates_forget_store', [App\Http\Controllers\WebController::class, 'Affiliates_forget_store'])->name('affiliate.forget_store');
 Route::get('/affiliate_notifications', [App\Http\Controllers\NotificationController::class, 'index'])->name('affiliate_notifications');
 Route::get('/userprofile_affiliate', [App\Http\Controllers\WebController::class, 'userprofile_affiliate'])->name('userprofile_affiliate');
 Route::post('/update_user_affiliate', [App\Http\Controllers\WebController::class, 'update_user_affiliate'])->name('update_user_affiliate');
@@ -467,7 +465,7 @@ Route::post('/admin/affiliates/change_password', [App\Http\Controllers\AdminCont
 
 Route::get('/affiliates_referrals', [App\Http\Controllers\AdminController::class, 'affiliates_referrals'])->name('affiliates_referrals');
 Route::get('/affiliates_wallet', [App\Http\Controllers\AdminController::class, 'affiliates_wallet'])->name('affiliates_wallet');
-Route::get('/affiliatesReport', [App\Http\Controllers\AdminController::class, 'affiliatesReport'])->name('affiliatesReport');
+Route::get('/affiliatesReport', [App\Http\Controllers\ReportFilterController::class, 'affiliatesReport'])->name('affiliatesReport')->middleware('admin_auth');
 
 Route::get('/new_subscriber', [App\Http\Controllers\AdminController::class, 'new_subscriber'])->name('new_subscriber')->middleware('admin_auth');
 Route::get('/update_subscriber/{id?}', [App\Http\Controllers\AdminController::class, 'update_subscriber'])->name('update_subscriber')->middleware('admin_auth');

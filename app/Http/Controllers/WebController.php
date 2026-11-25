@@ -346,97 +346,6 @@ class WebController extends Controller
         return \App\Services\InternalInvoicePdfDataFactory::make($internalInvoice, $subscriber, $company);
     }
 
-    private function sendPlanUpdateMail(
-        User $subscriber,
-        ?Membership $plan,
-        Internal_Invoices $internalInvoice,
-        User $company,
-        ?string $previousPlanName = null,
-        ?int $durationYears = null,
-        ?string $purchaseCategory = null
-    ): bool {
-        if (!\App\Support\EmailAddress::isValidRecipient($subscriber->email)) {
-            \Illuminate\Support\Facades\Log::warning('Plan update email skipped: invalid recipient', [
-                'email' => $subscriber->email,
-                'user_id' => $subscriber->id,
-            ]);
-
-            return false;
-        }
-
-        $paidAmount = $internalInvoice->total ?? $internalInvoice->amount ?? null;
-
-        try {
-            Mail::to($subscriber->email)->send(new PlanSubscriptionMail(
-                $subscriber->name,
-                $plan->plan_name ?? $subscriber->membership,
-                $plan->validity ?? 'N/A',
-                'Your Subscription Plan Has Been Updated',
-                $this->buildInvoicePdfData($internalInvoice, $subscriber, $company),
-                $paidAmount,
-                $previousPlanName,
-                $durationYears,
-                $purchaseCategory
-            ));
-
-            return !Mail::failures();
-        } catch (\Throwable $exception) {
-            \Illuminate\Support\Facades\Log::error('Plan update email failed', [
-                'email' => $subscriber->email,
-                'user_id' => $subscriber->id,
-                'error' => $exception->getMessage(),
-            ]);
-
-            return false;
-        }
-    }
-
-    private function recordWalletSubscriptionDebit(
-        User $user,
-        Membership $plan,
-        float $debitAmount,
-        float $previousBalance,
-        ?string $previousPlanName = null
-    ): void {
-        $description = app(\App\Services\WalletLedgerService::class)
-            ->subscriptionDebitDescription($previousPlanName, $plan);
-
-        app(\App\Services\WalletLedgerService::class)->recordSubscriptionDebit(
-            $user,
-            $debitAmount,
-            $previousBalance,
-            (float) $user->wallet,
-            $description
-        );
-    }
-
-    private function processRenewalCommissionIfEligible(
-        User $user,
-        float $paymentAmount,
-        ?\Carbon\Carbon $previousExpiry,
-        ?string $previousPlanName,
-        string $newPlanName
-    ): void {
-        if ($paymentAmount <= 0) {
-            return;
-        }
-
-        $journeyLog = app(\App\Services\UserJourneyLogService::class);
-        $purchaseCategory = $journeyLog->classifySubscriptionPurchase(
-            false,
-            $previousExpiry,
-            $previousPlanName,
-            $newPlanName
-        );
-
-        app(\App\Services\RenewalCommissionService::class)->processRenewalCommission(
-            $user,
-            $paymentAmount,
-            $purchaseCategory,
-            $previousExpiry
-        );
-    }
-
     public function add_subscriber_roles()
     {
         $subscribers = User::where('user_type', '=', "Subscriber")->get();
@@ -1009,6 +918,14 @@ class WebController extends Controller
     {
 
         $request = session('reg_data');
+        // Only once per completed form: a reload or a second tab must not create another account.
+        if (empty($request['email']) || empty($request['membership'])) {
+            return redirect()->route('user_register');
+        }
+        session()->forget('reg_data');
+        if (User::where('email', $request['email'])->exists()) {
+            return redirect()->route('otp', $request['email']);
+        }
         $data = new User();
         // $this->validate($request,
         // [
@@ -1031,6 +948,9 @@ class WebController extends Controller
         }
         $eotp = rand(10000, 99999);
         $plan = Membership::where('plan_name', '=', $request['membership'])->first();
+        if (!$plan) {
+            return redirect()->route('user_register')->withError('Selected plan is no longer available.');
+        }
         $data->user_type = "Subscriber";
         $data->name = $request['name'];
         $data->phone = $request['phone'];
@@ -1271,11 +1191,6 @@ class WebController extends Controller
         } catch (\Exception $e) {
             \Log::error('Welcome mail failed: ' . $e->getMessage());
         }
-        if (Mail::failures()) {
-            echo 'Sorry! Please try again latter';
-        } else {
-            echo 'Your email was sent successfully.';
-        }
 
         $email = $request['email'];
         $maildata = new \stdClass();
@@ -1287,11 +1202,6 @@ class WebController extends Controller
             Mail::to($email)->send(new EmailVerification($maildata));
         } catch (\Exception $e) {
             \Log::error('Verification mail failed: ' . $e->getMessage());
-        }
-        if (Mail::failures()) {
-            echo 'Sorry! Please try again latter';
-        } else {
-            echo 'Your email was sent successfully.';
         }
         // $phone_otp = $request->phone_otp;
         // $email_otp = $request->email_otp;
@@ -4496,7 +4406,9 @@ class WebController extends Controller
         }
 
         $page = "membership";
-        return view('web.upgrade_membership', compact('user', 'membership', 'page', 'expired'));
+        // Amount, unused-plan credit, wallet credit and amount payable for each term, worked out on the server.
+        $quotes = app(\App\Services\SubscriptionCheckout::class)->quotesByDuration($user, $membership);
+        return view('web.upgrade_membership', compact('user', 'membership', 'page', 'expired', 'quotes'));
         // $user = Auth::user();
         // if($request->id == $user->id){
         //     $user->membership = $request['plan_name'];
@@ -4523,493 +4435,70 @@ class WebController extends Controller
 
     public function make_payment(Request $request)
     {
-        // print_r($request->all());
-        // exit();
+        // Every amount is worked out on the server (SubscriptionCheckout); amounts posted by the
+        // page are ignored, so a plan can never be bought for less than its price.
         $user = Auth::user();
-        $page = "membership";
-        if($request->plan_amount != 0){
-            if (isset($request->wallet_pay)) {
-                if ($request->id == $user->id) {
-                    $plan = $request->plan_name;
-                    $membership = Membership::where('plan_name', '=', $plan)->first();
-                    $currentPlan = Membership::where('plan_name', '=', $user->membership)->first();
-                    if ($membership && $currentPlan
-                        && SubscriptionTermPricing::isDowngradePlan($currentPlan, $membership)
-                        && !SubscriptionTermPricing::isRenewalWindowOpen($user, $currentPlan)) {
-                        return redirect()->route('membership')->with(
-                            'membership_expiry',
-                            'Plan downgrades are only available at renewal, at the end of your subscription term.'
-                        );
-                    }
-
-                    $duration = $request->plan_duration;
-                    $amount = $request->plan_amount;
-                    $membership = Membership::where('plan_name', '=', $plan)->first();
-                    $duration = SubscriptionTermPricing::normalizeDuration((int) $duration);
-                    $plan_amount = SubscriptionTermPricing::calculate((float) $membership->price_per_year, $duration);
-                    $previousPlanName = $user->membership;
-                    $previousExpiry = !empty($user->membership_expiry_date)
-                        ? \Carbon\Carbon::parse($user->membership_expiry_date)
-                        : null;
-                    $journeyLog = app(\App\Services\UserJourneyLogService::class);
-                    $purchaseCategory = $journeyLog->classifySubscriptionPurchase(
-                        false,
-                        $previousExpiry,
-                        $previousPlanName,
-                        $membership->plan_name
-                    );
-                    $wallet_amount = SubscriptionTermPricing::walletCreditForSubscriptionPayment($user, $purchaseCategory);
-                    $discount = min((float) $wallet_amount, (float) $plan_amount);
-                    $previousWalletBalance = (float) $user->wallet;
-                    $walletDebitAmount = (float) $plan_amount;
-                    $new_wallet = max(0, round((float) $user->wallet - $plan_amount, 2));
-                    $user->membership = $membership->plan_name;
-                    $user->membership_type = "Subscription";
-                    SubscriptionTermPricing::applyMembershipDates(
-                        $user,
-                        (int) $duration,
-                        $purchaseCategory,
-                        $previousExpiry
-                    );
-                    $user->wallet = $new_wallet;
-                    $user->save();
-                    $my_users = User::where('added_by', '=', $user->id)->get();
-                    foreach ($my_users as $myuser) {
-                        $myuser->membership = $user->membership;
-                        $myuser->membership_type = $user->membership_type;
-                        $myuser->membership_start_date = $user->membership_start_date;
-                        $myuser->membership_expiry_date = $user->membership_expiry_date;
-                        $myuser->wallet = 0;
-                        $myuser->save();
-                    }
-                    $activity = new Activities();
-                    $activity->subscriber_id = $user->id;
-                    $activity->user_id = $user->id;
-                    $activity->user_name = $user->name;
-                    $activity->activity_name = "Subscription Updated";
-                    $activity->activity_detail = $user->name . " updates account subscription at " . $request['local_time'];
-                    $activity->activity_icon = "mmbrcp.png";
-                    $activity->local_time = $request['local_time'];
-                    $activity->save();
-                    $journeyLog->logSubscriptionPurchase(
-                        $user,
-                        $purchaseCategory,
-                        $membership->plan_name,
-                        $duration,
-                        $user->id,
-                        ['previous_plan' => $previousPlanName]
-                    );
-                    $service_fee = $plan_amount;
-                    // $discount = 0;
-                    // $tax = ($service_fee + $discount) * (18/100);
-                    $tax = 0;
-                    $company = User::where('user_type', '=', 'admin')->first();
-                    $invoice = new Invoices();
-                    $invoice->user_id = $user->id;
-                    $invoice->invoice = $this->transaction_id();
-                    $invoice->company_name = $company->organization;
-                    $invoice->city = $company->city;
-                    $invoice->state = $company->state;
-                    $invoice->country = $company->country;
-                    $invoice->pincode = $company->pincode;
-                    $invoice->phone = $company->phone;
-                    $invoice->address = $company->address_line;
-                    $invoice->logo = $company->organization_logo;
-                    $invoice->to_name = $user->name;
-                    $invoice->to_company = $user->organization;
-                    $invoice->to_city = $user->city;
-                    $invoice->to_state = $user->state;
-                    $invoice->to_country = $user->country;
-                    $invoice->to_pincode = $user->pincode;
-                    $invoice->to_phone = $user->phone;
-                    $invoice->to_email = $user->email;
-                    $invoice->service_fee = $service_fee;
-                    $invoice->discount = $discount;
-                    $invoice->tax = $tax;
-                    $invoice->total = $service_fee - $discount + $tax;
-                    $invoice->payment_mode = "Wallet";
-                    $invoice->save();
-                    $internalInvoice = $this->createAdminApInvoiceAndPayment($user, $company, (float) $invoice->total, "Wallet", SubscriptionTermPricing::subscriptionFeeDetail($membership->plan_name, (int) $duration));
-                    $emailSent = $this->sendPlanUpdateMail($user, $membership, $internalInvoice, $company, $previousPlanName, (int) $duration, $purchaseCategory);
-                    $this->recordWalletSubscriptionDebit(
-                        $user,
-                        $membership,
-                        $walletDebitAmount,
-                        $previousWalletBalance,
-                        $previousPlanName
-                    );
-                    $this->processRenewalCommissionIfEligible(
-                        $user,
-                        (float) $plan_amount,
-                        $previousExpiry,
-                        $previousPlanName,
-                        $membership->plan_name
-                    );
-                    $redirect = redirect()->route('user_membership')->with('payment_success', 'Payment completed successfully.');
-                    if (!$emailSent) {
-                        $redirect->with('email_warning', 'Your payment was successful, but the confirmation email with invoice could not be sent. Please contact support if you need a copy.');
-                    }
-
-                    return $redirect;
-                } else {
-                    return back();
-                }
-            } else {
-                if ($request->id == $user->id) {
-                    $plan = $request->plan_name;
-                    $membership = Membership::where('plan_name', '=', $plan)->first();
-                    $currentPlan = Membership::where('plan_name', '=', $user->membership)->first();
-                    if ($membership && $currentPlan
-                        && SubscriptionTermPricing::isDowngradePlan($currentPlan, $membership)
-                        && !SubscriptionTermPricing::isRenewalWindowOpen($user, $currentPlan)) {
-                        return redirect()->route('membership')->with(
-                            'membership_expiry',
-                            'Plan downgrades are only available at renewal, at the end of your subscription term.'
-                        );
-                    }
-
-                    $data = array();
-                    $duration = $request->plan_duration;
-                    $data['id'] = $request->id;
-                    $data['plan_name'] = $plan;
-                    $data['plan_duration'] = $duration;
-                    $membership = Membership::where('plan_name', '=', $plan)->first();
-                    $duration = SubscriptionTermPricing::normalizeDuration((int) $duration);
-                    $plan_amount = SubscriptionTermPricing::calculate((float) $membership->price_per_year, $duration);
-                    $previousPlanName = $user->membership;
-                    $previousExpiry = !empty($user->membership_expiry_date)
-                        ? \Carbon\Carbon::parse($user->membership_expiry_date)
-                        : null;
-                    $purchaseCategory = app(\App\Services\UserJourneyLogService::class)->classifySubscriptionPurchase(
-                        false,
-                        $previousExpiry,
-                        $previousPlanName,
-                        $membership->plan_name
-                    );
-                    $wallet_amount = SubscriptionTermPricing::walletCreditForSubscriptionPayment($user, $purchaseCategory);
-                    $plan_price = round($plan_amount - $wallet_amount, 2); // to the cent, e.g. 495.99 - 12.30 = 483.69
-                    $data['wallet_amount'] = $wallet_amount;
-                    $data['plan_amount'] = $plan_amount;
-                    $data['plan_price'] = $plan_price;
-                    $data['local_time'] = $request->local_time;
-                    Session::put('pay_data', $data);
-                    // foreach($data as $key => $value){
-                    //     echo $key . " = " . $value . "<br>";
-                    // }
-                    return redirect('pay_securely');
-
-                    // if(isset($request->referral_code)){
-                    //     $referral = User::where('id','!=',$user->id)->where('referral','=',$request->referral_code)->first();
-                    //     if($referral == null){
-                    //         return back()->with('error','Invalid referral code.');
-                    //     }
-                    //     else{
-                    //         $use_referral = Used_referrals::where('subscriber_id','=',$user->id)->where('referral_code','=',$request->referral_code)->first();
-                    //         if($use_referral != null){
-                    //             return back()->with('used','This referral code has already been used.');
-                    //         }
-                    //     }
-                    // }
-                } else {
-                    return back();
-                }
-            }
-        } else {
-            if ($request->id == $user->id) {
-                $plan = $request->plan_name;
-                $duration = $request->plan_duration;
-                $amount = $request->plan_amount;
-                $membership = Membership::where('plan_name', '=', $plan)->first();
-                $duration = SubscriptionTermPricing::normalizeDuration((int) $duration);
-                $plan_amount = 0;
-                $previousPlanName = $user->membership;
-                $previousExpiry = !empty($user->membership_expiry_date)
-                    ? \Carbon\Carbon::parse($user->membership_expiry_date)
-                    : null;
-                $journeyLog = app(\App\Services\UserJourneyLogService::class);
-                $purchaseCategory = $journeyLog->classifySubscriptionPurchase(
-                    false,
-                    $previousExpiry,
-                    $previousPlanName,
-                    $membership->plan_name
-                );
-                $wallet_amount = SubscriptionTermPricing::walletCreditForSubscriptionPayment($user, $purchaseCategory);
-                $discount = min((float) $wallet_amount, (float) $plan_amount);
-                $previousWalletBalance = (float) $user->wallet;
-                $new_wallet = max(0, round((float) $user->wallet - $plan_amount, 2));
-                $user->membership = $membership->plan_name;
-                $user->membership_type = "Subscription";
-                SubscriptionTermPricing::applyMembershipDates(
-                    $user,
-                    (int) $duration,
-                    $purchaseCategory,
-                    $previousExpiry
-                );
-                $user->wallet = $new_wallet;
-                $user->save();
-                $my_users = User::where('added_by', '=', $user->id)->get();
-                foreach ($my_users as $myuser) {
-                    $myuser->membership = $user->membership;
-                    $myuser->membership_type = $user->membership_type;
-                    $myuser->membership_start_date = $user->membership_start_date;
-                    $myuser->membership_expiry_date = $user->membership_expiry_date;
-                    $myuser->wallet = 0;
-                    $myuser->save();
-                }
-                $activity = new Activities();
-                $activity->subscriber_id = $user->id;
-                $activity->user_id = $user->id;
-                $activity->user_name = $user->name;
-                $activity->activity_name = "Subscription Updated";
-                $activity->activity_detail = $user->name . " updates account subscription at " . $request['local_time'];
-                $activity->activity_icon = "mmbrcp.png";
-                $activity->local_time = $request['local_time'];
-                $activity->save();
-                $journeyLog->logSubscriptionPurchase(
-                    $user,
-                    $purchaseCategory,
-                    $membership->plan_name,
-                    $duration,
-                    $user->id,
-                    ['previous_plan' => $previousPlanName]
-                );
-                $service_fee = $plan_amount;
-                // $discount = 0;
-                // $tax = ($service_fee + $discount) * (18/100);
-                $tax = 0;
-                $company = User::where('user_type', '=', 'admin')->first();
-                $invoice = new Invoices();
-                $invoice->user_id = $user->id;
-                $invoice->invoice = $this->transaction_id();
-                $invoice->company_name = $company->organization;
-                $invoice->city = $company->city;
-                $invoice->state = $company->state;
-                $invoice->country = $company->country;
-                $invoice->pincode = $company->pincode;
-                $invoice->phone = $company->phone;
-                $invoice->address = $company->address_line;
-                $invoice->logo = $company->organization_logo;
-                $invoice->to_name = $user->name;
-                $invoice->to_company = $user->organization;
-                $invoice->to_city = $user->city;
-                $invoice->to_state = $user->state;
-                $invoice->to_country = $user->country;
-                $invoice->to_pincode = $user->pincode;
-                $invoice->to_phone = $user->phone;
-                $invoice->to_email = $user->email;
-                $invoice->service_fee = $service_fee;
-                $invoice->discount = 0;
-                $invoice->tax = $tax;
-                $invoice->total = $service_fee - 0 + $tax;
-                $invoice->payment_mode = "Wallet";
-                $invoice->save();
-                $internalInvoice = $this->createAdminApInvoiceAndPayment($user, $company, (float) $invoice->total, "Wallet", SubscriptionTermPricing::subscriptionFeeDetail($membership->plan_name, (int) $duration));
-                $emailSent = $this->sendPlanUpdateMail($user, $membership, $internalInvoice, $company, $previousPlanName, (int) $duration, $purchaseCategory);
-                if ($plan_amount > 0) {
-                    $this->recordWalletSubscriptionDebit(
-                        $user,
-                        $membership,
-                        (float) $plan_amount,
-                        $previousWalletBalance,
-                        $previousPlanName
-                    );
-                }
-                $redirect = redirect()->route('user_membership')->with('payment_success', 'Payment completed successfully.');
-                if (!$emailSent) {
-                    $redirect->with('email_warning', 'Your payment was successful, but the confirmation email with invoice could not be sent. Please contact support if you need a copy.');
-                }
-
-                return $redirect;
-            } else {
-                return back();
-            }
+        if (!$user || (int) $request->id !== (int) $user->id) {
+            return redirect()->route('membership');
         }
-    }
 
-    public function pay_securely()
-    {
-        $user = Auth::user();
-        if ($user) {
-            $page = "membership";
-            $data = session('pay_data');
-            $amount = $data['plan_price'];
-            return view('web.make_payment', compact('user', 'data', 'page', 'amount'));
-        } else {
-            return back();
+        $membership = Membership::where('plan_name', '=', $request->plan_name)->first();
+        if (!$membership) {
+            return redirect()->route('membership')->with('membership_expiry', 'Selected plan was not found.');
         }
-    }
 
-    public function upgrade_plan(Request $request)
-    {
-        function invoice_id()
-        {
-            $ch = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-            $id = "";
-            for ($i = 0; $i < 10; $i++) {
-                $id = $id . $ch[rand(0, strlen($ch) - 1)];
-            }
-            if (Invoices::where('invoice', '=', $id)->first()) {
-                return invoice_id();
-            }
-            return $id;
+        $currentPlan = Membership::where('plan_name', '=', $user->membership)->first();
+        if ($currentPlan
+            && SubscriptionTermPricing::isDowngradePlan($currentPlan, $membership)
+            && !SubscriptionTermPricing::isRenewalWindowOpen($user, $currentPlan)) {
+            return redirect()->route('membership')->with(
+                'membership_expiry',
+                'Plan downgrades are only available at renewal, at the end of your subscription term.'
+            );
         }
-        $user = Auth::user();
-        $paymentMode = isset($request->wallet_pay) ? 'Wallet' : 'Card';
-        if ($request->id == $user->id) {
-            $targetPlan = Membership::where('plan_name', '=', $request['plan_name'])->first();
-            $currentPlan = Membership::where('plan_name', '=', $user->membership)->first();
-            if ($targetPlan && $currentPlan
-                && SubscriptionTermPricing::isDowngradePlan($currentPlan, $targetPlan)
-                && !SubscriptionTermPricing::isRenewalWindowOpen($user, $currentPlan)) {
-                return redirect()->route('membership')->with(
-                    'membership_expiry',
-                    'Plan downgrades are only available at renewal, at the end of your subscription term.'
-                );
-            }
 
-            $previousWalletBalance = (float) $user->wallet;
-            $walletDebitAmount = 0.0;
-            if (isset($request->wallet_pay)) {
-                $walletDebitAmount = (float) $request->plan_price;
-                $user->wallet = $previousWalletBalance - $walletDebitAmount;
-            }
-            if (isset($request->referral_code)) {
-                $referral = User::where('id', '!=', $user->id)->where('referral', '=', $request->referral_code)->first();
-                if ($referral == null) {
-                    return back()->with('error', 'Invalid referral code.');
-                } else {
-                    $use_referral = Used_referrals::where('subscriber_id', '=', $user->id)->where('referral_code', '=', $request->referral_code)->first();
-                    if ($use_referral != null) {
-                        return back()->with('used', 'This referral code has already been used.');
-                    }
-                }
-            }
-            $duration = $request['plan_duration'];
-            $previousPlanName = $user->membership;
-            $previousExpiry = !empty($user->membership_expiry_date)
-                ? \Carbon\Carbon::parse($user->membership_expiry_date)
-                : null;
-            $durationYears = SubscriptionTermPricing::normalizeDuration((int) $duration);
-            $journeyLog = app(\App\Services\UserJourneyLogService::class);
-            $purchaseCategory = $journeyLog->classifySubscriptionPurchase(
-                false,
-                $previousExpiry,
-                $previousPlanName,
-                $request['plan_name']
-            );
-            $user->membership = $request['plan_name'];
-            $user->membership_type = "Subscription";
-            SubscriptionTermPricing::applyMembershipDates(
-                $user,
-                $durationYears,
-                $purchaseCategory,
-                $previousExpiry
-            );
-            $user->save();
-            $my_users = User::where('added_by', '=', $user->id)->get();
-            foreach ($my_users as $myuser) {
-                $myuser->membership = $user->membership;
-                $myuser->membership_type = $user->membership_type;
-                $myuser->membership_start_date = $user->membership_start_date;
-                $myuser->membership_expiry_date = $user->membership_expiry_date;
-                $myuser->save();
-            }
-            // if(isset($referral)){
-            //     $amt = $referral->wallet;
-            //     $referral->wallet = $amt + ($request->plan_price * 0.2);
-            //     $referral->save();
-            //     $save_referral = new Referrals();
-            //     $save_referral->referral_code = $request->referral_code;
-            //     $save_referral->userid = $user->id;
-            //     $save_referral->user_name = $user->name;
-            //     $save_referral->total_amount = $request->plan_price;
-            //     $save_referral->amount_added = $request->plan_price * 0.2;
-            //     $save_referral->previous_balance = $amt;
-            //     $save_referral->wallet_balance = $amt + ($request->plan_price * 0.2);
-            //     $save_referral->save();
-            // }
-            $activity = new Activities();
-            $activity->subscriber_id = $user->id;
-            $activity->user_id = $user->id;
-            $activity->user_name = $user->name;
-            $activity->activity_name = "Price Plan Updated";
-            $activity->activity_detail = $user->name . " updates account price plan at " . $request->local_time;
-            $activity->activity_icon = "mmbrcp.png";
-            $activity->local_time = $request->local_time;
-            $activity->save();
-            $journeyLog->logSubscriptionPurchase(
-                $user,
-                $purchaseCategory,
-                $request['plan_name'],
-                $durationYears,
-                $user->id,
-                ['previous_plan' => $previousPlanName]
-            );
-            $plan = Membership::where('plan_name', '=', $request->plan_name)->first();
-            $service_fee = $request->plan_price;
-            $discount = 0;
-            // Packaged subscription prices are fixed — never apply Invoice Settings or GST markup.
-            $tax = 0;
-            $company = User::where('user_type', '=', 'admin')->first();
-            $invoice = new Invoices();
-            $invoice->user_id = $user->id;
-            $invoice->invoice = invoice_id();
-            $invoice->company_name = $company->organization;
-            $invoice->city = $company->city;
-            $invoice->state = $company->state;
-            $invoice->country = $company->country;
-            $invoice->pincode = $company->pincode;
-            $invoice->phone = $company->phone;
-            $invoice->address = $company->address_line;
-            $invoice->logo = $company->organization_logo;
-            $invoice->to_name = $user->name;
-            $invoice->to_company = $user->organization;
-            $invoice->to_city = $user->city;
-            $invoice->to_state = $user->state;
-            $invoice->to_country = $user->country;
-            $invoice->to_pincode = $user->pincode;
-            $invoice->to_address = $user->address_line;
-            $invoice->to_phone = $user->phone;
-            $invoice->to_email = $user->email;
-            $invoice->service_fee = $service_fee;
-            $invoice->discount = $discount;
-            $invoice->tax = $tax;
-            $invoice->total = $service_fee - $discount + $tax;
-            $invoice->save();
-            $internalInvoice = $this->createAdminApInvoiceAndPayment($user, $company, (float) $invoice->total, $paymentMode, SubscriptionTermPricing::subscriptionFeeDetail($plan->plan_name, $durationYears));
-            $emailSent = $this->sendPlanUpdateMail($user, $plan, $internalInvoice, $company, $previousPlanName, $durationYears, $purchaseCategory);
-            if ($walletDebitAmount > 0) {
-                $this->recordWalletSubscriptionDebit(
-                    $user,
-                    $plan,
-                    $walletDebitAmount,
-                    $previousWalletBalance,
-                    $previousPlanName
-                );
-            }
-            $this->processRenewalCommissionIfEligible(
-                $user,
-                (float) $request->plan_price,
-                $previousExpiry,
-                $previousPlanName,
-                $request['plan_name']
-            );
-            $activity = new Activities();
-            $activity->subscriber_id = $user->id;
-            $activity->user_id = $user->id;
-            $activity->user_name = $user->name;
-            $activity->activity_name = "Payment Generated";
-            $activity->activity_detail = "Payment generated for price plan update for user " . $user->name . " at " . $request->local_time;
-            $activity->activity_icon = "invoice.jpg";
-            $activity->local_time = $request->local_time;
-            $activity->save();
-            $redirect = redirect()->route('user_membership');
-            if (!$emailSent) {
+        $checkout = app(\App\Services\SubscriptionCheckout::class);
+        $duration = SubscriptionTermPricing::normalizeDuration((int) $request->plan_duration);
+        $quote = $checkout->quote($user, $membership, $duration);
+
+        // Nothing left to pay (credits and/or wallet cover it, or a free plan): complete it now.
+        if ($quote['payable'] <= 0) {
+            $paymentMode = $quote['wallet_applied'] > 0 ? 'Wallet' : ($quote['credit_amount'] > 0 ? 'Credit' : 'Free');
+            $result = $checkout->complete($user, $membership, $quote, $paymentMode, $request->local_time);
+            $redirect = redirect()->route('user_membership')->with('payment_success', 'Your subscription has been updated.');
+            if (!$result['email_sent']) {
                 $redirect->with('email_warning', 'Your subscription was updated, but the confirmation email with invoice could not be sent. Please contact support if you need a copy.');
             }
 
             return $redirect;
         }
+
+        Session::put('pay_data', [
+            'id' => $user->id,
+            'plan_name' => $membership->plan_name,
+            'plan_duration' => $duration,
+            'plan_amount' => $quote['plan_amount'],
+            'wallet_amount' => $quote['wallet_applied'],
+            'plan_price' => $quote['payable'],
+            'quote' => $quote,
+            'local_time' => $request->local_time,
+        ]);
+
+        return redirect()->route('pay_securely');
+    }
+
+    public function pay_securely()
+    {
+        $user = Auth::user();
+        $data = session('pay_data');
+        if (!$user || empty($data['quote']) || (int) ($data['id'] ?? 0) !== (int) $user->id) {
+            return redirect()->route('membership');
+        }
+
+        $page = "membership";
+        $amount = (float) $data['quote']['payable'];
+
+        return view('web.make_payment', compact('user', 'data', 'page', 'amount'));
     }
 
     public function downgrade_plan(Request $request)

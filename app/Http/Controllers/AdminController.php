@@ -3940,6 +3940,32 @@ class AdminController extends Controller
         return redirect()->route('admin');
     }
 
+    /** Image inserted into an admin email broadcast from the editor (the route existed without this method). */
+    public function admin_upload_email_broadcast_image(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user || $user->user_type !== 'admin') {
+            return response()->json(['message' => 'Unauthorized.'], 401);
+        }
+
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,jpg,png,gif,webp|max:4096',
+        ]);
+
+        $directory = public_path('web_assets/users/admin/broadcast');
+        if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+            return response()->json(['message' => 'Unable to prepare image storage.'], 500);
+        }
+
+        $file = $request->file('image');
+        $filename = 'broadcast_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . strtolower($file->getClientOriginalExtension());
+        $file->move($directory, $filename);
+
+        return response()->json([
+            'url' => url('web_assets/users/admin/broadcast/' . $filename),
+        ]);
+    }
+
     public function admin_send_email_broadcast(Request $request, EmailBroadcastService $emailBroadcastService)
     {
         $user = Auth::user();

@@ -6445,29 +6445,39 @@ function checkDataAndToggleButtons(table) {
             case 'subscribersReferred':
                 reportTitle = 'By No. of Subscribers Referred';
                 columns = [{
-                        title: "Subscribers Referred",
+                        title: "Affiliate",
                         data: 'name',
                         name: 'name'
                     },
                     {
-                        title: "No. of Affiliates",
+                        title: "Subscribers Referred",
                         data: 'total_referrals',
                         name: 'total_referrals'
                     }
                 ];
                 break;
             case 'earnedComission':
-                reportTitle = 'By Amount of Commissions Earnt';
+                reportTitle = 'By Amount of Commissions Earned';
                 columns = [{
-                        title: "Affiliate Users",
+                        title: "Affiliate",
                         data: 'name',
                         name: 'name',
 
                     },
                     {
-                        title: "No. of Affiliates",
+                        title: "Commission Earned (USD)",
                         data: 'total_commission',
                         name: 'total_commission'
+                    },
+                    {
+                        title: "Paid Out (USD)",
+                        data: 'total_paid',
+                        name: 'total_paid'
+                    },
+                    {
+                        title: "Pending Now (USD)",
+                        data: 'pending_now',
+                        name: 'pending_now'
                     }
                 ];
                 break;
@@ -6493,7 +6503,7 @@ function checkDataAndToggleButtons(table) {
                         name: 'category'
                     },
                     {
-                        title: "No. of Affiliates",
+                        title: "Subscribers Referred",
                         data: 'total_users',
                         name: 'total_users'
                     }
@@ -6507,7 +6517,7 @@ function checkDataAndToggleButtons(table) {
                         name: 'membership'
                     },
                     {
-                        title: "No. of Affiliates",
+                        title: "Subscribers Referred",
                         data: 'total_users',
                         name: 'total_users'
                     }
@@ -6516,13 +6526,13 @@ function checkDataAndToggleButtons(table) {
             case 'currentWalletCredits':
                 reportTitle = 'By Current Wallet Credits';
                 columns = [{
-                        title: "Affiliate Users",
+                        title: "Affiliate",
                         data: 'name',
                         name: 'name',
 
                     },
                     {
-                        title: "No. of Affiliates",
+                        title: "Wallet Credits / Pending Commission (USD)",
                         data: 'amount_added',
                         name: 'amount_added'
                     }
@@ -6537,6 +6547,12 @@ function checkDataAndToggleButtons(table) {
         }
 
         $('#affiliateReportTitle').html(reportTitle);
+
+        // Reports here have 2 or 4 columns: clear the old header before building the next one.
+        if ($.fn.DataTable.isDataTable('#reportAffiliateTable')) {
+            $('#reportAffiliateTable').DataTable().destroy();
+            $('#reportAffiliateTable').empty();
+        }
 
         $('#reportAffiliateTable').DataTable({
             serverSide: true,

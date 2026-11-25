@@ -15,7 +15,6 @@ class EnsureMembershipAccess
         'membership_renewal',
         'user_membership',
         'make_payment',
-        'upgrade_plan',
         'pay_securely',
         'stripe.post',
         'logout',

@@ -85,6 +85,7 @@ class OfferBenefitService
         'Referral Commission',
         'Renewal Commission',
         'Sign-up Bonus',
+        'Unused Plan Credit',
         'Wallet Transaction',
     ];
 

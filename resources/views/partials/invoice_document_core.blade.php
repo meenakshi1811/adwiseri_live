@@ -134,6 +134,12 @@
     $statusLabel = $statusRaw === 'PartiallyPaid' ? 'Partially Paid' : ($statusRaw === 'UnPaid' ? 'Unpaid' : $statusRaw);
     $showTaxLine = !$exportTaxExempt && $taxPercent > 0;
     $discountAmount = $amount * ($discountPercent / 100);
+    // A subscription bill carries no discount or tax; when its total is below the plan price, the
+    // difference is the pro-rated upgrade credit and/or wallet credit (explained in the note).
+    $creditsApplied = ($discountPercent <= 0 && $taxPercent <= 0 && $total < $amount - 0.004)
+        && (\App\Models\Internal_Invoices::isSubscriptionPackageDetail($fromMailData ? ($data->detail ?? '') : ($invoice->detail ?? '')))
+        ? round($amount - $total, 2)
+        : 0.0;
     $taxable = $amount - $discountAmount;
     $taxAmount = $taxable * ($taxPercent / 100);
     $showSrNo = $lineItems->count() > 1;
@@ -226,6 +232,12 @@
             <tr>
                 <td class="invoice-doc-totals-label">Discount ({{ number_format($discountPercent, 2) }}%)</td>
                 <td class="invoice-doc-totals-amount">- {{ number_format($discountAmount, 2) }}</td>
+            </tr>
+        @endif
+        @if($creditsApplied > 0)
+            <tr>
+                <td class="invoice-doc-totals-label">Less: Credits Applied</td>
+                <td class="invoice-doc-totals-amount">- {{ number_format($creditsApplied, 2) }}</td>
             </tr>
         @endif
         @if($showTaxLine)

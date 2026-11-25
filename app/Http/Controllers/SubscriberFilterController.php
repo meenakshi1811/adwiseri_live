@@ -3821,69 +3821,52 @@ class SubscriberFilterController extends Controller
         } elseif (request()->type == "byAffiliatesNoofSubscribersReferredsChart") {
             $startDate = $this->parseReportDate(request()->start);
             $endDate = $this->parseReportDate(request()->end, true);
+            // Affiliates (one, when subid is given) keyed by referral code; figures follow the
+            // commission ledger, the same source as the affiliate's own Commissions page.
+            $affiliates = User::where('user_type', 'Affiliate')
+                ->when(!empty(request()->subid), fn ($query) => $query->where('id', request()->subid))
+                ->whereNotNull('referral')->where('referral', '!=', '')
+                ->get();
+            // Subscribers who signed up with each affiliate's code in the period (each counted once).
+            $counts = User::where('user_type', 'Subscriber')
+                ->whereIn('referral_code', $affiliates->pluck('referral')->all() ?: ['__none__'])
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->select('referral_code', DB::raw('COUNT(id) as total'))
+                ->groupBy('referral_code')
+                ->pluck('total', 'referral_code');
 
-            if (!empty(request()->subid)) {
-                $data = DB::table('users as referrer')
-                    ->join('users as referred', 'referrer.referral', '=', 'referred.referral_code')
-                    ->select(
-                        'referrer.name as name', // Include referrer name
-                        DB::raw('COUNT(referred.id) as count') // Count referred subscribers
-                    )
-                    ->whereBetween('referred.created_at', [$startDate, $endDate])
-                    ->where('referrer.id', request()->subid)
-                    ->where('referred.user_type', 'Subscriber')
-                    ->groupBy('referrer.name') // Group by referrer name to include it in the result
-                    ->get();
-            } else {
-                $data = DB::table('referrals')
-                    ->leftJoin('users', 'referrals.referral_code', '=', 'users.referral')
-                    ->select(
-                        'users.name as name',
-                        DB::raw('COUNT(users.id) as count')
-                    )
-                    ->whereBetween('referrals.created_at', [$startDate, $endDate])
+            $data = $affiliates
+                ->map(fn ($affiliate) => ['name' => $affiliate->name, 'count' => (int) ($counts[$affiliate->referral] ?? 0)])
+                ->filter(fn ($row) => $row['count'] > 0)
+                ->values();
 
-                    ->where('users.user_type', 'Affiliate') // Filter by user_type
-                    ->groupBy('users.name')
-                    ->get();
-            }
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byAmountOfCommissionsEarntChart") {
             $startDate = $this->parseReportDate(request()->start);
             $endDate = $this->parseReportDate(request()->end, true);
+            // Affiliates (one, when subid is given) keyed by referral code; figures follow the
+            // commission ledger, the same source as the affiliate's own Commissions page.
+            $affiliates = User::where('user_type', 'Affiliate')
+                ->when(!empty(request()->subid), fn ($query) => $query->where('id', request()->subid))
+                ->whereNotNull('referral')->where('referral', '!=', '')
+                ->get();
+            $ledger = app(\App\Services\AffiliateCommissionLedger::class);
 
-            if (!empty(request()->subid)) {
+            // Commission earned in the period (purchase, renewal and sign-up bonus rows), not the
+            // running wallet balances the chart used to add up.
+            $data = $affiliates
+                ->map(function ($affiliate) use ($ledger, $startDate, $endDate) {
+                    $rows = $ledger->earningsQuery($affiliate->referral)
+                        ->whereBetween('created_at', [$startDate, $endDate]);
 
-                $dataQuery = DB::table('referrals')
-                    ->whereBetween('referrals.created_at', [$startDate, $endDate])
-                    ->leftJoin('users', 'referrals.referral_code', '=', 'users.referral') // Join referrals with users
-                    ->select(
-                        'users.name as affiliate_name', // Affiliate's name
-                        DB::raw('COUNT(referrals.id) as referral_count'), // Count of referrals
-                        DB::raw('ROUND(SUM(referrals.wallet_balance), 2) as total_wallet_balance') // Sum of wallet_balance
-                    )
-                    ->where('users.user_type', 'Affiliate') // Filter by user_type
-                    ->groupBy('users.name'); // Group by affiliate name
-
-                // If a subid is provided, filter by that user
-                if (!empty(request()->subid)) {
-                    $dataQuery->where('users.id', request()->subid); // Filter by user ID
-                }
-
-                $data = $dataQuery->get();
-            } else {
-                $data = DB::table('referrals')
-                    ->whereBetween('referrals.created_at', [$startDate, $endDate])
-                    ->leftJoin('users', 'referrals.referral_code', '=', 'users.referral') // Join referrals with users
-                    ->select(
-                        'users.name as affiliate_name', // Affiliate's name
-                        DB::raw('COUNT(referrals.id) as referral_count'), // Count of referrals
-                        DB::raw('ROUND(SUM(referrals.wallet_balance), 2) as total_wallet_balance') // Sum of wallet_balance
-                    )
-                    ->where('users.user_type', 'Affiliate') // Filter by user_type
-                    ->groupBy('users.name') // Group by affiliate name
-                    ->get();
-            }
+                    return [
+                        'affiliate_name' => $affiliate->name,
+                        'referral_count' => (int) (clone $rows)->distinct()->count('userid'),
+                        'total_wallet_balance' => round((float) (clone $rows)->sum('amount_added'), 2),
+                    ];
+                })
+                ->filter(fn ($row) => $row['total_wallet_balance'] > 0)
+                ->values();
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byAffiliateCountryChart") {
@@ -3906,9 +3889,13 @@ class SubscriberFilterController extends Controller
                 $data = User::where('user_type', 'Affiliate')
                     ->when($country, fn ($query) => $query->whereIn('country', $country))
                     ->whereBetween('created_at', [$startDate, $endDate])
-                    ->select(DB::raw("COALESCE(NULLIF(TRIM(country), ''), 'Unspecified') as country"), DB::raw('COUNT(users.id) as No_of_Affiliate'))
-                    ->groupBy(DB::raw("COALESCE(NULLIF(TRIM(country), ''), 'Unspecified')"))
-                    ->get();
+                    ->select('country', DB::raw('COUNT(users.id) as No_of_Affiliate'))
+                    ->groupBy('country')
+                    ->get()
+                    // Blank countries are counted together as "Unspecified" (grouped on the plain column for strict SQL mode).
+                    ->groupBy(fn ($row) => trim((string) $row->country) !== '' ? trim((string) $row->country) : 'Unspecified')
+                    ->map(fn ($rows, $country) => ['country' => $country, 'No_of_Affiliate' => (int) $rows->sum('No_of_Affiliate')])
+                    ->values();
             }
 
             return response()->json(['data' => $data]);
@@ -3931,21 +3918,23 @@ class SubscriberFilterController extends Controller
 
             return response()->json(['data' => $data]);
         } elseif (request()->type == "byAffiliateCurrentWalletCreditsChart") {
-            $startDate = $this->parseReportDate(request()->start);
-            $endDate = $this->parseReportDate(request()->end, true);
-
-            $data = DB::table('referrals')
-                ->leftJoin('users', 'referrals.referral_code', '=', 'users.referral') // Join referrals with users
-                ->select(
-                    'users.name', // Select user name
-                    DB::raw('SUM(referrals.wallet_balance) as total_wallet_balance'), // Sum of user wallet balances
-                    DB::raw('COUNT(referrals.referral_code) as count') // Count the number of referrals
-                )
-                ->where('users.user_type', 'Affiliate') // Filter by user_type Affiliate
-                ->when(!empty(request()->subid), fn ($query) => $query->where('users.id', request()->subid))
-                ->whereBetween('referrals.created_at', [$startDate, $endDate])
-                ->groupBy('users.name') // Group by user name
+            // Affiliates (one, when subid is given) keyed by referral code; figures follow the
+            // commission ledger, the same source as the affiliate's own Commissions page.
+            $affiliates = User::where('user_type', 'Affiliate')
+                ->when(!empty(request()->subid), fn ($query) => $query->where('id', request()->subid))
+                ->whereNotNull('referral')->where('referral', '!=', '')
                 ->get();
+            $ledger = app(\App\Services\AffiliateCommissionLedger::class);
+
+            // A current balance: commission earned and not yet paid out (the period does not apply).
+            $data = $affiliates
+                ->map(fn ($affiliate) => [
+                    'name' => $affiliate->name,
+                    'total_wallet_balance' => $ledger->totals($affiliate->referral)['pending'],
+                    'count' => (int) User::where('user_type', 'Subscriber')->where('referral_code', $affiliate->referral)->count(),
+                ])
+                ->filter(fn ($row) => $row['total_wallet_balance'] > 0)
+                ->values();
 
             return response()->json(['data' => $data]);
         }

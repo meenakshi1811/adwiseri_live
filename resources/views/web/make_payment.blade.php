@@ -22,6 +22,16 @@
                             <div class="well well-sm" style="margin-bottom: 20px;">
                                 <p class="mb-1"><strong>Plan:</strong> {{ $data['plan_name'] ?? '' }}</p>
                                 <p class="mb-1"><strong>Term:</strong> {{ \App\Services\SubscriptionTermPricing::label((int) ($data['plan_duration'] ?? 1)) }}</p>
+                                @php $q = $data['quote'] ?? []; @endphp
+                                @if(($q['credit_amount'] ?? 0) > 0 || ($q['wallet_applied'] ?? 0) > 0)
+                                    <p class="mb-1"><strong>Plan price:</strong> ${{ number_format((float) $q['plan_amount'], 2) }} USD</p>
+                                    @if(($q['credit_amount'] ?? 0) > 0)
+                                        <p class="mb-1"><strong>Unused plan credit:</strong> - ${{ number_format((float) $q['credit_amount'], 2) }} ({{ (int) $q['credit_days'] }} day(s) of {{ strtoupper((string) $q['credit_plan']) }})</p>
+                                    @endif
+                                    @if(($q['wallet_applied'] ?? 0) > 0)
+                                        <p class="mb-1"><strong>Wallet credit:</strong> - ${{ number_format((float) $q['wallet_applied'], 2) }}</p>
+                                    @endif
+                                @endif
                                 <p class="mb-0"><strong>Amount due:</strong> ${{ number_format($amount, 2) }} USD</p>
                             </div>
                             @endif

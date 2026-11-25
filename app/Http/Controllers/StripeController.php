@@ -38,7 +38,6 @@ use App\Mail\PlanSubscriptionMail;
 use App\Support\EmailAddress;
 use Illuminate\Support\Facades\Log;
 
-use function App\Helpers\commission_amount;
 
 class StripeController extends Controller
 {
@@ -178,177 +177,65 @@ class StripeController extends Controller
      */
     public function stripePost(Request $request)
     {
-
+        // The amount comes from the quote worked out on the server when the subscriber chose the
+        // plan (see SubscriptionCheckout); nothing the page posts changes what is charged.
         $user = Auth::user();
         $data = session('pay_data');
-        $amount = $data['plan_price'];
-        $error = array();
-        try{
-        Stripe\Stripe::setApiKey(env('STRIPE_SECRET'));
+        if (!$user || empty($data['quote']) || (int) ($data['id'] ?? 0) !== (int) $user->id) {
+            return redirect()->route('membership')->with('membership_expiry', 'Your payment session has expired. Please choose your plan again.');
+        }
 
-        Stripe\Charge::create ([
-                "amount" => \App\Services\SubscriptionTermPricing::toCents((float) $amount),
+        $plan = Membership::where('plan_name', '=', $data['plan_name'])->first();
+        if (!$plan) {
+            return redirect()->route('membership')->with('membership_expiry', 'Selected plan was not found.');
+        }
+
+        $quote = $data['quote'];
+        $amount = round((float) $quote['payable'], 2);
+        try {
+            Stripe\Stripe::setApiKey(env('STRIPE_SECRET'));
+
+            Stripe\Charge::create([
+                "amount" => SubscriptionTermPricing::toCents($amount),
                 "currency" => "usd",
                 "source" => $request->stripeToken,
-                "description" => "Test payment from adwiseri.com."
-        ]);
-        }
-        catch (\Stripe\Exception\CardException $e) {
+                "description" => "adwiseri subscription: " . $plan->plan_name . " (" . SubscriptionTermPricing::label((int) $quote['duration']) . ")",
+            ]);
+        } catch (\Stripe\Exception\CardException $e) {
             // Card declined: nothing has been saved yet, so just show the reason.
             return back()->with('errors', $e->getMessage());
         } catch (\Throwable $e) {
-            Log::warning('Stripe payment failed.', ['user_id' => optional(Auth::user())->id, 'error' => $e->getMessage()]);
+            Log::warning('Stripe payment failed.', ['user_id' => $user->id, 'error' => $e->getMessage()]);
 
             return back()->with('errors', 'The payment could not be processed. Please try again or use another card.');
         }
 
+        // Charged: forget the quote at once so a resubmitted form cannot apply it twice.
+        session()->forget('pay_data');
         Session::flash('success', 'Payment successful!');
 
-        $duration = SubscriptionTermPricing::normalizeDuration((int) ($data['plan_duration'] ?? 1));
-        $previousPlanName = $user->membership;
-        $previousExpiry = !empty($user->membership_expiry_date)
-            ? \Carbon\Carbon::parse($user->membership_expiry_date)
-            : null;
-        $previousWalletBalance = (float) $user->wallet;
-        $journeyLog = app(\App\Services\UserJourneyLogService::class);
-        $purchaseCategory = $journeyLog->classifySubscriptionPurchase(
-            false,
-            $previousExpiry,
-            $previousPlanName,
-            $data['plan_name']
-        );
-        $wallet_amount = SubscriptionTermPricing::walletCreditForSubscriptionPayment($user, $purchaseCategory);
-        $discount = min((float) $wallet_amount, (float) ($data['plan_amount'] ?? 0));
-        $user->membership = $data['plan_name'];
-        $user->membership_type = "Subscription";
-        SubscriptionTermPricing::applyMembershipDates(
-            $user,
-            $duration,
-            $purchaseCategory,
-            $previousExpiry
-        );
-        $user->wallet = SubscriptionTermPricing::shouldForfeitWalletOnPurchase($user, $purchaseCategory)
-            ? 0
-            : max(0, $previousWalletBalance - $discount);
-        $user->save();
-        $my_users = User::where('added_by','=',$user->id)->get();
-        foreach($my_users as $myuser){
-            $myuser->membership = $user->membership;
-            $myuser->membership_type = $user->membership_type;
-            $myuser->membership_start_date = $user->membership_start_date;
-            $myuser->membership_expiry_date = $user->membership_expiry_date;
-            $myuser->wallet = 0;
-            $myuser->save();
-        }
-        // if(isset($referral)){
-        //     $amt = $referral->wallet;
-        //     $referral->wallet = $amt + ($data['plan_price'] * 0.2);
-        //     $referral->save();
-        //     $save_referral = new Referrals();
-        //     $save_referral->referral_code = $data['referral_code'];
-        //     $save_referral->userid = $user->id;
-        //     $save_referral->user_name = $user->name;
-        //     $save_referral->total_amount = $data['plan_price'];
-        //     $save_referral->amount_added = $data['plan_price'] * 0.2;
-        //     $save_referral->previous_balance = $amt;
-        //     $save_referral->wallet_balance = $amt + ($data['plan_price'] * 0.2);
-        //     $save_referral->save();
-        // }
-        $activity = new Activities();
-        $activity->subscriber_id = $user->id;
-        $activity->user_id = $user->id;
-        $activity->user_name = $user->name;
-        $activity->activity_name = "Subscription Updated";
-        $activity->activity_detail = $user->name." updates account subscription at ".$data['local_time'];
-        $activity->activity_icon = "mmbrcp.png";
-        $activity->local_time = $data['local_time'];
-        $activity->save();
-        $journeyLog->logSubscriptionPurchase(
-            $user,
-            $purchaseCategory,
-            $data['plan_name'],
-            $duration,
-            $user->id,
-            ['previous_plan' => $previousPlanName]
-        );
-        $plan = Membership::where('plan_name','=',$data['plan_name'])->first();
-        if ($discount > 0 && $plan) {
-            app(\App\Services\WalletLedgerService::class)->recordSubscriptionDebit(
-                $user,
-                (float) $discount,
-                $previousWalletBalance,
-                0.0,
-                app(\App\Services\WalletLedgerService::class)->subscriptionDebitDescription($previousPlanName, $plan)
-            );
-        }
-        $service_fee = $data['plan_amount'];
-        // $discount = 0;
-        // $tax = ($service_fee + $discount) * (18/100);
-        $tax = 0;
-        $company = User::where('user_type','=','admin')->first();
-        $chargedAmount = $service_fee - $discount + $tax;
-        $internalInvoice = $this->createAdminApInvoiceAndPayment($user, $company, $chargedAmount, "Card", SubscriptionTermPricing::subscriptionFeeDetail($plan->plan_name, $duration));
-        app(\App\Services\RenewalCommissionService::class)->processRenewalCommission(
-            $user,
-            (float) $chargedAmount,
-            $purchaseCategory,
-            $previousExpiry
-        );
-        $invoice = new Invoices();
-        $invoice->user_id = $user->id;
-        $invoice->invoice = $this->transaction_id();
-        $invoice->company_name = $company->organization;
-        $invoice->city = $company->city;
-        $invoice->state = $company->state;
-        $invoice->country = $company->country;
-        $invoice->pincode = $company->pincode;
-        $invoice->phone = $company->phone;
-        $invoice->address = $company->address_line;
-        $invoice->logo = $company->organization_logo;
-        $invoice->to_name = $user->name;
-        $invoice->to_company = $user->organization;
-        $invoice->to_city = $user->city;
-        $invoice->to_state = $user->state;
-        $invoice->to_country =$user->country;
-        $invoice->to_pincode = $user->pincode;
-        $invoice->to_phone = $user->phone;
-        $invoice->to_email = $user->email;
-        $invoice->service_fee = $service_fee;
-        $invoice->discount = $discount;
-        $invoice->tax = $tax;
-        $invoice->payment_mode = "Card";
-        $invoice->total = $chargedAmount;
-        $invoice->save();
-        $activity = new Activities();
-        $activity->subscriber_id = $user->id;
-        $activity->user_id = $user->id;
-        $activity->user_name = $user->name;
-        $activity->activity_name = "Invoice Generated";
-        $activity->activity_detail = "Invoice generated for subscription update for user ".$user->name." at ".$data['local_time'];
-        $activity->activity_icon = "invoice.jpg";
-        $activity->local_time = $data['local_time'];
-        $activity->save();
-        $emailSent = $this->sendPaymentEmailSafely($user->email, new PlanSubscriptionMail(
-            $user->name,
-            $plan->plan_name ?? $data['plan_name'],
-            $plan->validity ?? $duration,
-            'Your Subscription Plan Has Been Updated',
-            $this->buildInvoicePdfData($internalInvoice, $user, $company),
-            $chargedAmount,
-            $previousPlanName,
-            (int) $duration,
-            $purchaseCategory
-        ), $user->id);
-        session()->forget('pay_data');
+        $result = app(\App\Services\SubscriptionCheckout::class)
+            ->complete($user, $plan, $quote, 'Card', $data['local_time'] ?? null);
 
         $redirect = redirect()->route('user_membership')->with('payment_success', 'Payment completed successfully.');
-        if (!$emailSent) {
+        if (!$result['email_sent']) {
             $redirect->with('email_warning', 'Your payment was successful, but the confirmation email could not be sent. Please contact support if you need a copy.');
         }
 
         return $redirect;
+    }
 
-        // return back();
+    private function uniqueReferralCode(): string
+    {
+        $chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        do {
+            $code = "";
+            for ($i = 0; $i < 8; $i++) {
+                $code .= $chars[random_int(0, strlen($chars) - 1)];
+            }
+        } while (User::where('referral', '=', $code)->exists());
+
+        return $code;
     }
 
     /**
@@ -360,6 +247,16 @@ class StripeController extends Controller
     {
 
         $data = session('reg_data');
+        if (empty($data['membership']) || empty($data['email'])) {
+            return redirect()->route('user_register')->withError('Your registration session has expired. Please fill in the form again.');
+        }
+        // Someone may have registered this email or phone since the form was checked: stop before charging.
+        if (User::where('email', $data['email'])->exists()
+            || (!empty($data['phone']) && User::where('phone', $data['phone'])->exists())) {
+            session()->forget('reg_data');
+
+            return redirect()->route('login')->withError('An account with this email or phone number already exists. Please log in.');
+        }
         $plan = $data['membership'];
         // The term is picked on the payment page itself and sent with the payment.
         if ($request->filled('duration')) {
@@ -367,6 +264,9 @@ class StripeController extends Controller
         }
         $duration = \App\Services\SubscriptionTermPricing::normalizeDuration((int) ($data['duration'] ?? 1));
         $membership = Membership::where('plan_name','=',$plan)->first();
+        if (!$membership) {
+            return redirect()->route('user_register')->withError('Selected plan is no longer available.');
+        }
         $amount = \App\Services\SubscriptionTermPricing::calculate((float) $membership->price_per_year, $duration);
         $data['duration'] = $duration;
         $data['amount'] = $amount;
@@ -378,7 +278,7 @@ class StripeController extends Controller
                 "amount" => \App\Services\SubscriptionTermPricing::toCents((float) $amount),
                 "currency" => "usd",
                 "source" => $request->stripeToken,
-                "description" => "Test payment from adwiseri.com."
+                "description" => "adwiseri subscription: " . $membership->plan_name . " (" . SubscriptionTermPricing::label($duration) . ") - new account"
         ]);
         }
         catch (\Stripe\Exception\CardException $e) {
@@ -390,25 +290,10 @@ class StripeController extends Controller
             return back()->with('errors', 'The payment could not be processed. Please try again or use another card.');
         }
 
+        // Charged: forget the form data at once so a resubmitted page cannot create a second account.
+        session()->forget('reg_data');
         Session::flash('success', 'Payment successful!');
 
-        function get_referral(){
-            $ch = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-            $ref = "";
-            for($i=0; $i<8; $i++){
-                $ref = $ref.$ch[rand(0, strlen($ch)-1)];
-            }
-            $referal = User::where('referral','=',$ref)->first();
-            if($referal){
-                get_referral();
-            }
-            else{
-                return $ref;
-            }
-        }
-        if($data['referral'] != null){
-            $find_referral = User::where('referral','=',$data['referral'])->first();
-        }
         $user = new User();
         $eotp = rand(10000, 99999);
         $potp = rand(10000, 99999);
@@ -433,7 +318,7 @@ class StripeController extends Controller
         $user->membership_start_date = new DateTime("now");
         $user->membership_expiry_date = $enddate;
         $user->wallet = 0;
-        $user->referral = get_referral();
+        $user->referral = $this->uniqueReferralCode();
         $user->referral_code = $data['referral'];
         $user->email_otp = $eotp;
         $user->phone_otp = $potp;
@@ -577,29 +462,8 @@ class StripeController extends Controller
         $activity->activity_icon = "user.png";
         $activity->local_time = $data['local_time'];
         $activity->save();
-        if(isset($find_referral)){
-            $totalCommission = $find_referral->affiliateTotalCommission->sum('amount_added');
-            $ref_amount =  commission_amount($totalCommission,$amount,$find_referral) ;
-            $wallet = $find_referral->wallet;
-            $find_referral->wallet = $wallet + $ref_amount;
-            $find_referral->save();
-            $save_referral = new Referrals();
-            $save_referral->referral_code = $data['referral'];
-            $save_referral->userid = $user->id;
-            $save_referral->user_name = $user->name;
-            $save_referral->total_amount = $amount;
-            $save_referral->amount_added = $ref_amount;
-            $save_referral->previous_balance = $wallet;
-            $save_referral->wallet_balance = $wallet + $ref_amount;
-            $save_referral->type = 'Referral Commission';
-            $save_referral->save();
-            // Earned / paid / pending follow the ledger rows (previously only an existing summary was updated).
-            app(\App\Services\AffiliateCommissionLedger::class)->sync($data['referral']);
-            $use_referral = new Used_referrals();
-            $use_referral->referral_code = $data['referral'];
-            $use_referral->subscriber_id = $user->id;
-            $use_referral->save();
-        }
+        // The referrer's commission on this first paid purchase (same rule as Free sign-ups that upgrade later).
+        app(\App\Services\ReferralCommissionService::class)->awardFirstPurchase($user, (float) $amount);
         $service_fee = $data['amount'];
         $discount = 0;
         // Packaged subscription prices are fixed — never apply Invoice Settings or GST markup.
@@ -673,8 +537,6 @@ class StripeController extends Controller
         $maildata->email = $email;
         $maildata->otp = $eotp;
         $verificationSent = $this->sendPaymentEmailSafely($email, new EmailVerification($maildata), $user->id ?? null);
-
-        session()->forget('reg_data');
 
         $redirect = redirect()->route('otp', $email);
         if (!$welcomeSent || !$verificationSent) {
