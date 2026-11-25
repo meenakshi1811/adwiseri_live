@@ -424,6 +424,7 @@ Route::get('/demo_requests', [App\Http\Controllers\AdminController::class, 'demo
 Route::get('/demo_status/{id?}', [App\Http\Controllers\AdminController::class, 'demo_status'])->name('demo_status')->middleware('admin_auth');
 Route::get('/subscribers', [App\Http\Controllers\AdminController::class, 'subscribers'])->name('subscribers')->middleware('admin_auth');
 Route::get('/email_subscribers', [App\Http\Controllers\AdminController::class, 'email_subscribers'])->name('email_subscribers')->middleware('admin_auth');
+Route::get('/email_subscribers_data', [App\Http\Controllers\AdminController::class, 'email_subscribers_data'])->name('email_subscribers_data')->middleware('admin_auth');
 Route::post('/store_email_subscriber', [App\Http\Controllers\AdminController::class, 'store_email_subscriber'])->name('store_email_subscriber')->middleware('admin_auth');
 Route::get('/email_subscription_status/{id?}', [App\Http\Controllers\AdminController::class, 'email_subscription_status'])->name('email_subscription_status')->middleware('admin_auth');
 Route::get('/admin/subscriber-journey-log-data', [App\Http\Controllers\JourneyLogController::class, 'subscriberJourneyLogData'])->name('admin_subscriber_journey_log_data')->middleware('admin_auth');

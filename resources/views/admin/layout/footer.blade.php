@@ -50,12 +50,7 @@
                 window.initSubscriberTableFilters($('#subscriberTable').DataTable());
             }
         }
-        if ($('#emailSubscriberTable').length) {
-            $('#emailSubscriberTable').DataTable({
-                aaSorting: [[2, 'desc']],
-                pageLength: 25
-            });
-        }
+        // #emailSubscriberTable is set up on its own page (rows are loaded from the server).
         if ($('#clientTable').length) {
             $('#clientTable').DataTable({"aaSorting": []});
         }

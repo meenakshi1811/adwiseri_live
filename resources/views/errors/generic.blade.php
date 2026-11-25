@@ -37,7 +37,7 @@
         p { color: var(--ds-text); }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Lato:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-theme.css') }}?v=20261125a">
+    <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-theme.css') }}?v=20261126a">
 </head>
 <body>
     <div class="error-card">

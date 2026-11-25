@@ -362,16 +362,106 @@ table.dataTable > thead > tr > th {
    no weight of its own, so rows and cells given a colour elsewhere (totals, folders, unread) keep it. */
 :where(.table:not(.fl-table):not(.table-striped) > tbody > tr:nth-of-type(even)) { --bs-table-bg: var(--ds-table-band); }
 
-.dataTables_wrapper .dataTables_paginate .paginate_button {
-  border-radius: var(--ds-r-xs) !important;
-  border: 1px solid transparent !important;
+/* ---- Table pagination (every DataTable: admin, subscriber and affiliate pages) ----
+   Compact outlined page numbers, the current page filled, chevrons on Previous / Next and a plain
+   ellipsis. Written for both DataTables markups (Bootstrap 5: ul.pagination > li.page-item >
+   a.page-link; plain: a.paginate_button) and strong enough to beat the old rule that turns every
+   link in the content area into a filled purple button. */
+.dataTables_wrapper .dataTables_info {
+  color: var(--ds-muted);
+  font-size: 13px;
+  padding-top: 8px !important; /* level with the page buttons */
+  line-height: 34px;
 }
-.dataTables_wrapper .dataTables_paginate .paginate_button.current,
-.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover,
+.dataTables_wrapper .dataTables_paginate {
+  padding-top: 0 !important;
+}
+.dataTables_wrapper .dataTables_paginate ul.pagination {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 8px 0 !important;
+}
+.dataTables_wrapper .dataTables_paginate .page-item { margin: 0 !important; }
+.dataTables_wrapper .dataTables_paginate .page-item .page-link,
+.dataTables_wrapper .dataTables_paginate .page-item:first-child .page-link,
+.dataTables_wrapper .dataTables_paginate .page-item:last-child .page-link,
+.dataTables_wrapper .dataTables_paginate a.paginate_button,
+.column-client .dataTables_wrapper .dataTables_paginate a.page-link,
+.column-client .dataTables_wrapper .dataTables_paginate a.paginate_button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 34px;
+  height: 34px;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  color: var(--ds-ink-2) !important;
+  background: #fff !important;
+  background-image: none !important;
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-r-sm) !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  transition: background-color .15s, border-color .15s, color .15s;
+}
+.dataTables_wrapper .dataTables_paginate .page-item:not(.active):not(.disabled) .page-link:hover,
+.dataTables_wrapper .dataTables_paginate a.paginate_button:not(.current):not(.disabled):hover,
+.column-client .dataTables_wrapper .dataTables_paginate .page-item:not(.active):not(.disabled) a.page-link:hover,
+.column-client .dataTables_wrapper .dataTables_paginate a.paginate_button:not(.current):not(.disabled):hover {
+  color: var(--ds-primary-700) !important;
+  background: var(--ds-wash) !important;
+  border-color: var(--ds-primary-light, var(--ds-primary)) !important;
+}
+.dataTables_wrapper .dataTables_paginate .page-item.active .page-link,
+.dataTables_wrapper .dataTables_paginate a.paginate_button.current,
+.dataTables_wrapper .dataTables_paginate a.paginate_button.current:hover,
+.column-client .dataTables_wrapper .dataTables_paginate .page-item.active a.page-link,
+.column-client .dataTables_wrapper .dataTables_paginate a.paginate_button.current {
+  color: #fff !important;
+  background: var(--ds-primary) !important;
+  border-color: var(--ds-primary) !important;
+}
+.dataTables_wrapper .dataTables_paginate .page-item.disabled .page-link,
+.dataTables_wrapper .dataTables_paginate a.paginate_button.disabled,
+.column-client .dataTables_wrapper .dataTables_paginate .page-item.disabled a.page-link,
+.column-client .dataTables_wrapper .dataTables_paginate a.paginate_button.disabled {
+  color: var(--ds-muted) !important;
+  background: #fff !important;
+  border-color: var(--ds-border) !important;
+  opacity: .5;
+  cursor: default;
+  pointer-events: none;
+}
+/* The "…" between page numbers is not a button. */
+.dataTables_wrapper .dataTables_paginate .page-item.disabled:not(.previous):not(.next) .page-link,
+.dataTables_wrapper .dataTables_paginate span.ellipsis,
+.column-client .dataTables_wrapper .dataTables_paginate .page-item.disabled:not(.previous):not(.next) a.page-link {
+  min-width: 20px;
+  padding: 0 2px !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  opacity: 1;
+}
+.dataTables_wrapper .dataTables_paginate .previous .page-link::before,
+.dataTables_wrapper .dataTables_paginate a.paginate_button.previous::before { content: "\2039"; font-size: 17px; line-height: 1; margin-top: -2px; }
+.dataTables_wrapper .dataTables_paginate .next .page-link::after,
+.dataTables_wrapper .dataTables_paginate a.paginate_button.next::after { content: "\203A"; font-size: 17px; line-height: 1; margin-top: -2px; }
 .page-item.active .page-link {
   background: var(--ds-primary) !important;
   border-color: var(--ds-primary) !important;
   color: #fff !important;
+}
+@media (max-width: 575.98px) {
+  /* Phones: info above, page numbers centred below. */
+  .dataTables_wrapper .dataTables_info,
+  .dataTables_wrapper .dataTables_paginate { text-align: center !important; float: none !important; }
+  .dataTables_wrapper .dataTables_paginate ul.pagination { justify-content: center !important; }
 }
 .dataTables_wrapper .dataTables_filter input {
   border: 1px solid var(--ds-border);

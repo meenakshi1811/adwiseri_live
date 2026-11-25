@@ -509,14 +509,40 @@ class AdminController extends Controller
 
     public function email_subscribers()
     {
-        $emailSubscribers = EmailSubscriptions::query()
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->get();
+        // Rows are loaded page by page from email_subscribers_data (there are 10,000+), not all at once.
         $user = Auth::user();
         $page = 'email_subscribers';
 
-        return view('admin.email_subscribers', compact('emailSubscribers', 'user', 'page'));
+        return view('admin.email_subscribers', compact('user', 'page'));
+    }
+
+    /** Server-side DataTable rows for the Email Subscribers page: one page, searched and sorted in SQL. */
+    public function email_subscribers_data(Request $request)
+    {
+        $user = Auth::user();
+        $canChange = $user && !$user->is_support;
+
+        $query = EmailSubscriptions::query()->select(['id', 'email', 'status', 'created_at']);
+
+        return DataTables::eloquent($query)
+            ->addIndexColumn()
+            ->filterColumn('email', fn ($q, $keyword) => $q->where('email', 'like', '%' . $keyword . '%'))
+            ->orderColumn('created_at', fn ($q, $order) => $q->orderBy('created_at', $order)->orderBy('id', $order))
+            ->editColumn('email', fn ($row) => e($row->email))
+            ->editColumn('created_at', fn ($row) => $row->created_at ? $row->created_at->format('d-m-Y H:i:s') : '-')
+            ->addColumn('status_html', function ($row) use ($canChange) {
+                $subscribed = $row->isSubscribed();
+                $label = $subscribed ? 'Subscribed' : 'Unsubscribed';
+                $class = $subscribed ? 'email-sub-status is-on' : 'email-sub-status is-off';
+                if (!$canChange) {
+                    return '<span class="' . $class . '">' . $label . '</span>';
+                }
+
+                return '<a class="' . $class . '" href="' . e(route('email_subscription_status', $row->id)) . '" title="'
+                    . ($subscribed ? 'Click to unsubscribe' : 'Click to subscribe') . '">' . $label . '</a>';
+            })
+            ->rawColumns(['status_html'])
+            ->make(true);
     }
 
     public function store_email_subscriber(Request $request)

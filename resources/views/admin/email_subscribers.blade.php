@@ -1,6 +1,17 @@
 @extends('admin.layout.main')
 
 @section('main-section')
+<style>
+    /* Subscribed / Unsubscribed pills (the status is a link that toggles it). */
+    .column-client .email-sub-status,
+    .column-client a.email-sub-status:hover {
+        display: inline-block; padding: 2px 10px !important; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+        color: #fff !important; text-decoration: none; border: 0 !important; min-height: 0 !important;
+    }
+    .column-client .email-sub-status.is-on, .column-client a.email-sub-status.is-on:hover { background: #15803D !important; }
+    .column-client .email-sub-status.is-off, .column-client a.email-sub-status.is-off:hover { background: #B91C1C !important; }
+    #emailSubscriberTable td.email-sub-email { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>
 
         <div class="col-lg-10 column-client">
             <div class="client-dashboard">
@@ -38,45 +49,7 @@
                             <th class="text-center">Status</th>
                         </tr>
                         </thead>
-                        <tbody>
-                            @foreach($emailSubscribers as $key => $subscriber)
-                            <tr>
-                                <td class="text-center">{{ $key + 1 }}</td>
-                                <td class="text-center" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $subscriber->email }}" style="position: relative;">
-                                    @if(strlen($subscriber->email) > 30)
-                                        {{ substr($subscriber->email, 0, 30) }}...
-                                        <span onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';" style="display:flex;opacity:0;align-items:center;padding:5px;position: absolute;left:0px;top:25px;height:100%;background:lightgrey;min-width:100%; width:fit-content;">{{ $subscriber->email }}</span>
-                                    @else
-                                        {{ $subscriber->email }}
-                                    @endif
-                                </td>
-                                <td class="text-center" data-order="{{ $subscriber->created_at ? $subscriber->created_at->timestamp : 0 }}">
-                                    {{ $subscriber->created_at ? $subscriber->created_at->format('d-m-Y H:i:s') : '—' }}
-                                </td>
-                                <td class="text-center">
-                                    @if(!$user->is_support)
-                                        @if($subscriber->isSubscribed())
-                                            <a style="background:green;border-color:green;"
-                                               href="{{ route('email_subscription_status', $subscriber->id) }}"
-                                               class="p-0 px-2 text-white"
-                                               title="Click to unsubscribe">Subscribed</a>
-                                        @else
-                                            <a style="background:red;border-color:red;"
-                                               href="{{ route('email_subscription_status', $subscriber->id) }}"
-                                               class="p-0 px-2 text-white"
-                                               title="Click to subscribe">Unsubscribed</a>
-                                        @endif
-                                    @else
-                                        @if($subscriber->isSubscribed())
-                                            <span style="background:green;border-color:green;display:inline-block;padding:0 0.5rem;color:#fff;border-radius:4px;">Subscribed</span>
-                                        @else
-                                            <span style="background:red;border-color:red;display:inline-block;padding:0 0.5rem;color:#fff;border-radius:4px;">Unsubscribed</span>
-                                        @endif
-                                    @endif
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>
@@ -86,21 +59,21 @@
 
   <script>
      document.addEventListener("DOMContentLoaded", function() {
-        // Search, sort and paging like the other admin lists; newest subscribers first.
+        // 10,000+ subscribers: rows come from the server a page at a time (search and sort run in SQL).
         if (window.jQuery && $.fn.DataTable && !$.fn.DataTable.isDataTable('#emailSubscriberTable')) {
             $('#emailSubscriberTable').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: @json(route('email_subscribers_data')),
                 order: [[2, 'desc']],
                 pageLength: 25,
-                columnDefs: [{ orderable: false, targets: [0] }],
-                language: { emptyTable: 'No email subscribers found.' },
-                drawCallback: function () {
-                    // Sr No. follows the current sort / search, not the original order.
-                    var api = this.api();
-                    var start = api.page.info().start;
-                    api.column(0, { page: 'current' }).nodes().each(function (cell, i) {
-                        cell.innerHTML = start + i + 1;
-                    });
-                }
+                columns: [
+                    { data: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
+                    { data: 'email', name: 'email', className: 'text-center email-sub-email' },
+                    { data: 'created_at', name: 'created_at', searchable: false, className: 'text-center' },
+                    { data: 'status_html', name: 'status', orderable: false, searchable: false, className: 'text-center' }
+                ],
+                language: { emptyTable: 'No email subscribers found.', processing: 'Loading…' }
             });
         }
 
