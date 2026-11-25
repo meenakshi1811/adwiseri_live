@@ -669,6 +669,8 @@ button.dt-button:hover { border-color: rgba(105, 94, 238, .45) !important; color
 
 /* Price shown under the plan name on the Price Plans page (beats `.plan-title .plan-title-price`) */
 .plan-card .plan-title .plan-title-price { font-size: 36px; font-weight: 800; letter-spacing: -.04em; margin-top: 0; color: #fff; }
+/* Plan period beside the price ("/ year", "/ 30 days" for Free), small like the homepage plans; it replaces the Validity row. */
+.plan-card .plan-title .plan-title-price .plan-title-period { font-size: 13px; font-weight: 600; letter-spacing: 0; margin-left: 4px; color: rgba(255, 255, 255, .82); }
 
 /* style.css forces `.nav-item a { color: white !important }` (meant for the old public navbar);
    keep inactive tab labels readable. Active / hover states keep their own rules. */

@@ -48,7 +48,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             @foreach($membership as $plan)
             @if(empty($myplan))
             <div class="plan-card">
-                <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">${{ $plan->price_per_year + 0 }}</span></h3>
+                <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">${{ $plan->price_per_year + 0 }}<small class="plan-title-period">/ {{ ($plan->price_per_year + 0) == 0 ? ((int) $plan->validity . ' days') : 'year' }}</small></span></h3>
                 <ul class="plan-features">
                     <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                     <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
@@ -80,7 +80,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
                         @endif</span></li>
-                    <li><span class="plan-feat-label">Validity</span><span class="plan-feat-value">{{ $plan->validity }} Days</span></li>
 
 
                 </ul>
@@ -107,7 +106,7 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
             @endif
 
             <div class="plan-card">
-                <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">${{ $plan->price_per_year + 0 }}</span></h3>
+                <h3 class="plan-title">{{ $plan->plan_name }}<span class="plan-title-price">${{ $plan->price_per_year + 0 }}<small class="plan-title-period">/ {{ ($plan->price_per_year + 0) == 0 ? ((int) $plan->validity . ' days') : 'year' }}</small></span></h3>
                 <ul class="plan-features">
                     <li><span class="plan-feat-label">Client Limit</span><span class="plan-feat-value">{{ $plan->client_limit }}</span></li>
                     <li><span class="plan-feat-label">User License</span><span class="plan-feat-value">{{ $plan->no_of_users }}</span></li>
@@ -139,7 +138,6 @@ $support_roles = UserRoles::where('user_id','=',$user->id)->where('module','=','
                         @else
                             <i class="fa fa-times icon-circle text-danger"></i>
                         @endif</span></li>
-                    <li><span class="plan-feat-label">Validity</span><span class="plan-feat-value">{{ $plan->validity }} Days</span></li>
 
 
                 </ul>
