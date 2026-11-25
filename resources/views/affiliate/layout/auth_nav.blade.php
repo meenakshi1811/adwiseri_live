@@ -84,7 +84,7 @@
     <div class="ms-auto px-3 mb-3">
         <img class="px-3"
            @if($affiliate->type != 'Individual')
-            @if ($user->organization_logo != null) src="{{ asset('web_assets/users/user' . $user->id . '/' . $user->organization_logo) }}" @else src="{{ asset('web_assets/images/Style2_violet.png') }}" @endif
+            @if ($user->organization_logo != null) src="{{ asset('web_assets/users/user' . $user->id . '/' . $user->organization_logo) }}" @else src="{{ asset('web_assets/images/Style2_violet.png') }}?v=20261126" @endif
             height="30px;">
             @endif
         <p class="p-2 text-primary" style="display: inline;margin-left:auto;font-weight:550;">{{ $user->name }}
@@ -93,7 +93,7 @@
  </div>
 <nav class="navbar navbar-expand-lg navbar-light app-topbar">
     <div class="container-fluid">
-        <a class="navbar-brand text-white" href="{{ route('/') }}"><img class="app-logo" src="{{ asset('web_assets/images/Style2_white.png') }}" alt="adwiseri" /></a>
+        <a class="navbar-brand text-white" href="{{ route('/') }}"><img class="app-logo" src="{{ asset('web_assets/images/Style2_white.png') }}?v=20261126" alt="adwiseri" /></a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
             aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>

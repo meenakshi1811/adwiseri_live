@@ -36,14 +36,14 @@
         </style>
   {{-- Design system (loaded after legacy styles) --}}
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Lato:wght@300;400;700;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-theme.css') }}?v=20261126a">
+  <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-theme.css') }}?v=20261126b">
 </head>
 <body>
     <div id="app">
         <nav class="navbar navbar-expand-md navbar-light text-white shadow-sm app-topbar">
             <div class="container">
                 <a class="navbar-brand text-white" href="{{ url('/') }}">
-                    <img src="{{ asset('/web_assets/images/Style2.png') }}" width="120px" height="auto" alt="homepage" />
+                    <img src="{{ asset('/web_assets/images/Style2.png') }}?v=20261126" width="120px" height="auto" alt="homepage" />
                     <!-- <h2>adwiseri</h2> -->
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">

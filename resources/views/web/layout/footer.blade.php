@@ -10,7 +10,7 @@
     <div class="wrap">
       <div class="foot-grid">
         <div class="foot-brand">
-          <a class="brand" href="{{ route('/') }}" aria-label="adwiseri home"><img src="{{ asset('web_assets/images/Style2.png') }}" alt="adwiseri" width="152" height="36" onerror="this.parentNode.classList.add('logo-fallback')"><span class="brand-text" style="color:#fff">adwiseri</span></a>
+          <a class="brand" href="{{ route('/') }}" aria-label="adwiseri home"><img src="{{ asset('web_assets/images/Style2.png') }}?v=20261126" alt="adwiseri" width="158" height="36" onerror="this.parentNode.classList.add('logo-fallback')"><span class="brand-text" style="color:#fff">adwiseri</span></a>
           <p>One-stop solution for Visa &amp; Immigration Consultancies with features like Cloud Storage, Users &amp; Case Management, Analytics, Reports, and much more.</p>
           <div class="foot-support">
             <svg class="icon"><use href="#i-headset"/></svg>

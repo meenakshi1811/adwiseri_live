@@ -153,7 +153,7 @@
                                     <img src="{{ asset('web_assets/users/user'.$user->id .'/'.$user->organization_logo) }}"
                                         width="100%" height="auto" alt="">
                                 @else
-                                    <img src="{{ asset('web_assets/images/Style2_violet.png') }}" width="100%" height="auto"
+                                    <img src="{{ asset('web_assets/images/Style2_violet.png') }}?v=20261126" width="100%" height="auto"
                                         alt="">
                                 @endif
                             </div>

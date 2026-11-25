@@ -117,7 +117,7 @@
         </div>
         <div class="mock-body">
           <aside class="mock-side">
-            <img class="logo-sm" src="{{ asset('web_assets/images/Style2.png') }}" alt="" onerror="this.style.display='none'">
+            <img class="logo-sm" src="{{ asset('web_assets/images/Style2.png') }}?v=20261126" alt="" onerror="this.style.display='none'">
             <span class="mi on"><svg class="icon"><use href="#i-grid"/></svg>Dashboard</span>
             <span class="mi"><svg class="icon"><use href="#i-users"/></svg>Clients</span>
             <span class="mi"><svg class="icon"><use href="#i-briefcase"/></svg>Applications</span>

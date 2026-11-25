@@ -553,7 +553,7 @@ button.dt-button:hover { border-color: rgba(105, 94, 238, .45) !important; color
 @media (min-width: 992px) {
   /* The bar's own 30px side padding is dropped, so its content lines up with the page's 12px gutter. */
   .navbar.app-topbar { padding-left: 0 !important; padding-right: 0 !important; }
-  .navbar.app-topbar .navbar-brand { margin-left: max(0px, calc((100vw - 24px) / 12 - 67px)); }
+  .navbar.app-topbar .navbar-brand { margin-left: max(0px, calc((100vw - 24px) / 12 - 73px)); }
 }
 
 /* Top bar — deep brand gradient instead of the flat violet fill */

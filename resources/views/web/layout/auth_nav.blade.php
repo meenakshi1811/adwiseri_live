@@ -68,7 +68,7 @@ $hasAnalyticsAccess = $offerBenefitService->hasAnalyticsAccess($user);
     {{-- <a href="{{ route('contactus') }}" class="contact-texthead"><img src="{{ asset('web_assets/images/contactus.png') }}" width="15" height="15" alt=""> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Contact Us</a> --}}
     <div class="ms-auto px-3 mb-3">
       @if(Auth::user()->user_type === 'admin')
-          <img class="px-3" @if($user->organization_logo != null) src="{{ asset('web_assets/users/user'.$user->id.'/'.$user->organization_logo) }}" @else src="{{ asset('web_assets/images/Style2_violet.png') }}" @endif height="30px;">
+          <img class="px-3" @if($user->organization_logo != null) src="{{ asset('web_assets/users/user'.$user->id.'/'.$user->organization_logo) }}" @else src="{{ asset('web_assets/images/Style2_violet.png') }}?v=20261126" @endif height="30px;">
       @else
           <img class="px-3" @if($user->organization_logo != null) src="{{ asset('web_assets/users/user'.$user->id.'/'.$user->organization_logo) }}" @endif height="30px;">
       @endif
@@ -79,8 +79,8 @@ $hasAnalyticsAccess = $offerBenefitService->hasAnalyticsAccess($user);
 </div>
 <nav class="navbar navbar-expand-lg navbar-light app-topbar">
     <div class="container-fluid">
-      <!-- <a class="navbar-brand text-white" href="{{ route('/') }}"><img width="50" @if($user->organization_logo != null) src="{{ asset('web_assets/users/user'.$user->id.'/'.$user->organization_logo) }}" @else src="{{ asset('web_assets/images/Style2.png') }}" @endif /></a> -->
-       <a class="navbar-brand text-white" href="{{ route('/') }}"><img class="logo-fix app-logo" src="{{ asset('web_assets/images/Style2_white.png') }}" alt="adwiseri" /></a>
+      <!-- <a class="navbar-brand text-white" href="{{ route('/') }}"><img width="50" @if($user->organization_logo != null) src="{{ asset('web_assets/users/user'.$user->id.'/'.$user->organization_logo) }}" @else src="{{ asset('web_assets/images/Style2.png') }}?v=20261126" @endif /></a> -->
+       <a class="navbar-brand text-white" href="{{ route('/') }}"><img class="logo-fix app-logo" src="{{ asset('web_assets/images/Style2_white.png') }}?v=20261126" alt="adwiseri" /></a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
         aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>

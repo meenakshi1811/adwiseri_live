@@ -88,7 +88,7 @@
         .section-title { font-family: var(--ds-font-head); color: var(--ds-ink); }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Lato:wght@300;400;700;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-theme.css') }}?v=20261126a">
+    <link rel="stylesheet" href="{{ asset('web_assets/css/adwiseri-theme.css') }}?v=20261126b">
 </head>
 <body>
     <div class="page-wrap">
