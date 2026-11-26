@@ -44,61 +44,43 @@
         max-width: 100%;
     }
 
+    /* Every column gets a share of the width, Purpose the largest. Fixed widths plus the table's
+       wide cell padding used to fill the whole table, leaving Purpose (the only flexible column)
+       0px wide, so its text ran one letter per line. Below ~980px the table scrolls sideways
+       instead of squeezing Purpose. */
     #appointmentRecordsTable {
         width: 100% !important;
+        min-width: 980px;
         table-layout: fixed;
     }
-
-    #appointmentRecordsTable .appointment-col-id {
-        width: 4.5rem;
-        max-width: 4.5rem;
-        white-space: nowrap;
+    #appointment-records-table-wrap .dataTables_wrapper .table-responsive,
+    #appointment-records-table-wrap {
+        overflow-x: auto;
     }
-
-    #appointmentRecordsTable .appointment-col-client {
-        width: 14%;
-        min-width: 8rem;
+    #appointmentRecordsTable > thead > tr > th,
+    #appointmentRecordsTable > tbody > tr > td {
+        padding: 10px 8px !important;
+        overflow-wrap: anywhere;
     }
-
-    #appointmentRecordsTable .appointment-col-date,
-    #appointmentRecordsTable .appointment-col-time {
-        width: 8%;
-        min-width: 6.5rem;
-        white-space: nowrap;
-    }
-
+    #appointmentRecordsTable .appointment-col-id { width: 5%; white-space: nowrap; }
+    #appointmentRecordsTable .appointment-col-client { width: 13%; }
+    #appointmentRecordsTable .appointment-col-date { width: 9%; white-space: nowrap; }
+    #appointmentRecordsTable .appointment-col-time { width: 8%; white-space: nowrap; }
     #appointmentRecordsTable .appointment-purpose-col {
-        width: auto;
-        min-width: 10rem;
+        width: 27%;
         white-space: normal;
-        word-break: break-word;
+        overflow-wrap: break-word;
+        word-break: normal;
         text-align: center !important;
     }
-
-    #appointmentRecordsTable .appointment-col-status {
-        width: 7%;
-        min-width: 5.5rem;
-    }
-
-    #appointmentRecordsTable .appointment-col-sent-by {
-        width: 14%;
-        min-width: 8rem;
-    }
-
-    #appointmentRecordsTable .appointment-col-sent-on {
-        width: 12%;
-        min-width: 9rem;
-        white-space: nowrap;
-    }
+    #appointmentRecordsTable .appointment-col-status { width: 8%; }
+    #appointmentRecordsTable .appointment-col-sent-by { width: 12%; }
+    #appointmentRecordsTable .appointment-col-sent-on { width: 11%; }
     /* Smaller text for the dates only; the heading stays like the other column titles. */
     #appointmentRecordsTable td.appointment-col-sent-on {
         font-size: 13px;
     }
-
-    #appointmentRecordsTable .appointment-col-action {
-        width: 4.5rem;
-        max-width: 4.5rem;
-    }
+    #appointmentRecordsTable .appointment-col-action { width: 7%; }
 
     .service-status-switch {
         display: inline-flex;
@@ -1793,7 +1775,7 @@
 
                 <div class="tab-pane fade" id="email-template" role="tabpanel" aria-labelledby="email-template-tab">
                     <div class="row p-1 m-0">
-                        <p class="m-0 p-1" style="font-size:18px;font-weight: 550;">Email Template</p>
+                        <p class="m-0 p-1" style="font-size:18px;font-weight: 550;">Email Templates</p>
                     </div>
                     <form id="email-template-form">
                         @csrf

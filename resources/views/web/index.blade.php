@@ -597,9 +597,11 @@
     </div>
 
     <div class="pricing-note" data-reveal>
-      <span><svg class="icon"><use href="#i-tag"/></svg>Flat yearly pricing</span>
-      <span><svg class="icon"><use href="#i-infinity"/></svg>Unlimited data</span>
-      <span><svg class="icon"><use href="#i-zap"/></svg>Instant activation</span>
+      {{-- Benefits of the plans and subscription themselves (not product features). --}}
+      <span><svg class="icon"><use href="#i-tag"/></svg>Fixed yearly pricing</span>
+      <span><svg class="icon"><use href="#i-up"/></svg>Easy-to-upgrade</span>
+      <span><svg class="icon"><use href="#i-percent"/></svg>Long-term discounts</span>
+      <span><svg class="icon"><use href="#i-calendar"/></svg>30-days lapse-term</span>
       {{-- "Compare plans in detail" is hidden until the plans have more features that set them apart. --}}
     </div>
   </div>

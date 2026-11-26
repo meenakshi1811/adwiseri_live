@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 460" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 460" role="img" aria-labelledby="t d">
   <title id="t">An adwiseri product demo</title>
-  <desc id="d">A presenter shows the adwiseri dashboard on a large screen to two people, one with a laptop and one with a question.</desc>
+  <desc id="d">A consultant presents the adwiseri dashboard on a large screen to two business professionals seated at a meeting table with laptops.</desc>
   <defs>
     <linearGradient id="screenFrame" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#3A2D9A"/>
@@ -10,141 +10,170 @@
       <stop offset="0" stop-color="#E879F9"/>
       <stop offset="1" stop-color="#C026D3"/>
     </linearGradient>
+    <linearGradient id="tableFront" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5B4BD1"/>
+      <stop offset="1" stop-color="#4C3BB7"/>
+    </linearGradient>
     <filter id="soft" x="-20%" y="-20%" width="140%" height="150%">
       <feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#2A1F7A" flood-opacity=".16"/>
     </filter>
   </defs>
 
   <!-- background -->
-  <ellipse cx="290" cy="250" rx="255" ry="190" fill="#F3F1FF"/>
-  <ellipse cx="300" cy="410" rx="230" ry="26" fill="#E7E3FF"/>
+  <ellipse cx="350" cy="245" rx="320" ry="200" fill="#F3F1FF"/>
+  <ellipse cx="350" cy="410" rx="300" ry="26" fill="#E7E3FF"/>
 
   <!-- faint gears, top left -->
   <g fill="none" stroke="#DDD7FB" stroke-width="5">
-    <circle cx="92" cy="52" r="14"/>
-    <circle cx="128" cy="40" r="9"/>
+    <circle cx="70" cy="44" r="14"/>
+    <circle cx="106" cy="32" r="9"/>
   </g>
   <g stroke="#DDD7FB" stroke-width="6" stroke-linecap="round">
-    <path d="M92 30 v6 M92 68 v6 M70 52 h6 M108 52 h6 M77 37 l4 4 M103 63 l4 4 M77 67 l4 -4 M103 41 l4 -4"/>
+    <path d="M70 22 v6 M70 60 v6 M48 44 h6 M86 44 h6 M55 29 l4 4 M81 55 l4 4 M55 59 l4 -4 M81 33 l4 -4"/>
   </g>
 
-  <!-- "..." speech bubble -->
+  <!-- "..." speech bubble above the screen -->
   <g filter="url(#soft)">
-    <path d="M232 40 a22 22 0 0 1 22 -22 h40 a22 22 0 0 1 0 44 h-24 l-14 12 l2 -12 a22 22 0 0 1 -26 -22 z" fill="#FFFFFF"/>
+    <path d="M190 34 a22 22 0 0 1 22 -22 h40 a22 22 0 0 1 0 44 h-24 l-14 12 l2 -12 a22 22 0 0 1 -26 -22 z" fill="#FFFFFF"/>
   </g>
-  <circle cx="258" cy="40" r="4" fill="#D946EF"/><circle cx="274" cy="40" r="4" fill="#D946EF"/><circle cx="290" cy="40" r="4" fill="#D946EF"/>
+  <circle cx="216" cy="34" r="4" fill="#D946EF"/><circle cx="232" cy="34" r="4" fill="#D946EF"/><circle cx="248" cy="34" r="4" fill="#D946EF"/>
 
-  <!-- big presentation screen on a stand -->
-  <path d="M120 268 l-16 96 M236 268 l16 96" stroke="#2A1F7A" stroke-width="7" stroke-linecap="round"/>
+  <!-- presentation screen on a stand -->
+  <path d="M100 262 l-16 116 M210 262 l16 116" stroke="#2A1F7A" stroke-width="7" stroke-linecap="round"/>
   <g filter="url(#soft)">
-    <rect x="44" y="78" width="270" height="190" rx="12" fill="url(#screenFrame)"/>
+    <rect x="24" y="72" width="262" height="190" rx="12" fill="url(#screenFrame)"/>
   </g>
-  <rect x="56" y="90" width="246" height="166" rx="6" fill="#FFFFFF"/>
-  <rect x="56" y="90" width="246" height="18" rx="6" fill="#695EEE"/>
-  <rect x="56" y="100" width="246" height="8" fill="#695EEE"/>
-  <circle cx="66" cy="99" r="3" fill="#FFFFFF" opacity=".85"/><circle cx="76" cy="99" r="3" fill="#FFFFFF" opacity=".6"/>
+  <rect x="36" y="84" width="238" height="166" rx="6" fill="#FFFFFF"/>
+  <rect x="36" y="84" width="238" height="18" rx="6" fill="#695EEE"/>
+  <rect x="36" y="94" width="238" height="8" fill="#695EEE"/>
+  <circle cx="46" cy="93" r="3" fill="#FFFFFF" opacity=".85"/><circle cx="56" cy="93" r="3" fill="#FFFFFF" opacity=".6"/>
   <!-- screen: highlight card -->
-  <rect x="66" y="118" width="86" height="128" rx="8" fill="#F5D0FE"/>
-  <rect x="76" y="128" width="50" height="7" rx="3.5" fill="#C026D3"/>
-  <rect x="76" y="142" width="66" height="5" rx="2.5" fill="#E9A8F5"/>
-  <rect x="76" y="152" width="58" height="5" rx="2.5" fill="#E9A8F5"/>
-  <rect x="76" y="198" width="66" height="36" rx="6" fill="#D946EF"/>
-  <rect x="84" y="206" width="30" height="6" rx="3" fill="#FFFFFF" opacity=".9"/>
-  <rect x="84" y="218" width="44" height="8" rx="4" fill="#FFFFFF"/>
+  <rect x="46" y="112" width="84" height="128" rx="8" fill="#F5D0FE"/>
+  <rect x="56" y="122" width="50" height="7" rx="3.5" fill="#C026D3"/>
+  <rect x="56" y="136" width="64" height="5" rx="2.5" fill="#E9A8F5"/>
+  <rect x="56" y="146" width="56" height="5" rx="2.5" fill="#E9A8F5"/>
+  <rect x="56" y="192" width="64" height="36" rx="6" fill="#D946EF"/>
+  <rect x="64" y="200" width="30" height="6" rx="3" fill="#FFFFFF" opacity=".9"/>
+  <rect x="64" y="212" width="42" height="8" rx="4" fill="#FFFFFF"/>
   <!-- screen: pie chart -->
-  <circle cx="196" cy="150" r="24" fill="#EDE9FE"/>
-  <path d="M196 150 v-24 a24 24 0 0 1 22.8 16.6 z" fill="#695EEE"/>
-  <path d="M196 150 l22.8 -7.4 a24 24 0 0 1 -11 27.7 z" fill="#D946EF"/>
-  <rect x="230" y="132" width="58" height="6" rx="3" fill="#C4BDF7"/>
-  <rect x="230" y="144" width="44" height="6" rx="3" fill="#E4E0FD"/>
-  <rect x="230" y="156" width="52" height="6" rx="3" fill="#E4E0FD"/>
+  <circle cx="172" cy="144" r="24" fill="#EDE9FE"/>
+  <path d="M172 144 v-24 a24 24 0 0 1 22.8 16.6 z" fill="#695EEE"/>
+  <path d="M172 144 l22.8 -7.4 a24 24 0 0 1 -11 27.7 z" fill="#D946EF"/>
+  <rect x="206" y="126" width="56" height="6" rx="3" fill="#C4BDF7"/>
+  <rect x="206" y="138" width="42" height="6" rx="3" fill="#E4E0FD"/>
+  <rect x="206" y="150" width="50" height="6" rx="3" fill="#E4E0FD"/>
   <!-- screen: bar chart -->
-  <rect x="168" y="186" width="122" height="60" rx="6" fill="#FAF9FF"/>
-  <rect x="180" y="218" width="12" height="20" rx="2" fill="url(#barGrad)"/>
-  <rect x="198" y="206" width="12" height="32" rx="2" fill="url(#barGrad)"/>
-  <rect x="216" y="212" width="12" height="26" rx="2" fill="url(#barGrad)"/>
-  <rect x="234" y="196" width="12" height="42" rx="2" fill="url(#barGrad)"/>
-  <rect x="252" y="202" width="12" height="36" rx="2" fill="#695EEE"/>
-  <rect x="270" y="192" width="12" height="46" rx="2" fill="#695EEE"/>
+  <rect x="144" y="180" width="120" height="60" rx="6" fill="#FAF9FF"/>
+  <rect x="156" y="212" width="12" height="20" rx="2" fill="url(#barGrad)"/>
+  <rect x="174" y="200" width="12" height="32" rx="2" fill="url(#barGrad)"/>
+  <rect x="192" y="206" width="12" height="26" rx="2" fill="url(#barGrad)"/>
+  <rect x="210" y="190" width="12" height="42" rx="2" fill="url(#barGrad)"/>
+  <rect x="228" y="196" width="12" height="36" rx="2" fill="#695EEE"/>
+  <rect x="246" y="186" width="12" height="46" rx="2" fill="#695EEE"/>
 
-  <!-- presenter (standing, pointing at the screen) -->
+  <!-- presenter: adult consultant in a blazer, pointing at the screen -->
   <g>
-    <rect x="322" y="300" width="15" height="88" rx="7" fill="#211867"/>
-    <rect x="342" y="300" width="15" height="88" rx="7" fill="#2A1F7A"/>
-    <ellipse cx="327" cy="391" rx="14" ry="6" fill="#111827"/>
-    <ellipse cx="352" cy="391" rx="14" ry="6" fill="#111827"/>
-    <rect x="314" y="208" width="52" height="100" rx="20" fill="#4C3BB7"/>
-    <path d="M330 210 l10 24 l10 -24 z" fill="#FFFFFF"/>
-    <rect x="337" y="226" width="6" height="34" rx="3" fill="#D946EF"/>
-    <path d="M320 226 q-22 -10 -40 -34" fill="none" stroke="#4C3BB7" stroke-width="14" stroke-linecap="round"/>
-    <circle cx="278" cy="189" r="8" fill="#B9774A"/>
-    <path d="M362 226 q12 30 6 58" fill="none" stroke="#4C3BB7" stroke-width="14" stroke-linecap="round"/>
-    <circle cx="368" cy="288" r="7.5" fill="#B9774A"/>
-    <rect x="333" y="186" width="14" height="14" rx="4" fill="#B9774A"/>
-    <circle cx="340" cy="174" r="19" fill="#C98C5E"/>
-    <path d="M321 172 q0 -24 21 -24 q17 0 19 18 q-8 -8 -20 -6 q-12 2 -20 12 z" fill="#1E1B4B"/>
+    <!-- legs and shoes -->
+    <rect x="310" y="290" width="16" height="100" rx="7" fill="#211867"/>
+    <rect x="330" y="290" width="16" height="100" rx="7" fill="#2A1F7A"/>
+    <ellipse cx="314" cy="393" rx="15" ry="6" fill="#111827"/>
+    <ellipse cx="340" cy="393" rx="15" ry="6" fill="#111827"/>
+    <!-- blazer -->
+    <path d="M304 210 q0 -14 14 -16 h20 q14 2 14 16 v86 h-48 z" fill="#4C3BB7"/>
+    <!-- shirt, tie and lapels -->
+    <path d="M318 194 h20 l-10 30 z" fill="#FFFFFF"/>
+    <path d="M326 200 h4 l3 32 l-5 6 l-5 -6 z" fill="#D946EF"/>
+    <path d="M318 194 l10 30 l-14 -6 z M338 194 l-10 30 l14 -6 z" fill="#3A2D9A"/>
+    <!-- pointing arm -->
+    <path d="M308 214 q-20 -8 -36 -32" fill="none" stroke="#4C3BB7" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="270" cy="178" r="7" fill="#B9774A"/>
+    <!-- other arm, holding a clicker -->
+    <path d="M348 214 q10 34 4 64" fill="none" stroke="#4C3BB7" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="352" cy="282" r="6.5" fill="#B9774A"/>
+    <rect x="348" y="284" width="8" height="12" rx="2" fill="#1E1B4B"/>
+    <!-- neck and head -->
+    <rect x="322" y="178" width="12" height="18" rx="4" fill="#B9774A"/>
+    <circle cx="328" cy="164" r="15" fill="#C98C5E"/>
+    <path d="M313 163 q0 -20 16 -20 q15 0 16 15 q-7 -6 -17 -5 q-9 1 -15 10 z" fill="#1E1B4B"/>
   </g>
 
-  <!-- attendee 1 (seated, laptop on lap) -->
+  <!-- meeting table: attendees sit behind it, so only their upper bodies show -->
+  <!-- attendee 1: man in a navy blazer, typing -->
   <g>
-    <path d="M388 374 l-6 34 M440 374 l6 34 M398 374 l2 34" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round"/>
-    <rect x="380" y="362" width="66" height="13" rx="6" fill="#E879F9"/>
-    <path d="M390 300 q-4 -22 10 -30 q10 -4 20 0 q14 8 10 30 v60 h-40 z" fill="#E879F9"/>
-    <rect x="394" y="292" width="40" height="70" rx="16" fill="#FFFFFF"/>
-    <rect x="400" y="350" width="58" height="15" rx="7.5" fill="#1E3A8A"/>
-    <rect x="446" y="354" width="14" height="46" rx="7" fill="#1E3A8A"/>
-    <ellipse cx="458" cy="402" rx="13" ry="5.5" fill="#111827"/>
-    <rect x="410" y="276" width="13" height="14" rx="4" fill="#8D5524"/>
-    <circle cx="416" cy="263" r="17" fill="#8D5524"/>
-    <path d="M399 262 q-1 -21 18 -22 q19 1 17 20 q-6 -10 -18 -9 q-11 1 -17 11 z" fill="#111827"/>
-    <path d="M438 318 l34 -6 l-4 32 l-34 6 z" fill="#2A1F7A"/>
-    <path d="M441 322 l26 -5 l-3 24 l-26 5 z" fill="#8B7CF6"/>
-    <path d="M410 350 l60 -8" stroke="#2A1F7A" stroke-width="5" stroke-linecap="round"/>
-    <path d="M402 312 q8 24 30 34" fill="none" stroke="#FFFFFF" stroke-width="11" stroke-linecap="round"/>
-    <circle cx="434" cy="346" r="5.5" fill="#8D5524"/>
+    <rect x="474" y="214" width="10" height="92" rx="4" fill="#C4B5FD"/>
+    <path d="M436 248 q0 -16 15 -18 h12 q14 2 14 18 v58 h-41 z" fill="#1E3A8A"/>
+    <path d="M448 230 h16 l-8 18 z" fill="#FFFFFF"/>
+    <rect x="451" y="212" width="11" height="16" rx="4" fill="#8D5524"/>
+    <circle cx="456" cy="198" r="14" fill="#8D5524"/>
+    <path d="M442 196 q-1 -18 15 -18 q14 1 14 15 q-6 -7 -15 -6 q-8 1 -14 9 z" fill="#111827"/>
+    <path d="M440 252 q-16 22 -40 40" fill="none" stroke="#1E3A8A" stroke-width="11" stroke-linecap="round"/>
+    <circle cx="398" cy="293" r="5.5" fill="#8D5524"/>
   </g>
 
-  <!-- attendee 2 (seated, with a question) -->
+  <!-- attendee 2: woman with a question, hand raised -->
   <g>
-    <path d="M478 334 l-6 34 M528 334 l6 34" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round"/>
-    <rect x="470" y="322" width="64" height="12" rx="6" fill="#E879F9"/>
-    <path d="M480 262 q-4 -20 10 -28 q10 -4 20 0 q14 8 10 28 v60 h-40 z" fill="#E879F9"/>
-    <rect x="484" y="256" width="38" height="68" rx="16" fill="#15803D"/>
-    <rect x="474" y="312" width="52" height="15" rx="7.5" fill="#B45309"/>
-    <rect x="474" y="316" width="14" height="46" rx="7" fill="#B45309"/>
-    <ellipse cx="478" cy="364" rx="13" ry="5.5" fill="#111827"/>
-    <rect x="498" y="240" width="12" height="14" rx="4" fill="#E0AC69"/>
-    <circle cx="503" cy="228" r="16" fill="#E0AC69"/>
-    <path d="M487 228 q-2 -22 17 -22 q18 1 16 21 l-4 10 q0 -12 -12 -16 q-10 -2 -17 7 z" fill="#7C2D12"/>
-    <path d="M490 274 q-14 18 2 28" fill="none" stroke="#15803D" stroke-width="10" stroke-linecap="round"/>
-    <rect x="488" y="294" width="14" height="22" rx="3" fill="#1E1B4B"/>
-    <path d="M518 272 q14 -16 4 -40" fill="none" stroke="#15803D" stroke-width="10" stroke-linecap="round"/>
-    <circle cx="521" cy="230" r="6" fill="#E0AC69"/>
+    <rect x="618" y="214" width="10" height="92" rx="4" fill="#C4B5FD"/>
+    <path d="M580 248 q0 -16 15 -18 h12 q14 2 14 18 v58 h-41 z" fill="#15803D"/>
+    <path d="M592 230 h16 l-8 14 z" fill="#FDE68A"/>
+    <rect x="595" y="212" width="11" height="16" rx="4" fill="#E0AC69"/>
+    <!-- long hair behind the head -->
+    <path d="M590 200 q-2 -24 22 -24 q18 2 16 24 q0 18 -4 30 h-22 q4 -14 -12 -30 z" fill="#7C2D12"/>
+    <circle cx="600" cy="198" r="14" fill="#E0AC69"/>
+    <path d="M586 197 q-1 -19 16 -19 q14 1 14 14 q-7 -7 -16 -6 q-8 1 -14 11 z" fill="#7C2D12"/>
+    <!-- raised hand -->
+    <path d="M618 244 q22 -24 26 -78" fill="none" stroke="#15803D" stroke-width="11" stroke-linecap="round"/>
+    <circle cx="644" cy="162" r="6.5" fill="#E0AC69"/>
+    <!-- other arm on the table -->
+    <path d="M584 254 q-14 20 -34 36" fill="none" stroke="#15803D" stroke-width="11" stroke-linecap="round"/>
+    <circle cx="548" cy="291" r="5.5" fill="#E0AC69"/>
   </g>
 
   <!-- question bubble -->
   <g filter="url(#soft)">
-    <circle cx="456" cy="196" r="20" fill="#FFFFFF"/>
+    <circle cx="640" cy="112" r="20" fill="#FFFFFF"/>
   </g>
-  <text x="456" y="204" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#D946EF">?</text>
+  <text x="640" y="120" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#D946EF">?</text>
+
+  <!-- laptops on the table (lids face the attendees) -->
+  <g>
+    <path d="M392 296 h46 v4 h-46 z" fill="#C4BDF7"/>
+    <path d="M392 296 l-8 -30 h6 l8 30 z" fill="#2A1F7A"/>
+    <path d="M536 296 h46 v4 h-46 z" fill="#C4BDF7"/>
+    <path d="M536 296 l-8 -30 h6 l8 30 z" fill="#2A1F7A"/>
+    <!-- coffee cup -->
+    <rect x="500" y="284" width="14" height="16" rx="3" fill="#FFFFFF"/>
+    <path d="M514 288 q7 0 7 5 q0 5 -7 5" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+  </g>
+
+  <!-- table top, front panel and legs -->
+  <rect x="372" y="300" width="290" height="12" rx="4" fill="#DDD6FE"/>
+  <rect x="384" y="312" width="266" height="58" rx="4" fill="url(#tableFront)"/>
+  <rect x="384" y="312" width="266" height="6" fill="#3A2D9A" opacity=".35"/>
+  <rect x="396" y="370" width="10" height="24" rx="3" fill="#2A1F7A"/>
+  <rect x="628" y="370" width="10" height="24" rx="3" fill="#2A1F7A"/>
+  <!-- adwiseri-style mark on the table front -->
+  <g fill="#FFFFFF" opacity=".25">
+    <rect x="506" y="332" width="22" height="6" rx="3" transform="rotate(-40 517 335)"/>
+    <rect x="514" y="340" width="22" height="6" rx="3" transform="rotate(-40 525 343)"/>
+  </g>
 
   <!-- plant -->
   <g>
-    <path d="M70 360 q-26 -30 -6 -56 q14 22 6 56 z" fill="#C4B5FD"/>
-    <path d="M78 360 q4 -40 34 -48 q-2 30 -34 48 z" fill="#A78BFA"/>
-    <path d="M74 362 q-34 -12 -42 -38 q30 2 42 38 z" fill="#E9D5FF"/>
-    <path d="M58 360 h40 l-6 34 h-28 z" fill="#4C3BB7"/>
+    <path d="M56 360 q-26 -30 -6 -56 q14 22 6 56 z" fill="#C4B5FD"/>
+    <path d="M64 360 q4 -40 34 -48 q-2 30 -34 48 z" fill="#A78BFA"/>
+    <path d="M60 362 q-34 -12 -42 -38 q30 2 42 38 z" fill="#E9D5FF"/>
+    <path d="M44 360 h40 l-6 34 h-28 z" fill="#4C3BB7"/>
   </g>
 
   <!-- pencil -->
-  <g transform="rotate(18 150 410)">
-    <rect x="110" y="404" width="80" height="9" rx="2" fill="#2A1F7A"/>
-    <path d="M190 404 l14 4.5 l-14 4.5 z" fill="#F0ABFC"/>
-    <rect x="104" y="404" width="8" height="9" rx="2" fill="#D946EF"/>
+  <g transform="rotate(14 160 412)">
+    <rect x="120" y="406" width="80" height="9" rx="2" fill="#2A1F7A"/>
+    <path d="M200 406 l14 4.5 l-14 4.5 z" fill="#F0ABFC"/>
+    <rect x="114" y="406" width="8" height="9" rx="2" fill="#D946EF"/>
   </g>
 
   <!-- sparkles -->
-  <path d="M352 104 l3 7 l7 3 l-7 3 l-3 7 l-3 -7 l-7 -3 l7 -3 z" fill="#D946EF"/>
-  <path d="M520 150 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z" fill="#8B7CF6"/>
-  <path d="M28 268 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z" fill="#8B7CF6"/>
+  <path d="M372 112 l3 7 l7 3 l-7 3 l-3 7 l-3 -7 l-7 -3 l7 -3 z" fill="#D946EF"/>
+  <path d="M532 130 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z" fill="#8B7CF6"/>
+  <path d="M16 270 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z" fill="#8B7CF6"/>
 </svg>

@@ -884,7 +884,7 @@
                 </div>
                 <div class="tab-pane fade" id="email-template" role="tabpanel" aria-labelledby="email-template-tab">
                     <div class="row p-1 m-0">
-                        <p class="m-0 p-1" style="font-size:18px;font-weight: 550;">Email Template</p>
+                        <p class="m-0 p-1" style="font-size:18px;font-weight: 550;">Email Templates</p>
                     </div>
                     <form id="email-template-form">
                         @csrf

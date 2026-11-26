@@ -16,7 +16,7 @@
 <div class="container form-page demo-request-page">
     <div class="row justify-content-center align-items-center g-4">
         <div class="col-lg-5 d-none d-lg-flex demo-request-art" aria-hidden="true">
-            <img src="{{ asset('web_assets/images/demo-illustration.svg') }}?v=20261125a" alt="" width="520" height="440">
+            <img src="{{ asset('web_assets/images/demo-illustration.svg') }}?v=20261126a" alt="" width="680" height="460">
         </div>
         <div class="col-lg-7 col-md-10 col-sm-12">
             <form id="registration_form" class="register-box login-box mt-5" method="POST" action="{{ route('demo_post') }}">

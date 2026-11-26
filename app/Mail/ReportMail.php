@@ -28,6 +28,14 @@ class ReportMail extends Mailable
 
         if ($template && !empty(trim((string) $template->body))) {
             $payload = BrandedMail::dataFromObject($data);
+            // The Reports template says "Your {{consultancy_name}}'s Report(s) are ready"; this email
+            // never supplied it, so the placeholder went out as literal text.
+            if (!$owner && !empty($payload['id'])) {
+                $owner = \App\Models\User::find($payload['id']);
+            }
+            if (empty($payload['consultancy_name'])) {
+                $payload['consultancy_name'] = trim((string) ($owner->organization ?? '')) ?: ($payload['name'] ?? 'your consultancy');
+            }
             $content = BrandedMail::replacePlaceholders($template->body, $payload);
             $subject = BrandedMail::replacePlaceholders($template->subject ?: $defaultSubject, $payload);
         } else {
